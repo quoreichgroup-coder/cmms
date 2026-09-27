@@ -1579,7 +1579,7 @@ const deJSON = {
     get_your_license: "Hol dir deinen Führerschein",
     title: "Preise",
     description:
-      "Flexible Preispläne für Atlas CMMS. Wählen Sie zwischen Cloud- und selbstgehosteten Versionen unseres Open-Source-CMMS, um Ihre Wartungsarbeiten zu optimieren.",
+      "Flexible Preispläne für QPM. Wählen Sie zwischen Cloud- und selbstgehosteten Versionen unseres Open-Source-CMMS, um Ihre Wartungsarbeiten zu optimieren.",
   },
   get_started: "Los geht's",
   workflow_automation: "Workflow-Automatisierung",
@@ -1656,9 +1656,9 @@ const deJSON = {
   },
   overview_1: {
     description:
-      "Atlas CMMS ist ein kostenloses Open-Source-CMMS zur Verwaltung von Arbeitsaufträgen, vorbeugender Wartung, Anlagen und Einrichtungen. Optimieren Sie noch heute Ihre Wartungsarbeiten.",
+      "QPM ist ein kostenloses Open-Source-CMMS zur Verwaltung von Arbeitsaufträgen, vorbeugender Wartung, Anlagen und Einrichtungen. Optimieren Sie noch heute Ihre Wartungsarbeiten.",
     keywords:
-      "CMMS, computergestütztes wartungsmanagementsystem, EAM, enterprise asset management, open-source-cmms, kostenlose wartungssoftware, arbeitsauftragsverwaltung, vorbeugende wartung, anlagenverfolgung, facility management, wartungsverfolgungssoftware, gerätewartung, Atlas CMMS",
+      "CMMS, computergestütztes wartungsmanagementsystem, EAM, enterprise asset management, open-source-cmms, kostenlose wartungssoftware, arbeitsauftragsverwaltung, vorbeugende wartung, anlagenverfolgung, facility management, wartungsverfolgungssoftware, gerätewartung, QPM",
   },
   prefer_one_time_purchase: "Bezahlen Sie lieber einmal? Unbefristete Lizenzen sind zum 36-fachen des monatlichen Preises erhältlich.",
 };

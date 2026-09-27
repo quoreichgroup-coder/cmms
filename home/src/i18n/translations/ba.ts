@@ -1597,7 +1597,7 @@ const locale = {
     get_your_license: "Preuzmite licencu",
     title: "Cijene",
     description:
-      "Fleksibilni planovi cijena za Atlas CMMS. Birajte između Cloud i Self-Hosted verzija našeg CMMS-a otvorenog koda kako biste optimizirali svoje operacije održavanja.",
+      "Fleksibilni planovi cijena za QPM. Birajte između Cloud i Self-Hosted verzija našeg CMMS-a otvorenog koda kako biste optimizirali svoje operacije održavanja.",
   },
   get_started: "Započnite",
   workflow_automation: "Automatizacija toka posla",
@@ -1622,7 +1622,7 @@ const locale = {
   trusted_by_maintenance_teams: "Vjeruju nam timovi za održavanje u više industrija",
   cut_costs_performance: "Smanjite troškove softvera za održavanje bez žrtvovanja performansi",
   free_cmms: {
-    title: "Atlas Besplatni CMMS Softver | Nije potrebna kreditna kartica",
+    title: "QPM Besplatni CMMS Softver | Nije potrebna kreditna kartica",
     description:
       "Besplatni CMMS softver — nije probni period. Upravljajte održavanjem, imovinom i radnim nalozima odmah. Nije potrebna kreditna kartica.",
     keywords:
@@ -1674,9 +1674,9 @@ const locale = {
   },
   overview_1: {
     description:
-      "Atlas CMMS je besplatni CMMS otvorenog koda za upravljanje radnim nalozima, preventivnim održavanjem, sredstvima i objektima. Pojednostavite operacije održavanja već danas.",
+      "QPM je besplatni CMMS otvorenog koda za upravljanje radnim nalozima, preventivnim održavanjem, sredstvima i objektima. Pojednostavite operacije održavanja već danas.",
     keywords:
-      "CMMS, kompjuterizovani sistem upravljanja održavanjem, EAM, upravljanje poslovnom imovinom, CMMS otvorenog koda, besplatni softver za održavanje, upravljanje radnim nalozima, preventivno održavanje, praćenje sredstava, upravljanje objektima, softver za praćenje održavanja, održavanje opreme, Atlas CMMS",
+      "CMMS, kompjuterizovani sistem upravljanja održavanjem, EAM, upravljanje poslovnom imovinom, CMMS otvorenog koda, besplatni softver za održavanje, upravljanje radnim nalozima, preventivno održavanje, praćenje sredstava, upravljanje objektima, softver za praćenje održavanja, održavanje opreme, QPM",
   },
   main: {
     title: "Besplatni CMMS otvorenog koda (Softver za upravljanje održavanjem)",

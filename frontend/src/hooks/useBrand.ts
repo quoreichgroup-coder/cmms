@@ -17,8 +17,8 @@ interface BrandConfig extends BrandRawConfig {
 }
 export function useBrand(): BrandConfig {
   const defaultBrand: Omit<BrandConfig, 'logo'> = {
-    name: 'Atlas CMMS',
-    shortName: 'Atlas',
+    name: 'QPM',
+    shortName: 'QPM',
     website: 'https://www.atlas-cmms.com',
     mail: 'contact@atlas-cmms.com',
     phone: '+212 6 30 69 00 50',

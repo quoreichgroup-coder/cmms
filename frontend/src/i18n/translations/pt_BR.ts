@@ -1751,18 +1751,18 @@ const ptBRJSON = {
   cut_costs_performance:
     'Reduza os custos de software de manutenção sem sacrificar o desempenho',
   'free_cmms.title':
-    'Software CMMS Grátis Atlas | Sem necessidade de cartão de crédito',
+    'Software CMMS Grátis QPM | Sem necessidade de cartão de crédito',
   'free_cmms.description':
     'Software CMMS gratuito — não é uma versão de teste. Gerencie manutenção, ativos e ordens de serviço instantaneamente. Sem necessidade de cartão de crédito.',
   'free_cmms.keywords':
     'cmms grátis, software de gestão de manutenção, software de ordens de serviço grátis, rastreamento de ativos, manutenção preventiva',
   'overview.description':
-    'O Atlas CMMS é um CMMS gratuito e de código aberto para gerenciar ordens de serviço, manutenção preventiva, ativos e instalações. Simplifique suas operações de manutenção hoje mesmo.',
+    'O QPM é um CMMS gratuito e de código aberto para gerenciar ordens de serviço, manutenção preventiva, ativos e instalações. Simplifique suas operações de manutenção hoje mesmo.',
   'overview.keywords':
-    'CMMS, sistema informatizado de gestão de manutenção, EAM, gestão de ativos empresariais, cmms de código aberto, software de manutenção gratuito, gestão de ordens de serviço, manutenção preventiva, rastreamento de ativos, gestão de instalações, software de rastreamento de manutenção, manutenção de equipamentos, Atlas CMMS',
-  'pricing.title': 'Preços - Atlas CMMS',
+    'CMMS, sistema informatizado de gestão de manutenção, EAM, gestão de ativos empresariais, cmms de código aberto, software de manutenção gratuito, gestão de ordens de serviço, manutenção preventiva, rastreamento de ativos, gestão de instalações, software de rastreamento de manutenção, manutenção de equipamentos, QPM',
+  'pricing.title': 'Preços - QPM',
   'pricing.description':
-    'Planos de preços flexíveis para o Atlas CMMS. Escolha entre as versões Cloud e Self-Hosted do nosso CMMS de código aberto para otimizar suas operações de manutenção.',
+    'Planos de preços flexíveis para o QPM. Escolha entre as versões Cloud e Self-Hosted do nosso CMMS de código aberto para otimizar suas operações de manutenção.',
   'free_cmms.hero.subtitle': 'Software CMMS Grátis',
   'free_cmms.hero.title':
     'Gerencie Ordens de Serviço e Ativos - Grátis para Sempre',

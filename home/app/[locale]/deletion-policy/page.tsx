@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: "Account deletion",
     description:
-      "Information on how to delete your account in Atlas CMMS. We provide clear steps for data removal and account closure.",
+      "Information on how to delete your account in QPM. We provide clear steps for data removal and account closure.",
     alternates: getLocalizedMetadata(locale, "/deletion-policy"),
   };
 }

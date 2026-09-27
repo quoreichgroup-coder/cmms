@@ -1,8 +1,8 @@
-import { Box, styled, Tooltip } from '@mui/material';
+import { Box, styled } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { homeUrl } from '../../config';
 import { getLocalizedHomeUrl } from '../../utils/urlPaths';
+import { useBrand } from '../../hooks/useBrand';
 
 const LogoWrapper = styled(Link)(
   ({ theme }) => `
@@ -16,79 +16,17 @@ const LogoWrapper = styled(Link)(
 
 const LogoSignWrapper = styled(Box)(
   () => `
-        width: 52px;
-        height: 38px;
-        margin-top: 4px;
-        transform: scale(.8);
-`
-);
-
-const LogoSign = styled(Box)(
-  ({ theme }) => `
-        background: ${theme.general.reactFrameworkColor};
-        width: 18px;
-        height: 18px;
-        border-radius: ${theme.general.borderRadiusSm};
-        position: relative;
-        transform: rotate(45deg);
-        top: 3px;
-        left: 17px;
-
-        &:after, 
-        &:before {
-            content: "";
-            display: block;
-            width: 18px;
-            height: 18px;
-            position: absolute;
-            top: -1px;
-            right: -20px;
-            transform: rotate(0deg);
-            border-radius: ${theme.general.borderRadiusSm};
-        }
-
-        &:before {
-            background: ${theme.palette.primary.main};
-            right: auto;
-            left: 0;
-            top: 20px;
-        }
-
-        &:after {
-            background: ${theme.palette.secondary.main};
-        }
-`
-);
-
-const LogoSignInner = styled(Box)(
-  ({ theme }) => `
-        width: 16px;
-        height: 16px;
-        position: absolute;
-        top: 12px;
-        left: 12px;
-        z-index: 5;
-        border-radius: ${theme.general.borderRadiusSm};
-        background: ${theme.header.background};
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 `
 );
 
 const LogoTextWrapper = styled(Box)(
   ({ theme }) => `
         padding-left: ${theme.spacing(1)};
-`
-);
-
-const VersionBadge = styled(Box)(
-  ({ theme }) => `
-        background: ${theme.palette.success.main};
-        color: ${theme.palette.success.contrastText};
-        padding: ${theme.spacing(0.4, 1)};
-        border-radius: ${theme.general.borderRadiusSm};
-        text-align: center;
-        display: inline-block;
-        line-height: 1;
-        font-size: ${theme.typography.pxToRem(11)};
 `
 );
 
@@ -100,14 +38,18 @@ const LogoText = styled(Box)(
 );
 
 function Logo() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
+  const { logo, shortName } = useBrand();
 
   return (
     <LogoWrapper to={getLocalizedHomeUrl('', i18n.language)}>
       <LogoSignWrapper>
-        <LogoSign>
-          <LogoSignInner />
-        </LogoSign>
+        <Box
+          component="img"
+          src={logo.dark}
+          alt={`${shortName} logo`}
+          sx={{ width: 40, height: 40, objectFit: 'contain' }}
+        />
       </LogoSignWrapper>
       <Box
         component="span"
@@ -116,10 +58,7 @@ function Logo() {
         }}
       >
         <LogoTextWrapper>
-          <Tooltip title={t('Version') + ' 3.1'} arrow placement="right">
-            <VersionBadge>3.1</VersionBadge>
-          </Tooltip>
-          <LogoText>Tokyo</LogoText>
+          <LogoText>{shortName}</LogoText>
         </LogoTextWrapper>
       </Box>
     </LogoWrapper>

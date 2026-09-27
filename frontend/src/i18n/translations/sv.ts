@@ -1691,18 +1691,18 @@ const locale = {
   trusted_by_maintenance_teams: 'Betrodd av underhållsteam i flera branscher',
   cut_costs_performance:
     'Sänk kostnaderna för underhållsprogramvara utan att offra prestanda',
-  'free_cmms.title': 'Atlas Gratis CMMS-programvara | Inget kreditkort krävs',
+  'free_cmms.title': 'QPM Gratis CMMS-programvara | Inget kreditkort krävs',
   'free_cmms.description':
     'Gratis CMMS-programvara — inte en testversion. Hantera underhåll, tillgångar och arbetsordrar omedelbart. Inget kreditkort krävs.',
   'free_cmms.keywords':
     'gratis cmms, programvara för underhållshantering, gratis arbetsorderprogramvara, tillgångsspårning, förebyggande underhåll',
   'overview.description':
-    'Atlas CMMS är ett gratis, open-source CMMS för att hantera arbetsordrar, förebyggande underhåll, tillgångar och anläggningar. Effektivisera din underhållsverksamhet idag.',
+    'QPM är ett gratis, open-source CMMS för att hantera arbetsordrar, förebyggande underhåll, tillgångar och anläggningar. Effektivisera din underhållsverksamhet idag.',
   'overview.keywords':
-    'CMMS, datoriserat underhållssystem, EAM, enterprise asset management, open source cmms, gratis underhållsprogramvara, arbetsorderhantering, förebyggande underhåll, tillgångsspårning, fastighetsförvaltning, programvara för underhållsspårning, utrustningsunderhåll, Atlas CMMS',
-  'pricing.title': 'Prissättning - Atlas CMMS',
+    'CMMS, datoriserat underhållssystem, EAM, enterprise asset management, open source cmms, gratis underhållsprogramvara, arbetsorderhantering, förebyggande underhåll, tillgångsspårning, fastighetsförvaltning, programvara för underhållsspårning, utrustningsunderhåll, QPM',
+  'pricing.title': 'Prissättning - QPM',
   'pricing.description':
-    'Flexibla prisplaner för Atlas CMMS. Välj mellan Cloud- och Self-Hosted-versioner av vårt open-source CMMS för att optimera din underhållsverksamhet.',
+    'Flexibla prisplaner för QPM. Välj mellan Cloud- och Self-Hosted-versioner av vårt open-source CMMS för att optimera din underhållsverksamhet.',
   'free_cmms.hero.subtitle': 'Gratis CMMS-programvara',
   'free_cmms.hero.title':
     'Hantera Arbetsordrar och Tillgångar - Gratis för alltid',

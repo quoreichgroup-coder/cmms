@@ -1365,7 +1365,7 @@ const trJSON = {
   "Sign out": "Bağlantıyı kes",
   "Change Theme": "Temayı değiştir",
   "View all notifications": "Tüm bildirimleri göster",
-  "Tokyo NextJS Typescript Admin Dashboard": "Tokyo React Yönetici Kontrol Paneli",
+  "Tokyo NextJS Typescript Admin Dashboard": "QPM bakım yönetimi",
   "High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes":
     "Hızlı ve mükemmel uygulama geliştirme süreçleri için birden fazla ürün yelpazesinde birçok güçlü Material-UI bileşeniyle oluşturulmuş yüksek performanslı React şablonu",
   "Browse Live Preview": "Canlı önizlemeye göz atın",
@@ -1377,7 +1377,7 @@ const trJSON = {
   "dark/light themes": "koyu/açık temalar",
   components: "bileşenler",
   "Some of the features that make Tokyo one of the best admin templates available today":
-    "Tokyo'yu günümüzün en iyi yönetici şablonlarından biri yapan özelliklerden bazıları",
+      "QPM uygulamasının bazı özellikleri",
   "Design Source Files": "Kaynak dosyalarını tasarlayın",
   "Start working on your project directly from one of the included starter kits or use the Figma/Sketch files to create a prototype first":
     "Birlikte verilen başlangıç ​​kitlerinden birinden doğrudan projeniz üzerinde çalışmaya başlayın veya önce bir prototip oluşturmak için Figma/Sketch dosyalarını kullanın",
@@ -1618,7 +1618,7 @@ const trJSON = {
     get_your_license: "Ehliyetinizi alın",
     title: "Fiyatlandırma",
     description:
-      "Atlas CMMS için esnek fiyatlandırma planları. Bakım operasyonlarınızı optimize etmek için açık kaynaklı CMMS'mizin Bulut ve Kendi Sunucunuzda Barındırılan sürümleri arasından seçim yapın.",
+      "QPM için esnek fiyatlandırma planları. Bakım operasyonlarınızı optimize etmek için açık kaynaklı CMMS'mizin Bulut ve Kendi Sunucunuzda Barındırılan sürümleri arasından seçim yapın.",
   },
   get_started: "Başlayın",
   workflow_automation: "İş Akışı Otomasyonu",
@@ -1692,9 +1692,9 @@ const trJSON = {
   },
   overview_1: {
     description:
-      "Atlas CMMS, iş emirlerini, önleyici bakımı, varlıkları ve tesisleri yönetmek için ücretsiz, açık kaynaklı bir CMMS'dir. Bakım operasyonlarınızı bugün kolaylaştırın.",
+      "QPM, iş emirlerini, önleyici bakımı, varlıkları ve tesisleri yönetmek için ücretsiz, açık kaynaklı bir CMMS'dir. Bakım operasyonlarınızı bugün kolaylaştırın.",
     keywords:
-      "CMMS, bilgisayarlı bakım yönetim sistemi, EAM, kurumsal varlık yönetimi, açık kaynaklı CMMS, ücretsiz bakım yazılımı, iş emri yönetimi, önleyici bakım, varlık takibi, tesis yönetimi, bakım takip yazılımı, ekipman bakımı, Atlas CMMS",
+      "CMMS, bilgisayarlı bakım yönetim sistemi, EAM, kurumsal varlık yönetimi, açık kaynaklı CMMS, ücretsiz bakım yazılımı, iş emri yönetimi, önleyici bakım, varlık takibi, tesis yönetimi, bakım takip yazılımı, ekipman bakımı, QPM",
   },
   prefer_one_time_purchase: "Tek seferlik satın almayı mı tercih edersiniz? Süresiz lisanslar aylık ücretin 36 katına mevcuttur.",
 };

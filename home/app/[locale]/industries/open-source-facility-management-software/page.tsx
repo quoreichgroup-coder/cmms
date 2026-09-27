@@ -76,12 +76,12 @@ const facilityManagementData: IndustryLayoutProps = {
 
   testimonials: [
     {
-      text: "Atlas CMMS has been a game-changer for bridging my operations between Canada and the Philippines, keeping my teams synchronized regardless of the distance. It’s an incredibly reliable tool that has brought a new level of organization and professional consistency to my international workflow",
+      text: "QPM has been a game-changer for bridging my operations between Canada and the Philippines, keeping my teams synchronized regardless of the distance. It’s an incredibly reliable tool that has brought a new level of organization and professional consistency to my international workflow",
       author: "Grant Forsyth",
       company: "Adventure Mechanical",
     },
     {
-      text: "Being able to self-host Atlas CMMS was a decisive factor for our IT and compliance requirements.",
+      text: "Being able to self-host QPM was a decisive factor for our IT and compliance requirements.",
       author: "Technical Lead",
       company: "Infrastructure Services",
     },
@@ -89,19 +89,19 @@ const facilityManagementData: IndustryLayoutProps = {
 
   faqs: [
     {
-      question: "What makes Atlas CMMS different from other CMMS tools?",
+      question: "What makes QPM different from other CMMS tools?",
       answer:
-        "Atlas CMMS is open source, self-hostable, and designed for organizations that want full control over their data, workflows, and infrastructure.",
+        "QPM is open source, self-hostable, and designed for organizations that want full control over their data, workflows, and infrastructure.",
     },
     {
-      question: "Is Atlas CMMS suitable for facility maintenance?",
+      question: "Is QPM suitable for facility maintenance?",
       answer:
-        "Yes. Atlas CMMS supports buildings, equipment, locations, preventive maintenance, corrective work orders, and multi-site operations.",
+        "Yes. QPM supports buildings, equipment, locations, preventive maintenance, corrective work orders, and multi-site operations.",
     },
     {
-      question: "Can Atlas CMMS be deployed on-premise?",
+      question: "Can QPM be deployed on-premise?",
       answer:
-        "Absolutely. Atlas CMMS can run fully on-premise using Docker, or be deployed in the cloud depending on your needs.",
+        "Absolutely. QPM can run fully on-premise using Docker, or be deployed in the cloud depending on your needs.",
     },
   ],
 

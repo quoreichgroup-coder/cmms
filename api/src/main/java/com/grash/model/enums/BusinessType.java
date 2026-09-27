@@ -15,5 +15,8 @@ public enum BusinessType {
     PHYSICAL_ASSET_MANAGEMENT,
     PROPERTY_MANAGEMENT,
     RESTAURANT_MANAGEMENT,
-    SCHOOL_MAINTENANCE
+    SCHOOL_MAINTENANCE,
+    // Keep new values at the end: this enum is persisted as a SMALLINT.
+    MINING_MANAGEMENT,
+    CONSTRUCTION_MANAGEMENT
 }

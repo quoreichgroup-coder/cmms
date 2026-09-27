@@ -14,8 +14,8 @@
   COMPLETE: 'Tamamlanmış',
   'home.built': 'Bakım Yönetimini Kolaylaştırmak için Tasarlandı',
   home_description:
-    "Beyaz tahtalar ve yapışkan notlar kaosa dönüştüğünde ve ekibinizin gerçekten kullanabileceği kadar kolay bir CMMS yazılımına ihtiyaç duyduğunuzda Atlas'ı deneyin",
-  try_grash: "Atlas'ı deneyin",
+    "Beyaz tahtalar ve yapışkan notlar kaosa dönüştüğünde ve ekibinizin gerçekten kullanabileceği kadar kolay bir CMMS yazılımına ihtiyaç duyduğunuzda QPM'ı deneyin",
+  try_grash: "QPM'ı deneyin",
   login: 'Giriş',
   start_trial: 'Ücretsiz denemeyi başlatın',
   'home.what': 'Ne',
@@ -24,7 +24,7 @@
     'Bakımın kontrolünü size veren verimli, güvenilir iş akışları oluşturun. ',
   key_features: 'Ana Özellikler',
   key_features_description:
-    "Atlas'ı günümüzün en iyi CMMS'lerinden biri yapan özelliklerden bazıları",
+    "QPM'ı günümüzün en iyi CMMS'lerinden biri yapan özelliklerden bazıları",
   contribute: 'Katkıda bulun',
   work_orders: 'İş Emirleri',
   request_system: 'İş Talep Sistemi',
@@ -38,7 +38,7 @@
   'work-orders.descriptions.0':
     'Bir yığın evraktan ve kayıp İş Emirlerinden bıktınız mı? ',
   'work-orders.descriptions.1':
-    "Atlas ile ekibinizdeki tüm İş Emirlerinizi, PM'lerinizi ve diğer Görevlerinizi, herhangi bir cihazdan herhangi bir yerden erişilebilen merkezi bir veritabanında kolayca ve hızlı bir şekilde düzenleyebilirsiniz.",
+    "QPM ile ekibinizdeki tüm İş Emirlerinizi, PM'lerinizi ve diğer Görevlerinizi, herhangi bir cihazdan herhangi bir yerden erişilebilen merkezi bir veritabanında kolayca ve hızlı bir şekilde düzenleyebilirsiniz.",
   'work-orders.checks.0':
     "WO'lar, PM'ler ve İş Talepleri dahil tüm Görevlerinizi görüntüleyin",
   'work-orders.checks.1':
@@ -53,7 +53,7 @@
   'work-requests.descriptions.0':
     'KAYIP biletlere, sürekli günlük kesintilere ve mükerrer işlere yol açan eski telefon ve e-posta sistemini kullanmaktan bıktınız mı?',
   'work-requests.descriptions.1':
-    "Atlas'ın bakım yönetimi çözümü, yetkilendirdiğiniz herkesin, yalnızca bir QR kodunu (barkod) tarayarak veya bir URL'yi ziyaret edip mobil cihazları aracılığıyla isteklerini yazarak bakım departmanınıza sorun göndermesine olanak tanır.",
+    "QPM'ın bakım yönetimi çözümü, yetkilendirdiğiniz herkesin, yalnızca bir QR kodunu (barkod) tarayarak veya bir URL'yi ziyaret edip mobil cihazları aracılığıyla isteklerini yazarak bakım departmanınıza sorun göndermesine olanak tanır.",
   'work-requests.checks.0': "İş'i bir daha asla kaybetmeyin.",
   'work-requests.checks.1':
     "İş Taleplerini işlemeye harcanan zamanı %34'e kadar azaltın.",
@@ -78,7 +78,7 @@
   'eam.descriptions.0':
     'Şirketin ekipmanlarının kaotik karmaşasını organize etmeye çalışmaktan, ekipmana gereken bakımın yapılıp yapılmadığını merak etmekten, bakımının ne kadara mal olacağını bilmemekten ve varlık yönetiminin getirdiği tüm diğer baş ağrılarından bıktınız mı?',
   'eam.descriptions.1':
-    "Atlas CMMS'nin Kurumsal Varlık Yönetimi modülü, 10 ila 1.000.000 Varlık arasında herhangi bir yerde kullanılabilir ve kullanımı kolay ve aranabilir bir ağaç yapısında tam olarak ne istediğinizi, istediğiniz şekilde izlemenize olanak tanır.",
+    "QPM'nin Kurumsal Varlık Yönetimi modülü, 10 ila 1.000.000 Varlık arasında herhangi bir yerde kullanılabilir ve kullanımı kolay ve aranabilir bir ağaç yapısında tam olarak ne istediğinizi, istediğiniz şekilde izlemenize olanak tanır.",
   'eam.checks.0':
     'Varlıklarınızın sağlığını ve size ne kadara mal olduklarını her zaman öğrenin',
   'eam.checks.1': 'Tam ve ayrıntılı Bakım Günlüklerini görüntüleyin.',
@@ -92,7 +92,7 @@
   'pm.descriptions.0':
     'Değerli saatlerinizi PM kontrol listelerini manuel olarak dağıtarak ve işin tamamlandığından emin olmak için ekibinizle takip ederek boşa harcamayı bırakın.',
   'pm.descriptions.1':
-    'Atlas, PM planlamasını kolaylıkla otomatikleştirmenize olanak tanır; böylece doğru iş, doğru Varlık için doğru zamanda, doğru teknisyene otomatik olarak teslim edilir.',
+    'QPM, PM planlamasını kolaylıkla otomatikleştirmenize olanak tanır; böylece doğru iş, doğru Varlık için doğru zamanda, doğru teknisyene otomatik olarak teslim edilir.',
   'pm.checks.0':
     'PM planlamasını günlük, haftalık, aylık, yıllık veya olaylara veya Ölçer okumalarına dayalı olacak şekilde otomatikleştirin.',
   'pm.checks.1':
@@ -108,7 +108,7 @@
   'part.descriptions.0':
     'Stokta hangi parçaların bulunduğundan veya bunların nerede kullanıldığından emin değil misiniz? ',
   'part.descriptions.1':
-    "Atlas'ın parça yönetimini bu sorunları ve daha fazlasını çözmek için tasarladık:",
+    "QPM'ın parça yönetimini bu sorunları ve daha fazlasını çözmek için tasarladık:",
   'part.checks.0':
     'Bir parçanın miktarı azaldığında anında push ve e-posta bildirimleri alın. ',
   'part.checks.1':
@@ -123,9 +123,9 @@
   'dashboard.descriptions.0':
     'Kabul edelim ki operasyonlarınızı iyileştirmenin ilk adımı iyiyi, kötüyü ve çirkini bilmektir.',
   'dashboard.descriptions.1':
-    'Atlas\'ın Özel Kontrol Panelleri ile nihayet bu kötü niyetli "bakım kara deliğini" anlamaya başlayabilir ve veri destekli planları eyleme geçirmeye başlayabilirsiniz, bu da işçilik maliyetlerinin azalmasına, arıza sürelerinin azalmasına ve daha fazlasına yol açabilir.',
+    'QPM\'ın Özel Kontrol Panelleri ile nihayet bu kötü niyetli "bakım kara deliğini" anlamaya başlayabilir ve veri destekli planları eyleme geçirmeye başlayabilirsiniz, bu da işçilik maliyetlerinin azalmasına, arıza sürelerinin azalmasına ve daha fazlasına yol açabilir.',
   'dashboard.descriptions.2':
-    "Atlas'ın Özel Kontrol Panelleri ile şunları elde edeceksiniz:",
+    "QPM'ın Özel Kontrol Panelleri ile şunları elde edeceksiniz:",
   'dashboard.checks.0': 'Paranızın nereye ve neden harcandığını bilin',
   'dashboard.checks.1':
     'Hangi varlığın en çok maliyetli olduğunu ve nedenini öğrenin',
@@ -133,12 +133,12 @@
   'dashboard.checks.3':
     'Metriğinize göre otomatik olarak oluşturulan ve güncellenen raporları görüntüleyin',
   'dashboard.checks.4':
-    "Excel sayfaları, PDF'ler veya Atlas aracılığıyla kolayca paylaşılan raporları görüntüleyin",
+    "Excel sayfaları, PDF'ler veya QPM aracılığıyla kolayca paylaşılan raporları görüntüleyin",
   'dashboard.checks.5': 'Ve çok daha fazlası...',
   'home.smarter': 'Daha akıllı',
   'home.work': 'İş',
   'home.smarter_description':
-    'Atlas, teknisyenlerin işlerini yapmak için ihtiyaç duydukları araçlara ve verilere avuçlarının içinden erişmelerini sağlayarak verimli çalışmalarını inanılmaz derecede kolaylaştırıyor.',
+    'QPM, teknisyenlerin işlerini yapmak için ihtiyaç duydukları araçlara ve verilere avuçlarının içinden erişmelerini sağlayarak verimli çalışmalarını inanılmaz derecede kolaylaştırıyor.',
   leading_maintenance:
     'Bakım ve Güvenilirlik Konusunda Daha İyi Bir Geleceğe Yol Açıyoruz',
   premium_included: 'Premium özellikler dahil',
@@ -826,7 +826,7 @@
   external_id: 'Harici Kimlik',
   permissions: 'İzinler',
   create_role_description:
-    "Bu rol, bir Yöneticinin Atlas'ta yapabileceği her şeyi yapabilir ancak bazı önemli izinleri aşağıda özelleştirebilirsiniz.",
+    "Bu rol, bir Yöneticinin QPM'ta yapabileceği her şeyi yapabilir ancak bazı önemli izinleri aşağıda özelleştirebilirsiniz.",
   create_and_edit: 'Oluştur/Düzenle',
   to_access: 'Erişim',
   role_delete_success: 'Rol başarıyla silindi',
@@ -1049,7 +1049,7 @@
   your_payment_secure: 'Ödeme verileriniz şifrelenir ve güvenlidir.',
   plan: 'Plan',
   current_plan: 'Mevcut Plan',
-  number_users_who_will_use_grash: "Atlas'ı kullanacak kullanıcı sayısı",
+  number_users_who_will_use_grash: "QPM'ı kullanacak kullanıcı sayısı",
   admin_role: 'Yönetici',
   technical_role: 'Teknik',
   limited_technical_role: 'Sınırlı Teknik',
@@ -1501,7 +1501,7 @@
   'Change Theme': 'Temayı değiştir',
   'View all notifications': 'Tüm bildirimleri göster',
   'Tokyo NextJS Typescript Admin Dashboard':
-    'Tokyo React Yönetici Kontrol Paneli',
+    'QPM bakım yönetimi',
   'High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes':
     'Hızlı ve mükemmel uygulama geliştirme süreçleri için birden fazla ürün yelpazesinde birçok güçlü Material-UI bileşeniyle oluşturulmuş yüksek performanslı React şablonu',
   'Browse Live Preview': 'Canlı önizlemeye göz atın',
@@ -1513,7 +1513,7 @@
   'dark/light themes': 'koyu/açık temalar',
   components: 'bileşenler',
   'Some of the features that make Tokyo one of the best admin templates available today':
-    "Tokyo'yu günümüzün en iyi yönetici şablonlarından biri yapan özelliklerden bazıları",
+    'QPM uygulamasının bazı özellikleri',
   'Design Source Files': 'Kaynak dosyalarını tasarlayın',
   'Start working on your project directly from one of the included starter kits or use the Figma/Sketch files to create a prototype first':
     'Birlikte verilen başlangıç ​​kitlerinden birinden doğrudan projeniz üzerinde çalışmaya başlayın veya önce bir prototip oluşturmak için Figma/Sketch dosyalarını kullanın',
@@ -1564,10 +1564,10 @@
   add_comment_placeholder: 'Yorum ekleyin...',
   create_category: 'Create Category',
   delete_row_confirm_message: 'Bu satırı silmek istediğinizden emin misiniz?',
-  review_prompt_title: "Atlas CMMS'i beğeniyor musunuz?",
+  review_prompt_title: "QPM'i beğeniyor musunuz?",
   feedback_title: 'Gelişmemize yardımcı olun',
   feedback_description1:
-    "Bunu duyduğumuza üzüldük. Geri bildiriminiz Atlas'ı daha iyi hale getirmemize yardımcı oluyor.",
+    "Bunu duyduğumuza üzüldük. Geri bildiriminiz QPM'ı daha iyi hale getirmemize yardımcı oluyor.",
   feedback_placeholder:
     'Bize neyin yanlış gittiğini veya nasıl iyileştirebileceğimizi anlatın…',
   send: 'Gönder',

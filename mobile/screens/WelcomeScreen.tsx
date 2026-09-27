@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
 
 import { Text, View } from '../components/Themed';
@@ -11,7 +11,8 @@ export default function WelcomeScreen({
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Atlas</Text>
+      <Image source={require('../assets/images/icon.png')} style={styles.logo} />
+      <Text style={styles.title}>QPM</Text>
       <View
         style={styles.separator}
         lightColor="#eee"
@@ -33,6 +34,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold'
+  },
+  logo: {
+    width: 112,
+    height: 112,
+    marginBottom: 16
   },
   separator: {
     marginVertical: 30,

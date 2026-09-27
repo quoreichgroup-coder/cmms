@@ -1356,7 +1356,7 @@ const locale = {
     get_your_license: "获得驾照",
     title: "价格",
     description:
-      "Atlas CMMS 灵活的定价计划。在我们的开源 CMMS 的云端版本和自托管版本之间进行选择，以优化您的维护业务。",
+      "QPM 灵活的定价计划。在我们的开源 CMMS 的云端版本和自托管版本之间进行选择，以优化您的维护业务。",
   },
   get_started: "开始使用",
   workflow_automation: "工作流自动化",
@@ -1427,9 +1427,9 @@ const locale = {
     },
   },
   overview_1: {
-    description: "Atlas CMMS 是一款免费、开源的 CMMS，用于管理工单、预防性维护、资产和设施。立即优化您的维护业务。",
+    description: "QPM 是一款免费、开源的 CMMS，用于管理工单、预防性维护、资产和设施。立即优化您的维护业务。",
     keywords:
-      "CMMS, 计算机化维护管理系统, EAM, 企业资产管理, 开源 CMMS, 免费维护软件, 工单管理, 预防性维护, 资产跟踪, 设施管理, 维护跟踪软件, 设备维护, Atlas CMMS",
+      "CMMS, 计算机化维护管理系统, EAM, 企业资产管理, 开源 CMMS, 免费维护软件, 工单管理, 预防性维护, 资产跟踪, 设施管理, 维护跟踪软件, 设备维护, QPM",
   },
   prefer_one_time_purchase: "更喜欢一次性购买？永久许可证可按月费36倍的价格购买。",
 };

@@ -77,10 +77,10 @@ export default function SubscriptionPlanSelector({ monthly, setMonthly, selfHost
   const paddle = useRef<Paddle | null>(null);
   const selfHostedPlans = getSelfHostedPlans(t);
 
-  const emailSubject = encodeURIComponent("Atlas CMMS Perpetual License Request");
+  const emailSubject = encodeURIComponent("QPM Perpetual License Request");
 
   const emailBody = encodeURIComponent(
-    `Hello Atlas CMMS team,
+    `Hello QPM team,
 
 I am interested in purchasing a perpetual license.
 

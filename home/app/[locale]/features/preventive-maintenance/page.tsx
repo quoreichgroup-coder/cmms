@@ -66,14 +66,14 @@ const preventiveMaintenanceData: IndustryLayoutProps = {
         "Preventive maintenance software helps organizations schedule and perform routine maintenance before equipment fails, reducing downtime, extending asset lifespan, and improving reliability.",
     },
     {
-      question: "Can Atlas CMMS automate preventive maintenance tasks?",
+      question: "Can QPM automate preventive maintenance tasks?",
       answer:
-        "Yes. Atlas CMMS automatically schedules maintenance, creates work orders, and tracks completion so your team never misses critical service activities.",
+        "Yes. QPM automatically schedules maintenance, creates work orders, and tracks completion so your team never misses critical service activities.",
     },
     {
-      question: "Is Atlas CMMS suitable for self-hosting?",
+      question: "Is QPM suitable for self-hosting?",
       answer:
-        "Absolutely. Atlas CMMS is open source and self-hosted, giving you full control over infrastructure, customization, and data ownership.",
+        "Absolutely. QPM is open source and self-hosted, giving you full control over infrastructure, customization, and data ownership.",
     },
   ],
 

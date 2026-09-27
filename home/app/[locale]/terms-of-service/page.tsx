@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: `${t("terms_of_service")}`,
     description:
-      "Terms of Service for Atlas CMMS. Review the guidelines, responsibilities, and legal agreements for using our open-source CMMS software.",
+      "Terms of Service for QPM. Review the guidelines, responsibilities, and legal agreements for using our open-source CMMS software.",
     alternates: getLocalizedMetadata(locale, "/terms-of-service"),
   };
 }

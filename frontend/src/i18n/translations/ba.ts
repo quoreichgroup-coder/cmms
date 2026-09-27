@@ -1706,18 +1706,18 @@ const locale = {
   cut_costs_performance:
     'Smanjite troškove softvera za održavanje bez žrtvovanja performansi',
   'free_cmms.title':
-    'Atlas Besplatni CMMS Softver | Nije potrebna kreditna kartica',
+    'QPM Besplatni CMMS Softver | Nije potrebna kreditna kartica',
   'free_cmms.description':
     'Besplatni CMMS softver — nije probni period. Upravljajte održavanjem, imovinom i radnim nalozima odmah. Nije potrebna kreditna kartica.',
   'free_cmms.keywords':
     'besplatni cmms, softver za upravljanje održavanjem, besplatni softver za radne naloge, praćenje imovine, preventivno održavanje',
   'overview.description':
-    'Atlas CMMS je besplatni CMMS otvorenog koda za upravljanje radnim nalozima, preventivnim održavanjem, imovinom i objektima. Pojednostavite operacije održavanja već danas.',
+    'QPM je besplatni CMMS otvorenog koda za upravljanje radnim nalozima, preventivnim održavanjem, imovinom i objektima. Pojednostavite operacije održavanja već danas.',
   'overview.keywords':
-    'CMMS, kompjuterizovani sistem upravljanja održavanjem, EAM, upravljanje korporativnom imovinom, cmms otvorenog koda, besplatni softver za održavanje, upravljanje radnim nalozima, preventivno održavanje, praćenje imovine, upravljanje objektima, softver za praćenje održavanja, održavanje opreme, Atlas CMMS',
-  'pricing.title': 'Cijene - Atlas CMMS',
+    'CMMS, kompjuterizovani sistem upravljanja održavanjem, EAM, upravljanje korporativnom imovinom, cmms otvorenog koda, besplatni softver za održavanje, upravljanje radnim nalozima, preventivno održavanje, praćenje imovine, upravljanje objektima, softver za praćenje održavanja, održavanje opreme, QPM',
+  'pricing.title': 'Cijene - QPM',
   'pricing.description':
-    'Fleksibilni planovi cijena za Atlas CMMS. Birajte između Cloud i Self-Hosted verzija našeg CMMS-a otvorenog koda za optimizaciju vaših operacija održavanja.',
+    'Fleksibilni planovi cijena za QPM. Birajte između Cloud i Self-Hosted verzija našeg CMMS-a otvorenog koda za optimizaciju vaših operacija održavanja.',
   'free_cmms.hero.subtitle': 'Besplatni CMMS Softver',
   'free_cmms.hero.title':
     'Upravljajte radnim nalozima i imovinom - Zauvijek besplatno',

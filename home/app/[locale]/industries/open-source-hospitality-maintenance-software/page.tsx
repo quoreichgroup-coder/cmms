@@ -63,12 +63,12 @@ const atlasHospitalityData: IndustryLayoutProps = {
     {
       question: "Why choose open-source for hospitality?",
       answer:
-        "Privacy and cost. Most hotels are locked into expensive per-user contracts. Atlas CMMS gives you the freedom to scale across hundreds of rooms without scaling your software bill.",
+        "Privacy and cost. Most hotels are locked into expensive per-user contracts. QPM gives you the freedom to scale across hundreds of rooms without scaling your software bill.",
     },
     {
       question: "Where is our data stored?",
       answer:
-        "Wherever you want. You can host Atlas on your own local servers or a private cloud, ensuring guest data is never processed by a third-party vendor.",
+        "Wherever you want. You can host QPM on your own local servers or a private cloud, ensuring guest data is never processed by a third-party vendor.",
     },
     {
       question: "Can we customize the interface?",

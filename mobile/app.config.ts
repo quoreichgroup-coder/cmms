@@ -33,7 +33,7 @@ const plugins: ExpoConfig['plugins'] = [
   [
     'expo-camera',
     {
-      cameraPermission: 'Allow Atlas to access camera.'
+      cameraPermission: 'Allow QPM to access camera.'
     }
   ],
   [
@@ -65,7 +65,7 @@ if (process.env.SENTRY_AUTH_TOKEN) {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Atlas CMMS',
+  name: 'QPM',
   slug: 'atlas-cmms',
   version: '1.0.48',
   orientation: 'portrait',
@@ -100,7 +100,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: '#ffffff'
+      backgroundColor: '#071b3d'
     },
     versionCode: 31,
     package: 'com.atlas.cmms',

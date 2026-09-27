@@ -27,6 +27,25 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import ConfirmDialog from '../../components/ConfirmDialog';
 import api from '../../../../utils/api';
 
+const businessTypes = [
+  'BUILDING_MANAGEMENT',
+  'CHURCH_MANAGEMENT',
+  'CITY_MAINTENANCE',
+  'EQUIPMENT_MANAGEMENT',
+  'FACILITY_MANAGEMENT',
+  'FARMING_MAINTENANCE',
+  'FLEET_MANAGEMENT',
+  'GENERAL_ASSET_MANAGEMENT',
+  'GYM_FITNESS_MAINTENANCE',
+  'HOSPITALITY',
+  'MANUFACTURING_MANAGEMENT',
+  'PHYSICAL_ASSET_MANAGEMENT',
+  'PROPERTY_MANAGEMENT',
+  'RESTAURANT_MANAGEMENT',
+  'SCHOOL_MAINTENANCE',
+  'MINING_MANAGEMENT'
+] as const;
+
 function GeneralSettings() {
   const { t }: { t: any } = useTranslation();
   const [openDeleteDemo, setOpenDeleteDemo] = useState<boolean>(false);
@@ -289,29 +308,39 @@ function GeneralSettings() {
                         }}
                       />
                     </Grid>
-                    {/*<Grid item xs={12}>
-                        <Typography variant="h6" sx={{ mb: 0.5 }}>
-                          {t('business_type')}
-                        </Typography>
-                        <Field
-                          onChange={(event) =>
-                            patchGeneralPreferences({
-                              businessType: event.target.value
-                            })
-                          }
-                          value={generalPreferences.businessType}
-                          as={Select}
-                          name="businessType"
-                        >
-                          <MenuItem value="GENERAL_ASSET_MANAGEMENT">
-                            {t('general_asset_management')}
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ mb: 0.5 }}>
+                        {t('business_type')}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        {t('business_type_description')}
+                      </Typography>
+                      <Field
+                        onChange={(event) => {
+                          patchGeneralPreferences({
+                            businessType: event.target.value
+                          }).then(() =>
+                            showSnackBar(
+                              t('changes_saved_success'),
+                              'success'
+                            )
+                          );
+                        }}
+                        value={generalPreferences.businessType}
+                        as={Select}
+                        name="businessType"
+                      >
+                        {businessTypes.map((businessType) => (
+                          <MenuItem key={businessType} value={businessType}>
+                            {t(`business_type_${businessType.toLowerCase()}`)}
                           </MenuItem>
-                          <MenuItem value="PHYSICAL_ASSET_MANAGEMENT">
-                            {t('physical_asset_management')}
-                          </MenuItem>
-                        </Field>
-                      </Grid>*/}
-                  </Grid>
+                        ))}
+                      </Field>
+                    </Grid>
                   <Stack mt={3} direction={'row'} spacing={2}>
                     <Button
                       onClick={() => setOpenDeleteDemo(true)}

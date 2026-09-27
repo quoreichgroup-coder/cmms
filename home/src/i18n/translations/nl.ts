@@ -21,18 +21,18 @@ const locale = {
     smarter: "Slimmer",
     work: "Werk",
     smarter_description:
-      "Atlas maakt het technici ongelooflijk gemakkelijk om efficiënt te werken door hen toegang te geven tot de tools en gegevens die ze nodig hebben om het werk gedaan te krijgen — allemaal vanuit de palm van hun hand.",
+      "QPM maakt het technici ongelooflijk gemakkelijk om efficiënt te werken door hen toegang te geven tot de tools en gegevens die ze nodig hebben om het werk gedaan te krijgen — allemaal vanuit de palm van hun hand.",
     h1: "Gratis en open-source CMMS dat u zelf kunt hosten of in de cloud kunt gebruiken",
     h2: "Krachtig onderhoud tegen lage kosten",
     h3: "Stop met vertrouwen op spreadsheets en whiteboards. {brandName} helpt onderhoudsteams bij het plannen van interventies, het volgen van apparatuur en het naleven van de voorschriften. Host op uw eigen server of start direct in de cloud.",
   },
   home_description:
-    "Wanneer whiteboards en plakbriefjes chaos veroorzaken, en je een CMMS-software nodig hebt die eenvoudig genoeg is voor je team om daadwerkelijk te gebruiken - probeer Atlas",
-  try_grash: "Probeer Atlas",
+    "Wanneer whiteboards en plakbriefjes chaos veroorzaken, en je een CMMS-software nodig hebt die eenvoudig genoeg is voor je team om daadwerkelijk te gebruiken - probeer QPM",
+  try_grash: "Probeer QPM",
   login: "Inloggen",
   start_trial: "Start een gratis proefperiode",
   key_features: "Belangrijkste functies",
-  key_features_description: "Enkele van de functies die Atlas tot een van de beste CMMS van vandaag maken",
+  key_features_description: "Enkele van de functies die QPM tot een van de beste CMMS van vandaag maken",
   contribute: "Bijdragen",
   work_orders: "Werkorders",
   request_system: "Werkverzoekensysteem",
@@ -48,7 +48,7 @@ const locale = {
     },
     descriptions: [
       "Genoeg van stapels papierwerk en verloren werkorders? Al die verloren items beïnvloeden direct de winst en je reputatie.",
-      "Met Atlas kun je eenvoudig en snel al je werkorders, preventief onderhoud en andere taken binnen je team organiseren in een gecentraliseerde database die overal en op elk apparaat toegankelijk is.",
+      "Met QPM kun je eenvoudig en snel al je werkorders, preventief onderhoud en andere taken binnen je team organiseren in een gecentraliseerde database die overal en op elk apparaat toegankelijk is.",
     ],
     checks: [
       "Bekijk al je taken inclusief werkorders, preventief onderhoud en werkverzoeken",
@@ -62,7 +62,7 @@ const locale = {
     title: "Een gestroomlijnd mobiel werkverzoekensysteem",
     descriptions: [
       "Genoeg van het oude telefoon- en emailsysteem dat leidt tot VERLOREN tickets, constante dagelijkse onderbrekingen en dubbel werk?",
-      "De onderhoudsbeheersoplossing van Atlas stelt iedereen die je autoriseert in staat een probleem in te dienen bij je onderhoudsafdeling door simpelweg een QR-code (streepjescode) te scannen of een URL te bezoeken en hun verzoek via hun mobiele apparaten in te typen.",
+      "De onderhoudsbeheersoplossing van QPM stelt iedereen die je autoriseert in staat een probleem in te dienen bij je onderhoudsafdeling door simpelweg een QR-code (streepjescode) te scannen of een URL te bezoeken en hun verzoek via hun mobiele apparaten in te typen.",
     ],
     checks: [
       "Verlies nooit meer werk.",
@@ -92,7 +92,7 @@ const locale = {
     },
     descriptions: [
       "Gefrustreerd door het proberen te organiseren van de chaotische rommel van de apparatuur van het bedrijf, je afvragend of de apparatuur goed is onderhouden, niet wetend wat de onderhoudskosten zijn en alle andere hoofdpijn die komt kijken bij assetbeheer?",
-      "De Enterprise Asset Management-module van Atlas CMMS kan worden gebruikt voor tussen de 10 en 1.000.000 Assets, waardoor u precies kunt bijhouden wat u wilt, op de manier die u wilt, in een gebruiksvriendelijke en doorzoekbare boomstructuur.",
+      "De Enterprise Asset Management-module van QPM kan worden gebruikt voor tussen de 10 en 1.000.000 Assets, waardoor u precies kunt bijhouden wat u wilt, op de manier die u wilt, in een gebruiksvriendelijke en doorzoekbare boomstructuur.",
     ],
     checks: [
       "Ken de status van uw assets op elk moment en wat ze u kosten",
@@ -107,7 +107,7 @@ const locale = {
     title: "Een effectief preventief onderhoudsprogramma",
     descriptions: [
       "Stop met het verspillen van kostbare uren aan het handmatig verspreiden van PM-checklists en het opvolgen bij uw team om ervoor te zorgen dat het werk wordt gedaan.",
-      "Atlas stelt u in staat om PM-planning eenvoudig te automatiseren, zodat het juiste werk automatisch op het juiste moment aan de juiste technicus voor de juiste Asset wordt geleverd.",
+      "QPM stelt u in staat om PM-planning eenvoudig te automatiseren, zodat het juiste werk automatisch op het juiste moment aan de juiste technicus voor de juiste Asset wordt geleverd.",
     ],
     checks: [
       "Automatiseer PM-planning op dagelijkse, wekelijkse, maandelijkse, jaarlijkse basis of op basis van gebeurtenissen of meterstanden.",
@@ -125,7 +125,7 @@ const locale = {
     },
     descriptions: [
       "Weet u niet welke onderdelen u op voorraad heeft of waar ze worden gebruikt? Weet u niet wanneer uw onderdelen opraken of of uw technici de benodigde onderdelen hebben om hun werk te doen?",
-      "We hebben het onderdelenbeheer van Atlas ontworpen om die problemen en meer op te lossen:",
+      "We hebben het onderdelenbeheer van QPM ontworpen om die problemen en meer op te lossen:",
     ],
     checks: [
       "Ontvang direct push- en e-mailmeldingen wanneer de hoeveelheid van een onderdeel laag is. Houd het juiste aantal onderdelen op voorraad door direct en automatisch push-/e-mailmeldingen te ontvangen wanneer de hoeveelheid van een onderdeel onder een aangepaste drempelwaarde komt.",
@@ -142,15 +142,15 @@ const locale = {
     title: "Uw data, uw manier met aangepaste dashboards",
     descriptions: [
       "Laten we eerlijk zijn, de eerste stap om uw operaties te verbeteren is het kennen van het goede, het slechte en het lelijke.",
-      "Met de aangepaste dashboards van Atlas kunt u eindelijk dat duistere “zwarte gat van onderhoud” begrijpen en beginnen met het uitvoeren van op data gebaseerde plannen, wat resulteert in lagere arbeidskosten, minder stilstand en meer.",
-      "Met de aangepaste dashboards van Atlas kunt u …",
+      "Met de aangepaste dashboards van QPM kunt u eindelijk dat duistere “zwarte gat van onderhoud” begrijpen en beginnen met het uitvoeren van op data gebaseerde plannen, wat resulteert in lagere arbeidskosten, minder stilstand en meer.",
+      "Met de aangepaste dashboards van QPM kunt u …",
     ],
     checks: [
       "Weten waar uw geld aan wordt uitgegeven en waarom",
       "Weten welk asset het meeste kost en waarom",
       "Maak uw eigen aangepaste KPI's.",
       "Bekijk rapporten die automatisch worden gegenereerd en bijgewerkt op basis van uw metriek",
-      "Bekijk rapporten die gemakkelijk gedeeld kunnen worden via Excel-bestanden, PDF's of binnen Atlas",
+      "Bekijk rapporten die gemakkelijk gedeeld kunnen worden via Excel-bestanden, PDF's of binnen QPM",
       "En nog veel meer ...",
     ],
   },
@@ -282,7 +282,7 @@ const locale = {
   save: "Opslaan",
   customers: "Aannemers",
   no_labor:
-    "Er zijn nog geen arbeidskosten toegevoegd. Deze verschijnen hier zodra een gebruiker tijd registreert en een uurtarief in Atlas heeft opgeslagen.",
+    "Er zijn nog geen arbeidskosten toegevoegd. Deze verschijnen hier zodra een gebruiker tijd registreert en een uurtarief in QPM heeft opgeslagen.",
   not_assigned: "Niet toegewezen",
   no_additional_cost: "Er zijn nog geen extra kosten toegevoegd",
   parts: "Onderdelen",
@@ -826,7 +826,7 @@ const locale = {
   external_id: "Externe ID",
   permissions: "Rechten",
   create_role_description:
-    "Deze rol kan alles wat een Administrator in Atlas kan, maar u kunt hieronder enkele belangrijke rechten aanpassen.",
+    "Deze rol kan alles wat een Administrator in QPM kan, maar u kunt hieronder enkele belangrijke rechten aanpassen.",
   create_and_edit: "Aanmaken/Bewerken",
   to_access: "Toegang",
   role_delete_success: "De rol is succesvol verwijderd",
@@ -1032,7 +1032,7 @@ const locale = {
   your_payment_secure: "Uw betalingsgegevens zijn versleuteld en veilig.",
   plan: "Plan",
   current_plan: "Huidig plan",
-  number_users_who_will_use_grash: "Aantal gebruikers die Atlas zullen gebruiken",
+  number_users_who_will_use_grash: "Aantal gebruikers die QPM zullen gebruiken",
   admin_role: "Beheerder",
   technical_role: "Technisch",
   limited_technical_role: "Beperkt technisch",
@@ -1183,7 +1183,7 @@ const locale = {
   and_optional: "En (optioneel)",
   then: "Dan",
   workflow_description:
-    "Maak aangepaste workflows net zo eenvoudig als Als, En, Dan. Bespaar tijd en wijs uw werkorders automatisch toe via workflows om Atlas aan te passen aan de manier waarop uw team werkt.Alle abonnementen kunnen tot 1 aangepaste workflow aanmaken. Voor extra workflows upgrade naar ons Business-abonnement",
+    "Maak aangepaste workflows net zo eenvoudig als Als, En, Dan. Bespaar tijd en wijs uw werkorders automatisch toe via workflows om QPM aan te passen aan de manier waarop uw team werkt.Alle abonnementen kunnen tot 1 aangepaste workflow aanmaken. Voor extra workflows upgrade naar ons Business-abonnement",
   CREATE_PURCHASE_ORDER: "Maak een inkooporder aan",
   PART_IS: "Het onderdeel is",
   QUANTITY_INFERIOR: "De hoeveelheid is minder dan",
@@ -1246,7 +1246,7 @@ const locale = {
   upgrade: "Upgrade",
   downgrade: "Downgrade",
   upgrade_description:
-    "U heeft zojuist uw abonnementsplan geüpgraded. U moet de uitgeschakelde gebruikers inschakelen die mogelijk Atlas gebruiken. Dit kunt u slechts één keer doen voor het huidige abonnement. Kies zorgvuldig",
+    "U heeft zojuist uw abonnementsplan geüpgraded. U moet de uitgeschakelde gebruikers inschakelen die mogelijk QPM gebruiken. Dit kunt u slechts één keer doen voor het huidige abonnement. Kies zorgvuldig",
   enable_users: "Gebruikers inschakelen",
   max_users_description: "U kunt maximaal {maxUsers} gebruikers inschakelen",
   downgrade_description:
@@ -1580,7 +1580,7 @@ const locale = {
     get_your_license: "Haal je rijbewijs",
     title: "Prijzen",
     description:
-      "Flexibele prijsplannen voor Atlas CMMS. Kies tussen Cloud- en Self-Hosted versies van ons open-source CMMS om uw onderhoudsactiviteiten te optimaliseren.",
+      "Flexibele prijsplannen voor QPM. Kies tussen Cloud- en Self-Hosted versies van ons open-source CMMS om uw onderhoudsactiviteiten te optimaliseren.",
   },
   get_started: "Aan de slag",
   workflow_automation: "Werkstroomautomatisering",
@@ -1655,9 +1655,9 @@ const locale = {
   },
   overview_1: {
     description:
-      "Atlas CMMS is een gratis, open-source CMMS om werkorders, preventief onderhoud, activa en faciliteiten te beheren. Stroomlijn uw onderhoudsactiviteiten vandaag nog.",
+      "QPM is een gratis, open-source CMMS om werkorders, preventief onderhoud, activa en faciliteiten te beheren. Stroomlijn uw onderhoudsactiviteiten vandaag nog.",
     keywords:
-      "CMMS, geautomatiseerd onderhoudsbeheersysteem, EAM, enterprise asset management, open source cmms, gratis onderhoudssoftware, werkorderbeheer, preventief onderhoud, activa volgen, facilitair beheer, software voor onderhoudstracking, apparatuuronderhoud, Atlas CMMS",
+      "CMMS, geautomatiseerd onderhoudsbeheersysteem, EAM, enterprise asset management, open source cmms, gratis onderhoudssoftware, werkorderbeheer, preventief onderhoud, activa volgen, facilitair beheer, software voor onderhoudstracking, apparatuuronderhoud, QPM",
   },
   prefer_one_time_purchase: "Geeft u de voorkeur aan een eenmalige aankoop? Onbeperkte licenties zijn beschikbaar tegen 36× het maandtarief.",
 };

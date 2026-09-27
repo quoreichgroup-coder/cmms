@@ -8,9 +8,9 @@ const ldJson = [
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Atlas CMMS",
+    name: "QPM",
     description:
-      "Atlas CMMS is a free, open-source CMMS to manage work orders, preventive maintenance, assets, and facilities.",
+      "QPM is a free, open-source CMMS to manage work orders, preventive maintenance, assets, and facilities.",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: "https://atlas-cmms.com/",
@@ -24,7 +24,7 @@ const ldJson = [
     // },
     publisher: {
       "@type": "Organization",
-      name: "Atlas CMMS",
+      name: "QPM",
       url: "https://atlas-cmms.com/",
     },
     offers: {
@@ -36,7 +36,7 @@ const ldJson = [
   {
     "@context": "https://schema.org",
     "@type": "MobileApplication",
-    name: "Atlas CMMS for iOS",
+    name: "QPM for iOS",
     operatingSystem: "iOS",
     applicationCategory: "BusinessApplication",
     downloadUrl: "https://apps.apple.com/us/app/atlas-cmms/id6751547284",
@@ -49,7 +49,7 @@ const ldJson = [
   {
     "@context": "https://schema.org",
     "@type": "MobileApplication",
-    name: "Atlas CMMS for Android",
+    name: "QPM for Android",
     operatingSystem: "Android",
     applicationCategory: "BusinessApplication",
     downloadUrl: "https://play.google.com/store/apps/details?id=com.atlas.cmms",

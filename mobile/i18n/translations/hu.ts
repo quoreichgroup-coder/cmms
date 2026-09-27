@@ -12,10 +12,10 @@ const locale = {
   IN_PROGRESS: 'Folyamatban',
   ON_HOLD: 'Felfüggesztve',
   COMPLETE: 'Befejezett',
-  'home.built': 'Az Atlas karbantartás-kezelés egyszerűsítésére készült',
+  'home.built': 'Az QPM karbantartás-kezelés egyszerűsítésére készült',
   home_description:
-    'Amikor a fehértáblák és a cetlik káoszt okoznak, és olyan CMMS szoftverre van szüksége, amit a csapata valóban használni tud – próbálja ki az Atlas-t',
-  try_grash: 'Próbálja ki az Atlas-t',
+    'Amikor a fehértáblák és a cetlik káoszt okoznak, és olyan CMMS szoftverre van szüksége, amit a csapata valóban használni tud – próbálja ki az QPM-t',
+  try_grash: 'Próbálja ki az QPM-t',
   login: 'Bejelentkezés',
   start_trial: 'Ingyenes próba indítása',
   'home.what': 'Mi',
@@ -24,7 +24,7 @@ const locale = {
     'Hatékony, megbízható munkafolyamatokat építhet ki, amelyekkel irányítása alatt tarthatja a karbantartást. Munkamegrendelések létrehozása, kiosztása és nyomon követése. Készletkezelés. Megbízható, automatikus jelentések, amelyek javítják az átláthatóságot és felelősségvállalást teremtenek.',
   key_features: 'Főbb jellemzők',
   key_features_description:
-    'Néhány olyan funkció, amely az Atlas-t a mai legjobb CMMS-ek közé emeli',
+    'Néhány olyan funkció, amely az QPM-t a mai legjobb CMMS-ek közé emeli',
   contribute: 'Hozzájárulás',
   work_orders: 'Munkamegrendelések',
   request_system: 'Munkakérés rendszer',
@@ -39,7 +39,7 @@ const locale = {
   'work-orders.descriptions.0':
     'Eleged van a rengeteg papírmunkából és az elveszett munkamegrendelésekből? Ezek az elveszett tételek közvetlenül befolyásolják a pénzügyi eredményt és a hírnevet.',
   'work-orders.descriptions.1':
-    'Az Atlas segítségével könnyedén és gyorsan rendszerezheti az összes munkamegrendelést, megelőző karbantartást és egyéb feladatokat egy központosított adatbázisban, amelyhez bárhol, bármilyen eszközről hozzáférhet.',
+    'Az QPM segítségével könnyedén és gyorsan rendszerezheti az összes munkamegrendelést, megelőző karbantartást és egyéb feladatokat egy központosított adatbázisban, amelyhez bárhol, bármilyen eszközről hozzáférhet.',
   'work-orders.checks.0':
     'Tekintse meg az összes feladatot, beleértve a munkamegrendeléseket, megelőző karbantartásokat és munkakéréseket',
   'work-orders.checks.1':
@@ -54,7 +54,7 @@ const locale = {
   'work-requests.descriptions.0':
     'Eleged van a régi telefonos és e-mailes rendszerből, ami ELVESZETT jegyekhez, állandó napi megszakításokhoz és ismétlődő munkához vezet?',
   'work-requests.descriptions.1':
-    'Az Atlas karbantartás-kezelő megoldása lehetővé teszi bárkinek, akit engedélyez, hogy egyszerűen QR-kód (vonalkód) beolvasásával vagy URL meglátogatásával és kérésük begépelésével mobil eszközükön problémát jelentsenek a karbantartási osztálynak.',
+    'Az QPM karbantartás-kezelő megoldása lehetővé teszi bárkinek, akit engedélyez, hogy egyszerűen QR-kód (vonalkód) beolvasásával vagy URL meglátogatásával és kérésük begépelésével mobil eszközükön problémát jelentsenek a karbantartási osztálynak.',
   'work-requests.checks.0': 'Soha többé ne veszítsen el munkát.',
   'work-requests.checks.1':
     'Csökkentse a munkakérések kezelésére fordított időt akár 34%-kal.',
@@ -82,7 +82,7 @@ const locale = {
   'eam.descriptions.0':
     'Frusztrált a vállalat eszközeinek kaotikus rendszerezése miatt, azon töprengve, hogy az eszközöket megfelelően karbantartották-e, nem tudva, mennyibe kerül a fenntartásuk, és az eszközkezeléssel járó egyéb problémák miatt?',
   'eam.descriptions.1':
-    'Az Atlas CMMS Vállalati Eszközkezelő modulja 10-től 1 000 000 eszközig használható, lehetővé téve, hogy pontosan azt kövesse nyomon, amit szeretne, ahogyan szeretné, egy könnyen használható és kereshető fa struktúrában.',
+    'Az QPM Vállalati Eszközkezelő modulja 10-től 1 000 000 eszközig használható, lehetővé téve, hogy pontosan azt kövesse nyomon, amit szeretne, ahogyan szeretné, egy könnyen használható és kereshető fa struktúrában.',
   'eam.checks.0':
     'Ismerje eszközei állapotát bármely időpontban és azok költségeit',
   'eam.checks.1': 'Tekintse meg a teljes és részletes karbantartási naplókat.',
@@ -97,7 +97,7 @@ const locale = {
   'pm.descriptions.0':
     'Ne pazarolja értékes óráit a PM ellenőrzőlisták kézi kiosztására és a csapat követésére, hogy a munka el legyen végezve.',
   'pm.descriptions.1':
-    'Az Atlas lehetővé teszi a PM ütemezés egyszerű automatizálását, így a megfelelő munka automatikusan a megfelelő időben a megfelelő technikushoz és eszközhöz kerül.',
+    'Az QPM lehetővé teszi a PM ütemezés egyszerű automatizálását, így a megfelelő munka automatikusan a megfelelő időben a megfelelő technikushoz és eszközhöz kerül.',
   'pm.checks.0':
     'Automatizálja a PM ütemezést napi, heti, havi, éves vagy eseményekhez, mérőóra állásokhoz igazítva.',
   'pm.checks.1':
@@ -114,7 +114,7 @@ const locale = {
   'part.descriptions.0':
     'Nem biztos benne, milyen alkatrészek vannak készleten vagy hol használják őket? Nem tudja, mikor fogynak el az alkatrészei, vagy hogy a technikusoknak meglesznek-e a szükséges alkatrészek a munkájukhoz?',
   'part.descriptions.1':
-    'Az Atlas alkatrészkezelését ezeknek a problémáknak és még többnek a megoldására terveztük:',
+    'Az QPM alkatrészkezelését ezeknek a problémáknak és még többnek a megoldására terveztük:',
   'part.checks.0':
     'Azonnali push és e-mail értesítések, ha egy alkatrész mennyisége alacsony. Tartsa a megfelelő alkatrész mennyiséget készleten azáltal, hogy azonnali és automatikus push/e-mail értesítéseket kap, ha egy alkatrész mennyisége egyéni küszöbérték alá csökken.',
   'part.checks.1':
@@ -136,21 +136,21 @@ const locale = {
   'dashboard.descriptions.0':
     'Bevalljuk, a működés javításának első lépése, hogy ismerjük a jót, a rosszat és a csúnyát.',
   'dashboard.descriptions.1':
-    'Az Atlas egyedi irányítópultjaival végre megértheti azt a hírhedt „karbantartás fekete lyukát”, és elkezdheti adatvezérelt tervek megvalósítását, ami csökkentett munkaerőköltségeket, kevesebb leállást és még sok mást eredményez.',
+    'Az QPM egyedi irányítópultjaival végre megértheti azt a hírhedt „karbantartás fekete lyukát”, és elkezdheti adatvezérelt tervek megvalósítását, ami csökkentett munkaerőköltségeket, kevesebb leállást és még sok mást eredményez.',
   'dashboard.descriptions.2':
-    'Az Atlas egyedi irányítópultjaival Ön képes lesz …',
+    'Az QPM egyedi irányítópultjaival Ön képes lesz …',
   'dashboard.checks.0': 'Tudja, hol és miért költi a pénzét',
   'dashboard.checks.1': 'Tudja, melyik eszköz kerül a legtöbbe és miért',
   'dashboard.checks.2': 'Hozzon létre saját egyedi KPI-ket.',
   'dashboard.checks.3':
     'Tekintse meg az automatikusan generált és frissített jelentéseket a mérőszámai alapján',
   'dashboard.checks.4':
-    'Ossza meg könnyedén a jelentéseket Excel táblázatok, PDF-ek vagy az Atlas rendszeren belül',
+    'Ossza meg könnyedén a jelentéseket Excel táblázatok, PDF-ek vagy az QPM rendszeren belül',
   'dashboard.checks.5': 'És még sok más ...',
   'home.smarter': 'Okosabb',
   'home.work': 'Munka',
   'home.smarter_description':
-    'Az Atlas hihetetlenül megkönnyíti a technikusok hatékony munkavégzését azáltal, hogy hozzáférést biztosít számukra a szükséges eszközökhöz és adatokhoz — mindezt a tenyerükből.',
+    'Az QPM hihetetlenül megkönnyíti a technikusok hatékony munkavégzését azáltal, hogy hozzáférést biztosít számukra a szükséges eszközökhöz és adatokhoz — mindezt a tenyerükből.',
   leading_maintenance:
     'Úttörő szerep a karbantartás és megbízhatóság jobb jövőjéért',
   premium_included: 'Prémium funkciók benne foglaltatnak',
@@ -851,7 +851,7 @@ const locale = {
   external_id: 'Külső azonosító',
   permissions: 'Engedélyek',
   create_role_description:
-    'Ez a szerepkör mindent megtehet, amit egy Atlas rendszergazda, de az alábbi fontos engedélyeket testreszabhatja.',
+    'Ez a szerepkör mindent megtehet, amit egy QPM rendszergazda, de az alábbi fontos engedélyeket testreszabhatja.',
   create_and_edit: 'Létrehozás/Szerkesztés',
   to_access: 'Hozzáférés',
   role_delete_success: 'A szerepkör sikeresen törölve',
@@ -1067,7 +1067,7 @@ const locale = {
   your_payment_secure: 'Fizetési adatai titkosítva és biztonságban vannak.',
   plan: 'Előfizetés',
   current_plan: 'Jelenlegi előfizetés',
-  number_users_who_will_use_grash: 'Az Atlas-t használó felhasználók száma',
+  number_users_who_will_use_grash: 'Az QPM-t használó felhasználók száma',
   admin_role: 'Adminisztrátor',
   technical_role: 'Technikai',
   limited_technical_role: 'Korlátozott technikai',
@@ -1227,7 +1227,7 @@ const locale = {
   and_optional: 'És (opcionális)',
   then: 'Akkor',
   workflow_description:
-    'Egyedi munkafolyamatok létrehozása olyan egyszerű, mint Ha, És, Akkor. Időt takaríthat meg, és könnyedén automatikusan hozzárendelheti a munkarendeléseket munkafolyamatokon keresztül, hogy az Atlas-t a csapata működési módjához igazítsa.\nMinden csomag legfeljebb 1 egyedi munkafolyamatot hozhat létre. További munkafolyamatok hozzáadásához frissítsen Üzleti csomagunkra',
+    'Egyedi munkafolyamatok létrehozása olyan egyszerű, mint Ha, És, Akkor. Időt takaríthat meg, és könnyedén automatikusan hozzárendelheti a munkarendeléseket munkafolyamatokon keresztül, hogy az QPM-t a csapata működési módjához igazítsa.\nMinden csomag legfeljebb 1 egyedi munkafolyamatot hozhat létre. További munkafolyamatok hozzáadásához frissítsen Üzleti csomagunkra',
   CREATE_PURCHASE_ORDER: 'Beszerzési megrendelés létrehozása',
   PART_IS: 'Az alkatrész',
   QUANTITY_INFERIOR: 'A mennyiség kisebb, mint',
@@ -1290,7 +1290,7 @@ const locale = {
   upgrade: 'Frissítés',
   downgrade: 'Lefokozás',
   upgrade_description:
-    'Éppen frissítette előfizetési csomagját. Engedélyeznie kell azokat a letiltott felhasználókat, akik használhatják az Atlas-t. Ezt a jelenlegi előfizetéshez csak egyszer teheti meg. Kérjük, válasszon körültekintően',
+    'Éppen frissítette előfizetési csomagját. Engedélyeznie kell azokat a letiltott felhasználókat, akik használhatják az QPM-t. Ezt a jelenlegi előfizetéshez csak egyszer teheti meg. Kérjük, válasszon körültekintően',
   enable_users: 'Felhasználók engedélyezése',
   max_users_description: 'Legfeljebb {{maxUsers}} felhasználót engedélyezhet',
   downgrade_description:
@@ -1490,10 +1490,10 @@ const locale = {
   add_comment_placeholder: 'Megjegyzés hozzáadása...',
   create_category: 'Create Category',
   delete_row_confirm_message: 'Biztosan törölni szeretné ezt a sort?',
-  review_prompt_title: 'Élvezi az Atlas CMMS használatát?',
+  review_prompt_title: 'Élvezi az QPM használatát?',
   feedback_title: 'Segítsen nekünk a fejlődésben',
   feedback_description1:
-    'Sajnáljuk, hogy ezt halljuk. Visszajelzése segít nekünk az Atlas fejlesztésében.',
+    'Sajnáljuk, hogy ezt halljuk. Visszajelzése segít nekünk az QPM fejlesztésében.',
   feedback_placeholder: 'Mondja el, mi volt a probléma, vagy hogyan fejlődhetünk…',
   send: 'Küldés',
   edit_additional_cost: 'Költség szerkesztése',

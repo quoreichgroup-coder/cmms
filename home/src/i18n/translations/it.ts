@@ -1574,7 +1574,7 @@ const locale = {
     get_your_license: "Ottieni la tua licenza",
     title: "Prezzi",
     description:
-      "Piani tariffari flessibili per Atlas CMMS. Scegli tra le versioni Cloud e Self-Hosted del nostro CMMS open source per ottimizzare le tue operazioni di manutenzione.",
+      "Piani tariffari flessibili per QPM. Scegli tra le versioni Cloud e Self-Hosted del nostro CMMS open source per ottimizzare le tue operazioni di manutenzione.",
   },
   get_started: "Per iniziare",
   workflow_automation: "Automazione del flusso di lavoro",
@@ -1650,9 +1650,9 @@ const locale = {
   },
   overview_1: {
     description:
-      "Atlas CMMS è un CMMS gratuito e open source per gestire ordini di lavoro, manutenzione preventiva, risorse e strutture. Semplifica le tue operazioni di manutenzione oggi stesso.",
+      "QPM è un CMMS gratuito e open source per gestire ordini di lavoro, manutenzione preventiva, risorse e strutture. Semplifica le tue operazioni di manutenzione oggi stesso.",
     keywords:
-      "CMMS, sistema di gestione della manutenzione computerizzato, EAM, gestione delle risorse aziendali, cmms open source, software di manutenzione gratuito, gestione degli ordini di lavoro, manutenzione preventiva, tracciamento delle risorse, gestione delle strutture, software di tracciamento della manutenzione, manutenzione delle apparecchiature, Atlas CMMS",
+      "CMMS, sistema di gestione della manutenzione computerizzato, EAM, gestione delle risorse aziendali, cmms open source, software di manutenzione gratuito, gestione degli ordini di lavoro, manutenzione preventiva, tracciamento delle risorse, gestione delle strutture, software di tracciamento della manutenzione, manutenzione delle apparecchiature, QPM",
   },
   prefer_one_time_purchase: "Preferisci un acquisto una tantum? Le licenze perpetue sono disponibili a 36× la tariffa mensile.",
 };

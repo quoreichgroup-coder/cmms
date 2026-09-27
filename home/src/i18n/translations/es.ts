@@ -1586,7 +1586,7 @@ const esJSON = {
     get_your_license: "Obtenga su licencia",
     title: "Precios",
     description:
-      "Planes de precios flexibles para Atlas CMMS. Elija entre las versiones en la nube y autoalojadas de nuestro GMAO de código abierto para optimizar sus operaciones de mantenimiento.",
+      "Planes de precios flexibles para QPM. Elija entre las versiones en la nube y autoalojadas de nuestro GMAO de código abierto para optimizar sus operaciones de mantenimiento.",
   },
   get_started: "Empezar",
   workflow_automation: "Automatización del flujo de trabajo",
@@ -1663,9 +1663,9 @@ const esJSON = {
   },
   overview_1: {
     description:
-      "Atlas CMMS es un GMAO gratuito y de código abierto para gestionar órdenes de trabajo, mantenimiento preventivo, activos e instalaciones. Optimice sus operaciones de mantenimiento hoy.",
+      "QPM es un GMAO gratuito y de código abierto para gestionar órdenes de trabajo, mantenimiento preventivo, activos e instalaciones. Optimice sus operaciones de mantenimiento hoy.",
     keywords:
-      "GMAO, sistema de gestión de mantenimiento computarizado, EAM, gestión de activos empresariales, gmao de código abierto, software de mantenimiento gratis, gestión de órdenes de trabajo, mantenimiento preventivo, seguimiento de activos, gestión de instalaciones, software de seguimiento de mantenimiento, mantenimiento de equipos, Atlas CMMS",
+      "GMAO, sistema de gestión de mantenimiento computarizado, EAM, gestión de activos empresariales, gmao de código abierto, software de mantenimiento gratis, gestión de órdenes de trabajo, mantenimiento preventivo, seguimiento de activos, gestión de instalaciones, software de seguimiento de mantenimiento, mantenimiento de equipos, QPM",
   },
   prefer_one_time_purchase: "¿Prefiere una compra única? Las licencias perpetuas están disponibles a 36× la tarifa mensual.",
 };

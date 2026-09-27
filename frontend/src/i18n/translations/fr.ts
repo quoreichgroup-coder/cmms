@@ -87,7 +87,7 @@ const frJSON = {
   'Change Theme': 'Change le thème',
   'View all notifications': 'Afficher toutes les notifications',
   'Tokyo NextJS Typescript Admin Dashboard':
-    "Tableau de bord d'administration de Tokyo React",
+    'Tableau de bord QPM',
   'High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes':
     "Modèle React haute performance construit avec de nombreux composants Material-UI puissants dans plusieurs niches de produits pour des processus de développement d'applications rapides et parfaits",
   'Browse Live Preview': "Parcourir l'aperçu en direct",
@@ -99,7 +99,7 @@ const frJSON = {
   'dark/light themes': 'thèmes sombres / clairs',
   components: 'composants',
   'Some of the features that make Tokyo one of the best admin templates available today':
-    "Certaines des fonctionnalités qui font de Tokyo l'un des meilleurs modèles d'administration disponibles aujourd'hui",
+    "Certaines des fonctionnalités de l'application QPM",
   'Design Source Files': 'Fichiers source de conception',
   'Start working on your project directly from one of the included starter kits or use the Figma/Sketch files to create a prototype first':
     "Commencez à travailler sur votre projet directement à partir de l'un des kits de démarrage inclus ou utilisez les fichiers Figma / Sketch pour créer d'abord un prototype",
@@ -1028,6 +1028,25 @@ const frJSON = {
   date_format: 'Format de date',
   time_zone: 'Fuseau horaire',
   business_type: "Type d'entreprise",
+  business_type_description:
+    "Ce choix indique le secteur de l'entreprise. Il ne modifie pas les processus ni les modules activés.",
+  business_type_building_management: 'Gestion de bâtiments',
+  business_type_church_management: 'Gestion de lieux de culte',
+  business_type_city_maintenance: 'Maintenance urbaine',
+  business_type_equipment_management: 'Gestion des équipements',
+  business_type_facility_management: 'Gestion des installations',
+  business_type_farming_maintenance: 'Maintenance agricole',
+  business_type_fleet_management: 'Gestion de flotte',
+  business_type_general_asset_management: 'Gestion générale des équipements',
+  business_type_gym_fitness_maintenance: 'Maintenance de salles de sport',
+  business_type_hospitality: 'Hôtellerie',
+  business_type_manufacturing_management: 'Gestion industrielle',
+  business_type_physical_asset_management: 'Gestion des équipements physiques',
+  business_type_property_management: 'Gestion immobilière',
+  business_type_restaurant_management: 'Gestion de restaurants',
+  business_type_school_maintenance: 'Maintenance scolaire',
+  business_type_mining_management: 'Mines',
+  business_type_construction_management: 'BTP',
   general_asset_management: 'Gestion générale des équipements',
   physical_asset_management: 'Gestion des équipements physiques',
   checklist_delete_success: 'La Checklist a été supprimée avec succès',
@@ -1809,18 +1828,18 @@ const frJSON = {
   cut_costs_performance:
     'Réduisez les coûts de logiciel de maintenance sans sacrifier la performance',
   'free_cmms.title':
-    'Logiciel de GMAO gratuit Atlas | Aucune carte de crédit requise',
+    'Logiciel de GMAO gratuit QPM | Aucune carte de crédit requise',
   'free_cmms.description':
     "Logiciel de GMAO gratuit — pas une version d'essai. Gérez la maintenance, les actifs et les bons de travail instantanément. Aucune carte de crédit requise.",
   'free_cmms.keywords':
     'gmao gratuite, logiciel de gestion de maintenance, logiciel de bons de travail gratuit, suivi des actifs, maintenance préventive',
   'overview.description':
-    "Atlas CMMS est une GMAO gratuite et open-source pour gérer les bons de travail, la maintenance préventive, les actifs et les installations. Simplifiez vos opérations de maintenance dès aujourd'hui.",
+    "QPM est une GMAO gratuite et open-source pour gérer les bons de travail, la maintenance préventive, les actifs et les installations. Simplifiez vos opérations de maintenance dès aujourd'hui.",
   'overview.keywords':
-    "GMAO, système de gestion de maintenance assistée par ordinateur, EAM, gestion des actifs d'entreprise, GMAO open source, logiciel de maintenance gratuit, gestion des bons de travail, maintenance préventive, suivi des actifs, gestion des installations, logiciel de suivi de maintenance, maintenance des équipements, Atlas CMMS",
-  'pricing.title': 'Tarification - Atlas CMMS',
+    "GMAO, système de gestion de maintenance assistée par ordinateur, EAM, gestion des actifs d'entreprise, GMAO open source, logiciel de maintenance gratuit, gestion des bons de travail, maintenance préventive, suivi des actifs, gestion des installations, logiciel de suivi de maintenance, maintenance des équipements, QPM",
+  'pricing.title': 'Tarification - QPM',
   'pricing.description':
-    'Plans tarifaires flexibles pour Atlas CMMS. Choisissez entre les versions Cloud et Auto-hébergée de notre GMAO open-source pour optimiser vos opérations de maintenance.',
+    'Plans tarifaires flexibles pour QPM. Choisissez entre les versions Cloud et Auto-hébergée de notre GMAO open-source pour optimiser vos opérations de maintenance.',
   'free_cmms.hero.subtitle': 'Logiciel de GMAO gratuit',
   'free_cmms.hero.title':
     'Gérez vos bons de travail et actifs - Gratuit pour toujours',

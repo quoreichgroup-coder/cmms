@@ -66,7 +66,7 @@ const workOrdersData: IndustryLayoutProps = {
         "A work order is a formal request for a specific task or set of tasks, essential for equipment maintenance, repairs, or operational needs.",
     },
     {
-      question: "Does Atlas CMMS have a mobile app?",
+      question: "Does QPM have a mobile app?",
       answer:
         "Yes. Our open-source mobile app is designed for technicians on the go, making it easy to create, track, and complete work orders.",
     },

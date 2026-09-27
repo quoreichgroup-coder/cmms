@@ -86,7 +86,7 @@ const frJSON = {
   "Sign out": "Déconnexion",
   "Change Theme": "Change le thème",
   "View all notifications": "Afficher toutes les notifications",
-  "Tokyo NextJS Typescript Admin Dashboard": "Tableau de bord d'administration de Tokyo React",
+  "Tokyo NextJS Typescript Admin Dashboard": "Tableau de bord QPM",
   "High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes":
     "Modèle React haute performance construit avec de nombreux composants Material-UI puissants dans plusieurs niches de produits pour des processus de développement d'applications rapides et parfaits",
   "Browse Live Preview": "Parcourir l'aperçu en direct",
@@ -98,7 +98,7 @@ const frJSON = {
   "dark/light themes": "thèmes sombres / clairs",
   components: "composants",
   "Some of the features that make Tokyo one of the best admin templates available today":
-    "Certaines des fonctionnalités qui font de Tokyo l'un des meilleurs modèles d'administration disponibles aujourd'hui",
+    "Certaines des fonctionnalités de l'application QPM",
   "Design Source Files": "Fichiers source de conception",
   "Start working on your project directly from one of the included starter kits or use the Figma/Sketch files to create a prototype first":
     "Commencez à travailler sur votre projet directement à partir de l'un des kits de démarrage inclus ou utilisez les fichiers Figma / Sketch pour créer d'abord un prototype",
@@ -1658,7 +1658,7 @@ const frJSON = {
     get_your_license: "Obtenez votre licence",
     title: "Tarification",
     description:
-      "Plans tarifaires flexibles pour Atlas CMMS. Choisissez entre les versions Cloud et Auto-hébergée de notre GMAO open-source pour optimiser vos opérations de maintenance.",
+      "Plans tarifaires flexibles pour QPM. Choisissez entre les versions Cloud et Auto-hébergée de notre GMAO open-source pour optimiser vos opérations de maintenance.",
   },
   get_started: "Commencer",
   workflow_automation: "Automatisation des flux de travail",
@@ -1736,9 +1736,9 @@ const frJSON = {
   },
   overview_1: {
     description:
-      "Atlas CMMS est une GMAO gratuite et open-source pour gérer les bons de travail, la maintenance préventive, les actifs et les installations. Simplifiez vos opérations de maintenance dès aujourd'hui.",
+      "QPM est une GMAO gratuite et open-source pour gérer les bons de travail, la maintenance préventive, les actifs et les installations. Simplifiez vos opérations de maintenance dès aujourd'hui.",
     keywords:
-      "GMAO, système de gestion de maintenance assistée par ordinateur, EAM, gestion des actifs d'entreprise, GMAO open source, logiciel de maintenance gratuit, gestion des bons de travail, maintenance préventive, suivi des actifs, gestion des installations, logiciel de suivi de maintenance, maintenance des équipements, Atlas CMMS",
+      "GMAO, système de gestion de maintenance assistée par ordinateur, EAM, gestion des actifs d'entreprise, GMAO open source, logiciel de maintenance gratuit, gestion des bons de travail, maintenance préventive, suivi des actifs, gestion des installations, logiciel de suivi de maintenance, maintenance des équipements, QPM",
   },
   prefer_one_time_purchase: "Vous préférez un achat unique ? Des licences perpétuelles sont disponibles à 36× le tarif mensuel.",
 };

@@ -1418,7 +1418,7 @@ const trJSON = {
   'Change Theme': 'Temayı değiştir',
   'View all notifications': 'Tüm bildirimleri göster',
   'Tokyo NextJS Typescript Admin Dashboard':
-    'Tokyo React Yönetici Kontrol Paneli',
+    'QPM bakım yönetimi',
   'High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes':
     'Hızlı ve mükemmel uygulama geliştirme süreçleri için birden fazla ürün yelpazesinde birçok güçlü Material-UI bileşeniyle oluşturulmuş yüksek performanslı React şablonu',
   'Browse Live Preview': 'Canlı önizlemeye göz atın',
@@ -1430,7 +1430,7 @@ const trJSON = {
   'dark/light themes': 'koyu/açık temalar',
   components: 'bileşenler',
   'Some of the features that make Tokyo one of the best admin templates available today':
-    "Tokyo'yu günümüzün en iyi yönetici şablonlarından biri yapan özelliklerden bazıları",
+    'QPM uygulamasının bazı özellikleri',
   'Design Source Files': 'Kaynak dosyalarını tasarlayın',
   'Start working on your project directly from one of the included starter kits or use the Figma/Sketch files to create a prototype first':
     'Birlikte verilen başlangıç ​​kitlerinden birinden doğrudan projeniz üzerinde çalışmaya başlayın veya önce bir prototip oluşturmak için Figma/Sketch dosyalarını kullanın',
@@ -1722,18 +1722,18 @@ const trJSON = {
     'Birden fazla sektörde bakım ekipleri tarafından güvenilmektedir',
   cut_costs_performance:
     'Performanstan ödün vermeden bakım yazılımı maliyetlerini düşürün',
-  'free_cmms.title': 'Atlas Ücretsiz CMMS Yazılımı | Kredi kartı gerekmez',
+  'free_cmms.title': 'QPM Ücretsiz CMMS Yazılımı | Kredi kartı gerekmez',
   'free_cmms.description':
     'Ücretsiz CMMS yazılımı — deneme sürümü değil. Bakım, varlık ve iş emirlerini anında yönetin. Kredi kartı gerekmez.',
   'free_cmms.keywords':
     'ücretsiz cmms, bakım yönetim yazılımı, ücretsiz iş emri yazılımı, varlık takibi, önleyici bakım',
   'overview.description':
-    "Atlas CMMS, iş emirlerini, önleyici bakımı, varlıkları ve tesisleri yönetmek için ücretsiz, açık kaynaklı bir CMMS'dir. Bakım operasyonlarınızı bugün kolaylaştırın.",
+    "QPM, iş emirlerini, önleyici bakımı, varlıkları ve tesisleri yönetmek için ücretsiz, açık kaynaklı bir CMMS'dir. Bakım operasyonlarınızı bugün kolaylaştırın.",
   'overview.keywords':
-    'CMMS, bilgisayarlı bakım yönetim sistemi, EAM, kurumsal varlık yönetimi, açık kaynaklı CMMS, ücretsiz bakım yazılımı, iş emri yönetimi, önleyici bakım, varlık takibi, tesis yönetimi, bakım takip yazılımı, ekipman bakımı, Atlas CMMS',
-  'pricing.title': 'Fiyatlandırma - Atlas CMMS',
+    'CMMS, bilgisayarlı bakım yönetim sistemi, EAM, kurumsal varlık yönetimi, açık kaynaklı CMMS, ücretsiz bakım yazılımı, iş emri yönetimi, önleyici bakım, varlık takibi, tesis yönetimi, bakım takip yazılımı, ekipman bakımı, QPM',
+  'pricing.title': 'Fiyatlandırma - QPM',
   'pricing.description':
-    "Atlas CMMS için esnek fiyatlandırma planları. Bakım operasyonlarınızı optimize etmek için açık kaynaklı CMMS'mizin Bulut ve Kendi Sunucunuzda Barındırılan sürümleri arasından seçim yapın.",
+    "QPM için esnek fiyatlandırma planları. Bakım operasyonlarınızı optimize etmek için açık kaynaklı CMMS'mizin Bulut ve Kendi Sunucunuzda Barındırılan sürümleri arasından seçim yapın.",
   'free_cmms.hero.subtitle': 'Ücretsiz CMMS Yazılımı',
   'free_cmms.hero.title':
     'İş Emirlerini ve Varlıkları Yönetin - Sonsuza Kadar Ücretsiz',

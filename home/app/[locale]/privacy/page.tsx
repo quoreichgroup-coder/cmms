@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t("privacy_policy"),
     description:
-      "Read the Privacy Policy for Atlas CMMS. Learn how we protect your data and ensure security in our open-source maintenance management platform.",
+      "Read the Privacy Policy for QPM. Learn how we protect your data and ensure security in our open-source maintenance management platform.",
     alternates: getLocalizedMetadata(locale, "/privacy"),
   };
 }

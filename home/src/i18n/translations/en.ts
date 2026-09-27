@@ -1566,7 +1566,7 @@ const locale = {
     get_your_license: "Get your license",
     title: "Pricing",
     description:
-      "Flexible pricing plans for Atlas CMMS. Choose between Cloud and Self-Hosted versions of our open-source CMMS to optimize your maintenance operations.",
+      "Flexible pricing plans for QPM. Choose between Cloud and Self-Hosted versions of our open-source CMMS to optimize your maintenance operations.",
   },
   get_started: "Get Started",
   workflow_automation: "Workflow Automation",
@@ -1642,9 +1642,9 @@ const locale = {
   },
   overview_1: {
     description:
-      "Atlas CMMS is a free, open-source CMMS to manage work orders, preventive maintenance, assets, and facilities. Streamline maintenance operations today.",
+      "QPM is a free, open-source CMMS to manage work orders, preventive maintenance, assets, and facilities. Streamline maintenance operations today.",
     keywords:
-      "CMMS, computerized maintenance management system, EAM, enterprise asset management, open source CMMS, free maintenance software, work order management, preventive maintenance, asset tracking, facility management, maintenance tracking software, equipment maintenance, Atlas CMMS",
+      "CMMS, computerized maintenance management system, EAM, enterprise asset management, open source CMMS, free maintenance software, work order management, preventive maintenance, asset tracking, facility management, maintenance tracking software, equipment maintenance, QPM",
   },
   SSO: "SSO",
   prefer_one_time_purchase: "Prefer a one-time purchase? Perpetual licenses are available at 36× the monthly rate.",

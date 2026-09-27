@@ -1572,7 +1572,7 @@ const plJSON = {
     get_your_license: "Zdobądź licencję",
     title: "Cennik",
     description:
-      "Elastyczne plany cenowe dla Atlas CMMS. Wybierz między wersją w chmurze a wersją samodzielnie hostowaną naszego CMMS typu open source, aby zoptymalizować swoje operacje konserwacyjne.",
+      "Elastyczne plany cenowe dla QPM. Wybierz między wersją w chmurze a wersją samodzielnie hostowaną naszego CMMS typu open source, aby zoptymalizować swoje operacje konserwacyjne.",
   },
   get_started: "Rozpocznij",
   workflow_automation: "Automatyzacja przepływu pracy",
@@ -1648,9 +1648,9 @@ const plJSON = {
   },
   overview_1: {
     description:
-      "Atlas CMMS to darmowy system CMMS o otwartym kodzie źródłowym do zarządzania zleceniami pracy, konserwacją zapobiegawczą, zasobami i obiektami. Usprawnij swoje operacje konserwacyjne już dziś.",
+      "QPM to darmowy system CMMS o otwartym kodzie źródłowym do zarządzania zleceniami pracy, konserwacją zapobiegawczą, zasobami i obiektami. Usprawnij swoje operacje konserwacyjne już dziś.",
     keywords:
-      "CMMS, komputerowy system zarządzania konserwacją, EAM, zarządzanie majątkiem przedsiębiorstwa, cmms open source, darmowe oprogramowanie do konserwacji, zarządzanie zleceniami pracy, konserwacja zapobiegawcza, śledzenie zasobów, zarządzanie obiektami, oprogramowanie do śledzenia konserwacji, konserwacja sprzętu, Atlas CMMS",
+      "CMMS, komputerowy system zarządzania konserwacją, EAM, zarządzanie majątkiem przedsiębiorstwa, cmms open source, darmowe oprogramowanie do konserwacji, zarządzanie zleceniami pracy, konserwacja zapobiegawcza, śledzenie zasobów, zarządzanie obiektami, oprogramowanie do śledzenia konserwacji, konserwacja sprzętu, QPM",
   },
   prefer_one_time_purchase: "Wolisz jednorazowy zakup? Licencje wieczyste są dostępne za 36× stawki miesięcznej.",
 };

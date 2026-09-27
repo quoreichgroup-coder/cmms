@@ -35,15 +35,11 @@ export async function generateMetadata({ params }: { params: any }): Promise<Met
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: "Atlas CMMS",
-      template: "%s | Atlas CMMS",
+      default: "QPM",
+      template: "%s | QPM",
     },
     icons: {
-      icon: [
-        { url: "/favicon.ico" },
-        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      ],
+      icon: [{ url: "/static/images/logo/logo.png", type: "image/png" }],
     },
   };
 }

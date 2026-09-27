@@ -67,14 +67,14 @@ const reportsDashboardsData: IndustryLayoutProps = {
         "Maintenance dashboards display key performance indicators such as work order completion, downtime, maintenance costs, and asset reliability to help teams monitor and improve operations.",
     },
     {
-      question: "Can Atlas CMMS generate automated reports?",
+      question: "Can QPM generate automated reports?",
       answer:
-        "Yes. Atlas CMMS supports scheduled and real-time reporting that can be shared with teams or management to keep everyone aligned on maintenance performance.",
+        "Yes. QPM supports scheduled and real-time reporting that can be shared with teams or management to keep everyone aligned on maintenance performance.",
     },
     {
-      question: "Is reporting fully customizable in Atlas CMMS?",
+      question: "Is reporting fully customizable in QPM?",
       answer:
-        "Absolutely. Because Atlas CMMS is open source and self-hosted, you can customize dashboards, metrics, and visualizations to match your exact operational needs.",
+        "Absolutely. Because QPM is open source and self-hosted, you can customize dashboards, metrics, and visualizations to match your exact operational needs.",
     },
   ],
   relatedContent: [],
