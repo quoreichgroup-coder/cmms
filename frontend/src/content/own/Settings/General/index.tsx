@@ -341,6 +341,7 @@ function GeneralSettings() {
                         ))}
                       </Field>
                     </Grid>
+                  </Grid>
                   <Stack mt={3} direction={'row'} spacing={2}>
                     <Button
                       onClick={() => setOpenDeleteDemo(true)}

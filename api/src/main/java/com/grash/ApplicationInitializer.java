@@ -71,6 +71,20 @@ public class ApplicationInitializer implements SmartInitializingSingleton {
                             .build());
                 });
 
+        Set<PermissionEntity> allPermissions = EnumSet.allOf(PermissionEntity.class);
+        if (!savedSuperAdminRole.getViewPermissions().containsAll(allPermissions)
+                || !savedSuperAdminRole.getCreatePermissions().containsAll(allPermissions)
+                || !savedSuperAdminRole.getViewOtherPermissions().containsAll(allPermissions)
+                || !savedSuperAdminRole.getEditOtherPermissions().containsAll(allPermissions)
+                || !savedSuperAdminRole.getDeleteOtherPermissions().containsAll(allPermissions)) {
+            savedSuperAdminRole.setViewPermissions(new HashSet<>(allPermissions));
+            savedSuperAdminRole.setCreatePermissions(new HashSet<>(allPermissions));
+            savedSuperAdminRole.setViewOtherPermissions(new HashSet<>(allPermissions));
+            savedSuperAdminRole.setEditOtherPermissions(new HashSet<>(allPermissions));
+            savedSuperAdminRole.setDeleteOtherPermissions(new HashSet<>(allPermissions));
+            savedSuperAdminRole = roleService.saveAll(Collections.singletonList(savedSuperAdminRole)).get(0);
+        }
+
         if (userService.findByCompany(savedSuperAdminRole.getCompanySettings().getCompany().getId()).isEmpty()) {
             log.info("Creating super admin user...");
             UserSignupRequest signupRequest = getSuperAdminSignupRequest(savedSuperAdminRole);

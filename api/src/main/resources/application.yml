@@ -169,6 +169,8 @@ oauth2:
 license-key: ${LICENSE_KEY:}
 license-fingerprint-required: ${LICENSE_FINGERPRINT_REQUIRED:false}
 license-file-path: ${LICENSE_FILE_PATH:}
+license-preview:
+  enabled: ${LICENSE_PREVIEW_ENABLED:false}
 white-labeling:
   logo-paths: ${LOGO_PATHS:}
   custom-colors: ${CUSTOM_COLORS:}

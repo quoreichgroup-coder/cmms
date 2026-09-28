@@ -115,7 +115,7 @@ Need customization or production setup? Continue reading below ↓
 | GCP_PROJECT_ID              | No       | The Google Cloud project ID, also found in the `GCP_JSON` file.                                                                                                                                                                                                                                                     | (empty)               |
 | GCP_BUCKET_NAME             | No       | GCP Bucket Name                                                                                                                                                                                                                                                                                                     | (empty)               |
 | MAIL_RECIPIENTS             | No       | Comma-separated email addresses of the super admins where to send information emails like new signups. You can provide your email address.                                                                                                                                                                          | (empty)               |
-| LICENSE_KEY                 | No       | [Atlas CMMS license key](https://atlas-cmms.com/pricing?type=selfhosted) to get access to advanced features.                                                                                                                                                                                                        | (empty)               |
+| LICENSE_KEY                 | No       | Commercial license key. Confirm the order form covers the deployment and resale model before enabling commercial features.                                                                                                                                                                                        | (empty)               |
 | ENABLE_SSO                  | No       | Enables or disables SSO. (`true` or `false` ) Requires `OAUTH2_PROVIDER`, `OAUTH2_CLIENT_ID` and `OAUTH2_CLIENT_SECRET`. Make sure to add `PUBLIC_SERVER_URL` as authorized origin and `${PUBLIC_SERVER_URL}/api/oauth2/callback/${OAUTH2_PROVIDER}` as authorized redirection URI in your Oauth2 provider settings | false                 |
 | OAUTH2_PROVIDER             | No       | Oauth2 provider `google` or `microsoft`                                                                                                                                                                                                                                                                             | (empty)               |
 | OAUTH2_CLIENT_ID            | No       | Oauth2 Client ID                                                                                                                                                                                                                                                                                                    | (empty)               |
@@ -192,13 +192,11 @@ You can also join our [Discord server](https://discord.gg/cHqyVRYpkA)
 
 ## Open source licensing info
 
-Atlas CMMS is dual-licensed:
+The upstream software is offered under two licensing paths:
 
 - [AGPLv3 License](./LICENSE) — Free and open source.
-- [Commercial License](./COMMERCIAL_LICENSE.MD) — Required for white labeling, custom branding, and advanced features.
+- [Commercial License](./COMMERCIAL_LICENSE.MD) — Its terms restrict distribution and limit SaaS use; read them before enabling commercial features.
 
-To enable commercial features, you must set a valid `LICENSE_KEY`.  
-For commercial licenses, visit [atlas-cmms.com/pricing?type=selfhosted](https://atlas-cmms.com/pricing?type=selfhosted)
-or email us at [contact@atlas-cmms.com](mailto:contact@atlas-cmms.com).
+To enable commercial features, set a valid `LICENSE_KEY`. A feature key does not by itself grant hosted SaaS/OEM, reseller, redistribution, or customer-installation rights. Review the [QUOREICH GROUP delivery model notes](./dev-docs/QUOREICH%20GROUP%20delivery%20models.md) and confirm permitted uses in a signed order form.
 
 <img src="https://star-history.dera.page/svg?repos=grashjs/cmms&type=Date"/>

@@ -6,6 +6,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Asset, { AssetDTO } from '../../../../models/owns/asset';
 import AssetWorkOrders from './AssetWorkOrders';
 import AssetDetails from './AssetDetails';
+import AssetOverview from './AssetOverview';
 import AssetParts from './AssetParts';
 import AssetFiles from './AssetFiles';
 import { isNumeric } from 'src/utils/validators';
@@ -164,6 +165,7 @@ const ShowAsset = ({}: PropsType) => {
   const arr = location.pathname.split('/');
 
   const tabs = [
+    { value: 'overview', label: t('overview') },
     { value: 'details', label: t('details') },
     { value: 'work-orders', label: t('work_orders') },
     { value: 'parts', label: t('parts') },
@@ -470,7 +472,7 @@ const ShowAsset = ({}: PropsType) => {
         basePath={`/app/assets/${assetId}`}
         tabs={tabs}
         tabIndex={tabIndex}
-        title={`Asset`}
+        title={asset?.name || t('asset')}
         action={
           hasEditPermission(PermissionEntity.ASSETS, asset)
             ? handleOpenUpdateModal
@@ -489,26 +491,28 @@ const ShowAsset = ({}: PropsType) => {
         withoutCard
         editAction
       >
-        {isNumeric(assetId) ? (
-          tabIndex === 0 ? (
+        {isNumeric(assetId) && asset ? (
+          tabs[tabIndex]?.value === 'overview' ? (
+            <AssetOverview asset={asset} />
+          ) : tabs[tabIndex]?.value === 'details' ? (
             <AssetDetails
               asset={asset}
               loading={loadingGet}
               onCopy={handleCopyAsset}
             />
-          ) : tabIndex === 1 ? (
+          ) : tabs[tabIndex]?.value === 'work-orders' ? (
             <AssetWorkOrders asset={asset} />
-          ) : tabIndex === 2 ? (
+          ) : tabs[tabIndex]?.value === 'parts' ? (
             <AssetParts asset={asset} />
-          ) : tabIndex === 3 ? (
+          ) : tabs[tabIndex]?.value === 'files' ? (
             <AssetFiles asset={asset} />
-          ) : tabIndex === 4 ? (
+          ) : tabs[tabIndex]?.value === 'meters' ? (
             <AssetMeters asset={asset} />
-          ) : tabIndex === 5 ? (
+          ) : tabs[tabIndex]?.value === 'downtimes' ? (
             <AssetDowntimes asset={asset} />
-          ) : (
-            tabIndex === 6 && <AssetAnalytics id={Number(assetId)} />
-          )
+          ) : tabs[tabIndex]?.value === 'analytics' ? (
+            <AssetAnalytics id={Number(assetId)} />
+          ) : null
         ) : null}
         <ConfirmDialog
           open={openDelete}

@@ -1,7 +1,7 @@
 import { homeUrl } from '../config';
 
 export const getAssetUrl = (id) => {
-  return `/app/assets/${id}/details`;
+  return `/app/assets/${id}/overview`;
 };
 
 export const getLocationUrl = (id) => {
@@ -49,7 +49,7 @@ export const getLocalizedHomeUrl = (
   lang: string,
   params?: Record<string, string>
 ) => {
-  const base = homeUrl || 'https://atlas-cmms.com';
+  const base = homeUrl || `${window.location.origin}/`;
   const url = new URL(`${lang.replace('_', '-').toLowerCase()}/${path}`, base);
 
   if (params) {

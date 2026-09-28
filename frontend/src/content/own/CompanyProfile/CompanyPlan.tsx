@@ -21,7 +21,6 @@ import { homeUrl, isCloudVersion } from '../../../config';
 import { getLicenseValidity } from '../../../slices/license';
 import { useDispatch, useSelector } from 'src/store';
 import subscriptionPlan from '../../../slices/subscriptionPlan';
-import { getLocalizedHomeUrl } from '../../../utils/urlPaths';
 import api from '../../../utils/api';
 
 interface CompanyPlanProps {
@@ -127,27 +126,15 @@ function CompanyPlan(props: CompanyPlanProps) {
           <Button
             sx={{ mr: 2 }}
             variant="contained"
-            component={isCloudVersion ? RouterLink : 'a'}
-            {...(isCloudVersion
-              ? { to: '/app/subscription/plans' }
-              : {
-                  href: getLocalizedHomeUrl(
-                    'pricing?type=selfhosted',
-                    i18n.language
-                  ),
-                  target: '_blank',
-                  rel: 'noopener noreferrer'
-                })}
+            component={RouterLink}
+            to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
           >
             {t('upgrade_now')}
           </Button>
           {isCloudVersion && (
             <Button
               onClick={() => {
-                window.location.href = getLocalizedHomeUrl(
-                  'pricing',
-                  i18n.language
-                );
+              navigate('/app/subscription/plans');
               }}
               variant="contained"
               color="secondary"

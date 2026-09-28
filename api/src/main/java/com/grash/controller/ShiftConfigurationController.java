@@ -39,7 +39,7 @@ public class ShiftConfigurationController {
     private final UserService userService;
 
     @GetMapping("/users")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public List<UserShiftDTO> getUsers(
             @Parameter(description = "Comma-separated user IDs (optional, returns all company users if omitted)")
             @RequestParam(required = false) List<Long> userIds,
@@ -52,7 +52,7 @@ public class ShiftConfigurationController {
     }
 
     @PatchMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public ShiftConfigurationShowDTO patchForUser(@PathVariable Long userId,
                                                   @Valid @RequestBody ShiftConfigurationPatchDTO dto,
                                                   @Parameter(hidden = true) @CurrentUser User currentUser,

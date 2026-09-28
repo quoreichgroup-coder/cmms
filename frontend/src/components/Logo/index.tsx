@@ -1,7 +1,6 @@
 import { Box, styled } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getLocalizedHomeUrl } from '../../utils/urlPaths';
 import { useBrand } from '../../hooks/useBrand';
 
 const LogoWrapper = styled(Link)(
@@ -38,11 +37,10 @@ const LogoText = styled(Box)(
 );
 
 function Logo() {
-  const { i18n } = useTranslation();
   const { logo, shortName } = useBrand();
 
   return (
-    <LogoWrapper to={getLocalizedHomeUrl('', i18n.language)}>
+    <LogoWrapper to="/app">
       <LogoSignWrapper>
         <Box
           component="img"

@@ -1,9 +1,19 @@
-import { Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
+import {
+  Alert,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import Form from '../components/form';
 import * as Yup from 'yup';
 import { IField } from '../type';
-import { formatSelect, formatSelectMultiple, formatCustomFields } from '../../../utils/formatters';
+import {
+  formatSelect,
+  formatSelectMultiple,
+  formatCustomFields
+} from '../../../utils/formatters';
 import { useDispatch, useSelector } from '../../../store';
 import { editWorkOrderMeterTrigger } from '../../../slices/workOrderMeterTrigger';
 import { getWOBaseFields, getWOBaseValues } from '../../../utils/woBase';
@@ -123,6 +133,9 @@ export default function EditTriggerModal({
           p: 3
         }}
       >
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t('meter_trigger_repeat_warning')}
+        </Alert>
         <Form
           fields={fields}
           validation={Yup.object().shape(shape)}

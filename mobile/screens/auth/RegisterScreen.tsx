@@ -1,9 +1,4 @@
-import {
-  Linking,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity
-} from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import * as Yup from 'yup';
 import { View } from '../../components/Themed';
 import { AuthStackScreenProps } from '../../types';
@@ -67,7 +62,6 @@ export default function RegisterScreen({
     return [fields, shape];
   };
 
-  const termsOfServiceUrl = 'https://atlas-cmms.com/terms-of-service';
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -215,25 +209,7 @@ export default function RegisterScreen({
               <View style={styles.checkboxContainer}>
                 <View style={styles.row}>
                   <Text>{`${t('i_accept').trim()}`}</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Linking.canOpenURL(termsOfServiceUrl).then(
-                        (supported) => {
-                          if (supported) {
-                            Linking.openURL(termsOfServiceUrl);
-                          } else {
-                            console.log(
-                              "Don't know how to open URI: " + termsOfServiceUrl
-                            );
-                          }
-                        }
-                      );
-                    }}
-                  >
-                    <Text style={{ color: theme.colors.primary }}>{` ${t(
-                      'terms_conditions'
-                    )}`}</Text>
-                  </TouchableOpacity>
+                  <Text>{` ${t('terms_conditions')}`}</Text>
                 </View>
               </View>
             </View>

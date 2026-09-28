@@ -20,7 +20,6 @@ import { useDispatch, useSelector } from '../../../../store';
 import { getPendingRequestsCount } from '../../../../slices/request';
 import dayjs from 'dayjs';
 import { isCloudVersion } from 'src/config';
-import { getLocalizedHomeUrl } from '../../../../utils/urlPaths';
 
 const MenuWrapper = styled(Box)(
   ({ theme }) => `
@@ -287,17 +286,7 @@ function SidebarMenu() {
             </Typography>
             <Button
               component={Link}
-              href={
-                isCloudVersion
-                  ? '/app/subscription/plans'
-                  : getLocalizedHomeUrl(
-                      'pricing?type=selfhosted',
-                      i18n.language
-                    )
-              }
-              {...(isCloudVersion
-                ? {}
-                : { target: '_blank', rel: 'noopener noreferrer' })}
+              href={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
               variant="contained"
               color="primary"
               sx={{ mt: 1 }}

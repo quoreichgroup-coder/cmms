@@ -33,6 +33,10 @@ module.exports = {
   devServer: function (configFunction) {
     return function (proxy, allowedHost) {
       const config = configFunction(proxy, allowedHost);
+      config.proxy = {
+        '/api': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+        '/storage': { target: 'http://127.0.0.1:3000', changeOrigin: true }
+      };
       config.client = {
         ...config.client,
         overlay: false

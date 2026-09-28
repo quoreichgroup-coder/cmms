@@ -33,12 +33,10 @@ import { useBrand } from '../../../../hooks/useBrand';
 import { fireGa4Event } from '../../../../utils/overall';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import {
-  homeUrl,
   isCloudVersion,
   PADDLE_SECRET_TOKEN,
   paddleEnvironment
 } from '../../../../config';
-import { getLocalizedHomeUrl } from '../../../../utils/urlPaths';
 
 function SubscriptionPlans() {
   const { t, i18n } = useTranslation();
@@ -334,14 +332,7 @@ function SubscriptionPlans() {
                     {t('which_plan_fits_you')}
                   </Typography>
                   <Typography variant="h6">
-                    {t('checkout_our')}{' '}
-                    <Link
-                      target={'_blank'}
-                      href={getLocalizedHomeUrl('pricing', i18n.language)}
-                    >
-                      {t('pricing_page')}
-                    </Link>{' '}
-                    {t('for_more_details')}
+                    {t('checkout_our')} {t('pricing_page')} {t('for_more_details')}
                   </Typography>
                   <RadioGroup
                     sx={{ p: 2, my: 1 }}

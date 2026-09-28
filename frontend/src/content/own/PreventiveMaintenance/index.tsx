@@ -47,7 +47,7 @@ import Form from '../components/form';
 import * as Yup from 'yup';
 import { IField } from '../type';
 import PMDetails from './PMDetails';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { isNumeric } from '../../../utils/validators';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import PriorityWrapper from '../components/PriorityWrapper';
@@ -77,6 +77,7 @@ import PreventiveMaintenance from '../../../models/owns/preventiveMaintenance';
 import Category from '../../../models/owns/category';
 import { LocationMiniDTO } from '../../../models/owns/location';
 import { AssetMiniDTO } from '../../../models/owns/asset';
+import { getSingleAsset } from '../../../slices/asset';
 import { patchTasksOfPreventiveMaintenance } from '../../../slices/task';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
@@ -151,11 +152,28 @@ function PMs() {
   );
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const { preventiveMaintenanceId } = useParams();
+  const [searchParams] = useSearchParams();
+  const assetPrefillIdParam =
+    searchParams.get('new') === 'true' ? searchParams.get('asset') : null;
+  const assetPrefillId = isNumeric(assetPrefillIdParam)
+    ? Number(assetPrefillIdParam)
+    : undefined;
   const dispatch = useDispatch();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const { preventiveMaintenances, loadingGet, singlePreventiveMaintenance } =
     useSelector((state) => state.preventiveMaintenances);
   const { customFields } = useSelector((state) => state.customFields);
+  const { assetInfos } = useSelector((state) => state.assets);
+  const canViewAssetPrefill = hasViewPermission(PermissionEntity.ASSETS);
+  const canCreateMaintenance = hasCreatePermission(
+    PermissionEntity.PREVENTIVE_MAINTENANCES
+  );
+  const hasPreventiveMaintenanceFeature = hasFeature(
+    PlanFeature.PREVENTIVE_MAINTENANCE
+  );
+  const assetPrefill = assetPrefillId
+    ? assetInfos[assetPrefillId]?.asset
+    : undefined;
   const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: getInitialFilterFields(),
@@ -232,6 +250,41 @@ function PMs() {
       dispatch(getSinglePreventiveMaintenance(Number(preventiveMaintenanceId)));
     }
   }, [preventiveMaintenanceId]);
+
+  useEffect(() => {
+    if (
+      assetPrefillId &&
+      !assetPrefill &&
+      canViewAssetPrefill &&
+      hasPreventiveMaintenanceFeature
+    ) {
+      Promise.resolve(dispatch(getSingleAsset(assetPrefillId))).catch(() =>
+        showSnackBar(t('an_error_occured'), 'error')
+      );
+    }
+  }, [
+    assetPrefillId,
+    assetPrefill,
+    canViewAssetPrefill,
+    hasPreventiveMaintenanceFeature,
+    dispatch
+  ]);
+
+  useEffect(() => {
+    if (
+      searchParams.get('new') === 'true' &&
+      assetPrefill &&
+      canCreateMaintenance &&
+      hasPreventiveMaintenanceFeature
+    ) {
+      setOpenAddModal(true);
+    }
+  }, [
+    searchParams,
+    assetPrefill,
+    canCreateMaintenance,
+    hasPreventiveMaintenanceFeature
+  ]);
 
   useEffect(() => {
     if (hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES))
@@ -642,6 +695,12 @@ function PMs() {
                     startsOn: null,
                     endsOn: null,
                     dueDate: null,
+                    asset: assetPrefill
+                      ? {
+                          label: assetPrefill.name,
+                          value: String(assetPrefill.id)
+                        }
+                      : null,
                     recurrenceBasedOn: basedOnArray[0],
                     recurrenceType: recurrenceTypes[0]
                   }

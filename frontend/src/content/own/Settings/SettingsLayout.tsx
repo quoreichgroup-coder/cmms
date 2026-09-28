@@ -17,7 +17,10 @@ function SettingsLayout() {
     { value: 'features', label: t('features') },
     { value: 'roles', label: t('roles') },
     { value: 'checklists', label: t('checklists') },
-    { value: 'integrations', label: t('integrations') }
+    { value: 'integrations', label: t('integrations') },
+    ...(user.role?.roleType === 'ROLE_SUPER_ADMIN'
+      ? [{ value: 'subscription-catalog', label: t('plan_catalog') }]
+      : [])
   ];
 
   // Determine the current tab index based on the URL path

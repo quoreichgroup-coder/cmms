@@ -66,7 +66,9 @@ const ContractorsSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/Contractors'))
 );
 const ContractorsCustomFields = Loader(
-  lazy(() => import('../content/own/Settings/Features/Contractors/CustomFields'))
+  lazy(
+    () => import('../content/own/Settings/Features/Contractors/CustomFields')
+  )
 );
 const VendorsSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/Vendors'))
@@ -127,6 +129,9 @@ const CostCategories = Loader(
 );
 const SubscriptionPlans = Loader(
   lazy(() => import('../content/own/Subscription/Plans'))
+);
+const SubscriptionCatalog = Loader(
+  lazy(() => import('../content/own/Settings/SubscriptionCatalog'))
 );
 const Files = Loader(lazy(() => import('../content/own/Files')));
 const Meters = Loader(lazy(() => import('../content/own/Meters')));
@@ -257,6 +262,10 @@ const appRoutes = [
           { path: 'api-keys', element: <ApiKeysPage /> },
           { path: 'webhooks', element: <WebhooksPage /> }
         ]
+      },
+      {
+        path: 'subscription-catalog',
+        element: <SubscriptionCatalog />
       }
     ]
   },
@@ -382,6 +391,8 @@ const appRoutes = [
       {
         path: ':assetId',
         children: [
+          { index: true, element: <Navigate to="overview" replace /> },
+          { path: 'overview', element: <ShowAsset /> },
           { path: 'work-orders', element: <ShowAsset /> },
           { path: 'details', element: <ShowAsset /> },
           { path: 'parts', element: <ShowAsset /> },

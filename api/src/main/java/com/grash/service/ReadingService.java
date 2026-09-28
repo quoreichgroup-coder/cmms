@@ -3,6 +3,7 @@ package com.grash.service;
 import com.grash.dto.DateRange;
 import com.grash.dto.ReadingHistogramDTO;
 import com.grash.dto.ReadingPatchDTO;
+import com.grash.dto.license.LicenseEntitlement;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.ReadingMapper;
@@ -71,7 +72,8 @@ public class ReadingService {
                         .getGeneralPreferences()
                         .getTimeZone();
                 LocalDate nextReading =
-                        Helper.dateToLocalDate(lastReading.getCreatedAt()).plusDays(meter.getUpdateFrequency());
+                        lastReading.getCreatedAt().toInstant().atZone(ZoneId.of(timeZone)).toLocalDate()
+                                .plusDays(meter.getUpdateFrequency());
                 if (LocalDate.now(ZoneId.of(timeZone)).isBefore(nextReading)) {
                     throw new CustomException("The update frequency has not been respected", HttpStatus.NOT_ACCEPTABLE);
                 }
@@ -113,6 +115,8 @@ public class ReadingService {
 
     @Transactional
     public Reading patch(Long id, ReadingPatchDTO reading, User user) {
+        if (!user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.METER))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         Optional<Reading> optionalReading = readingRepository.findById(id);
 
         if (optionalReading.isPresent()) {
@@ -149,6 +153,7 @@ public class ReadingService {
     }
 
     private void processMeterTriggers(Meter meter, double readingValue, User user) {
+        if (!licenseService.hasEntitlement(LicenseEntitlement.CONDITION_BASED_PM)) return;
         Collection<WorkOrderMeterTrigger> meterTriggers = workOrderMeterTriggerService.findByMeter(meter.getId());
         Locale locale = Helper.getLocale(user);
         meterTriggers.forEach(meterTrigger -> {

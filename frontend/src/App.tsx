@@ -34,8 +34,6 @@ import { UtmTrackerProvider } from '@nik0di3m/utm-tracker-hook';
 import { useLicenseEntitlement } from './hooks/useLicenseEntitlement';
 import { initializePaddle } from '@paddle/paddle-js';
 import { getDateLocale, loadLanguage, supportedLanguages } from './i18n/i18n';
-import MobileAppDownloadDialog from './components/MobileAppDownloadDialog';
-import { useMobileAppPrompt } from './hooks/useMobileAppPrompt';
 
 if (!IS_LOCALHOST && googleTrackingId)
   ReactGA.initialize(googleTrackingId, {
@@ -107,6 +105,30 @@ const DemoCleaningAlert = () => {
   return null;
 };
 
+const LocalLicensePreviewAlert = () => {
+  const { state } = useSelector((state) => state.license);
+  const { t } = useTranslation();
+
+  if (!state.previewMode) return null;
+
+  return (
+    <Alert
+      severity="warning"
+      sx={{
+        position: 'fixed',
+        top: 8,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1600,
+        width: 'max-content',
+        maxWidth: 'calc(100vw - 32px)'
+      }}
+    >
+      {t('local_license_preview_warning')}
+    </Alert>
+  );
+};
+
 function App() {
   const content = useRoutes(router);
   const navigate = useNavigate();
@@ -117,7 +139,6 @@ function App() {
   const hasBrandingEntitlement = useLicenseEntitlement('BRANDING');
   const { i18n } = useTranslation();
   let location = useLocation();
-  const { shouldShowPrompt, dismissPrompt } = useMobileAppPrompt();
   const [dateFnsLocale, setDateFnsLocale] = useState<Locale>(enUS);
 
   useEffect(() => {
@@ -220,12 +241,9 @@ function App() {
               <CompanySettingsProvider>
                 <CssBaseline />
                 {isInitialized ? content : <AppInit />}
+                <LocalLicensePreviewAlert />
                 {user && company?.demo && <DemoAlert />}
                 <DemoCleaningAlert />
-                <MobileAppDownloadDialog
-                  open={shouldShowPrompt}
-                  onClose={dismissPrompt}
-                />
               </CompanySettingsProvider>
             </CustomSnackBarProvider>
           </SnackbarProvider>

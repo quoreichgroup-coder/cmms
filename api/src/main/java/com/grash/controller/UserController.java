@@ -71,7 +71,7 @@ public class UserController {
     }
 
     @GetMapping("/mini")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public Collection<UserMiniDTO> getMini(@Parameter(hidden = true) @CurrentUser User user,
                                            @Parameter(description = "Include requesters in the response") @RequestParam(required = false) Boolean withRequesters) {
         return Boolean.TRUE.equals(withRequesters) ?
@@ -154,6 +154,5 @@ public class UserController {
         return userMapper.toResponseDto(userService.softDeleteUser(id, requester));
     }
 }
-
 
 

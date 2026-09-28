@@ -1,4 +1,50 @@
 const frJSON = {
+  plan_catalog: 'Catalogue des forfaits',
+  plan_catalog_description:
+    'Définissez les modules disponibles dans chaque forfait. Les changements s’appliquent à toutes les entreprises qui utilisent ce forfait.',
+  plan_catalog_impact_warning:
+    'Modifier un forfait change immédiatement les fonctions disponibles pour tous ses abonnés.',
+  plan_catalog_price_notice:
+    'Les prix sont affichés à titre indicatif ici. Pour les modifier, synchronisez aussi les identifiants de prix Paddle et la page commerciale.',
+  plan_catalog_included_modules: 'Modules inclus',
+  plan_catalog_name: 'Nom du forfait',
+  plan_catalog_price:
+    '{{monthly}} USD / utilisateur / mois · {{yearly}} USD / utilisateur / an',
+  plan_catalog_save: 'Enregistrer les modules',
+  plan_catalog_confirm_title: 'Confirmer la mise à jour du forfait',
+  plan_catalog_confirm_message:
+    'Les changements du forfait {{plan}} s’appliqueront immédiatement à toutes les entreprises abonnées. Continuer ?',
+  plan_catalog_confirm_save: 'Confirmer les changements',
+  plan_catalog_saved: 'Forfait {{plan}} mis à jour',
+  plan_catalog_load_error: 'Impossible de charger le catalogue des forfaits',
+  plan_catalog_save_error: 'Impossible d’enregistrer les modules du forfait',
+  asset_documents: 'Documents liés',
+  asset_no_documents: 'Aucun document joint à cet équipement.',
+
+  upgrade_preventive_maintenance:
+    'La maintenance préventive nécessite une mise à niveau du forfait.',
+  asset_no_preventive_maintenance:
+    'Aucun plan préventif actif pour cet équipement.',
+
+  asset_downtime_history: 'Historique des arrêts',
+  asset_current_downtime: 'État actuel',
+  asset_downtime_active: 'Arrêt en cours',
+  asset_no_active_downtime: 'En fonctionnement',
+  asset_no_downtime: 'Aucun arrêt enregistré',
+
+  asset_child_assets: 'Sous-équipements',
+  asset_no_children: 'Aucun sous-équipement lié.',
+  asset_more_children: 'Afficher {{count}} sous-équipements supplémentaires',
+
+  asset_no_parts: 'Aucune pièce liée à cet équipement.',
+  asset_requests: 'Demandes liées',
+  asset_no_requests: 'Aucune demande visible pour cet équipement.',
+  asset_linked_work_order: 'Ordre de travail n° {{id}}',
+
+  asset_no_readings: 'Aucun relevé enregistré',
+  asset_no_meters: 'Aucun compteur lié à cet équipement.',
+  asset_retry: 'Réessayer',
+
   Blueprints: 'Plans',
   'Extended Sidebar': 'Barre latérale étendue',
   'Accent Sidebar': "Barre latérale d'accentuation",
@@ -86,8 +132,7 @@ const frJSON = {
   'Sign out': 'Déconnexion',
   'Change Theme': 'Change le thème',
   'View all notifications': 'Afficher toutes les notifications',
-  'Tokyo NextJS Typescript Admin Dashboard':
-    'Tableau de bord QPM',
+  'Tokyo NextJS Typescript Admin Dashboard': 'Tableau de bord QPM',
   'High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes':
     "Modèle React haute performance construit avec de nombreux composants Material-UI puissants dans plusieurs niches de produits pour des processus de développement d'applications rapides et parfaits",
   'Browse Live Preview': "Parcourir l'aperçu en direct",
@@ -264,6 +309,9 @@ const frJSON = {
   signup_description: 'Remplissez les champs ci-dessous pour ouvrir un compte.',
   account_already: 'Vous avez déjà un compte?',
   signin_here: 'Se connecter ici',
+  super_admin_signin: 'Se connecter comme super administrateur',
+  local_license_preview_warning:
+    'Prévisualisation locale : les fonctions sous licence sont simulées.',
 
   invalid_email: "L'e-mail fourni doit être une adresse e-mail valide",
   required_email: 'Le champ email est obligatoire',
@@ -801,6 +849,10 @@ const frJSON = {
     'Remplissez les champs ci-dessous pour modifier le compteur',
   confirm_delete_meter: 'Voulez-vous vraiment supprimer ce compteur ?',
   upgrade_create_meter: 'Mettre à niveau pour créer des compteurs',
+  upgrade_condition_based_pm:
+    'Une licence avec la maintenance conditionnelle est nécessaire pour créer et modifier des déclencheurs de compteur.',
+  meter_trigger_repeat_warning:
+    'Chaque relevé du côté du seuil peut créer un nouvel ordre de travail. Les règles de répétition et de délai avant déclenchement ne sont pas appliquées actuellement.',
   history: 'Historique',
   reading_frequency: 'Fréquence de relevés',
   required_reading_value: 'La valeur du relevé est requise',
@@ -1599,8 +1651,20 @@ const frJSON = {
   'schedule.yearly_other': 'Chaque {{count}} ans',
   recent_work_orders: 'Ordres de travail récents',
   no_recent_work_orders: 'Aucun ordre de travail',
+  open_work_orders: 'Ordres de travail ouverts',
+  linked_parts: 'Pièces associées',
+  view_work_orders: 'Voir les ordres de travail',
+  view_parts: 'Voir les pièces',
+  view_all: 'Tout voir',
+  create_work_order: 'Créer un ordre de travail',
+  not_specified: 'Non renseigné',
+  warranty_not_recorded: 'Garantie non renseignée',
+  warranty_expired: 'Garantie expirée',
+  warranty_expiring_soon: 'Garantie bientôt expirée',
+  warranty_active: 'Garantie active',
   delete_account: 'Supprimer le compte',
-  delete_account_email_confirmation: 'Veuillez vérifier vos e-mails pour confirmer la suppression du compte',
+  delete_account_email_confirmation:
+    'Veuillez vérifier vos e-mails pour confirmer la suppression du compte',
   csv_separator: 'Séparateur CSV',
   open_source_cmms: 'GMAO Open Source',
   'main.title':
@@ -2186,7 +2250,8 @@ const frJSON = {
   are_you_sure_delete_reading:
     'Êtes-vous sûr de vouloir supprimer cette lecture ?',
   no_custom_fields_found: 'Aucun champ personnalisé trouvé',
-  conflict_retry: "La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes."
+  conflict_retry:
+    'La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes.'
 };
 
 export default frJSON;

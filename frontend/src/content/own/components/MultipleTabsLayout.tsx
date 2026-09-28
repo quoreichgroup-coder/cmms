@@ -13,6 +13,12 @@ const TabsContainerWrapper = styled(Box)(
       position: relative;
       bottom: -1px;
       max-width: 100%;
+      flex: 1 1 auto;
+      min-width: 0;
+
+      @media (max-width: 600px) {
+        padding: 0 ${theme.spacing(1)};
+      }
 
       .MuiTabs-root {
         height: 44px;
@@ -135,7 +141,15 @@ function MultipleTabsLayout(props: SettingsLayoutProps) {
       <Helmet>
         <title>{title}</title>
       </Helmet>
-      <Box display="flex" justifyContent="space-between">
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        sx={{
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'stretch', md: 'center' },
+          minWidth: 0
+        }}
+      >
         <TabsContainerWrapper>
           <Tabs
             onChange={handleTabsChange}
@@ -151,7 +165,11 @@ function MultipleTabsLayout(props: SettingsLayoutProps) {
           </Tabs>
         </TabsContainerWrapper>
         {(action || secondAction || rawAction) && (
-          <Stack direction="row" spacing={1} sx={{ mr: 4, my: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ mr: { xs: 2, md: 4 }, my: 1, alignSelf: 'flex-end' }}
+          >
             {action && (
               <Button
                 startIcon={

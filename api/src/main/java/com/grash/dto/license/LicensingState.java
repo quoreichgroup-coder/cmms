@@ -17,6 +17,8 @@ public class LicensingState {
     private boolean hasLicense;
     @Schema(description = "Whether the current license is valid")
     private boolean valid;
+    @Schema(description = "Whether license entitlements are simulated for local development")
+    private boolean previewMode;
     @Schema(description = "Name of the current subscription plan")
     private String planName;
     @Schema(description = "Set of entitlement codes granted by the current license")

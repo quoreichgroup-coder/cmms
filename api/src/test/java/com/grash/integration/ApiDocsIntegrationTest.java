@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,13 +26,13 @@ class ApiDocsIntegrationTest extends AbstractIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
-    void atlasCmmsGroup_returnsOpenApiSpec() throws Exception {
+    void qpmGroup_returnsOpenApiSpec() throws Exception {
         mockMvc.perform(get("/v3/api-docs/atlas-cmms"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.openapi", startsWith("3.")))
-                .andExpect(jsonPath("$.info.title").value("Atlas CMMS API"))
-                .andExpect(jsonPath("$.servers[*].url", hasItem("https://api.atlas-cmms.com")))
+                .andExpect(jsonPath("$.info.title").value("QPM CMMS API"))
+                .andExpect(jsonPath("$.servers[*].url", not(hasItem("https://api.atlas-cmms.com"))))
                 .andExpect(jsonPath("$.paths.length()", greaterThan(0)))
                 .andExpect(jsonPath("$.paths['/subscriptions/upgrade'].post").exists())
                 .andExpect(jsonPath("$.components.securitySchemes.apiKey.type").value("apiKey"))
@@ -40,7 +41,7 @@ class ApiDocsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void atlasCmmsGroup_includesWebhookDocumentation() throws Exception {
+    void qpmGroup_includesWebhookDocumentation() throws Exception {
         mockMvc.perform(get("/v3/api-docs/atlas-cmms"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.webhooks.workOrderStatusChange.post.summary")

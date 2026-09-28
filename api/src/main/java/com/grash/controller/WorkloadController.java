@@ -10,6 +10,7 @@ import com.grash.model.User;
 import com.grash.model.WorkOrder;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.PlanFeatures;
+import com.grash.model.enums.RoleType;
 import com.grash.model.enums.Status;
 import com.grash.service.LicenseService;
 import com.grash.service.UserService;
@@ -37,7 +38,7 @@ public class WorkloadController {
     private final LicenseService licenseService;
 
     @GetMapping("/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public WorkloadOverviewDTO getOverview(
             @Parameter(description = "Start date (ISO format)") @RequestParam LocalDate startDate,
             @Parameter(description = "End date (ISO format)") @RequestParam LocalDate endDate,
@@ -53,7 +54,7 @@ public class WorkloadController {
     }
 
     @GetMapping("/unscheduled")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public UnscheduledWorkOrdersDTO getUnscheduled(
             @Parameter(description = "Comma-separated statuses to filter by") @RequestParam(required = false) List<Status> statuses,
             HttpServletRequest req) {
@@ -63,7 +64,7 @@ public class WorkloadController {
     }
 
     @PatchMapping("/work-orders/{id}/schedule")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public WorkOrderScheduleDTO scheduleWorkOrder(
             @Parameter(description = "Work order ID") @PathVariable Long id,
             @Valid @RequestBody WorkloadScheduleDTO dto,
@@ -81,6 +82,10 @@ public class WorkloadController {
     }
 
     private void checkAccess(User user) {
+        if (user.getRole().getRoleType() == RoleType.ROLE_SUPER_ADMIN
+                && licenseService.isLocalFeaturePreviewActive()) {
+            return;
+        }
         if (!licenseService.hasEntitlement(LicenseEntitlement.RESOURCE_PLANNING)) {
             throw new CustomException("You need a license for resource planning", HttpStatus.FORBIDDEN);
         }

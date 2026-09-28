@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Divider,
@@ -16,6 +17,7 @@ import {
 } from '@mui/material';
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -57,6 +59,8 @@ import {
 import { format } from 'date-fns';
 import { subDays } from 'date-fns';
 import useDateLocale from '../../../hooks/useDateLocale';
+import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
+import { isCloudVersion } from '../../../config';
 
 interface MeterDetailsProps {
   meter: Meter;
@@ -68,10 +72,11 @@ interface MeterDetailsProps {
 export default function MeterDetails(props: MeterDetailsProps) {
   const { meter, handleOpenUpdate, handleOpenDelete, onCopy, onNewReading } =
     props;
-  const { t }: { t: any } = useTranslation();
+  const { t, i18n }: { t: any; i18n: any } = useTranslation();
   const dispatch = useDispatch();
-  const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
+  const { hasEditPermission, hasDeletePermission, hasCreatePermission, user } =
     useAuth();
+  const hasConditionBasedPm = useLicenseEntitlement('CONDITION_BASED_PM');
   const [currentTab, setCurrentTab] = useState<string>('details');
   const dateLocale = useDateLocale();
   const { getFormattedDate } = useContext(CompanySettingsContext);
@@ -316,37 +321,58 @@ export default function MeterDetails(props: MeterDetailsProps) {
             </Typography>
             <Grid container spacing={1}>
               <Grid item xs={12} lg={12}>
+                {!hasConditionBasedPm && (
+                  <Alert
+                    severity="info"
+                    action={
+                      user.ownsCompany ? (
+                        <Button
+                          component={Link}
+                          to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
+                          color="inherit"
+                        >
+                          {t('upgrade_now')}
+                        </Button>
+                      ) : undefined
+                    }
+                    sx={{ mb: 2 }}
+                  >
+                    {t('upgrade_condition_based_pm')}
+                  </Alert>
+                )}
                 <List>
                   {currentMeterTriggers.map((trigger) => (
                     <ListItem
                       key={trigger.id}
                       secondaryAction={
-                        <Stack spacing={1} direction="row">
-                          <IconButton
-                            onClick={() => {
-                              setCurrentWorkOrderMeterTrigger(
-                                currentMeterTriggers.find(
-                                  (t) => t.id === trigger.id
-                                )
-                              );
-                              setOpenEditTriggerModal(true);
-                            }}
-                          >
-                            <EditTwoToneIcon />
-                          </IconButton>
-                          <IconButton
-                            onClick={() => {
-                              dispatch(
-                                deleteWorkOrderMeterTrigger(
-                                  meter.id,
-                                  trigger.id
-                                )
-                              );
-                            }}
-                          >
-                            <DeleteTwoToneIcon color="error" />
-                          </IconButton>
-                        </Stack>
+                        hasConditionBasedPm ? (
+                          <Stack spacing={1} direction="row">
+                            <IconButton
+                              onClick={() => {
+                                setCurrentWorkOrderMeterTrigger(
+                                  currentMeterTriggers.find(
+                                    (t) => t.id === trigger.id
+                                  )
+                                );
+                                setOpenEditTriggerModal(true);
+                              }}
+                            >
+                              <EditTwoToneIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => {
+                                dispatch(
+                                  deleteWorkOrderMeterTrigger(
+                                    meter.id,
+                                    trigger.id
+                                  )
+                                );
+                              }}
+                            >
+                              <DeleteTwoToneIcon color="error" />
+                            </IconButton>
+                          </Stack>
+                        ) : undefined
                       }
                     >
                       <ListItemText
@@ -360,16 +386,17 @@ export default function MeterDetails(props: MeterDetailsProps) {
                     </ListItem>
                   ))}
                 </List>
-                {hasEditPermission(PermissionEntity.METERS, meter) && (
-                  <Button
-                    startIcon={<AddTwoToneIcon />}
-                    sx={{ my: 1 }}
-                    variant="outlined"
-                    onClick={() => setOpenAddTriggerModal(true)}
-                  >
-                    {t('add_trigger')}
-                  </Button>
-                )}
+                {hasConditionBasedPm &&
+                  hasEditPermission(PermissionEntity.METERS, meter) && (
+                    <Button
+                      startIcon={<AddTwoToneIcon />}
+                      sx={{ my: 1 }}
+                      variant="outlined"
+                      onClick={() => setOpenAddTriggerModal(true)}
+                    >
+                      {t('add_trigger')}
+                    </Button>
+                  )}
               </Grid>
             </Grid>
           </Box>

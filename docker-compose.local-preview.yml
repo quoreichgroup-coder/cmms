@@ -1,0 +1,10 @@
+services:
+  api:
+    image: atlas-cmms-backend-local-preview
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      PUBLIC_API_URL: http://localhost:3000/api
+      LICENSE_PREVIEW_ENABLED: "true"

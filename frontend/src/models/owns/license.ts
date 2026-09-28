@@ -34,6 +34,7 @@ const licenseEntitlements = [
 ] as const;
 export type LicensingState = {
   valid: boolean;
+  previewMode?: boolean;
   entitlements: LicenseEntitlement[];
   expirationDate: string;
   planName: string;

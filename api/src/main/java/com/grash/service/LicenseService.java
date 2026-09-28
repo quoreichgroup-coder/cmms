@@ -6,9 +6,12 @@ import com.grash.model.KeygenRequestTracker;
 import com.grash.repository.KeygenRequestTrackerRepository;
 import com.grash.utils.FingerprintGenerator;
 import com.grash.utils.LicenseFileValidator;
+import com.grash.utils.Helper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -34,6 +37,7 @@ public class LicenseService {
 
     private final ObjectMapper objectMapper;
     private final KeygenRequestTrackerRepository keygenRequestTrackerRepository;
+    private final Environment environment;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${license-key:#{null}}")
@@ -48,12 +52,22 @@ public class LicenseService {
     @Value("${license-file-path:#{null}}")
     private String licenseFilePath;
 
+    @Value("${license-preview.enabled:false}")
+    private boolean licensePreviewEnabled;
+
+    @Value("${public-api-url:}")
+    private String publicApiUrl;
+
     private volatile LicenseValidationResponse cachedLicenseResponse;
     private volatile DecryptedLicenseData cachedDecryptedLicenseData;
     private volatile Set<String> cachedEntitlements = new HashSet<>();
     private volatile long lastCheckedTime = 0;
 
     public synchronized LicensingState getLicensingState() {
+        if (isLocalFeaturePreviewActive()) {
+            return getLocalFeaturePreviewState();
+        }
+
         if (isCacheValid()) {
             return buildLicensingStateFromCache();
         }
@@ -69,6 +83,26 @@ public class LicenseService {
 
         // Fall back to Keygen API validation
         return validateAndCacheLicenseKey();
+    }
+
+    public boolean isLocalFeaturePreviewActive() {
+        return licensePreviewEnabled
+                && environment.acceptsProfiles(Profiles.of("dev"))
+                && Helper.isLocalhost(publicApiUrl);
+    }
+
+    private LicensingState getLocalFeaturePreviewState() {
+        Set<String> entitlements = Arrays.stream(LicenseEntitlement.values())
+                .map(Enum::name)
+                .collect(Collectors.toSet());
+        return LicensingState.builder()
+                .hasLicense(true)
+                .valid(true)
+                .previewMode(true)
+                .planName("Local feature preview")
+                .usersCount(10000)
+                .entitlements(entitlements)
+                .build();
     }
 
     public boolean isSSOEnabled() {

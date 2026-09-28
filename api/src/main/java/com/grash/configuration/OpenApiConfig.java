@@ -8,8 +8,7 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
-import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -25,6 +24,7 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -33,96 +33,39 @@ import java.util.LinkedHashMap;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(
-                title = "Atlas CMMS API",
+                title = "QPM CMMS API",
                 version = "v1",
                 description = """
-                         ## Getting Started
-                        
-                         Welcome to the **Atlas CMMS API** documentation. This RESTful API provides programmatic access to all features of the Atlas Computerized Maintenance Management System (CMMS).
-                        
-                         ### Base URL
-                        
-                         All API requests should be made to:
-                        
-                         ```
-                         https://api.atlas-cmms.com
-                         ```
-                        
-                         ---
-                        
-                         ## Authentication
-                        
-                         All API endpoints require authentication using an **API Key**.
-                        
-                         ### API Key Authentication
-                        
-                         Include your API key in the request header:
-                        
-                         ```
-                         x-api-key: {your_api_key}
-                         ```
-                        
-                         ### Obtaining an API Key
-                        
-                         1. Log in to your Atlas CMMS account
-                         2. Navigate to **Settings > Integrations > API Keys**
-                         3. Click **Generate New Key**
-                         4. Copy and securely store your key (it will only be shown once)
-                         5. Use this key in the `x-api-key` header for all API requests
-                        
-                         ### Example Request
-                        
-                         ```bash
-                         curl -X GET "https://api.atlas-cmms.com/locations/mini" \\
-                           -H "x-api-key: your_api_key_here"
-                         ```
-                        
-                         ### API Key Best Practices
-                        
-                         - Keep your API key secure and never expose it publicly
-                         - Store it in environment variables (e.g., `{{apiKey}}` in Postman)
-                         - Rotate keys regularly
-                         - Revoke compromised keys immediately
-                        
-                         ---
-                        
-                         ### Using Postman or Insomnia
-                        
-                         1. Download and install Postman or Insomnia
-                         2. Import the OpenAPI specification from: `https://api.atlas-cmms.com/v3/api-docs/atlas-cmms`
-                         3. Set up environment variables:
-                            - `baseUrl`: Your API base URL (e.g., `https://api.atlas-cmms.com`)
-                            - `apiKey`: Your API key
-                        
-                         ### Testing Your Setup
-                        
-                         To verify your configuration:
-                        
-                         1. Add the `x-api-key` header to your requests
-                         2. Make a GET request to `/locations/mini`
-                         3. You should receive a JSON response with your organization's locations
-                        
-                         ---
-                        
-                         ### Rate Limiting
-                        
-                         The Atlas CMMS API implements rate limiting to ensure fair usage and system stability.
-                        
+                        ## Getting started
+
+                        This API provides programmatic access to the QPM maintenance management application. Requests are sent to the current deployment shown below.
+
+                        ## Authentication
+
+                        Most endpoints require an API key. Send it in the `x-api-key` request header.
+
+                        ## Create an API key
+
+                        In the application, open **Settings → Integrations → API Keys**, create a key, and store it securely. The key is only displayed once.
+
+                        ## Example request
+
+                        ```bash
+                        curl -X GET "<your-deployment-api-url>/locations/mini" \\
+                          -H "x-api-key: your_api_key_here"
+                        ```
+
+                        Keep API keys private, rotate them regularly, and revoke any key that may have been exposed.
                         """,
                 contact = @Contact(
-                        name = "Atlas CMMS Support",
-                        email = "contact@atlas-cmms.com"
+                        name = "QPM Support"
                 ),
                 license = @License(
-                        name = "Proprietary"
+                        name = "AGPL-3.0"
                 )
         ),
         security = {
                 @SecurityRequirement(name = "apiKey")
-        },
-        servers = {
-                @Server(url = "https://api.atlas-cmms.com", description = "Production server"),
-                @Server(url = "http://localhost:8080", description = "Development server")
         }
 )
 @SecurityScheme(
@@ -130,10 +73,19 @@ import java.util.LinkedHashMap;
         type = SecuritySchemeType.APIKEY,
         in = SecuritySchemeIn.HEADER,
         paramName = "x-api-key",
-        description = "Enter your API key. You can generate one from Settings > Integrations > API Keys in your Atlas" +
-                " CMMS account."
+        description = "Enter an API key generated from Settings > Integrations > API Keys."
 )
 public class OpenApiConfig {
+
+    @Value("${api.host:http://localhost:8080}")
+    private String apiHost;
+
+    @Bean
+    public OpenApiCustomizer currentDeploymentServer() {
+        return openApi -> openApi.setServers(List.of(
+                new Server().url(apiHost).description("Current deployment")
+        ));
+    }
 
     @Bean
     public GlobalOpenApiCustomizer webhookCustomiser() {
@@ -754,16 +706,16 @@ public class OpenApiConfig {
                 .pathsToMatch("/webhook-endpoints/**")
                 .addOpenApiCustomizer(openApi -> openApi.info(
                         new io.swagger.v3.oas.models.info.Info()
-                                .title("Atlas CMMS Webhooks API")
+                                .title("QPM CMMS Webhooks API")
                                 .version("v1")
                                 .description("""
-                                        ## Webhooks in Atlas CMMS
+                                        ## Webhooks in QPM CMMS
                                         
                                         Webhooks are HTTP callbacks that allow different systems to communicate with each other in real-time.
                                         They're like automated messengers that deliver information when something happens, rather than requiring
                                         you to ask for it.
                                         
-                                        In the context of Atlas CMMS, webhooks are a way for our system to automatically notify your application
+                                        In the context of QPM CMMS, webhooks are a way for our system to automatically notify your application
                                         when specific events occur in your account. Instead of your application repeatedly checking our API for
                                         updates (a process known as "polling"), webhooks allow you to receive real-time notifications about important
                                         events like:
@@ -774,9 +726,9 @@ public class OpenApiConfig {
                                         - Part quantity changes
                                         - And more...
                                         
-                                        When an event occurs, Atlas CMMS sends an HTTP POST request to the endpoint you specify.
+                                        When an event occurs, QPM CMMS sends an HTTP POST request to the endpoint you specify.
                                         The request contains details about the event. It allows your application to react immediately
-                                        to changes in Atlas CMMS.
+                                        to changes in QPM CMMS.
                                         
                                         See the top-level `webhooks` section for detailed documentation of all webhook event types and their payload schemas.
                                         """)

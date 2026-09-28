@@ -8,6 +8,7 @@ import com.grash.exception.CustomException;
 import com.grash.mapper.WorkOrderMeterTriggerMapper;
 import com.grash.model.*;
 import com.grash.model.enums.CustomFieldEntityType;
+import com.grash.model.enums.PlanFeatures;
 
 import com.grash.repository.WorkOrderMeterTriggerRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class WorkOrderMeterTriggerService {
 
     @Transactional
     public WorkOrderMeterTrigger create(WorkOrderMeterTrigger workOrderMeterTrigger, Company company) {
-        if (!licenseService.hasEntitlement(LicenseEntitlement.CONDITION_BASED_PM))
+        if (!hasTriggerAccess(company))
             throw new CustomException("You need a license to create a meter trigger", HttpStatus.FORBIDDEN);
 
         if (workOrderMeterTrigger instanceof WorkOrderMeterTriggerPostDTO workOrderMeterTriggerPostDTO) {
@@ -52,6 +53,8 @@ public class WorkOrderMeterTriggerService {
 
     @Transactional
     public WorkOrderMeterTrigger update(Long id, WorkOrderMeterTriggerPatchDTO workOrderMeterTrigger, Company company) {
+        if (!hasTriggerAccess(company))
+            throw new CustomException("You need a license to update a meter trigger", HttpStatus.FORBIDDEN);
         if (workOrderMeterTriggerRepository.existsById(id)) {
             WorkOrderMeterTrigger savedWorkOrderMeterTrigger = workOrderMeterTriggerRepository.findById(id).get();
             if (!workOrderMeterTrigger.getCustomFields().isEmpty()) {
@@ -60,6 +63,11 @@ public class WorkOrderMeterTriggerService {
             }
             return workOrderMeterTriggerRepository.save(workOrderMeterTriggerMapper.updateWorkOrderMeterTrigger(savedWorkOrderMeterTrigger, workOrderMeterTrigger));
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+    }
+
+    private boolean hasTriggerAccess(Company company) {
+        return licenseService.hasEntitlement(LicenseEntitlement.CONDITION_BASED_PM)
+                && company.getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.METER);
     }
 
     private void setMeterTriggerCustomFields(WorkOrderMeterTrigger workOrderMeterTrigger,
@@ -91,4 +99,3 @@ public class WorkOrderMeterTriggerService {
         return workOrderMeterTriggerRepository.findByMeter_Id(id);
     }
 }
-

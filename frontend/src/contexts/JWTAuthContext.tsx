@@ -63,7 +63,8 @@ interface AuthContextValue extends AuthState {
   login: (
     email: string,
     password: string,
-    ldapEnabled?: boolean
+    ldapEnabled?: boolean,
+    accountType?: 'client' | 'super_admin'
   ) => Promise<void>;
   loginInternal: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
@@ -616,7 +617,8 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   const login = async (
     email: string,
     password: string,
-    ldap?: boolean
+    ldap?: boolean,
+    accountType: 'client' | 'super_admin' = 'client'
   ): Promise<void> => {
     const response = await api.post<AuthResponse>(
       `auth/signin${ldap ? '-ldap' : ''}`,
@@ -627,7 +629,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           }
         : {
             email,
-            type: 'client',
+            type: accountType,
             password
           },
       { headers: authHeader(true) }

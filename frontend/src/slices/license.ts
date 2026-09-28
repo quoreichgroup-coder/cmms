@@ -13,6 +13,7 @@ interface LicenseState {
 const initialState: LicenseState = {
   state: {
     valid: false,
+    previewMode: false,
     entitlements: [],
     expirationDate: null,
     planName: null

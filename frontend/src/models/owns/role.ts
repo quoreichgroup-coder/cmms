@@ -30,6 +30,7 @@ export type RoleCode =
   | 'USER_CREATED';
 export interface Role {
   id: number;
+  roleType?: 'ROLE_SUPER_ADMIN' | 'ROLE_CLIENT';
   name: string;
   users: number;
   externalId?: string;

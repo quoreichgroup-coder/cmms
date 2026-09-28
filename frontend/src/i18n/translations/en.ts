@@ -1,4 +1,50 @@
 const locale = {
+  plan_catalog: 'Plan catalog',
+  plan_catalog_description:
+    'Choose which modules are available in each plan. Changes apply to every company using that plan.',
+  plan_catalog_impact_warning:
+    'Changing a plan immediately changes the features available to all its subscribers.',
+  plan_catalog_price_notice:
+    'Prices are shown for reference. To change them, synchronize the Paddle price IDs and the commercial pricing page too.',
+  plan_catalog_included_modules: 'Included modules',
+  plan_catalog_name: 'Plan name',
+  plan_catalog_price:
+    '{{monthly}} USD / user / month · {{yearly}} USD / user / year',
+  plan_catalog_save: 'Save modules',
+  plan_catalog_confirm_title: 'Confirm plan update',
+  plan_catalog_confirm_message:
+    'Changes to the {{plan}} plan will immediately apply to every subscribed company. Continue?',
+  plan_catalog_confirm_save: 'Confirm changes',
+  plan_catalog_saved: 'Plan {{plan}} updated',
+  plan_catalog_load_error: 'Could not load the plan catalog',
+  plan_catalog_save_error: 'Could not save the plan modules',
+  asset_documents: 'Linked documents',
+  asset_no_documents: 'No documents attached to this asset.',
+
+  upgrade_preventive_maintenance:
+    'Preventive maintenance requires a plan upgrade.',
+  asset_no_preventive_maintenance:
+    'No active preventive maintenance for this asset.',
+
+  asset_downtime_history: 'Downtime history',
+  asset_current_downtime: 'Current status',
+  asset_downtime_active: 'Currently down',
+  asset_no_active_downtime: 'Operational',
+  asset_no_downtime: 'No downtime recorded',
+
+  asset_child_assets: 'Child assets',
+  asset_no_children: 'No child assets linked.',
+  asset_more_children: 'Show {{count}} more child assets',
+
+  asset_no_parts: 'No parts linked to this asset.',
+  asset_requests: 'Linked requests',
+  asset_no_requests: 'No visible requests for this asset.',
+  asset_linked_work_order: 'Work order #{{id}}',
+
+  asset_no_readings: 'No readings recorded',
+  asset_no_meters: 'No meters linked to this asset.',
+  asset_retry: 'Retry',
+
   DUPLICATE_OF: 'Duplicate of',
   DUPLICATED_BY: 'Duplicated by',
   RELATED_TO: 'Related to',
@@ -152,6 +198,9 @@ const locale = {
   signup_description: 'Fill in the fields below to sign up for an account.',
   account_already: 'Already have an account?',
   signin_here: 'Sign in here',
+  super_admin_signin: 'Sign in as super admin',
+  local_license_preview_warning:
+    'Local preview: licensed features are simulated.',
   invalid_email: 'The email provided should be a valid email address',
   invalid_url: 'Please enter a valid URL',
   required_email: 'The email field is required',
@@ -659,6 +708,10 @@ const locale = {
   edit_meter_description: 'Fill in the fields below to edit the Meter',
   confirm_delete_meter: 'Are you sure you want to delete this Meter?',
   upgrade_create_meter: 'Upgrade to create Meters',
+  upgrade_condition_based_pm:
+    'A license with condition-based maintenance is required to create and edit meter triggers.',
+  meter_trigger_repeat_warning:
+    'Every reading that remains on the triggered side of the threshold can create a new work order. Recurrence and wait-before settings are not currently applied.',
   history: 'History',
   reading_frequency: 'Reading Frequency',
   required_reading_value: 'Reading value is required',
@@ -1475,10 +1528,22 @@ const locale = {
   days_of_week: 'Days of week',
   no_recent_work_orders: 'No recent work orders',
   recent_work_orders: 'Recent work orders',
+  open_work_orders: 'Open work orders',
+  linked_parts: 'Linked spare parts',
+  view_work_orders: 'View work orders',
+  view_parts: 'View parts',
+  view_all: 'View all',
+  create_work_order: 'Create work order',
+  not_specified: 'Not specified',
+  warranty_not_recorded: 'Warranty not recorded',
+  warranty_expired: 'Warranty expired',
+  warranty_expiring_soon: 'Warranty expiring soon',
+  warranty_active: 'Warranty active',
   subscription_will_cancel_on: 'Subscription will cancel on {{date}}',
   open_api_docs: 'Open API docs',
   delete_account: 'Delete account',
-  delete_account_email_confirmation: 'Please check your emails to confirm the account deletion',
+  delete_account_email_confirmation:
+    'Please check your emails to confirm the account deletion',
   csv_separator: 'CSV separator',
   Advantages: 'Advantages',
   open_source_cmms: 'Open-Source CMMS',
@@ -1959,7 +2024,8 @@ const locale = {
   edit_reading: 'Edit reading',
   are_you_sure_delete_reading: 'Are you sure to delete this reading?',
   no_custom_fields_found: 'No custom fields found',
-  conflict_retry: 'The resource was modified by another request. Please retry in 5 seconds.'
+  conflict_retry:
+    'The resource was modified by another request. Please retry in 5 seconds.'
 };
 
 export default locale;

@@ -23,7 +23,7 @@ export const homeUrl = rawHomeUrl
   ? rawHomeUrl.endsWith('/')
     ? rawHomeUrl
     : rawHomeUrl + '/'
-  : 'http://localhost:4000/';
+  : `${window.location.origin}/`;
 
 export const zendeskKey = '';
 

@@ -7,8 +7,10 @@ import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Divider,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   Link,
@@ -40,6 +42,7 @@ const LoginJWT: FC = () => {
       initialValues={{
         email: searchParams.get('email') ?? '',
         password: '',
+        superAdmin: searchParams.get('type') === 'super_admin',
         submit: null
       }}
       validationSchema={Yup.object().shape({
@@ -56,7 +59,12 @@ const LoginJWT: FC = () => {
         { setErrors, setStatus, setSubmitting }
       ): Promise<void> => {
         setSubmitting(true);
-        return login(values.email, values.password, ldapEnabled)
+        return login(
+          values.email,
+          values.password,
+          ldapEnabled,
+          values.superAdmin ? 'super_admin' : 'client'
+        )
           .catch((err) => {
             showSnackBar(
               isNetworkError(err)
@@ -127,6 +135,18 @@ const LoginJWT: FC = () => {
             display={{ xs: 'block', md: 'flex' }}
             justifyContent="space-between"
           >
+            {!ldapEnabled && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="superAdmin"
+                    checked={values.superAdmin}
+                    onChange={handleChange}
+                  />
+                }
+                label={t('super_admin_signin')}
+              />
+            )}
             <Link component={RouterLink} to="/account/recover-password">
               <b>{t('lost_password')}</b>
             </Link>

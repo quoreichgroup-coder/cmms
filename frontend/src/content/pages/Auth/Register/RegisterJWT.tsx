@@ -29,9 +29,7 @@ import { verify } from '../../../../utils/jwt';
 import { useUtmTracker } from '@nik0di3m/utm-tracker-hook';
 import { inviteUsers } from '../../../../slices/user';
 import { useDispatch } from '../../../../store';
-import { homeUrl } from '../../../../config';
 import { isNetworkError } from '../../../../utils/api';
-import { getLocalizedHomeUrl } from '../../../../utils/urlPaths';
 
 function RegisterJWT({
   email,
@@ -275,13 +273,7 @@ function RegisterJWT({
           {!invitationMode && (
             <Typography mt={2} variant="body2">
               {t('i_accept')}{' '}
-              <Typography
-                color={'primary'}
-                href={getLocalizedHomeUrl('terms-of-service', i18n.language)}
-                target={'_blank'}
-                component="a"
-                style={{ cursor: 'pointer' }}
-              >
+              <Typography component="span">
                 {t('terms_conditions')}
               </Typography>
               .
