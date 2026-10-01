@@ -71,6 +71,6 @@ Vérifier les dépendances et reprendre les commits nécessaires dans l’ordre.
 
 Ne pas mélanger systématiquement cherry-pick et fusions complètes : un changement repris par cherry-pick a un autre identifiant, ce qui peut compliquer les intégrations suivantes. Préférer la fusion complète quand on souhaite suivre durablement l’ensemble du projet officiel.
 
-La destination de publication par défaut est `origin`. L’URL de publication de `upstream` est volontairement désactivée dans la configuration locale. `pull.ff=only` évite les fusions implicites lors d’un pull. La branche `projet` reste locale jusqu’au premier `git push -u origin projet`.
+La seule destination de publication autorisée est `origin/projet`. La configuration Git locale bloque les push vers `upstream`; ce dépôt officiel reste une source de lecture (`fetch`) uniquement. `pull.ff=only` évite les fusions implicites lors d’un pull. Les workflows CI/CD du VPS et les mises à jour EAS du mobile se déclenchent depuis `projet`. Le checkout du VPS doit être sur la branche `projet` et suivre `origin/projet`.
 
 Les mises à jour restent manuelles. Ne jamais forcer une synchronisation de `projet` sur l’officiel : cela risquerait de supprimer nos adaptations.

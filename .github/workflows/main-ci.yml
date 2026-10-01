@@ -1,11 +1,9 @@
-name: Test, Push to DockerHub & Deploy to Koyeb
+name: Test, Push Docker Images & Deploy project to VPS
 
 on:
   push:
     branches:
-      - main
-    tags:
-      - 'v*'
+      - projet
 
 permissions:
   contents: write   # needed to push the deployed-backend / deployed-frontend tags
@@ -229,10 +227,18 @@ jobs:
           cache-from: type=registry,ref=${{ env.BACKEND_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.BACKEND_IMAGE }}:buildcache,mode=max
 
+      - name: Mark backend image as deployed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f deployed-backend
+          git push origin deployed-backend --force
+
   deploy-koyeb:
     needs: [detect-changes, test]
     if: >-
       ${{
+        github.ref == 'refs/heads/main' &&
         needs.detect-changes.outputs.backend == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped')
       }}
@@ -318,11 +324,19 @@ jobs:
           cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache,mode=max
 
+      - name: Mark frontend image as deployed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f deployed-frontend
+          git push origin deployed-frontend --force
+
   deploy-netlify:
     needs: [ detect-changes, test ]
     if: >-
       ${{
         always() &&
+        github.ref == 'refs/heads/main' &&
         needs.detect-changes.result == 'success' &&
         needs.detect-changes.outputs.frontend == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped')
@@ -398,7 +412,7 @@ jobs:
     needs: [detect-changes, test, push-backend-docker, push-frontend-docker]
     if: >-
       ${{
-        github.ref == 'refs/heads/main' &&
+        github.ref == 'refs/heads/projet' &&
         (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') &&
         (needs.test.result == 'success' || needs.test.result == 'skipped') &&
         (needs.push-backend-docker.result == 'success' || needs.push-backend-docker.result == 'skipped') &&
@@ -424,7 +438,7 @@ jobs:
         run: |
           test -n "$VPS_DEPLOY_PATH" || { echo 'VPS_DEPLOY_PATH secret is required'; exit 1; }
           ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes abdouramane@169.58.86.7 \
-            "cd '$VPS_DEPLOY_PATH' && docker compose pull api frontend && docker compose up -d --remove-orphans"
+            "cd '$VPS_DEPLOY_PATH' && origin=\$(git remote get-url origin) && case \"\$origin\" in https://github.com/quoreichgroup-coder/cmms.git|git@github.com:quoreichgroup-coder/cmms.git) ;; *) echo 'origin must be the project fork' >&2; exit 1 ;; esac && test \"\$(git branch --show-current)\" = projet && git pull --ff-only origin projet && docker compose pull api frontend && docker compose up -d --remove-orphans"
 
       - name: Check backend health through nginx
         env:
