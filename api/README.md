@@ -7,11 +7,12 @@ We would be very happy to have new contributors join us.
 
 ## How to run locally ?
 
-Set the environment variables not starting with `REACT_APP` from [here](../README.MD#set-environment-variables)
-
-Without docker, you should first install and use JDK 17 then create a Postgres database. After that go
-to [src/main/resources/application-dev.yml](src/main/resources/application-dev.yml), change the url, username and
-password.
+Install JDK 17 and make a PostgreSQL database available as `atlas` on `localhost:5432`.
+The `dev` profile uses the local defaults `rootUser` / `mypassword`; override them with
+`DB_URL`, `DB_USER` and `DB_PWD` if your local database uses different connection settings.
+Set `JWT_SECRET_KEY` when using a shared development environment. The fallback key is for
+local development only. Other service URLs and credentials can be supplied through the
+environment variables documented [here](../README.MD#set-environment-variables).
 
 ```shell
 mvn spring-boot:run

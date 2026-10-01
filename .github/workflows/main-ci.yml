@@ -392,3 +392,43 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -f deployed-frontend
           git push origin deployed-frontend --force
+
+  deploy-vps:
+    name: Deploy self-hosted stack to VPS
+    needs: [detect-changes, test, push-backend-docker, push-frontend-docker]
+    if: >-
+      ${{
+        github.ref == 'refs/heads/main' &&
+        (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') &&
+        (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+        (needs.push-backend-docker.result == 'success' || needs.push-backend-docker.result == 'skipped') &&
+        (needs.push-frontend-docker.result == 'success' || needs.push-frontend-docker.result == 'skipped')
+      }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-vps-production
+      cancel-in-progress: false
+    steps:
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 169.58.86.7 >> ~/.ssh/known_hosts
+
+      - name: Pull and restart production containers
+        env:
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          test -n "$VPS_DEPLOY_PATH" || { echo 'VPS_DEPLOY_PATH secret is required'; exit 1; }
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes abdouramane@169.58.86.7 \
+            "cd '$VPS_DEPLOY_PATH' && docker compose pull api frontend && docker compose up -d --remove-orphans"
+
+      - name: Check backend health through nginx
+        env:
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes abdouramane@169.58.86.7 \
+            "cd '$VPS_DEPLOY_PATH' && for i in \$(seq 1 30); do code=\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health-check || true); if [ \"\$code\" = '200' ]; then exit 0; fi; sleep 10; done; docker compose logs --tail=100 api; exit 1"

@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_URL:localhost:5432/atlas}
+    username: ${DB_USER:rootUser}
+    password: ${DB_PWD:mypassword}
+
+security:
+  jwt:
+    token:
+      # Development-only key. Set JWT_SECRET_KEY for any shared or production environment.
+      secret-key: ${JWT_SECRET_KEY:bG9jYWwtZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWNoYW5nZS1tZS0xMjM0NTY=}
+
+frontend:
+  url: ${PUBLIC_FRONT_URL:http://localhost:3000}
+
+mail:
+  recipients: ${MAIL_RECIPIENTS:developer@localhost}
+
+api:
+  host: ${PUBLIC_API_URL:http://localhost:8080}
+
+storage:
+  type: ${STORAGE_TYPE:minio}
+
+oauth2:
+  success-redirect-url: ${PUBLIC_FRONT_URL:http://localhost:3000}/oauth2/success
+  failure-redirect-url: ${PUBLIC_FRONT_URL:http://localhost:3000}/oauth2/failure
