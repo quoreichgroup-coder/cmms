@@ -41,7 +41,36 @@ ReactDOM.render(
             <ZendeskProvider apiKey={zendeskKey}>
               <AuthProvider>
                 <Sentry.ErrorBoundary
-                  fallback={<div>Something went wrong.</div>}
+                  onError={(_error, componentStack, eventId) => {
+                    // Keep exception messages out of console logs: API errors
+                    // can contain response data. The component stack is enough
+                    // to identify which part of the UI failed to render.
+                    console.error('[QPM] UI render failed', {
+                      componentStack,
+                      eventId
+                    });
+                  }}
+                  fallback={
+                    <main
+                      role="alert"
+                      style={{
+                        fontFamily: 'sans-serif',
+                        margin: '10vh auto',
+                        maxWidth: 520,
+                        padding: 24,
+                        textAlign: 'center'
+                      }}
+                    >
+                      <h1>QPM n’a pas pu afficher cette page.</h1>
+                      <p>Recharge l’application pour réessayer.</p>
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                      >
+                        Recharger
+                      </button>
+                    </main>
+                  }
                 >
                   <App />
                 </Sentry.ErrorBoundary>

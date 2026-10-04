@@ -4,6 +4,7 @@ import SockJS from 'sockjs-client';
 import { apiUrl } from 'src/config';
 import api from 'src/utils/api';
 import useAuth from './useAuth';
+import { waitForStompMessage } from './stompResponse';
 
 interface UseExportReturn {
   exportEntity: (entity: ExportEntityType) => Promise<void>;
@@ -56,56 +57,38 @@ export const useExport = (): UseExportReturn => {
 
   const exportEntity = useCallback(
     async (entity: ExportEntityType): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        // Check if stompClient is initialized
-        if (!stompClient) {
-          reject(new Error('WebSocket connection not initialized'));
-          return;
-        }
+      if (!stompClient) {
+        throw new Error('La connexion temps réel n’est pas disponible.');
+      }
+      if (!user?.email) throw new Error('Utilisateur non authentifié.');
 
-        // Generate UUID client-side
-        const uuid = crypto.randomUUID();
-
-        // Subscribe to WebSocket topic before making request
-        const subscription = stompClient.subscribe(
-          `/user/${user.email}/exports/${uuid}`,
-          function (message) {
-            try {
-              const url = message.body;
-              if (url.includes('error:')) reject();
-              else {
-                window.open(url, '_blank');
-                resolve();
-              }
-            } catch (error) {
-              reject(error);
-            } finally {
-              subscription.unsubscribe();
-              setLoadingExport((prev) => ({ ...prev, [entity]: false }));
-            }
-          }
-        );
-        // Handle subscription error
-        if (!subscription) {
-          reject(new Error('Failed to subscribe to WebSocket topic'));
-          setLoadingExport((prev) => ({ ...prev, [entity]: false }));
-          return;
-        }
-
-        // Make request with UUID
-        setLoadingExport((prev) => ({ ...prev, [entity]: true }));
-        api
-          .get<{ success: boolean; message: string }>(
+      const uuid = crypto.randomUUID();
+      const pendingMessage = waitForStompMessage(
+        stompClient,
+        `/user/${user.email}/exports/${uuid}`
+      );
+      setLoadingExport((prev) => ({ ...prev, [entity]: true }));
+      try {
+        const [, message] = await Promise.all([
+          api.get<{ success: boolean; message: string }>(
             `export/${entity}?uuid=${uuid}`
-          )
-          .catch((error) => {
-            subscription.unsubscribe();
-            setLoadingExport((prev) => ({ ...prev, [entity]: false }));
-            reject(error);
-          });
-      });
+          ),
+          pendingMessage.message
+        ]);
+        if (message.body.includes('error:')) {
+          throw new Error(
+            message.body.split('error: ').pop() || 'Export échoué.'
+          );
+        }
+        window.open(message.body, '_blank');
+      } catch (error) {
+        pendingMessage.cancel();
+        throw error;
+      } finally {
+        setLoadingExport((prev) => ({ ...prev, [entity]: false }));
+      }
     },
-    [stompClient]
+    [stompClient, user?.email]
   );
 
   return {

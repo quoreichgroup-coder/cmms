@@ -324,7 +324,7 @@ function Assets() {
             try {
               await exportEntity('assets');
             } catch (error) {
-              showSnackBar(t('Export failed'), 'error');
+              showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
             }
           }}
         >

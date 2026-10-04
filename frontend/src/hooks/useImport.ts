@@ -4,6 +4,7 @@ import SockJS from 'sockjs-client';
 import { apiUrl } from 'src/config';
 import api from 'src/utils/api';
 import useAuth from './useAuth';
+import { waitForStompMessage } from './stompResponse';
 
 interface UseImportReturn {
   importEntity: (entity: EntityType, payload: any[]) => Promise<ImportResponse>;
@@ -50,70 +51,47 @@ export const useImport = (): UseImportReturn => {
 
   const importEntity = useCallback(
     async (entity: EntityType, payload: any[]): Promise<ImportResponse> => {
-      return new Promise((resolve, reject) => {
-        // Check if stompClient is initialized
-        if (!stompClient) {
-          reject(new Error('WebSocket connection not initialized'));
-          return;
+      if (!stompClient) {
+        throw new Error('La connexion temps réel n’est pas disponible.');
+      }
+      if (!user?.email) throw new Error('Utilisateur non authentifié.');
+
+      const uuid = crypto.randomUUID();
+      const pendingMessage = waitForStompMessage(
+        stompClient,
+        `/user/${user.email}/imports/${uuid}`
+      );
+      setLoadingImport(true);
+      try {
+        const [, message] = await Promise.all([
+          api.post<ImportResponse>(
+            `${basePath}/${entity}?uuid=${uuid}`,
+            payload
+          ),
+          pendingMessage.message
+        ]);
+        if (message.body.includes('error:')) {
+          throw new Error(message.body.split('error: ')[1] || 'Import échoué.');
         }
 
-        // Generate UUID client-side
-        const uuid = crypto.randomUUID();
-
-        // Subscribe to WebSocket topic before making request
-        const subscription = stompClient.subscribe(
-          `/user/${user.email}/imports/${uuid}`,
-          function (message) {
-            try {
-              const response = JSON.parse(message.body);
-
-              // Check if it's an error message
-              if (typeof response === 'string' && response.includes('error:')) {
-                const errorMessage =
-                  response.split('error: ')[1] || 'Import failed';
-                reject(new Error(errorMessage));
-              } else {
-                // It's a successful ImportResponse
-                resolve(response as ImportResponse);
-              }
-            } catch (error) {
-              // Handle non-JSON error messages
-              if (
-                typeof message.body === 'string' &&
-                message.body.includes('error:')
-              ) {
-                const errorMessage =
-                  message.body.split('error: ')[1] || 'Import failed';
-                reject(new Error(errorMessage));
-              } else {
-                reject(error);
-              }
-            } finally {
-              subscription.unsubscribe();
-              setLoadingImport(false);
-            }
-          }
-        );
-
-        // Handle subscription error
-        if (!subscription) {
-          reject(new Error('Failed to subscribe to WebSocket topic'));
-          setLoadingImport(false);
-          return;
+        let response: unknown;
+        try {
+          response = JSON.parse(message.body);
+        } catch (error) {
+          throw new Error(`Réponse serveur d’import invalide : ${message.body}`);
         }
-
-        // Make request with UUID
-        setLoadingImport(true);
-        api
-          .post<ImportResponse>(`${basePath}/${entity}?uuid=${uuid}`, payload)
-          .catch((error) => {
-            subscription.unsubscribe();
-            setLoadingImport(false);
-            reject(error);
-          });
-      });
+        if (typeof response === 'string' && response.includes('error:')) {
+          throw new Error(response.split('error: ')[1] || 'Import échoué.');
+        }
+        return response as ImportResponse;
+      } catch (error) {
+        pendingMessage.cancel();
+        throw error;
+      } finally {
+        setLoadingImport(false);
+      }
     },
-    [stompClient]
+    [stompClient, user?.email]
   );
 
   return {

@@ -996,7 +996,7 @@ function WorkOrders() {
               try {
                 await exportEntity(item.key);
               } catch (error) {
-                showSnackBar(t('Export failed'), 'error');
+                showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
               }
               handleCloseMenu();
             }}

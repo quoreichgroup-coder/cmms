@@ -73,10 +73,12 @@ export default function CompanyLicense() {
             <Alert severity="warning">L’activation n’est pas disponible sur ce serveur. Contactez l’administrateur de votre installation.</Alert>
           ) : (
             <Box component="form" onSubmit={activate}>
-              <TextField fullWidth label="Clé de licence" type="password" autoComplete="off"
+              <TextField fullWidth label="Clé de licence"
+                type="password" autoComplete="off"
                 value={key} onChange={(event) => setKey(event.target.value)}
                 disabled={busy || available !== true} inputProps={{ maxLength: 256 }} />
-              <Button sx={{ mt: 2 }} type="submit" variant="contained"
+              <Button sx={{ mt: 2 }} type="submit"
+                variant="contained"
                 disabled={busy || available !== true || !key.trim()}
                 startIcon={busy ? <CircularProgress size={18} /> : undefined}>
                 {busy ? 'Activation en cours…' : 'Activer la licence'}

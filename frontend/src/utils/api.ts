@@ -1,4 +1,5 @@
 import { apiUrl } from '../config';
+import { normalizeStorageUrls } from './storageUrl';
 
 type Options = RequestInit & { raw?: boolean; headers?: HeadersInit };
 
@@ -95,7 +96,8 @@ async function doFetch<T>(
     throw err;
   }
   if (options?.raw) return response as unknown as Promise<T>;
-  return response.json() as Promise<T>;
+  const body = await response.json();
+  return normalizeStorageUrls(body) as T;
 }
 
 function api<T>(url: string, options: Options): Promise<T> {
