@@ -92,10 +92,18 @@ android {
         applicationId 'com.atlas.cmms'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 31
-        versionName "1.0.48"
+        versionCode 36
+        versionName "1.0.53"
     }
     signingConfigs {
+        release {
+            if (System.getenv('QPM_KEYSTORE_PATH')) {
+                storeFile file(System.getenv('QPM_KEYSTORE_PATH'))
+                storePassword System.getenv('QPM_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('QPM_KEY_ALIAS')
+                keyPassword System.getenv('QPM_KEY_PASSWORD')
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -108,9 +116,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             shrinkResources(findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
@@ -176,4 +182,6 @@ dependencies {
     }
 }
 
-apply plugin: 'com.google.gms.google-services'
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+}

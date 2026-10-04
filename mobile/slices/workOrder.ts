@@ -168,6 +168,8 @@ export const getWorkOrderDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getWorkOrderDetails({
@@ -175,7 +177,10 @@ export const getWorkOrderDetails =
         workOrder
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const addWorkOrder =
   (workOrder): AppThunk =>

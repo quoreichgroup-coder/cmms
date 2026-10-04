@@ -2,7 +2,7 @@ import { createContext, FC, ReactNode, useEffect } from 'react';
 import { Snackbar, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { showMessage } from 'react-native-flash-message';
-import { setConflictErrorHandler } from '../utils/api';
+import { getErrorMessage, setApiErrorHandler, setConflictErrorHandler } from '../utils/api';
 
 type CustomSnackBarContext = {
   showSnackBar: (
@@ -51,9 +51,11 @@ export const CustomSnackbarProvider: FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
-    return setConflictErrorHandler(() => {
+    const removeApiHandler = setApiErrorHandler((error) => showSnackBar(getErrorMessage(error), 'error'));
+    const removeConflictHandler = setConflictErrorHandler(() => {
       showSnackBar(t('conflict_retry'), 'error');
     });
+    return () => { removeApiHandler(); removeConflictHandler(); };
   }, [t]);
 
   return (

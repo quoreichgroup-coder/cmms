@@ -7,7 +7,6 @@ import * as FileSystem from 'expo-file-system';
 import { Alert, Image, ScrollView, Text, TouchableOpacity } from 'react-native';
 import { IconButton, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import mime from 'mime';
 import { SheetManager } from 'react-native-actions-sheet';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { IFile } from '../models/file';
@@ -16,6 +15,7 @@ import {
   DocumentPickerResult
 } from 'expo-document-picker';
 import { openLibraryWithPermission } from '../utils/mediaPermissions';
+import { createImageUploadFile, createUploadFile } from '../utils/uploadFiles';
 import InAppCamera from './InAppCamera';
 
 interface OwnProps {
@@ -64,11 +64,10 @@ export default function FileUpload({
     setInAppCameraVisible(false);
     try {
       await checkSize(uri);
-      const fileName = uri.split('/').pop() || 'photo.jpg';
       onChangeInternal(
         [
-          ...(multiple ? images : []),
-          { uri, name: fileName, type: mime.getType(fileName) || 'image/jpeg' }
+          ...images,
+          createImageUploadFile({ uri }, images.length + 1)
         ],
         'image'
       );
@@ -77,7 +76,6 @@ export default function FileUpload({
     }
   };
   const pickImage = async () => {
-    console.warn('[ImageUpload] Tap -> library');
     try {
       const result = await openLibraryWithPermission('ImageUpload', {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -86,12 +84,7 @@ export default function FileUpload({
         quality: 0.5
       });
 
-      if (!result || result.canceled) {
-        console.warn(
-          '[ImageUpload] Library Image picker canceled or unavailable'
-        );
-        return;
-      }
+      if (!result || result.canceled) return;
       await onImagePicked(result);
     } catch (error) {
       console.error('Error picking image:', error);
@@ -118,16 +111,10 @@ export default function FileUpload({
       }
       onChangeInternal(
         [
-          ...images,
-          ...result.assets.map((asset) => {
-            const fileName =
-              asset.uri.split('/')[asset.uri.split('/').length - 1];
-            return {
-              uri: asset.uri,
-              name: fileName,
-              type: mime.getType(fileName)
-            };
-          })
+          ...(multiple ? images : []),
+          ...result.assets.map((asset, index) =>
+            createImageUploadFile(asset, images.length + index + 1)
+          )
         ],
         'image'
       );
@@ -168,14 +155,7 @@ export default function FileUpload({
       for (const asset of selectedAssets) {
         await checkSize(asset.uri);
 
-        filesToUpload.push({
-          uri: asset.uri,
-          name: asset.name,
-          type:
-            mime.getType(asset.name) ||
-            asset.mimeType ||
-            'application/octet-stream' // Use mime or the asset's mimeType
-        });
+        filesToUpload.push(createUploadFile(asset));
 
         // Break the loop if 'multiple' is false, as the current display logic only shows one file.
         if (!multiple) break;

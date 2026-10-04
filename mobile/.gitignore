@@ -23,3 +23,10 @@ ios/**/GoogleService-Info.plist
 .env*
 
 .metro-health-check*
+
+# Local Android SDK, caches and private signing material
+.build-tools/
+# Standalone Android release artifacts
+/dist/
+
+/android/.kotlin/

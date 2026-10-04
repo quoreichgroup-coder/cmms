@@ -115,6 +115,9 @@ export default function SettingsScreen({
           titleStyle={{ color: theme.colors.error }}
           onPress={() => setOpenLogout(true)}
         />
+        <List.Item title={t('company_license')}
+          left={() => <IconButton icon="license" />}
+          onPress={() => navigation.navigate('License')} />
         <List.Item
           onPress={() => {
             if (devMode) {

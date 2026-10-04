@@ -63,11 +63,11 @@ updateFile('package-lock.json', (content) =>
 );
 
 updateFile('app.config.ts', (content) =>
-  content.split(currentVersion).join(nextVersion)
+  content.split(currentVersion).join(nextVersion).replace(/versionCode: (\d+)/, (_, code) => `versionCode: ${Number(code) + 1}`).replace(/buildNumber: '(\d+)'/, (_, build) => `buildNumber: '${Number(build) + 1}'`)
 );
 
 updateFile('android/app/build.gradle', (content) =>
-  content.replace(`versionName "${currentVersion}"`, `versionName "${nextVersion}"`)
+  content.replace(`versionName "${currentVersion}"`, `versionName "${nextVersion}"`).replace(/versionCode (\d+)/, (_, code) => `versionCode ${Number(code) + 1}`)
 );
 
 updateFile('android/app/src/main/res/values/strings.xml', (content) =>
@@ -78,11 +78,13 @@ updateFile('android/app/src/main/res/values/strings.xml', (content) =>
 );
 
 updateFile('ios/AtlasCMMS/Info.plist', (content) =>
-  content.split(currentVersion).join(nextVersion)
+  content.split(currentVersion).join(nextVersion).replace(/<key>CFBundleVersion<\/key>\s*<string>(\d+)<\/string>/, (_, build) => `<key>CFBundleVersion</key>\n    <string>${Number(build) + 1}</string>`)
 );
 
 updateFile('ios/AtlasCMMS/Supporting/Expo.plist', (content) =>
   content.split(currentVersion).join(nextVersion)
 );
+
+updateFile('ios/AtlasCMMS.xcodeproj/project.pbxproj', (content) => content.replace(/CURRENT_PROJECT_VERSION = (\d+);/g, (_, build) => `CURRENT_PROJECT_VERSION = ${Number(build) + 1};`).replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${nextVersion};`));
 
 console.log(`\nVersion bumped from ${currentVersion} to ${nextVersion}`);

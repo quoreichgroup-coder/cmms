@@ -85,6 +85,7 @@ import { getUsersMini } from '../../slices/user';
 import { TriggersConfig } from 'react-native-controlled-mentions/dist/types/types';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createUploadFile } from '../../utils/uploadFiles';
 
 const getRemainingTasksLength = (tasks: Task[]): number => {
   const SECONDS_MS = 5_000;
@@ -619,11 +620,7 @@ export default function WODetailsScreen({
         copyToCacheDirectory: true
       });
       if (!result.canceled && result.assets) {
-        const newFiles = result.assets.map((asset) => ({
-          uri: asset.uri,
-          name: asset.name,
-          type: asset.mimeType || 'application/octet-stream'
-        }));
+        const newFiles = result.assets.map((asset) => createUploadFile(asset));
         setCommentFiles([...commentFiles, ...newFiles]);
       }
     } catch (error) {

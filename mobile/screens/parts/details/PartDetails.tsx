@@ -115,8 +115,8 @@ export default function PartDetails({ part }: { part: Part }) {
       <ListField
         values={part?.teams}
         label={t('teams')}
-        getHref={(team: Team) => getTeamUrl(team.id)}
-        getValueLabel={(team: Team) => team.name}
+        getHref={(team) => getTeamUrl(team.id)}
+        getValueLabel={(team) => team.name}
       />
     </ScrollView>
   );

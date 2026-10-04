@@ -76,8 +76,8 @@ export default function LocationDetails({ location }: { location: Location }) {
       <ListField
         values={location?.teams}
         label={t('teams')}
-        getHref={(team: Team) => getTeamUrl(team.id)}
-        getValueLabel={(team: Team) => team.name}
+        getHref={(team) => getTeamUrl(team.id)}
+        getValueLabel={(team) => team.name}
       />
     </ScrollView>
   );

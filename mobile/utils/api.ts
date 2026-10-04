@@ -4,6 +4,26 @@ import { Platform } from 'react-native';
 
 type Options = RequestInit & { raw?: boolean; headers?: HeadersInit };
 
+const REQUEST_TIMEOUT_MS = 30000;
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const onAbort = () => controller.abort();
+  if (options.signal?.aborted) controller.abort();
+  else options.signal?.addEventListener('abort', onAbort);
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (timedOut) throw new Error('Le serveur ne répond pas. Vérifiez votre connexion puis réessayez.');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', onAbort);
+  }
+}
+
 let refreshPromise: Promise<boolean> | null = null;
 
 async function clearTokens(): Promise<void> {
@@ -18,7 +38,7 @@ async function performRefresh(): Promise<boolean> {
   }
   try {
     const currentApiUrl = await getApiUrl();
-    const response = await fetch(currentApiUrl + 'auth/refresh', {
+    const response = await fetchWithTimeout(currentApiUrl + 'auth/refresh', {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -59,6 +79,13 @@ function isRefreshRequest(url: string): boolean {
   return url.replace(/\/+$/, '').endsWith('/auth/refresh');
 }
 
+let onApiError: ((error: unknown) => void) | null = null;
+
+export function setApiErrorHandler(handler: (error: unknown) => void): () => void {
+  onApiError = handler;
+  return () => { if (onApiError === handler) onApiError = null; };
+}
+
 let onConflictError: (() => void) | null = null;
 
 export function setConflictErrorHandler(handler: () => void): () => void {
@@ -73,12 +100,18 @@ async function doFetch<T>(
   options: Options,
   retried: boolean
 ): Promise<T> {
-  const response = await fetch(url, {
-    headers: await authHeader(false),
-    ...options
-  });
+  const publicRequest = /\/(auth\/(signin|signup|refresh|reset-password)|instance-config)(\?|$)/.test(url);
+  const headers = new Headers(await authHeader(publicRequest));
+  new Headers(options?.headers).forEach((value, key) => headers.set(key, value));
+  if (publicRequest) headers.delete('Authorization');
+  if (options?.body instanceof FormData) headers.delete('Content-Type');
+  if (retried && headers.has('Authorization')) {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (token) headers.set('Authorization', 'Bearer ' + token);
+  }
+  const response = await fetchWithTimeout(url, { ...options, headers });
   if (!response.ok) {
-    if (response.status === 401 && !retried && !isRefreshRequest(url)) {
+    if (response.status === 401 && !retried && !publicRequest && !isRefreshRequest(url)) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         return doFetch<T>(url, options, true);
@@ -86,7 +119,9 @@ async function doFetch<T>(
     }
     if (response.status === 409) {
       if (onConflictError) onConflictError();
-      throw new Error('conflict_error');
+      const error = new Error('conflict_error');
+      (error as any).status = 409;
+      throw error;
     }
     let body: any = null;
     try {
@@ -99,11 +134,17 @@ async function doFetch<T>(
     throw err;
   }
   if (options?.raw) return response as unknown as Promise<T>;
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
 async function api<T>(url: string, options: Options): Promise<T> {
-  return doFetch<T>(url, options, false);
+  try {
+    return await doFetch<T>(url, options, false);
+  } catch (error) {
+    if (error?.name !== 'AbortError' && error?.status !== 401 && error?.status !== 409) onApiError?.(error);
+    throw error;
+  }
 }
 
 async function get<T>(url: string, options?: Options) {
@@ -118,16 +159,13 @@ async function post<T>(
   withoutCompany?: boolean,
   isNotJson?: boolean
 ) {
-  const companyId = await AsyncStorage.getItem('companyId');
   const currentApiUrl = await getApiUrl();
   return api<T>(currentApiUrl + url, {
     ...options,
     method: 'POST',
     body: isNotJson
       ? data
-      : JSON.stringify(
-          withoutCompany ? data : { ...data, company: { id: companyId } }
-        )
+      : JSON.stringify(data)
   });
 }
 
@@ -137,14 +175,11 @@ async function patch<T>(
   options?: Options,
   withoutCompany?: boolean
 ) {
-  const companyId = await AsyncStorage.getItem('companyId');
   const currentApiUrl = await getApiUrl();
   return api<T>(currentApiUrl + url, {
     ...options,
     method: 'PATCH',
-    body: JSON.stringify(
-      withoutCompany ? data : { ...data, company: { id: companyId } }
-    )
+    body: JSON.stringify(data)
   });
 }
 

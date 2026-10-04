@@ -9,8 +9,8 @@ import SingleTask from '../../components/SingleTask';
 import { RootStackScreenProps } from '../../types';
 import { addFiles } from '../../slices/file';
 import * as ImagePicker from 'expo-image-picker';
-import mime from 'mime';
 import { formatImages } from '../../utils/overall';
+import { createImageUploadFile } from '../../utils/uploadFiles';
 import ImageView from 'react-native-image-viewing';
 import { SheetManager } from 'react-native-actions-sheet';
 import { openLibraryWithPermission } from '../../utils/mediaPermissions';
@@ -92,17 +92,13 @@ export default function TasksScreen({
   };
 
   const uploadImage = async (taskId: number) => {
-    console.warn('[TasksScreen] Tap -> library', JSON.stringify({ taskId }));
     const result = await openLibraryWithPermission('TasksScreen', {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 1
     });
 
-    if (!result || result.canceled) {
-      console.warn('[TasksScreen] Library picker canceled or unavailable');
-      return;
-    }
+    if (!result || result.canceled) return;
 
     await onImagePicked(result, taskId);
   };
@@ -113,8 +109,7 @@ export default function TasksScreen({
     if (cameraTaskId === null) return;
     const taskId = cameraTaskId;
     setCameraTaskId(null);
-    const fileName = uri.split('/').pop() || 'photo.jpg';
-    const files = [{ uri, name: fileName, type: mime.getType(fileName) || 'image/jpeg' }];
+    const files = [createImageUploadFile({ uri }, 1)];
     return dispatch(addFiles(files, 'IMAGE', taskId))
       .then(onImageUploadSuccess)
       .then(() => dispatch(getTasks(workOrderId)))
@@ -125,7 +120,6 @@ export default function TasksScreen({
     taskId: number
   ) => {
     if (!result.canceled) {
-      console.warn('[TasksScreen] Picker result -> upload', JSON.stringify({ taskId, assets: result.assets.length }));
       return dispatch(addFiles(formatImages(result), 'IMAGE', taskId))
         .then(onImageUploadSuccess)
         .then(() => dispatch(getTasks(workOrderId)))

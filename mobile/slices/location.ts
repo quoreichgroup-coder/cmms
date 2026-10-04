@@ -206,6 +206,8 @@ export const getLocationDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const location = await api.get<Location>(`locations/${id}`);
     dispatch(
       slice.actions.getLocationDetails({
@@ -213,7 +215,10 @@ export const getLocationDetails =
         location
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const getLocationsMini = (): AppThunk => async (dispatch) => {
   const { signal } = createCancellableRequest('getLocationsMini');

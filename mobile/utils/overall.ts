@@ -5,8 +5,8 @@ import React from 'react';
 import { sameDay } from './dates';
 import { Priority, WorkOrderStatus } from '../models/workOrder';
 import { MD3Theme } from 'react-native-paper';
-import mime from 'mime';
 import ImagePicker from 'expo-image-picker';
+import { createImageUploadFile } from './uploadFiles';
 import { NativeSyntheticEvent } from 'react-native/Libraries/Types/CoreEventTypes';
 import { NativeScrollEvent } from 'react-native/Libraries/Components/ScrollView/ScrollView';
 import { Paths } from 'type-fest';
@@ -188,14 +188,10 @@ export function readFileAsync(file: Blob) {
 export function formatImages(
   result: ImagePicker.ImagePickerResult
 ): { uri: string; name: string; type: string }[] {
-  return result.assets.map((asset) => {
-    const fileName = asset.uri.split('/')[asset.uri.split('/').length - 1];
-    return {
-      uri: asset.uri,
-      name: fileName,
-      type: mime.getType(fileName)
-    };
-  });
+  if (result.canceled) return [];
+  return result.assets.map((asset, index) =>
+    createImageUploadFile(asset, index + 1)
+  );
 }
 
 export const isCloseToBottom = ({

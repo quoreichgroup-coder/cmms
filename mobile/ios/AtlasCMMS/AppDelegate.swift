@@ -25,7 +25,11 @@ public class AppDelegate: ExpoAppDelegate {
 #if os(iOS) || os(tvOS)
     window = UIWindow(frame: UIScreen.main.bounds)
 // @generated begin @react-native-firebase/app-didFinishLaunchingWithOptions - expo prebuild (DO NOT MODIFY) sync-10e8520570672fd76b2403b7e1e27f5198a6349a
-FirebaseApp.configure()
+// Firebase is optional for builds where GoogleService-Info.plist is not supplied.
+if FirebaseApp.app() == nil,
+   Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+  FirebaseApp.configure()
+}
 // @generated end @react-native-firebase/app-didFinishLaunchingWithOptions
     factory.startReactNative(
       withModuleName: "main",

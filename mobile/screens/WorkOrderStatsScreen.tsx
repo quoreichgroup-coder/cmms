@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { getMobileExtendedStats } from '../slices/analytics/workOrder';
 import { RootStackScreenProps } from '../types';
 import { useTranslation } from 'react-i18next';
-import { Text, useTheme } from 'react-native-paper';
+import { Button, Text, useTheme } from 'react-native-paper';
 
 export default function WorkOrderStatsScreen({
                                                navigation,
@@ -14,7 +14,7 @@ export default function WorkOrderStatsScreen({
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const theme = useTheme();
-  const { mobileExtended, loading } = useSelector((state) => state.woAnalytics);
+  const { mobileExtended, loading, errors } = useSelector((state) => state.woAnalytics);
   useEffect(() => {
     dispatch(getMobileExtendedStats());
   }, []);
@@ -24,11 +24,16 @@ export default function WorkOrderStatsScreen({
       style={{ ...styles.container, backgroundColor: theme.colors.background }}
       refreshControl={
         <RefreshControl
+          onRefresh={() => dispatch(getMobileExtendedStats())}
           refreshing={loading.mobileExtended}
           colors={[theme.colors.primary]}
         />
       }
     >
+      {errors.mobileExtended && <View style={{ padding: 16 }}>
+        <Text accessibilityRole="alert" style={{ color: theme.colors.error }}>{errors.mobileExtended}</Text>
+        <Button onPress={() => dispatch(getMobileExtendedStats())}>Réessayer</Button>
+      </View>}
       <View style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Text variant={'titleLarge'} style={{ marginVertical: 20 }}>
           {t('complete_work_orders')}

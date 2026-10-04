@@ -151,6 +151,8 @@ export const getMeterDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const meter = await api.get<Meter>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getMeterDetails({
@@ -158,7 +160,10 @@ export const getMeterDetails =
         meter
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const editMeter =
   (id: number, meter): AppThunk =>

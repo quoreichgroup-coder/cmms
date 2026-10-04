@@ -33,20 +33,17 @@ import {
   Provider as PaperProvider,
   useTheme
 } from 'react-native-paper';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { Alert, Linking, LogBox } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
 import './components/actionSheets/sheets';
 import * as Notifications from 'expo-notifications';
-import { getNotificationUrl } from './utils/urlPaths';
-import { NotificationType } from './models/notification';
 import { navigate } from './navigation/RootNavigation';
 import subscriptionPlan from './slices/subscriptionPlan';
 import { isNumeric } from './utils/validators';
 import { customTheme } from './custom-theme';
 import { RootLayout } from './components/RootLayout';
 import { ReviewModal } from './components/ReviewModal';
-import { Subscription } from 'expo-notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -61,39 +58,12 @@ Notifications.setNotificationHandler({
 export default Sentry.wrap(function App() {
   const isLoadingComplete = useCachedResources();
   const colorScheme = useColorScheme();
-  const [notification, setNotification] =
-    useState<Notifications.Notification>(null);
-  const notificationListener = useRef<Subscription>(undefined);
-  const responseListener = useRef<Subscription>(undefined);
-
   useEffect(() => {
     LogBox.ignoreLogs([
       'Warning: Async Storage has been extracted from react-native core'
     ]);
 
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        setNotification(notification);
-        //TODO maybe showNotification alert
-      });
-
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        const type = data.type as NotificationType;
-        const id = data.id as number;
-        let url = getNotificationUrl(type, id);
-        if (url) {
-          navigate(url.route, url.params);
-        }
-      });
-
-    return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current
-      );
-      Notifications.removeNotificationSubscription(responseListener.current);
-    };
+    // Foreground presentation is handled by setNotificationHandler below.
   }, []);
 
   useEffect(() => {

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { View } from '../components/Themed';
 import { RootTabScreenProps } from '../types';
-import { Badge, IconButton, Switch, Text, useTheme } from 'react-native-paper';
+import { Badge, Button, IconButton, Switch, Text, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { ExtendedWorkOrderStatus, getStatusColor } from '../utils/overall';
 import { FilterField, SearchCriteria } from '../models/page';
@@ -36,7 +36,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
   } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { notifications } = useSelector((state) => state.notifications);
-  const { mobileOverview, loading } = useSelector((state) => state.woAnalytics);
+  const { mobileOverview, loading, errors } = useSelector((state) => state.woAnalytics);
   const iconButtonStyle = {
     ...styles.iconButton,
     backgroundColor: theme.colors.background
@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
       dispatch(getMobileOverviewStats(userSettings.statsForAssignedWorkOrders));
       setAssignedToMe(userSettings.statsForAssignedWorkOrders);
     }
-  }, [userSettings]);
+  }, [userSettings?.statsForAssignedWorkOrders]);
 
   const onRefresh = () => {
     if (userSettings)
@@ -184,6 +184,10 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
         />
       }
     >
+      {errors.mobileOverview && <View style={{ padding: 16 }}>
+        <Text accessibilityRole="alert" style={{ color: theme.colors.error }}>{errors.mobileOverview}</Text>
+        <Button onPress={onRefresh}>Réessayer</Button>
+      </View>}
       <View
         style={{
           display: 'flex',

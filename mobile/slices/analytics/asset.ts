@@ -1,7 +1,9 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../../store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
+import { revertAll } from '../../utils/redux';
+import { getReportDateRange } from '../../utils/analytics';
 import {
   AssetOverviewStats,
   AssetsCost,
@@ -25,9 +27,10 @@ interface AssetStatstate {
   downtimesMeantimeByMonth: DowntimesMeantimeByMonth[];
   meantimes: Meantimes;
   repairTimeByAsset: RepairTimeByAsset[];
-  loading: Omit<Record<keyof AssetStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<Exclude<keyof AssetStatstate, 'loading' | 'errors'>, string>>;
+  loading: Omit<Record<keyof AssetStatstate, boolean>, 'loading' | 'errors'>;
 }
-type Operation = keyof AssetStatstate;
+type Operation = Exclude<keyof AssetStatstate, 'loading' | 'errors'>;
 
 const initialState: AssetStatstate = {
   completeTimeCostByAsset: [],
@@ -47,6 +50,7 @@ const initialState: AssetStatstate = {
   downtimesMeantimeByMonth: [],
   meantimes: { betweenDowntimes: 0, betweenMaintenances: 0 },
   repairTimeByAsset: [],
+  errors: {},
   loading: {
     completeTimeCostByAsset: false,
     overview: false,
@@ -63,7 +67,11 @@ const initialState: AssetStatstate = {
 const slice = createSlice({
   name: 'overviewStats',
   initialState,
+  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
+    setError(state: AssetStatstate, action: PayloadAction<{ operation: Operation; error: string }>) {
+      state.errors[action.payload.operation] = action.payload.error;
+    },
     getWOTimeCostByAsset(
       state: AssetStatstate,
       action: PayloadAction<{ stats: TimeCostByAsset[] }>
@@ -146,14 +154,21 @@ export const getWOTimeCostByAsset = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<TimeCostByAsset[]>(`${basePath}/time-cost`);
+    dispatch(slice.actions.setError({ operation: 'completeTimeCostByAsset', error: '' }));
+    try {
+  const stats = await api.post<TimeCostByAsset[]>(`${basePath}/time-cost`, getReportDateRange());
   dispatch(slice.actions.getWOTimeCostByAsset({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeTimeCostByAsset', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeTimeCostByAsset',
       loading: false
     })
   );
+    }
 };
 export const getAssetOverview = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -162,14 +177,21 @@ export const getAssetOverview = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<AssetOverviewStats>(`${basePath}/overview`);
+    dispatch(slice.actions.setError({ operation: 'overview', error: '' }));
+    try {
+  const stats = await api.post<AssetOverviewStats>(`${basePath}/overview`, getReportDateRange());
   dispatch(slice.actions.getOverview({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'overview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'overview',
       loading: false
     })
   );
+    }
 };
 export const getAssetsCosts = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -178,14 +200,21 @@ export const getAssetsCosts = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<AssetsCost>(`${basePath}/costs/overview`);
+    dispatch(slice.actions.setError({ operation: 'assetsCosts', error: '' }));
+    try {
+  const stats = await api.post<AssetsCost>(`${basePath}/costs/overview`, getReportDateRange());
   dispatch(slice.actions.getAssetsCosts({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'assetsCosts', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'assetsCosts',
       loading: false
     })
   );
+    }
 };
 export const getMeantimes = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -194,14 +223,21 @@ export const getMeantimes = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<Meantimes>(`${basePath}/meantimes`);
+    dispatch(slice.actions.setError({ operation: 'meantimes', error: '' }));
+    try {
+  const stats = await api.post<Meantimes>(`${basePath}/meantimes`, getReportDateRange());
   dispatch(slice.actions.getMeantimes({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'meantimes', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'meantimes',
       loading: false
     })
   );
+    }
 };
 export const getDowntimesByAsset = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -210,14 +246,21 @@ export const getDowntimesByAsset = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<DowntimesByAsset[]>(`${basePath}/downtimes`);
+    dispatch(slice.actions.setError({ operation: 'downtimesByAsset', error: '' }));
+    try {
+  const stats = await api.post<DowntimesByAsset[]>(`${basePath}/downtimes`, getReportDateRange());
   dispatch(slice.actions.getDowntimesByAsset({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'downtimesByAsset', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'downtimesByAsset',
       loading: false
     })
   );
+    }
 };
 export const getDowntimesAndCostsByAsset = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -226,16 +269,21 @@ export const getDowntimesAndCostsByAsset = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<DowntimesAndCostsByAsset[]>(
-    `${basePath}/downtimes/costs`
-  );
+    dispatch(slice.actions.setError({ operation: 'downtimesAndCostsByAsset', error: '' }));
+    try {
+  const stats = await api.post<DowntimesAndCostsByAsset[]>(`${basePath}/downtimes/costs`, getReportDateRange());
   dispatch(slice.actions.getDowntimesAndCostsByAsset({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'downtimesAndCostsByAsset', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'downtimesAndCostsByAsset',
       loading: false
     })
   );
+    }
 };
 export const getDowntimesByMonth = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -244,16 +292,21 @@ export const getDowntimesByMonth = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<DowntimesByMonth[]>(
-    `${basePath}/downtimes/costs/month`
-  );
+    dispatch(slice.actions.setError({ operation: 'downtimesByMonth', error: '' }));
+    try {
+  const stats = await api.post<DowntimesByMonth[]>(`${basePath}/downtimes/costs/date`, getReportDateRange());
   dispatch(slice.actions.getDowntimesByMonth({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'downtimesByMonth', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'downtimesByMonth',
       loading: false
     })
   );
+    }
 };
 export const getDowntimesMeantimeByMonth = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -262,16 +315,21 @@ export const getDowntimesMeantimeByMonth = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<DowntimesMeantimeByMonth[]>(
-    `${basePath}/downtimes/meantime/month`
-  );
+    dispatch(slice.actions.setError({ operation: 'downtimesMeantimeByMonth', error: '' }));
+    try {
+  const stats = await api.post<DowntimesMeantimeByMonth[]>(`${basePath}/downtimes/meantime/date`, getReportDateRange());
   dispatch(slice.actions.getDowntimesMeantimeByMonth({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'downtimesMeantimeByMonth', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'downtimesMeantimeByMonth',
       loading: false
     })
   );
+    }
 };
 export const getRepairTimeByAsset = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -280,13 +338,20 @@ export const getRepairTimeByAsset = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<RepairTimeByAsset[]>(`${basePath}/repair-times`);
+    dispatch(slice.actions.setError({ operation: 'repairTimeByAsset', error: '' }));
+    try {
+  const stats = await api.post<RepairTimeByAsset[]>(`${basePath}/repair-times`, getReportDateRange());
   dispatch(slice.actions.getRepairTimeByAsset({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'repairTimeByAsset', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'repairTimeByAsset',
       loading: false
     })
   );
+    }
 };
 export default slice;

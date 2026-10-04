@@ -116,6 +116,8 @@ export const getTeamDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const team = await api.get<Team>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getTeamDetails({
@@ -123,7 +125,10 @@ export const getTeamDetails =
         team
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 
 export const editTeam =

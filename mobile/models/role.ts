@@ -73,6 +73,7 @@ export interface Role {
   description?: string;
   paid: boolean;
   code: RoleCode;
+  roleType: 'ROLE_CLIENT' | 'ROLE_SUPER_ADMIN';
   createPermissions: PermissionEntity[];
   viewPermissions: PermissionEntity[];
   viewOtherPermissions: PermissionEntity[];

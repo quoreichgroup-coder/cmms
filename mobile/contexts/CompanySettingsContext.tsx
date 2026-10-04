@@ -35,12 +35,10 @@ export const CompanySettingsContext = createContext<CompanySettingsContext>(
 export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
   const { companySettings, getFilteredFields, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
-  const { generalPreferences, workOrderRequestConfiguration } =
-    companySettings ?? {
-      dateFormat: 'DDMMYY',
-      currency: { code: '$' },
-      timeZone: moment.tz.guess()
-    };
+  const generalPreferences = companySettings?.generalPreferences ?? {
+    dateFormat: 'DDMMYY', currency: { code: '$' }, timeZone: moment.tz.guess()
+  };
+  const workOrderRequestConfiguration = companySettings?.workOrderRequestConfiguration;
   const { allUsersMini } = useSelector((state) => state.users);
   const { workOrderConfiguration } = companySettings ?? {
     workOrderFieldConfigurations: []
@@ -65,7 +63,7 @@ export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
     }
   };
   const getFormattedCurrency = (amount: number): string => {
-    const code = generalPreferences.currency.code;
+    const code = generalPreferences.currency?.code ?? '$';
     const currenciesToReverse = ['$'];
     return currenciesToReverse.includes(code)
       ? `${code} ${amount} `

@@ -1,7 +1,9 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../../store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
+import { revertAll } from '../../utils/redux';
+import { getReportDateRange } from '../../utils/analytics';
 import {
   RequestsByMonth,
   RequestStats,
@@ -13,9 +15,10 @@ interface RequestStatstate {
   overview: RequestStats;
   requestsByMonth: RequestsByMonth[];
   requestStatsByPriority: RequestStatsByPriority;
-  loading: Omit<Record<keyof RequestStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<Exclude<keyof RequestStatstate, 'loading' | 'errors'>, string>>;
+  loading: Omit<Record<keyof RequestStatstate, boolean>, 'loading' | 'errors'>;
 }
-type Operation = keyof RequestStatstate;
+type Operation = Exclude<keyof RequestStatstate, 'loading' | 'errors'>;
 
 const initialState: RequestStatstate = {
   overview: {
@@ -31,6 +34,7 @@ const initialState: RequestStatstate = {
     high: { count: 0 }
   },
   requestsByMonth: [],
+  errors: {},
   loading: {
     overview: false,
     requestsByMonth: false,
@@ -41,7 +45,11 @@ const initialState: RequestStatstate = {
 const slice = createSlice({
   name: 'overviewStats',
   initialState,
+  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
+    setError(state: RequestStatstate, action: PayloadAction<{ operation: Operation; error: string }>) {
+      state.errors[action.payload.operation] = action.payload.error;
+    },
     getOverview(
       state: RequestStatstate,
       action: PayloadAction<{ stats: RequestStats }>
@@ -82,14 +90,21 @@ export const getRequestOverview = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<RequestStats>(`${basePath}/overview`);
+    dispatch(slice.actions.setError({ operation: 'overview', error: '' }));
+    try {
+  const stats = await api.post<RequestStats>(`${basePath}/overview`, getReportDateRange());
   dispatch(slice.actions.getOverview({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'overview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'overview',
       loading: false
     })
   );
+    }
 };
 export const getRequestStatsByPriority = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -98,14 +113,21 @@ export const getRequestStatsByPriority = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<RequestStatsByPriority>(`${basePath}/priority`);
+    dispatch(slice.actions.setError({ operation: 'requestStatsByPriority', error: '' }));
+    try {
+  const stats = await api.post<RequestStatsByPriority>(`${basePath}/priority`, getReportDateRange());
   dispatch(slice.actions.getRequestStatsByPriority({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'requestStatsByPriority', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'requestStatsByPriority',
       loading: false
     })
   );
+    }
 };
 
 export const getRequestsByMonth = (): AppThunk => async (dispatch) => {
@@ -115,15 +137,20 @@ export const getRequestsByMonth = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<RequestsByMonth[]>(
-    `${basePath}/cycle-time/month`
-  );
+    dispatch(slice.actions.setError({ operation: 'requestsByMonth', error: '' }));
+    try {
+  const stats = await api.post<RequestsByMonth[]>(`${basePath}/cycle-time/date`, getReportDateRange());
   dispatch(slice.actions.getRequestsByMonth({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'requestsByMonth', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'requestsByMonth',
       loading: false
     })
   );
+    }
 };
 export default slice;

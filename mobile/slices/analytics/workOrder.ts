@@ -1,7 +1,9 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../../store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
+import { revertAll } from '../../utils/redux';
+import { getReportDateRange } from '../../utils/analytics';
 import {
   IncompleteWOByAsset,
   IncompleteWOByUser,
@@ -40,10 +42,11 @@ interface WOStatstate {
   hours: WOHours;
   mobileOverview: MobileWOStats;
   mobileExtended: MobileWOStatsExtended;
-  loading: Omit<Record<keyof WOStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<Exclude<keyof WOStatstate, 'loading' | 'errors'>, string>>;
+  loading: Omit<Record<keyof WOStatstate, boolean>, 'loading' | 'errors'>;
 }
 
-type Operation = keyof WOStatstate;
+type Operation = Exclude<keyof WOStatstate, 'loading' | 'errors'>;
 
 const initialState: WOStatstate = {
   overview: {
@@ -115,6 +118,7 @@ const initialState: WOStatstate = {
     compliantRateWeek: 1,
     compliantRate: 1
   },
+  errors: {},
   loading: {
     overview: false,
     incompleteByPriority: false,
@@ -139,7 +143,11 @@ const initialState: WOStatstate = {
 const slice = createSlice({
   name: 'overviewStats',
   initialState,
+  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
+    setError(state: WOStatstate, action: PayloadAction<{ operation: Operation; error: string }>) {
+      state.errors[action.payload.operation] = action.payload.error;
+    },
     getStats(
       state: WOStatstate,
       action: PayloadAction<{ overviewStats: WoOverviewStats }>
@@ -270,11 +278,16 @@ export const reducer = slice.reducer;
 
 export const getOverviewStats = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.setLoading({ operation: 'overview', loading: true }));
-  const overviewStats = await api.get<WoOverviewStats>(
-    `${basePath}/complete/overview`
-  );
+    dispatch(slice.actions.setError({ operation: 'overview', error: '' }));
+    try {
+  const overviewStats = await api.post<WoOverviewStats>(`${basePath}/complete/overview`, getReportDateRange());
   dispatch(slice.actions.getStats({ overviewStats }));
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: false }));
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'overview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(slice.actions.setLoading({ operation: 'overview', loading: false }));
+    }
 };
 export const getMobileOverviewStats =
   (assignedToMe: boolean): AppThunk =>
@@ -282,33 +295,52 @@ export const getMobileOverviewStats =
     dispatch(
       slice.actions.setLoading({ operation: 'mobileOverview', loading: true })
     );
+    dispatch(slice.actions.setError({ operation: 'mobileOverview', error: '' }));
+    try {
     const overviewStats = await api.get<MobileWOStats>(
       `${basePath}/mobile/overview?assignedToMe=${assignedToMe}`
     );
     dispatch(slice.actions.getMobileOverview({ stats: overviewStats }));
-    dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'mobileOverview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
       slice.actions.setLoading({ operation: 'mobileOverview', loading: false })
     );
+    }
   };
 export const getMobileExtendedStats = (): AppThunk => async (dispatch) => {
   dispatch(
     slice.actions.setLoading({ operation: 'mobileExtended', loading: true })
   );
+    dispatch(slice.actions.setError({ operation: 'mobileExtended', error: '' }));
+    try {
   const stats = await api.get<MobileWOStatsExtended>(
     `${basePath}/mobile/complete-compliant`
   );
   dispatch(slice.actions.getMobileExtendedOverview({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'mobileExtended', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({ operation: 'mobileExtended', loading: false })
   );
+    }
 };
 export const getIncompleteStats = (): AppThunk => async (dispatch) => {
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: true }));
-  const overviewStats = await api.get<IncompleteWoStats>(
-    `${basePath}/incomplete/overview`
-  );
+  dispatch(slice.actions.setLoading({ operation: 'incompleteOverview', loading: true }));
+    dispatch(slice.actions.setError({ operation: 'incompleteOverview', error: '' }));
+    try {
+  const overviewStats = await api.post<IncompleteWoStats>(`${basePath}/incomplete/overview`, getReportDateRange());
   dispatch(slice.actions.getIncompleteStats({ overviewStats }));
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: false }));
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'incompleteOverview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(slice.actions.setLoading({ operation: 'incompleteOverview', loading: false }));
+    }
 };
 export const getIncompleteByPriority = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -317,16 +349,21 @@ export const getIncompleteByPriority = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOStatsByPriority>(
-    `${basePath}/incomplete/priority`
-  );
+    dispatch(slice.actions.setError({ operation: 'incompleteByPriority', error: '' }));
+    try {
+  const stats = await api.post<WOStatsByPriority>(`${basePath}/incomplete/priority`, getReportDateRange());
   dispatch(slice.actions.getIncompleteByPriority({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'incompleteByPriority', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'incompleteByPriority',
       loading: false
     })
   );
+    }
 };
 export const getIncompleteByStatus = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -335,16 +372,21 @@ export const getIncompleteByStatus = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOStatsByStatus>(
-    `${basePath}/incomplete/statuses`
-  );
+    dispatch(slice.actions.setError({ operation: 'incompleteByStatus', error: '' }));
+    try {
+  const stats = await api.post<WOStatsByStatus>(`${basePath}/incomplete/statuses`, getReportDateRange());
   dispatch(slice.actions.getIncompleteByStatus({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'incompleteByStatus', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'incompleteByStatus',
       loading: false
     })
   );
+    }
 };
 export const getWOHours = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -353,14 +395,21 @@ export const getWOHours = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOHours>(`${basePath}/hours`);
+    dispatch(slice.actions.setError({ operation: 'hours', error: '' }));
+    try {
+  const stats = await api.post<WOHours>(`${basePath}/hours`, getReportDateRange());
   dispatch(slice.actions.getWOHours({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'hours', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'hours',
       loading: false
     })
   );
+    }
 };
 export const getCountsByUser = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -369,16 +418,21 @@ export const getCountsByUser = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOCountsByUser[]>(
-    `${basePath}/complete/counts/primaryUser`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeByPrimaryUser', error: '' }));
+    try {
+  const stats = await api.post<WOCountsByUser[]>(`${basePath}/complete/counts/primaryUser`, getReportDateRange());
   dispatch(slice.actions.getCountsByUser({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeByPrimaryUser', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeByPrimaryUser',
       loading: false
     })
   );
+    }
 };
 
 export const getCompleteByCompletedBy = (): AppThunk => async (dispatch) => {
@@ -388,16 +442,21 @@ export const getCompleteByCompletedBy = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOCountsByUser[]>(
-    `${basePath}/complete/counts/completedBy`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeByCompletedBy', error: '' }));
+    try {
+  const stats = await api.post<WOCountsByUser[]>(`${basePath}/complete/counts/completedBy`, getReportDateRange());
   dispatch(slice.actions.getCountsByCompletedBy({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeByCompletedBy', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeByCompletedBy',
       loading: false
     })
   );
+    }
 };
 export const getCompleteByPriority = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -406,16 +465,21 @@ export const getCompleteByPriority = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<{ [key: string]: number }>(
-    `${basePath}/complete/counts/priority`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeByPriority', error: '' }));
+    try {
+  const stats = await api.post<{ [key: string]: number }>(`${basePath}/complete/counts/priority`, getReportDateRange());
   dispatch(slice.actions.getCompleteByPriority({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeByPriority', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeByPriority',
       loading: false
     })
   );
+    }
 };
 export const getCompleteByCategory = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -424,16 +488,21 @@ export const getCompleteByCategory = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOCountsByCategory[]>(
-    `${basePath}/complete/counts/category`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeByCategory', error: '' }));
+    try {
+  const stats = await api.post<WOCountsByCategory[]>(`${basePath}/complete/counts/category`, getReportDateRange());
   dispatch(slice.actions.getCountsByCategory({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeByCategory', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeByCategory',
       loading: false
     })
   );
+    }
 };
 export const getCompleteCosts = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -442,16 +511,21 @@ export const getCompleteCosts = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOCostsAndTime>(
-    `${basePath}/complete/costs-time`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeCosts', error: '' }));
+    try {
+  const stats = await api.post<WOCostsAndTime>(`${basePath}/complete/costs-time`, getReportDateRange());
   dispatch(slice.actions.getCompleteCosts({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeCosts', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeCosts',
       loading: false
     })
   );
+    }
 };
 export const getCompleteByWeek = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -460,16 +534,23 @@ export const getCompleteByWeek = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
+    dispatch(slice.actions.setError({ operation: 'completeByWeek', error: '' }));
+    try {
   const stats = await api.get<WOCountsByWeek[]>(
     `${basePath}/complete/counts/week`
   );
   dispatch(slice.actions.getCompleteByWeek({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeByWeek', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeByWeek',
       loading: false
     })
   );
+    }
 };
 export const getCompleteTimesByWeek = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -478,14 +559,21 @@ export const getCompleteTimesByWeek = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
+    dispatch(slice.actions.setError({ operation: 'completeTimesByWeek', error: '' }));
+    try {
   const stats = await api.get<WOTimeByWeek[]>(`${basePath}/complete/time/week`);
   dispatch(slice.actions.getCompleteTimesByWeek({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeTimesByWeek', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeTimesByWeek',
       loading: false
     })
   );
+    }
 };
 export const getIncompleteByAsset = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -494,16 +582,21 @@ export const getIncompleteByAsset = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<IncompleteWOByAsset[]>(
-    `${basePath}/incomplete/age/assets`
-  );
+    dispatch(slice.actions.setError({ operation: 'incompleteByAsset', error: '' }));
+    try {
+  const stats = await api.post<IncompleteWOByAsset[]>(`${basePath}/incomplete/age/assets`, getReportDateRange());
   dispatch(slice.actions.getIncompleteByAsset({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'incompleteByAsset', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'incompleteByAsset',
       loading: false
     })
   );
+    }
 };
 export const getIncompleteByUser = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -512,16 +605,21 @@ export const getIncompleteByUser = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<IncompleteWOByUser[]>(
-    `${basePath}/incomplete/age/users`
-  );
+    dispatch(slice.actions.setError({ operation: 'incompleteByUser', error: '' }));
+    try {
+  const stats = await api.post<IncompleteWOByUser[]>(`${basePath}/incomplete/age/users`, getReportDateRange());
   dispatch(slice.actions.getIncompleteByUser({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'incompleteByUser', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'incompleteByUser',
       loading: false
     })
   );
+    }
 };
 export const getCompleteCostsByMonth = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -530,15 +628,20 @@ export const getCompleteCostsByMonth = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<WOCostByDate[]>(
-    `${basePath}/complete/costs/month`
-  );
+    dispatch(slice.actions.setError({ operation: 'completeCostsByMonth', error: '' }));
+    try {
+  const stats = await api.post<WOCostByDate[]>(`${basePath}/complete/costs/date`, getReportDateRange());
   dispatch(slice.actions.getCompleteCostsByMonth({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'completeCostsByMonth', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'completeCostsByMonth',
       loading: false
     })
   );
+    }
 };
 export default slice;

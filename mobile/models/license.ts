@@ -29,17 +29,20 @@ const licenseEntitlements = [
   'UNLIMITED_PM_SCHEDULES',
   'UNLIMITED_ACTIVE_WORK_ORDERS',
   'UNLIMITED_CHECKLIST',
-  'UNLIMITED_METERS'
+  'UNLIMITED_METERS',
+  'RESOURCE_PLANNING'
 ] as const;
 export type LicensingState = {
+  hasLicense?: boolean;
+  readOnly?: boolean;
+  customerName?: string;
+  environment?: string;
+  seatsFull?: number;
+  seatsLight?: number;
   valid: boolean;
+  previewMode?: boolean;
   entitlements: LicenseEntitlement[];
+  expirationDate?: string;
+  planName?: string;
 };
-export type LicenseEntitlement = (typeof licenseEntitlements)[number];
-
-export const hasLicenseEntitlement = (
-  license: LicensingState,
-  entitlement: LicenseEntitlement
-) => {
-  return license.valid && license.entitlements.some((e) => e === entitlement);
-};
+export type LicenseEntitlement = typeof licenseEntitlements[number];

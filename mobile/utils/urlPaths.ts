@@ -86,3 +86,18 @@ export const getNotificationUrl = (
   }
   return url;
 };
+
+export const getNotificationUrlFromData = (
+  data: Record<string, unknown>
+): ReturnType<typeof getNotificationUrl> | null => {
+  if (!data || typeof data !== 'object') return null;
+  if (typeof data.id !== 'number' && typeof data.id !== 'string') return null;
+  if (typeof data.id === 'string' && !data.id.trim()) return null;
+  const id = typeof data.id === 'number' ? data.id : Number(data.id);
+  const type = data.type;
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  if (!Object.values(NotificationType).includes(type as NotificationType)) {
+    return null;
+  }
+  return getNotificationUrl(type as NotificationType, id) ?? null;
+};

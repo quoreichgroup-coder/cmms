@@ -1,7 +1,9 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../../store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
+import { revertAll } from '../../utils/redux';
+import { getReportDateRange } from '../../utils/analytics';
 import {
   PartConsumptionsByMonth,
   PartStats
@@ -11,9 +13,10 @@ const basePath = 'analytics/parts';
 interface PartStatstate {
   consumptionsOverview: PartStats;
   partConsumptionsByMonth: PartConsumptionsByMonth[];
-  loading: Omit<Record<keyof PartStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<Exclude<keyof PartStatstate, 'loading' | 'errors'>, string>>;
+  loading: Omit<Record<keyof PartStatstate, boolean>, 'loading' | 'errors'>;
 }
-type Operation = keyof PartStatstate;
+type Operation = Exclude<keyof PartStatstate, 'loading' | 'errors'>;
 
 const initialState: PartStatstate = {
   consumptionsOverview: {
@@ -21,6 +24,7 @@ const initialState: PartStatstate = {
     consumedCount: 0
   },
   partConsumptionsByMonth: [],
+  errors: {},
   loading: {
     consumptionsOverview: false,
     partConsumptionsByMonth: false
@@ -30,7 +34,11 @@ const initialState: PartStatstate = {
 const slice = createSlice({
   name: 'overviewStats',
   initialState,
+  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
+    setError(state: PartStatstate, action: PayloadAction<{ operation: Operation; error: string }>) {
+      state.errors[action.payload.operation] = action.payload.error;
+    },
     getOverview(
       state: PartStatstate,
       action: PayloadAction<{ stats: PartStats }>
@@ -64,14 +72,21 @@ export const getPartConsumptionOverview = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<PartStats>(`${basePath}/consumptions/overview`);
+    dispatch(slice.actions.setError({ operation: 'consumptionsOverview', error: '' }));
+    try {
+  const stats = await api.post<PartStats>(`${basePath}/consumptions/overview`, getReportDateRange());
   dispatch(slice.actions.getOverview({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'consumptionsOverview', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'consumptionsOverview',
       loading: false
     })
   );
+    }
 };
 export const getPartConsumptionsByMonth = (): AppThunk => async (dispatch) => {
   dispatch(
@@ -80,16 +95,21 @@ export const getPartConsumptionsByMonth = (): AppThunk => async (dispatch) => {
       loading: true
     })
   );
-  const stats = await api.get<PartConsumptionsByMonth[]>(
-    `${basePath}/consumptions/month`
-  );
+    dispatch(slice.actions.setError({ operation: 'partConsumptionsByMonth', error: '' }));
+    try {
+  const stats = await api.post<PartConsumptionsByMonth[]>(`${basePath}/consumptions/date`, getReportDateRange());
   dispatch(slice.actions.getPartConsumptionsByMonth({ stats }));
-  dispatch(
+
+    } catch (error) {
+      dispatch(slice.actions.setError({ operation: 'partConsumptionsByMonth', error: getErrorMessage(error) }));
+    } finally {
+      dispatch(
     slice.actions.setLoading({
       operation: 'partConsumptionsByMonth',
       loading: false
     })
   );
+    }
 };
 
 export default slice;

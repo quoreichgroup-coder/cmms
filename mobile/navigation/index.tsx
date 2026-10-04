@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
+import * as Notifications from 'expo-notifications';
 import {
   ColorSchemeName,
   GestureResponderEvent,
@@ -86,8 +87,10 @@ import EditRequestScreen from '../screens/requests/EditRequestScreen';
 import UserDetails from '../screens/peopleTeams/UserDetails';
 import UserProfile from '../screens/peopleTeams/Profile';
 import InviteUserScreen from '../screens/peopleTeams/InviteUserScreen';
-import { navigationRef } from './RootNavigation';
+import { navigate, navigationRef } from './RootNavigation';
+import { getNotificationUrlFromData } from '../utils/urlPaths';
 import SettingsScreen from '../screens/SettingsScreen';
+import LicenseScreen from '../screens/LicenseScreen';
 import WorkOrderFilters from '../screens/workOrders/WorkOrderFilters';
 import CreateAdditionalCost from '../screens/workOrders/CreateAdditionalCost';
 import EditAdditionalCost from '../screens/workOrders/EditAdditionalCost';
@@ -115,9 +118,38 @@ export default function Navigation({
   colorScheme: ColorSchemeName;
 }) {
   const { isAuthenticated, isInitialized, user } = useAuth();
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  const [navigationReady, setNavigationReady] = React.useState(false);
+
+  React.useEffect(() => {
+    if (
+      !isInitialized ||
+      !isAuthenticated ||
+      !navigationReady ||
+      !lastNotificationResponse
+    ) {
+      return;
+    }
+
+    const destination = getNotificationUrlFromData(
+      lastNotificationResponse.notification.request.content.data
+    );
+    if (destination) navigate(destination.route, destination.params);
+
+    Notifications.clearLastNotificationResponseAsync().catch((error) =>
+      console.warn('Could not clear handled notification response:', error)
+    );
+  }, [
+    isAuthenticated,
+    isInitialized,
+    lastNotificationResponse,
+    navigationReady
+  ]);
+
   return (
     <NavigationContainer
       ref={navigationRef}
+      onReady={() => setNavigationReady(true)}
       linking={LinkingConfiguration}
       theme={DefaultTheme}
     >
@@ -356,6 +388,7 @@ function RootNavigator() {
         component={NotificationsScreen}
         options={{ title: t('Notifications') }}
       />
+      <Stack.Screen name="License" component={LicenseScreen} options={{ title: t('company_license') }} />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

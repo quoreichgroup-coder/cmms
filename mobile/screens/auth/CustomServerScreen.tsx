@@ -17,6 +17,8 @@ import * as React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../../custom-theme';
 import { useDispatch } from '../../store';
+import { getApiUrl, normalizeApiUrl } from '../../config';
+import { revertAll } from '../../utils/redux';
 import { getInstanceConfig } from '../../slices/instanceConfig';
 
 export default function CustomServerScreen({
@@ -26,6 +28,7 @@ export default function CustomServerScreen({
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const theme = useAppTheme();
   const [currentUrl, setCurrentUrl] = useState<string>('');
+  const [hasCustomUrl, setHasCustomUrl] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -34,6 +37,9 @@ export default function CustomServerScreen({
       const savedUrl = await AsyncStorage.getItem('customApiUrl');
       if (savedUrl) {
         setCurrentUrl(savedUrl);
+        setHasCustomUrl(true);
+      } else {
+        setCurrentUrl(await getApiUrl());
       }
     };
 
@@ -64,22 +70,33 @@ export default function CustomServerScreen({
           ): Promise<void> => {
             setSubmitting(true);
             try {
-              // Ensure URL ends with a slash
-              let url = values.serverUrl;
-              if (!url.endsWith('/')) {
-                url = url + '/';
+              const url = normalizeApiUrl(values.serverUrl);
+              const controller = new AbortController();
+              const deadline = setTimeout(() => controller.abort(), 10000);
+              try {
+                const response = await fetch(url + 'instance-config', { signal: controller.signal });
+                if (!response.ok && response.status !== 401) throw new Error('Serveur CMMS inaccessible. Vérifiez son adresse.');
+                if (response.status !== 401) {
+                  const config = await response.json();
+                  if (typeof config.ldapEnabled !== 'boolean') throw new Error('Cette adresse ne correspond pas à un serveur CMMS.');
+                }
+              } finally { clearTimeout(deadline); }
+              const previous = await AsyncStorage.getItem('customApiUrl');
+              if (previous !== url) {
+                await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'companyId']);
+                dispatch(revertAll());
               }
-
-              // Save the custom URL to AsyncStorage
               await AsyncStorage.setItem('customApiUrl', url);
+              setCurrentUrl(url);
+              setHasCustomUrl(true);
               showSnackBar(t('server_url_saved'), 'success');
 
-              dispatch(getInstanceConfig());
+              await dispatch(getInstanceConfig());
 
               // Navigate back to login
               navigation.goBack();
             } catch (error) {
-              showSnackBar(t('error_saving_url'), 'error');
+              showSnackBar(error.message || t('error_saving_url'), 'error');
               setStatus({ success: false });
             } finally {
               setSubmitting(false);
@@ -132,13 +149,14 @@ export default function CustomServerScreen({
                 {t('cancel')}
               </Button>
 
-              {currentUrl && (
+              {hasCustomUrl && (
                 <Button
                   mode="outlined"
                   onPress={async () => {
                     await AsyncStorage.removeItem('customApiUrl');
-                    setCurrentUrl('');
-                    dispatch(getInstanceConfig());
+                    setCurrentUrl(await getApiUrl());
+                    setHasCustomUrl(false);
+                    await dispatch(getInstanceConfig());
                     showSnackBar(t('server_url_reset'), 'success');
                   }}
                   style={{ marginTop: 20 }}

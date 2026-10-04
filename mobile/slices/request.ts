@@ -147,6 +147,8 @@ export const getRequestDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const request = await api.get<Request>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getRequestDetails({
@@ -154,7 +156,10 @@ export const getRequestDetails =
         request
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const addRequest =
   (request): AppThunk =>

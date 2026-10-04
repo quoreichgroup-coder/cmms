@@ -146,6 +146,8 @@ export const getUserDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const user = await api.get<User>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getUserDetails({
@@ -153,7 +155,10 @@ export const getUserDetails =
         user
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const editUser =
   (id: number, user): AppThunk =>

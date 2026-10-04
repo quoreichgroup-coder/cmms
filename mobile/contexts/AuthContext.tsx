@@ -35,6 +35,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useTranslation } from 'react-i18next';
 import analytics from '@react-native-firebase/analytics';
+import { getApps } from '@react-native-firebase/app';
+import { getLicenseValidity } from '../slices/license';
 import { useDispatch } from '../store';
 import { revertAll } from '../utils/redux';
 import { getApiUrl } from '../config';
@@ -56,6 +58,7 @@ import {
 } from '@microsoft/react-native-clarity';
 import Part from '../models/part';
 import Request from '../models/request';
+import { getPreferredLanguage } from '../utils/preferredLanguage';
 
 interface AuthState {
   isInitialized: boolean;
@@ -274,25 +277,15 @@ const initialAuthState: AuthState = {
   reviewEligible: false
 };
 
-const setSession = (
-  accessToken: string | null,
-  refreshToken: string | null
-): void => {
-  if (accessToken) {
-    AsyncStorage.setItem('accessToken', accessToken);
-  } else {
-    AsyncStorage.removeItem('accessToken');
-    AsyncStorage.removeItem('companyId');
-  }
-  if (refreshToken) {
-    AsyncStorage.setItem('refreshToken', refreshToken);
-  } else {
-    AsyncStorage.removeItem('refreshToken');
-  }
+const setSession = async (accessToken: string | null, refreshToken: string | null): Promise<void> => {
+  if (accessToken) await AsyncStorage.setItem('accessToken', accessToken);
+  else await AsyncStorage.multiRemove(['accessToken', 'companyId']);
+  if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
+  else await AsyncStorage.removeItem('refreshToken');
 };
 
-const setCompanyId = (companyId: number) => {
-  AsyncStorage.setItem('companyId', companyId.toString());
+const setCompanyId = async (companyId: number) => {
+  await AsyncStorage.setItem('companyId', companyId.toString());
 };
 
 const handlers: Record<
@@ -622,7 +615,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
   const updateUserInfos = async () => {
     const user = await getUserInfos();
-    setCompanyId(user.companyId);
+    await setCompanyId(user.companyId);
     return user;
   };
 
@@ -707,11 +700,18 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   ) => {
     switchLanguage({
       lng:
-        user.language?.toLowerCase() ||
-        companySettings.generalPreferences.language.toLowerCase()
+        getPreferredLanguage(
+          user.language,
+          companySettings?.generalPreferences?.language
+        )
     });
-    checkPushNotificationState();
-    globalDispatch(getCustomFields());
+    if (Constants.expoConfig?.extra?.eas?.projectId) {
+      checkPushNotificationState().catch((error) => console.warn('Notifications indisponibles:', error.message));
+    }
+    await globalDispatch(getLicenseValidity()).catch(() => {
+      // Keep unverified entitlements disabled; the licence screen offers a retry.
+    });
+    globalDispatch(getCustomFields()).catch(() => {});
     getApiUrl().then((apiUrl) => {
       if (apiUrl.toLowerCase().includes('api.atlas-cmms.com')) {
         const clarityId = Constants.expoConfig.extra.CLARITY_ID;
@@ -759,7 +759,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       if (authenticated) {
         const newAccessToken = await AsyncStorage.getItem('accessToken');
         const newRefreshToken = await AsyncStorage.getItem('refreshToken');
-        setSession(newAccessToken, newRefreshToken);
+        await setSession(newAccessToken, newRefreshToken);
         const user = await updateUserInfos();
         const company = await api.get<Company>(`companies/${user.companyId}`);
         await setupUser(user, company.companySettings);
@@ -805,7 +805,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
   const loginInternal = async (accessToken: string, refreshToken: string) => {
     globalDispatch(revertAll());
-    setSession(accessToken, refreshToken);
+    await setSession(accessToken, refreshToken);
     const user = await updateUserInfos();
     const company = await api.get<Company>(`companies/${user.companyId}`);
     await setupUser(user, company.companySettings);
@@ -850,7 +850,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     } finally {
       // Always clear the local session, even when the server is unreachable
       // (offline / dead zone) — otherwise the user is stuck logged in.
-      setSession(null, null);
+      await setSession(null, null);
       Sentry.setUser(null);
       dispatch({ type: 'LOGOUT' });
     }
@@ -882,11 +882,11 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     if (message.startsWith('Successful')) {
       return;
     } else {
-      setSession(message, refreshToken);
+      await setSession(message, refreshToken);
       const user = await updateUserInfos();
       const company = await api.get<Company>(`companies/${user.companyId}`);
       await setupUser(user, company.companySettings);
-      await analytics().logEvent('sign_up', {
+      if (getApps().length > 0) await analytics().logEvent('sign_up', {
         email: values.email,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -979,7 +979,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       refreshToken: string;
     }>(`auth/updatepwd`, values);
     const { accessToken, refreshToken } = response;
-    setSession(accessToken, refreshToken);
+    await setSession(accessToken, refreshToken);
     return true;
   };
   const resetPassword = async (email: string): Promise<boolean> => {
@@ -1072,13 +1072,15 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return state.user.role.viewOtherPermissions.includes(permissionEntity);
   };
   const hasCreatePermission = (permissionEntity: PermissionEntity) => {
-    return state.user.role.createPermissions.includes(permissionEntity);
+    return state.user.role.roleType === 'ROLE_CLIENT'
+      && state.user.superAccountRelations.length === 0
+      && state.user.role.createPermissions.includes(permissionEntity);
   };
   const hasEditPermission = <Entity extends Audit>(
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity) return false;
+    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT' || state.user.superAccountRelations.length > 0) return false;
     if (permissionEntity === PermissionEntity.PEOPLE_AND_TEAMS) {
       return (
         state.user.id === entity.id ||
@@ -1207,16 +1209,15 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity) return false;
+    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT' || state.user.superAccountRelations.length > 0) return false;
     return (
       state.user.id === entity.createdBy ||
       state.user.role.deleteOtherPermissions.includes(permissionEntity)
     );
   };
   const hasFeature = (feature: PlanFeature) => {
-    return state.company.subscription.subscriptionPlan.features.includes(
-      feature
-    );
+    const features = state.company?.subscription?.subscriptionPlan?.features;
+    return Array.isArray(features) && features.includes(feature);
   };
   const getFilteredFields = (defaultFields: Array<IField>): IField[] => {
     let fields = [...defaultFields];

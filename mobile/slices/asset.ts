@@ -277,6 +277,8 @@ export const getAssetChildren =
   (id: number, parents: number[], pageNum = 0, pageSize = 20): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const page = await api.get<Page<AssetDTO>>(
       `${basePath}/children/${id}/paginated?page=${pageNum}&size=${pageSize}`
     );
@@ -290,13 +292,18 @@ export const getAssetChildren =
         })
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 
 export const getAssetDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
+    try {
+
     const asset = await api.get<AssetDTO>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getAssetDetails({
@@ -304,7 +311,10 @@ export const getAssetDetails =
         asset
       })
     );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const getAssetByNfc =
   (nfcId: string): AppThunk =>
@@ -328,6 +338,8 @@ export const getAssetWorkOrders =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingWorkOrders({ loading: true }));
+    try {
+
     const workOrders = await api.get<WorkOrder[]>(`work-orders/asset/${id}`);
     dispatch(
       slice.actions.getAssetWorkOrders({
@@ -335,7 +347,10 @@ export const getAssetWorkOrders =
         workOrders
       })
     );
-    dispatch(slice.actions.setLoadingWorkOrders({ loading: false }));
+
+    } finally {
+      dispatch(slice.actions.setLoadingWorkOrders({ loading: false }));
+    }
   };
 
 export const getAssetsByLocation =

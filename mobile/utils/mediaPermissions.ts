@@ -1,7 +1,11 @@
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'expo-camera';
 import i18n from '../i18n/i18n';
+import {
+  getImageLibraryOptions,
+  shouldRequestPhotoLibraryPermission
+} from './mediaPickerPlatform';
 
 type PermissionResponseLike = {
   granted: boolean;
@@ -17,25 +21,14 @@ interface PermissionFlowOptions {
 }
 
 export const ensurePermission = async ({
-  flow,
   permissionNameKey,
   requestPermission,
   getPermission
 }: PermissionFlowOptions): Promise<boolean> => {
   const permissionName = i18n.t(permissionNameKey);
 
-  console.warn(`[${flow}] Requesting ${permissionName} permission`);
-
   try {
     const result = await requestPermission();
-    console.warn(
-      `[${flow}] ${permissionName} permission result`,
-      JSON.stringify({
-        granted: result.granted,
-        canAskAgain: result.canAskAgain,
-        status: result.status
-      })
-    );
 
     if (result.granted) {
       return true;
@@ -65,7 +58,7 @@ export const ensurePermission = async ({
 
     return false;
   } catch (error) {
-    console.warn(`[${flow}] Failed while requesting ${permissionName}`, error);
+    console.error(`Unable to request ${permissionName} permission`, error);
     Alert.alert(
       i18n.t('error'),
       i18n.t('unable_to_request_permission', { permission: permissionName })
@@ -86,16 +79,10 @@ export const openCameraWithPermission = async (
   });
 
   if (!hasPermission) {
-    console.warn(`[${flow}] Camera permission denied, picker will not open`);
     return null;
   }
 
-  console.warn(`[${flow}] Opening camera picker`);
   const result = await ImagePicker.launchCameraAsync(options);
-  console.warn(
-    `[${flow}] Camera picker completed`,
-    JSON.stringify({ canceled: result.canceled })
-  );
   return result;
 };
 
@@ -103,23 +90,21 @@ export const openLibraryWithPermission = async (
   flow: string,
   options: ImagePicker.ImagePickerOptions
 ): Promise<ImagePicker.ImagePickerResult | null> => {
-  const hasPermission = await ensurePermission({
-    flow,
-    permissionNameKey: 'media_library',
-    requestPermission: ImagePicker.requestMediaLibraryPermissionsAsync,
-    getPermission: ImagePicker.getMediaLibraryPermissionsAsync
-  });
+  const hasPermission = shouldRequestPhotoLibraryPermission(Platform.OS)
+    ? await ensurePermission({
+        flow,
+        permissionNameKey: 'media_library',
+        requestPermission: ImagePicker.requestMediaLibraryPermissionsAsync,
+        getPermission: ImagePicker.getMediaLibraryPermissionsAsync
+      })
+    : true;
 
   if (!hasPermission) {
-    console.warn(`[${flow}] Media library permission denied, picker will not open`);
     return null;
   }
 
-  console.warn(`[${flow}] Opening media library picker`);
-  const result = await ImagePicker.launchImageLibraryAsync(options);
-  console.warn(
-    `[${flow}] Library picker completed`,
-    JSON.stringify({ canceled: result.canceled })
+  const result = await ImagePicker.launchImageLibraryAsync(
+    getImageLibraryOptions(Platform.OS, options)
   );
   return result;
 };

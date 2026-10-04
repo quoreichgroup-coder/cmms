@@ -4,7 +4,8 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const apiUrl = process.env.API_URL;
+const apiUrl = process.env.API_URL || 'https://169-58-86-7.sslip.io/api';
+const easProjectId = process.env.EAS_PROJECT_ID;
 const clarityId = process.env.CLARITY_ID;
 const googleServicesPlist = process.env.GOOGLE_SERVICES_PLIST;
 const sentryDsn = process.env.SENTRY_DSN;
@@ -28,7 +29,6 @@ const plugins: ExpoConfig['plugins'] = [
   'expo-font',
   'expo-notifications',
   '@react-native-community/datetimepicker',
-  '@react-native-firebase/app',
   './plugins/ios/withFmtXcode26Fix',
   [
     'expo-camera',
@@ -51,6 +51,10 @@ const plugins: ExpoConfig['plugins'] = [
   ]
 ];
 
+if (fs.existsSync(androidGoogleServicesPath) || (googleServicesPlist && fs.existsSync(googleServicesPlist))) {
+  plugins.push('@react-native-firebase/app');
+}
+
 if (process.env.SENTRY_AUTH_TOKEN) {
   plugins.push([
     '@sentry/react-native/expo',
@@ -67,7 +71,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
   slug: 'atlas-cmms',
-  version: '1.0.48',
+  version: '1.0.53',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'atlascmms',
@@ -83,16 +87,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   updates: {
     fallbackToCacheTimeout: 0,
-    url: 'https://u.expo.dev/803b5007-0c60-4030-ac3a-c7630b223b92',
+    enabled: Boolean(easProjectId),
+    ...(easProjectId ? { url: `https://u.expo.dev/${easProjectId}` } : {}),
     assetPatternsToBeBundled: ['**/*']
   },
   ios: {
     bundleIdentifier: 'com.cmms.atlas',
-    buildNumber: '2',
+    buildNumber: '7',
     jsEngine: 'hermes',
     supportsTablet: false,
-    runtimeVersion: 'appVersion',
-    googleServicesFile: googleServicesPlist ?? './GoogleService-Info.plist',
+    runtimeVersion: { policy: 'appVersion' },
+    ...(googleServicesPlist && fs.existsSync(googleServicesPlist) ? { googleServicesFile: googleServicesPlist } : {}),
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false
     }
@@ -102,12 +107,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#071b3d'
     },
-    versionCode: 31,
+    versionCode: 36,
     package: 'com.atlas.cmms',
     jsEngine: 'hermes',
     edgeToEdgeEnabled: true,
-    googleServicesFile: androidGoogleServicesPath,
-    runtimeVersion: 'appVersion' // Changed from policy object to fixed string
+    ...(fs.existsSync(androidGoogleServicesPath) ? { googleServicesFile: androidGoogleServicesPath } : {}),
+    runtimeVersion: { policy: 'appVersion' } // Changed from policy object to fixed string
   },
   web: {
     favicon: './assets/images/favicon.png'
@@ -118,9 +123,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     SENTRY_DSN: sentryDsn,
     SENTRY_ENVIRONMENT: sentryEnvironment,
     SENTRY_RELEASE: sentryRelease,
-    eas: {
-      projectId: '803b5007-0c60-4030-ac3a-c7630b223b92'
-    }
+    ...(easProjectId ? { eas: { projectId: easProjectId } } : {})
   },
   plugins
 });
