@@ -171,9 +171,25 @@ services:
       # - ./certs:/etc/nginx/certs:ro
     ports:
       - "3000:80"
-      # - "443:443"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: atlas_caddy
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   postgres_data:
   minio_data:
   license_cache:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,3 @@
+169-58-86-7.sslip.io {
+	reverse_proxy nginx:80
+}

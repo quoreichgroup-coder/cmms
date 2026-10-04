@@ -66,6 +66,14 @@ LICENSE_ENVIRONMENT=PRODUCTION
 
 Set `LICENSE_ENVIRONMENT=PREPRODUCTION` for its single preproduction slot. Do not copy a production fingerprint to a different server. The backend creates and persists its installation fingerprint and signed lease in the `license_cache` volume. The backend contacts the authority at startup and then at most every 12 hours; a valid lease allows up to 30 days offline. An explicit activation rejection (HTTP 403, 404 or 409), an expired lease, or an unverifiable lease blocks writes with HTTP 423 while read and export operations remain available. Temporary HTTP failures such as 408 or 429 preserve a still-valid signed offline lease. A newly unlicensed instance is not forced into read-only mode, allowing activation and first-time setup.
 
+Before rebuilding an installation for cutover, run the read-only deployment preflight from the repository root:
+
+```sh
+scripts/preflight-quoreich-cutover.sh .env
+```
+
+It verifies the selected provider, authority URL, mounted Ed25519 public key, production/preproduction environment, lease/fingerprint paths under the persistent `license_cache` volume, Compose validity, and the authority Docker network. It never prints environment values or starts/rebuilds containers. Confirm the authority `/health-check` separately, then deploy with the Compose override. After restart, verify `GET /api/license/state` and confirm the expected company license is valid before relying on licensed writes. Keep the existing provider's credentials and state intact through the migration window.
+
 ## Current scope and migration notes
 
 The authority exposes a secured REST administration API and a graphical QUOREICH operator console at `/`. The console supports issuing and listing licenses, inspecting activations, freeing an installation slot, and revoking licenses. Audit events are available through the REST API. License issuance is quote-based and pricing is not encoded in application logic. The source repository is AGPLv3, including this authority under the repository's license. Branding identity is fixed as QUOREICH for the derivative and does not depend on a paid upstream branding entitlement; upstream copyright and source links remain in the application notices.
