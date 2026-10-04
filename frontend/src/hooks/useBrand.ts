@@ -4,8 +4,6 @@ import {
   brandRawConfig,
   customLogoPaths
 } from '../config';
-import { useSelector } from '../store';
-import { useLicenseEntitlement } from './useLicenseEntitlement';
 
 const DEFAULT_WHITE_LOGO = '/static/images/logo/logo-white.png';
 const DEFAULT_DARK_LOGO = '/static/images/logo/logo.png';
@@ -17,32 +15,30 @@ interface BrandConfig extends BrandRawConfig {
 }
 export function useBrand(): BrandConfig {
   const defaultBrand: Omit<BrandConfig, 'logo'> = {
-    name: 'QPM',
-    shortName: 'QPM',
+    name: 'QUOREICH GROUP · QPM',
+    shortName: 'QUOREICH',
     website: '',
     mail: '',
     phone: '',
     addressStreet: '',
     addressCity: ''
   };
-  const isLicenseValid = useLicenseEntitlement('BRANDING');
   return {
     logo: {
       white: customLogoPaths
-        ? isLicenseValid == null
-          ? null
-          : isLicenseValid
-          ? CUSTOM_WHITE_LOGO
-          : DEFAULT_WHITE_LOGO
+        ? CUSTOM_WHITE_LOGO
         : DEFAULT_WHITE_LOGO,
       dark: customLogoPaths
-        ? isLicenseValid == null
-          ? null
-          : isLicenseValid
-          ? CUSTOM_DARK_LOGO
-          : DEFAULT_DARK_LOGO
+        ? CUSTOM_DARK_LOGO
         : DEFAULT_DARK_LOGO
     },
-    ...(isLicenseValid && brandRawConfig ? brandRawConfig : defaultBrand)
+    ...(brandRawConfig
+      ? {
+          ...defaultBrand,
+          ...brandRawConfig,
+          name: defaultBrand.name,
+          shortName: defaultBrand.shortName
+        }
+      : defaultBrand)
   };
 }

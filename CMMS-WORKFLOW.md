@@ -1,6 +1,6 @@
 # Travailler sur notre version de CMMS
 
-Dossier : `/home/abdouramane/Documents/Projets/cmms`.
+Dossier : `/home/abdouramane/Projet/cmms`.
 
 - `origin` : notre fork `quoreichgroup-coder/cmms`, destination des publications.
 - `upstream` : dépôt officiel `Grashjs/cmms`, source des nouveautés.
@@ -12,7 +12,7 @@ Le clone utilise `--filter=blob:none` : l’historique des commits est conservé
 ## Travailler
 
 ```bash
-cd /home/abdouramane/Documents/Projets/cmms
+cd /home/abdouramane/Projet/cmms
 git switch projet
 ```
 

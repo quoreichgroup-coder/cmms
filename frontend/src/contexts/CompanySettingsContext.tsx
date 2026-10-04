@@ -39,11 +39,7 @@ export const CompanySettingsProvider: FC = ({ children }) => {
   const { companySettings, getFilteredFields, isAuthenticated, company, user } =
     useAuth();
   const dispatch = useDispatch();
-  const { generalPreferences } = companySettings ?? {
-    dateFormat: 'DDMMYY',
-    currency: { code: '$' },
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-  };
+  const generalPreferences = companySettings?.generalPreferences;
   const { allUsersMini } = useSelector((state) => state.users);
   const { workOrderConfiguration } = companySettings ?? {
     workOrderFieldConfigurations: []
@@ -55,19 +51,20 @@ export const CompanySettingsProvider: FC = ({ children }) => {
   const getFormattedDate = (dateString: string, hideTime?: boolean) => {
     if (!dateString) return '';
 
-    const tz = generalPreferences.timeZone;
+    const tz = generalPreferences?.timeZone || 'UTC';
     const date = utcToZonedTime(new Date(dateString), tz);
 
     const timeStr = hideTime ? '' : format(date, ' HH:mm');
 
-    if (generalPreferences.dateFormat === 'MMDDYY') {
+    if (generalPreferences?.dateFormat === 'MMDDYY') {
       return format(date, 'MM/dd/yy') + timeStr;
     } else {
       return format(date, 'dd/MM/yy') + timeStr;
     }
   };
   const getFormattedCurrency = (amount: number): string => {
-    const code = generalPreferences.currency.code;
+    const code = generalPreferences?.currency?.code;
+    if (!code) return String(amount ?? '');
     const currenciesToReverse = ['$'];
     return currenciesToReverse.includes(code)
       ? `${code} ${amount} `
@@ -199,7 +196,7 @@ I would like to request an upgrade to my current ${brandConfig.name} plan.
 
 Account Information:
 - Company Name: ${company.name}
-- Current Plan: ${company.subscription.subscriptionPlan.name}
+- Current Plan: ${company.subscription?.subscriptionPlan?.name ?? 'No active plan'}
 - Account Email: ${user.email}
 
 Upgrade Details:

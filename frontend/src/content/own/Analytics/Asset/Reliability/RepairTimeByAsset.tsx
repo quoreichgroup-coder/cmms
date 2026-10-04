@@ -3,8 +3,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell, ComposedChart,
-  Legend, Line,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
   Tooltip,
   XAxis,
   YAxis
@@ -29,10 +31,16 @@ interface WOStatusPieProps {
   companyId?: number;
 }
 
-function RepairTimeByAsset({ handleOpenModal, start, end, assetColors, companyId }: WOStatusPieProps) {
+function RepairTimeByAsset({
+  handleOpenModal,
+  start,
+  end,
+  assetColors,
+  companyId
+}: WOStatusPieProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { repairTimeByAsset, loading } = useSelector(
+  const { repairTimeByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
 
@@ -50,8 +58,11 @@ function RepairTimeByAsset({ handleOpenModal, start, end, assetColors, companyId
     return {
       label: asset.name,
       duration: asset.duration,
-      average: (arr.reduce((prev, curr) => prev + curr.duration, 0) / arr.length).toFixed(2),
-      color: assetColors.find(assetColor => assetColor.id === asset.id)?.color,
+      average: (
+        arr.reduce((prev, curr) => prev + curr.duration, 0) / arr.length
+      ).toFixed(2),
+      color: assetColors.find((assetColor) => assetColor.id === asset.id)
+        ?.color,
       filters: [{ key: 'asset', value: asset.id }]
     };
   });
@@ -59,8 +70,11 @@ function RepairTimeByAsset({ handleOpenModal, start, end, assetColors, companyId
   const title = t('MTTR');
   return (
     <AnalyticsCard title={title}>
-      {loading.downtimesByAsset ? (
-        <Loading />
+      {loading.repairTimeByAsset || errors.repairTimeByAsset ? (
+        <Loading
+          error={errors.repairTimeByAsset}
+          onRetry={() => dispatch(getRepairTimeByAsset(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

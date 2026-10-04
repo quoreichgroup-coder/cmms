@@ -29,10 +29,15 @@ interface WOStatusIncompleteProps {
   companyId?: number;
 }
 
-function IncompleteWO({ handleOpenModal, start, end, companyId }: WOStatusIncompleteProps) {
+function IncompleteWO({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { incompleteByPriority, loading } = useSelector(
+  const { incompleteByPriority, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
   const dispatch = useDispatch();
@@ -82,18 +87,27 @@ function IncompleteWO({ handleOpenModal, start, end, companyId }: WOStatusIncomp
   const title = t('work_remaining');
   return (
     <AnalyticsCard title={title} description="work_remaining_description">
-      {loading.incompleteByPriority ? (
-        <Loading />
+      {loading.incompleteByPriority || errors.incompleteByPriority ? (
+        <Loading
+          error={errors.incompleteByPriority}
+          onRetry={() =>
+            dispatch(getIncompleteByPriority(start, end, companyId))
+          }
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis yAxisId="left-axis" />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" unit={t('hours')} />
+          <YAxis yAxisId="right-axis" orientation="right" unit={t('hours')} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="count" fill="#8884d8" name={t('work_orders')} yAxisId="left-axis">
+          <Bar
+            dataKey="count"
+            fill="#8884d8"
+            name={t('work_orders')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

@@ -53,6 +53,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
+    @Mock
+    private LicenseSeatService licenseSeatService;
+
     @InjectMocks
     private UserService userService;
 
@@ -1999,6 +2002,44 @@ class UserServiceTest {
             CustomException ex = assertThrows(CustomException.class,
                     () -> userService.patchUserRole(2L, 2L, user));
             assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getHttpStatus());
+        }
+
+        @Test
+        void switchingToLightRoleRejectsWhenLightSeatsAreFull() {
+            ReflectionTestUtils.setField(userService, "licenseProvider", "QUOREICH");
+            newRole.setPaid(false);
+            when(userRepository.findByIdAndCompany_Id(2L, 1L)).thenReturn(Optional.of(targetUser));
+            when(roleService.findById(2L)).thenReturn(Optional.of(newRole));
+            when(userRepository.findByCompany_Id(1L)).thenReturn(List.of(user));
+            when(licenseService.getLicensingState()).thenReturn(LicensingState.builder()
+                    .valid(true).hasLicense(true).seatsFull(2).seatsLight(5).build());
+            doThrow(new CustomException("No light seats", HttpStatus.PAYMENT_REQUIRED))
+                    .when(licenseSeatService).checkTransition(targetUser, newRole, true);
+
+            CustomException error = assertThrows(CustomException.class,
+                    () -> userService.patchUserRole(2L, 2L, user));
+
+            assertEquals(HttpStatus.PAYMENT_REQUIRED, error.getHttpStatus());
+            assertTrue(targetUser.getRole().isPaid());
+            verify(userRepository, never()).save(targetUser);
+        }
+
+        @Test
+        void changingFromExemptRoleStillChecksDestinationSeatsWhenBothRolesArePaid() {
+            ReflectionTestUtils.setField(userService, "licenseProvider", "QUOREICH");
+            targetUser.setRole(Role.builder().paid(true).roleType(RoleType.ROLE_SUPER_ADMIN).build());
+            when(userRepository.findByIdAndCompany_Id(2L, 1L)).thenReturn(Optional.of(targetUser));
+            when(roleService.findById(2L)).thenReturn(Optional.of(newRole));
+            when(userRepository.findByCompany_Id(1L)).thenReturn(List.of(user));
+            when(licenseService.getLicensingState()).thenReturn(LicensingState.builder().valid(true).build());
+            doThrow(new CustomException("No full seats", HttpStatus.PAYMENT_REQUIRED))
+                    .when(licenseSeatService).checkTransition(targetUser, newRole, true);
+
+            CustomException error = assertThrows(CustomException.class,
+                    () -> userService.patchUserRole(2L, 2L, user));
+
+            assertEquals(HttpStatus.PAYMENT_REQUIRED, error.getHttpStatus());
+            verify(userRepository, never()).save(targetUser);
         }
 
         @Test

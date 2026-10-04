@@ -20,11 +20,16 @@ interface WOByPrimaryUserProps {
   companyId?: number;
 }
 
-function WOByPrimaryUser({ handleOpenModal, start, end, companyId }: WOByPrimaryUserProps) {
+function WOByPrimaryUser({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOByPrimaryUserProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { completeByPrimaryUser, loading } = useSelector(
+  const { completeByPrimaryUser, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
 
@@ -45,8 +50,11 @@ function WOByPrimaryUser({ handleOpenModal, start, end, companyId }: WOByPrimary
   const title = t('grouped_by_assigned_to');
   return (
     <AnalyticsCard title={title}>
-      {loading.completeByPrimaryUser ? (
-        <Loading />
+      {loading.completeByPrimaryUser || errors.completeByPrimaryUser ? (
+        <Loading
+          error={errors.completeByPrimaryUser}
+          onRetry={() => dispatch(getCountsByUser(start, end, companyId))}
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

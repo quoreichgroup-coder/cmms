@@ -48,7 +48,7 @@ public class WOAnalyticsController {
     private final CompanyService companyService;
 
     @PostMapping("/complete/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getCompleteStats",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -82,7 +82,7 @@ public class WOAnalyticsController {
     }
 
     @GetMapping("/mobile/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<MobileWOStats> getMobileOverview(@Parameter(hidden = true) @CurrentUser User user,
                                                            @Parameter(description = "Filter work orders assigned to " +
                                                                    "current user") @RequestParam("assignedToMe") boolean assignedToMe) {
@@ -123,7 +123,7 @@ public class WOAnalyticsController {
     }
 
     @GetMapping("/mobile/complete-compliant")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<MobileWOStatsExtended> getMobileExtendedStats(@Parameter(hidden = true) @CurrentUser User user) {
         Date weekStart = Helper.localDateToDate(LocalDate.now().minusDays(7));
         Collection<WorkOrder> workOrders = workOrderService.findByCompany(user.getCompany().getId());
@@ -148,7 +148,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/incomplete/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getIncompleteStats",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -177,7 +177,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/incomplete/priority")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getIncompleteByPriority",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -232,7 +232,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/incomplete/statuses")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOStatuses",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -260,7 +260,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/incomplete/age/assets")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getIncompleteByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -287,7 +287,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/incomplete/age/users")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getIncompleteByUser",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -322,7 +322,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/hours")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOHours",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -350,7 +350,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/counts/primaryUser")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCountsByUser",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -380,7 +380,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/counts/completedBy")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCountsByCompletedBy",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -410,7 +410,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/counts/priority")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCountsByPriority",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -435,7 +435,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/counts/category")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCountsByCategory",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -468,7 +468,7 @@ public class WOAnalyticsController {
     }
 
     @GetMapping("/complete/counts/week")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCompleteByWeek",
             key = "#user.id + (#companyId != null ? '_' + #companyId : '')"
@@ -500,7 +500,7 @@ public class WOAnalyticsController {
     }
 
     @GetMapping("/complete/time/week")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCompleteTimeByWeek",
             key = "#user.id + (#companyId != null ? '_' + #companyId : '')"
@@ -534,7 +534,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/costs-time")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCompleteCostsAndTime",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -566,7 +566,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/complete/costs/date")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOCompleteCostsByDate",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -619,7 +619,7 @@ public class WOAnalyticsController {
     }
 
     @PostMapping("/statuses")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getWOStatusesByDate",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +

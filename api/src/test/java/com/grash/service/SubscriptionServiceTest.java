@@ -43,6 +43,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SubscriptionServiceTest {
 
+    @Mock
+    private LicenseSeatService licenseSeatService;
+
     @InjectMocks
     private SubscriptionService subscriptionService;
 
@@ -165,6 +168,21 @@ class SubscriptionServiceTest {
 
             assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getHttpStatus());
             verify(userRepository, never()).saveAll(anyCollection());
+        }
+
+        @Test
+        void licenseQuotaRejectsUpgradeBeforeEnablingOrSavingUsers() {
+            User target = buildUser(10L, false, false, false);
+            stubEnabledUsers(owner);
+            when(userRepository.findByIdAndCompany_Id(10L, 1L)).thenReturn(Optional.of(target));
+            doThrow(new CustomException("No seats available", HttpStatus.PAYMENT_REQUIRED))
+                    .when(licenseSeatService).checkUsersToEnable(anyCollection());
+
+            assertThrows(CustomException.class, () -> subscriptionService.upgrade(List.of(10L), owner));
+
+            assertFalse(target.isEnabled());
+            verify(userRepository, never()).saveAll(anyCollection());
+            verify(subscriptionRepository, never()).save(any());
         }
 
         @Test

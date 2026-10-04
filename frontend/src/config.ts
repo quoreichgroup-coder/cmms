@@ -78,7 +78,9 @@ export const brandRawConfig: BrandRawConfig = getRuntimeValue('BRAND_CONFIG')
 
 export const demoLink: string = getRuntimeValue('DEMO_LINK');
 
-export const isWhiteLabeled: boolean = !!(customLogoPaths || brandRawConfig);
+// This fork is always presented as QUOREICH/QPM. Branding must not depend on
+// the upstream BRANDING commercial entitlement.
+export const isWhiteLabeled = true;
 
 export const IS_ORIGINAL_CLOUD = !isWhiteLabeled && isCloudVersion;
 

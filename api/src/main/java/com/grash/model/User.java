@@ -7,6 +7,7 @@ import com.grash.model.abstracts.CompanyAudit;
 import com.grash.model.enums.Language;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.PlanFeatures;
+import com.grash.model.enums.RoleType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import lombok.Data;
@@ -150,7 +151,12 @@ public class User extends CompanyAudit {
     }
 
     public boolean canSeeAnalytics() {
-        return this.getRole().getViewPermissions().contains(PermissionEntity.ANALYTICS) && this.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.ANALYTICS);
+        if (getRole() == null) return false;
+        if (getRole().getRoleType() == RoleType.ROLE_SUPER_ADMIN) return true;
+        return getRole().getViewPermissions().contains(PermissionEntity.ANALYTICS)
+                && getCompany() != null && getCompany().getSubscription() != null
+                && getCompany().getSubscription().getSubscriptionPlan() != null
+                && getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.ANALYTICS);
     }
 
     public String getFullName() {

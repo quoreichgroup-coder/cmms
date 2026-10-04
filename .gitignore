@@ -1,4 +1,11 @@
 .env
+.env.backup.*
+.initial-admin-credentials
+.initial-company-license
+license-authority/.env
+license-authority/secrets/
+license-public/*.private.pem
+license-public/*.key
 .env.genaiscript
 .genaiscript
 .DS_Store
@@ -8,3 +15,7 @@ docker-compose-dev.yml
 logo
 *.lic
 docker-compose-minio.yml
+
+# Java build outputs
+**/target/
+api/htmlReport/

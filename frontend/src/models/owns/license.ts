@@ -33,6 +33,12 @@ const licenseEntitlements = [
   'RESOURCE_PLANNING'
 ] as const;
 export type LicensingState = {
+  hasLicense?: boolean;
+  readOnly?: boolean;
+  customerName?: string;
+  environment?: string;
+  seatsFull?: number;
+  seatsLight?: number;
   valid: boolean;
   previewMode?: boolean;
   entitlements: LicenseEntitlement[];

@@ -18,17 +18,26 @@ interface HoursWorkedProps {
   companyId?: number;
 }
 
-function HoursWorked({ handleOpenModal, start, end, companyId }: HoursWorkedProps) {
+function HoursWorked({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: HoursWorkedProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { hours, loading } = useSelector((state) => state.woAnalytics);
+  const { hours, loading, errors } = useSelector((state) => state.woAnalytics);
 
   useEffect(() => {
     dispatch(getWOHours(start, end, companyId));
   }, [start, end, companyId]);
 
   const columns = ['id'];
-  const formattedData: { label: string; value: string | number; filters: Filter[] }[] = [
+  const formattedData: {
+    label: string;
+    value: string | number;
+    filters: Filter[];
+  }[] = [
     { label: t('estimated_hours'), value: hours.estimated, filters: [] },
     {
       label: t('total_time_spent_in_hours'),
@@ -49,8 +58,11 @@ function HoursWorked({ handleOpenModal, start, end, companyId }: HoursWorkedProp
       description="hours_worked_description"
     >
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.hours ? (
-          <Loading />
+        {loading.hours || errors.hours ? (
+          <Loading
+            error={errors.hours}
+            onRetry={() => dispatch(getWOHours(start, end, companyId))}
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {formattedData.map((data) => (

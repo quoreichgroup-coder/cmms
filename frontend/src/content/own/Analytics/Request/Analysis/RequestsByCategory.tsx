@@ -21,11 +21,16 @@ interface RequestByCategoryProps {
   companyId?: number;
 }
 
-function RequestByCategory({ handleOpenModal, start, end, companyId }: RequestByCategoryProps) {
+function RequestByCategory({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: RequestByCategoryProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { requestsByCategory, loading } = useSelector(
+  const { requestsByCategory, loading, errors } = useSelector(
     (state) => state.requestAnalytics
   );
 
@@ -46,8 +51,11 @@ function RequestByCategory({ handleOpenModal, start, end, companyId }: RequestBy
   const title = t('grouped_by_category');
   return (
     <AnalyticsCard title={title}>
-      {loading.requestsByCategory ? (
-        <Loading />
+      {loading.requestsByCategory || errors.requestsByCategory ? (
+        <Loading
+          error={errors.requestsByCategory}
+          onRetry={() => dispatch(getRequestsByCategory(start, end, companyId))}
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

@@ -128,7 +128,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix",
     "format": "prettier --write \"./**/*.{ts,tsx,js,jsx,json}\" --config ./.prettierrc",
-    "prepare": "cd .. && husky install frontend/.husky"
+    "prepare": "cd .. && husky install frontend/.husky",
+    "test:license-console": "cross-env TZ=Europe/Berlin node --test scripts/license-authority-console.test.cjs",
+    "test:asset-maintenance": "node --test scripts/asset-maintenance-summary.test.cjs",
+    "test:license-ui": "node --test scripts/company-license.test.cjs scripts/company-profile.test.cjs",
+    "test:reports": "node --test scripts/report-loading.test.cjs"
   },
   "browserslist": {
     "production": [
@@ -166,6 +170,7 @@
     "eslint-plugin-react": "7.30.0",
     "eslint-plugin-react-hooks": "4.5.0",
     "husky": "^8.0.1",
+    "jsdom": "16.7.0",
     "lint-staged": "^13.0.3",
     "prettier": "2.6.2",
     "react-app-rewired": "^2.2.1",

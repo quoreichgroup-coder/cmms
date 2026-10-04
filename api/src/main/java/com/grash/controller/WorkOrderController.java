@@ -73,7 +73,7 @@ public class WorkOrderController {
     }
 
     @PostMapping("/events")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public Collection<CalendarEvent<WorkOrderBaseMiniDTO>> getEvents(@Parameter(description = "Date range for " +
             "calendar events") @Valid @RequestBody DateRange
                                                                              dateRange, @RequestParam(required =

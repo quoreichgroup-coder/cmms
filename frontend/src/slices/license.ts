@@ -40,4 +40,10 @@ export const getLicenseValidity = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.getLicenseValidity(response));
 };
 
+export const activateLicense = (licenseKey: string): AppThunk => async (dispatch) => {
+  const response = await api.post<LicensingState>(`${basePath}/activate`, { licenseKey });
+  dispatch(slice.actions.getLicenseValidity(response));
+  return response;
+};
+
 export default slice;

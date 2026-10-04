@@ -19,11 +19,16 @@ interface OwnProps {
   companyId?: number;
 }
 
-function RequestStatsByPriority({ handleOpenModal, start, end, companyId }: OwnProps) {
+function RequestStatsByPriority({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { requestStatsByPriority, loading } = useSelector(
+  const { requestStatsByPriority, loading, errors } = useSelector(
     (state) => state.requestAnalytics
   );
 
@@ -67,8 +72,13 @@ function RequestStatsByPriority({ handleOpenModal, start, end, companyId }: OwnP
   const title = t('requests_by_priority');
   return (
     <AnalyticsCard title={title}>
-      {loading.requestStatsByPriority ? (
-        <Loading />
+      {loading.requestStatsByPriority || errors.requestStatsByPriority ? (
+        <Loading
+          error={errors.requestStatsByPriority}
+          onRetry={() =>
+            dispatch(getRequestStatsByPriority(start, end, companyId))
+          }
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

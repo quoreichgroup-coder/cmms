@@ -1,7 +1,8 @@
-<p align="center"><img src="frontend/public/static/images/logo/logo.png" width="80"></p>
-<h1 align="center">Atlas CMMS</h1>
 
-[Atlas CMMS](https://github.com/grashjs/cmms) is a powerful, self-hosted maintenance management system designed for both
+<p align="center"><img src="frontend/public/static/images/logo/logo.png" width="80"></p>
+<h1 align="center">QUOREICH GROUP · QPM</h1>
+
+QPM is QUOREICH GROUP's modified edition of [Atlas CMMS](https://github.com/grashjs/cmms), distributed under AGPLv3. It is a powerful, self-hosted maintenance management system designed for both
 web and mobile platforms using Docker. It simplifies and automates the management of maintenance activities, making it
 ideal for IT managers or developers looking to implement solutions that keep their organization's assets running
 smoothly.
@@ -72,18 +73,26 @@ We'd love to have **new contributors**, so feel free to join us!
 
 ### ⚡ Quick Start (2 minutes)
 
-1. Download:
+1. Clone the complete repository on the server. Compose builds the API and frontend
+   from the local `api/` and `frontend/` directories, so these source directories
+   must be present next to `docker-compose.yml`.
+2. Copy `.env.example` to `.env`, then set the required production values and
+   restrict its permissions (`chmod 600 .env`).
 
-- [docker-compose.yml](./docker-compose.yml)
-- [nginx.conf](./nginx.conf)
-- [.env.example](.env.example) → rename to `.env`
-
-2. Run:
+3. Build and start:
    ```bash
-   docker-compose up -d
+   docker compose up -d --build
    ```
 
-Go to http://localhost:3000 to access Atlas CMMS.
+After changing API or frontend source code, rebuild those services and restart
+nginx so it resolves their new container addresses:
+
+```bash
+docker compose up -d --build api frontend
+docker compose restart nginx
+```
+
+Go to http://localhost:3000 to access QUOREICH GROUP · QPM.
 
 Need customization or production setup? Continue reading below ↓
 

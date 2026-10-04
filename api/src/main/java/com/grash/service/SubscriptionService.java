@@ -34,11 +34,13 @@ public class SubscriptionService {
     private final EntityManager em;
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final LicenseSeatService licenseSeatService;
     private final Scheduler scheduler;
     private final ScheduleRepository scheduleRepository;
 
     public void upgrade(Collection<Long> usersIds, User user) {
         if (usersIds.isEmpty()) return;
+        boolean licensed = licenseSeatService.lockForUserChanges();
         if (user.isOwnsCompany()) {
             int enabledUsersCount =
                     (int) userRepository.findByCompany_Id(user.getCompany().getId()).stream().filter(User::isEnabledInSubscriptionAndPaid).count();
@@ -48,7 +50,9 @@ public class SubscriptionService {
                 Collection<User> users = usersIds.stream().map(userId -> findUserInCompany(userId,
                                 user.getCompany().getId()))
                         .collect(Collectors.toList());
+                if (licensed) users.forEach(em::refresh);
                 if (users.stream().noneMatch(User::isEnabledInSubscription)) {
+                    licenseSeatService.checkUsersToEnable(users);
                     users.forEach(user1 -> {
                         user1.setEnabled(true);
                         user1.setEnabledInSubscription(true);

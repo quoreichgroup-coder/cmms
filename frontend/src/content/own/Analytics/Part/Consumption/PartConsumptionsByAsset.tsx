@@ -1,7 +1,8 @@
 import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
-  Bar, BarChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -24,16 +25,21 @@ interface WOStatusIncompleteProps {
     columns: string[],
     filters: Filter[],
     title: string
-  ) => void,
-  start: Date,
-  end: Date,
-  companyId?: number
+  ) => void;
+  start: Date;
+  end: Date;
+  companyId?: number;
 }
 
-function PartConsumptionsByAsset({ handleOpenModal, start, end, companyId }: WOStatusIncompleteProps) {
+function PartConsumptionsByAsset({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { partConsumptionsByAsset, loading } = useSelector(
+  const { partConsumptionsByAsset, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
   const dispatch = useDispatch();
@@ -60,15 +66,25 @@ function PartConsumptionsByAsset({ handleOpenModal, start, end, companyId }: WOS
   const title = t('part_consumption_by_asset');
   return (
     <AnalyticsCard title={title}>
-      {loading.partConsumptionsByAsset ? (
-        <Loading />
+      {loading.partConsumptionsByAsset || errors.partConsumptionsByAsset ? (
+        <Loading
+          error={errors.partConsumptionsByAsset}
+          onRetry={() =>
+            dispatch(getPartConsumptionsByAsset(start, end, companyId))
+          }
+        />
       ) : (
         <BarChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis yAxisId="left-axis" />
           <Tooltip />
-          <Bar dataKey="cost" fill="#8884d8" name={t('cost')} yAxisId="left-axis">
+          <Bar
+            dataKey="cost"
+            fill="#8884d8"
+            name={t('cost')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

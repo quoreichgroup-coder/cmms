@@ -36,6 +36,7 @@ import java.util.*;
 public class LdapService {
 
     private final UserRepository userRepository;
+    private final LicenseSeatService licenseSeatService;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
     private final CompanyService companyService;
@@ -103,6 +104,7 @@ public class LdapService {
             return;
         }
 
+        licenseSeatService.lockForUserChanges();
         Set<String> ldapUsernames = new HashSet<>(fetchAllLdapUsernames());
         Map<String, User> existingLdapUsersByProviderId = new HashMap<>();
         Collection<User> existingUsers = userRepository.findByCompany_Id(company.getId());
@@ -146,6 +148,7 @@ public class LdapService {
                     }
                 }
                 if (!user.isEnabled() && ldapSyncDisable) {
+                    licenseSeatService.checkTransition(user, user.getRole(), true);
                     user.setEnabled(true);
                     userRepository.save(user);
                 }
@@ -153,6 +156,7 @@ public class LdapService {
                 if (ldapSyncCreate) {
                     Map<String, String> ldapDetails = getLdapUserDetailsByUsername(ldapUsername);
                     User newUser = getNewLdapUser(ldapUsername, company, ldapDetails);
+                    licenseSeatService.checkNewUser(newUser);
                     userRepository.save(newUser);
                 }
             }
@@ -220,6 +224,7 @@ public class LdapService {
 
 
     public AuthTokens signinLdap(LdapLoginRequest ldapRequest) {
+        licenseSeatService.lockForUserChanges();
         try {
             if (ldapAuthenticationProvider == null) {
                 throw new CustomException("LDAP authentication is not enabled", HttpStatus.FORBIDDEN);
@@ -267,12 +272,15 @@ public class LdapService {
                         .orElseThrow(() -> new CustomException("No company available for LDAP user",
                                 HttpStatus.INTERNAL_SERVER_ERROR));
                 user = getNewLdapUser(ldapUsername, company, ldapUserDetails);
+                licenseSeatService.checkNewUser(user);
                 user.setLastLogin(new Date());
 
             } else {
                 user.setLastLogin(new Date());
                 List<String> userOus = getLdapUserOu(ldapUsername);
-                user.setRole(getRoleForOu(userOus));
+                Role targetRole = getRoleForOu(userOus);
+                licenseSeatService.checkTransition(user, targetRole, user.isEnabled());
+                user.setRole(targetRole);
             }
             Sanitizer.sanitizeUser(user);
             user = userRepository.save(user);

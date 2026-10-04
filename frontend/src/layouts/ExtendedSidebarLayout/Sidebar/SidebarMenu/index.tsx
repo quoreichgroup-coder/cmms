@@ -252,6 +252,7 @@ function SidebarMenu() {
   const TRIAL_DAYS = 15;
   const daysPassed = dayjs().diff(dayjs(company.createdAt), 'day');
   const daysLeft = TRIAL_DAYS - daysPassed;
+  const subscription = company?.subscription;
 
   useEffect(() => {
     if (user.id) {
@@ -262,9 +263,10 @@ function SidebarMenu() {
   return (
     <>
       {isCloudVersion &&
+        subscription &&
         !company.demo &&
         user.ownsCompany &&
-        !company.subscription.activated &&
+        !subscription.activated &&
         user.superAccountRelations.length === 0 && (
           <Stack
             sx={{
@@ -282,7 +284,7 @@ function SidebarMenu() {
                 : `Your trial has ended`}
             </Typography>
             <Typography color={'white'} fontSize={'14px'}>
-              You are on the {company.subscription.subscriptionPlan.name} plan
+              You are on the {subscription.subscriptionPlan?.name ?? 'current'} plan
             </Typography>
             <Button
               component={Link}

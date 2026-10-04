@@ -31,6 +31,7 @@ import Request from '../../models/request';
 import Form from '../../components/form';
 import { AudioPlayer } from '../../components/AudioPlayer';
 import { getCustomFieldValuesForDetails } from '../../models/form';
+import { getErrorMessage } from '../../utils/api';
 
 export default function RequestDetails({
   navigation,
@@ -58,6 +59,7 @@ export default function RequestDetails({
       .then((workOrderId: number) => {
         navigation.push('WODetails', { id: workOrderId });
       })
+      .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
       .finally(() => setApproving(false));
   };
 
@@ -289,6 +291,7 @@ export default function RequestDetails({
                 }
                 dispatch(cancelRequest(request.id, feedback))
                   .then(onReject)
+                  .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
                   .finally(() => setRejecting(false));
               }}
             >

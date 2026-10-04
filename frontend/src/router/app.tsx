@@ -103,6 +103,9 @@ const Connectors = Loader(
 );
 
 const UserProfile = Loader(lazy(() => import('../content/own/UserProfile')));
+const AboutLicenses = Loader(
+  lazy(() => import('../content/own/AboutLicenses'))
+);
 const CompanyProfile = Loader(
   lazy(() => import('../content/own/CompanyProfile'))
 );
@@ -282,6 +285,7 @@ const appRoutes = [
       }
     ]
   },
+  { path: 'about-licenses', element: <AboutLicenses /> },
   {
     path: 'subscription',
     children: [

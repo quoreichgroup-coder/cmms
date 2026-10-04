@@ -36,7 +36,7 @@ public class PartAnalyticsController {
     private final CompanyService companyService;
 
     @PostMapping("/consumptions/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getPartStats",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -62,7 +62,7 @@ public class PartAnalyticsController {
     }
 
     @PostMapping("/consumptions/pareto")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getPartPareto",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -94,7 +94,7 @@ public class PartAnalyticsController {
     }
 
     @PostMapping("/consumptions/assets")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getConsumptionByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -120,7 +120,7 @@ public class PartAnalyticsController {
     }
 
     @PostMapping("/consumptions/parts-category")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getConsumptionByPartCategory",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -159,7 +159,7 @@ public class PartAnalyticsController {
     }
 
     @PostMapping("/consumptions/work-order-category")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getConsumptionByWOCategory",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -199,7 +199,7 @@ public class PartAnalyticsController {
     }
 
     @PostMapping("/consumptions/date")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getPartConsumptionsByMonth",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +

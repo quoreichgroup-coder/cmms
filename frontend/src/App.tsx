@@ -31,7 +31,6 @@ import { useDispatch, useSelector } from './store';
 import { useBrand } from './hooks/useBrand';
 import { useTranslation } from 'react-i18next';
 import { UtmTrackerProvider } from '@nik0di3m/utm-tracker-hook';
-import { useLicenseEntitlement } from './hooks/useLicenseEntitlement';
 import { initializePaddle } from '@paddle/paddle-js';
 import { getDateLocale, loadLanguage, supportedLanguages } from './i18n/i18n';
 
@@ -136,7 +135,6 @@ function App() {
   const { logo } = useBrand();
   const { isInitialized, company, isAuthenticated, user } = useAuth();
   const { state: licensingState } = useSelector((state) => state.license);
-  const hasBrandingEntitlement = useLicenseEntitlement('BRANDING');
   const { i18n } = useTranslation();
   let location = useLocation();
   const [dateFnsLocale, setDateFnsLocale] = useState<Locale>(enUS);
@@ -162,9 +160,9 @@ function App() {
       isInitialized &&
       isAuthenticated
     )
-      if (company.subscription.downgradeNeeded) {
+      if (company?.subscription?.downgradeNeeded) {
         navigate('/app/downgrade');
-      } else if (user.ownsCompany && company.subscription.upgradeNeeded) {
+      } else if (user.ownsCompany && company?.subscription?.upgradeNeeded) {
         navigate('/app/upgrade');
       }
   }, [company, isInitialized, isAuthenticated, location]);
@@ -194,7 +192,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (customLogoPaths && hasBrandingEntitlement) {
+    if (customLogoPaths) {
       let link: HTMLLinkElement = document.querySelector("link[rel~='icon']");
       if (!link) {
         link = document.createElement('link');
@@ -203,7 +201,7 @@ function App() {
       }
       link.href = logo.dark;
     }
-  }, [logo.dark, hasBrandingEntitlement]);
+  }, [logo.dark]);
 
   useEffect(() => {
     if (isCloudVersion) {

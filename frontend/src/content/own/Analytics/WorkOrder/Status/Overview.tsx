@@ -18,10 +18,17 @@ interface WOStatusNumbersProps {
   companyId?: number;
 }
 
-function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersProps) {
+function Overview({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusNumbersProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { overview, loading } = useSelector((state) => state.woAnalytics);
+  const { overview, loading, errors } = useSelector(
+    (state) => state.woAnalytics
+  );
 
   useEffect(() => {
     dispatch(getOverviewStats(start, end, companyId));
@@ -75,8 +82,11 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
       description="compliant_wo_description"
     >
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.overview ? (
-          <Loading />
+        {loading.overview || errors.overview ? (
+          <Loading
+            error={errors.overview}
+            onRetry={() => dispatch(getOverviewStats(start, end, companyId))}
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {datas.map((data) => (

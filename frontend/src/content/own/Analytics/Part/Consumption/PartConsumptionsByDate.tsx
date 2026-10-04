@@ -30,11 +30,16 @@ interface DowntimesByMonthProps {
   companyId?: number;
 }
 
-function PartConsumptionsByDate({ handleOpenModal, start, end, companyId }: DowntimesByMonthProps) {
+function PartConsumptionsByDate({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: DowntimesByMonthProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { partConsumptionsByDate, loading } = useSelector(
+  const { partConsumptionsByDate, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
 
@@ -60,8 +65,13 @@ function PartConsumptionsByDate({ handleOpenModal, start, end, companyId }: Down
   const title = t('consumed_parts_costs');
   return (
     <AnalyticsCard title={title}>
-      {loading.partConsumptionsByDate ? (
-        <Loading />
+      {loading.partConsumptionsByDate || errors.partConsumptionsByDate ? (
+        <Loading
+          error={errors.partConsumptionsByDate}
+          onRetry={() =>
+            dispatch(getPartConsumptionsByDate(start, end, companyId))
+          }
+        />
       ) : (
         <BarChart width={900} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

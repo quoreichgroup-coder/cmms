@@ -43,7 +43,7 @@ public class RequestAnalyticsController {
     private final CompanyService companyService;
 
     @PostMapping("/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getRequestStats",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -77,7 +77,7 @@ public class RequestAnalyticsController {
     }
 
     @PostMapping("/priority")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getRequestByPriority",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -116,7 +116,7 @@ public class RequestAnalyticsController {
     }
 
     @PostMapping("/cycle-time/date")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getCycleTimeByMonth",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -158,7 +158,7 @@ public class RequestAnalyticsController {
     }
 
     @PostMapping("/counts/category")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getRequestCountsByCategory",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -190,7 +190,7 @@ public class RequestAnalyticsController {
     }
 
     @PostMapping("/received-and-resolved")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getReceivedAndResolvedRequests",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +

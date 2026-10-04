@@ -74,6 +74,7 @@ public class UserService {
     private final BrandingService brandingService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final LicenseService licenseService;
+    private final LicenseSeatService licenseSeatService;
     private final CacheService cacheService;
     private final IntercomService intercomService;
     private final RefreshTokenService refreshTokenService;
@@ -91,6 +92,8 @@ public class UserService {
     private boolean enableMails;
     @Value("${cloud-version}")
     private boolean cloudVersion;
+    @Value("${license-provider:KEYGEN}")
+    private String licenseProvider;
     @Value("${allowed-organization-admins}")
     private String[] allowedOrganizationAdmins;
 
@@ -132,8 +135,12 @@ public class UserService {
         return new SignupSuccessResponse<>(true, accessToken, user, refreshToken);
     }
 
-    public void checkUsageBasedLimit(int newUsersCount) {
+    public void checkUsageBasedLimit(int newUsersCount, Role role) {
         LicensingState licensingState = licenseService.getLicensingState();
+        if ("QUOREICH".equalsIgnoreCase(licenseProvider) && licensingState.isValid()) {
+            licenseSeatService.checkAdditionalSeats(role, newUsersCount);
+            return;
+        }
         Integer freeTierThreshold = usageBasedFreeLimits.get(LicenseEntitlement.UNLIMITED_USERS);
         int limit = (licensingState.isHasLicense() ?
                 licensingState.getUsersCount() : freeTierThreshold);
@@ -146,7 +153,25 @@ public class UserService {
                     " https://github.com/Grashjs/cmms/blob/main/dev-docs/Disable%20users.md");
     }
 
+    /** Legacy aggregate full-seat check used by older signup and enable flows. */
+    public void checkUsageBasedLimit(int newUsersCount) {
+        LicensingState licensingState = licenseService.getLicensingState();
+        if ("QUOREICH".equalsIgnoreCase(licenseProvider) && licensingState.isValid()) {
+            licenseSeatService.checkAdditionalSeats(newUsersCount, 0);
+            return;
+        }
+        Integer freeTierThreshold = usageBasedFreeLimits.get(LicenseEntitlement.UNLIMITED_USERS);
+        int limit = licensingState.isHasLicense() ? licensingState.getUsersCount() : freeTierThreshold;
+        if (!licenseService.hasEntitlement(LicenseEntitlement.UNLIMITED_USERS)
+                && userRepository.hasMorePaidUsersThan(limit - newUsersCount)) {
+            throw new RuntimeException("Cannot create more users than the " +
+                    (licensingState.isHasLicense() ? "paid" : "free") + " license allows: " + limit + ". " +
+                    "Refer to https://github.com/Grashjs/cmms/blob/main/dev-docs/Disable%20users.md");
+        }
+    }
+
     public SignupSuccessResponse<User> signup(UserSignupRequest userReq) {
+        licenseSeatService.lockForUserChanges();
         userReq.setCompanyName(Sanitizer.cleanText(userReq.getCompanyName()));
         userReq.setEmail(userReq.getEmail().toLowerCase());
         User user = userMapper.toModel(userReq);
@@ -164,8 +189,9 @@ public class UserService {
         if (user.getRole() != null) {
             Role role = roleService.findById(user.getRole().getId()).orElseThrow(() -> new CustomException("Role not " +
                     "found", HttpStatus.NOT_ACCEPTABLE));
-            if (role.isPaid()) {
-                checkUsageBasedLimit(1);
+            if (role.isPaid() || ("QUOREICH".equalsIgnoreCase(licenseProvider)
+                    && licenseService.getLicensingState().isValid())) {
+                checkUsageBasedLimit(1, role);
             }
             List<UserInvitation> userInvitations =
                     userInvitationService.findByRoleAndEmail(role.getId(), user.getEmail());
@@ -311,13 +337,25 @@ public class UserService {
     }
 
     public void enableUser(String email) {
+        licenseSeatService.lockForUserChanges();
         User user = userRepository.findByEmailIgnoreCase(email).get();
         enableUser(user);
     }
 
     public User enableUser(User user) {
-        if (user.getRole().isPaid()) {
+        boolean licensed = licenseSeatService.lockForUserChanges();
+        if (licensed && user.getId() != null) {
+            user = userRepository.findById(user.getId()).orElseThrow(() ->
+                    new CustomException("User not found", HttpStatus.NOT_FOUND));
+            em.refresh(user);
+        }
+        if ("QUOREICH".equalsIgnoreCase(licenseProvider)
+                && licenseService.getLicensingState().isValid()) {
+            licenseSeatService.checkTransition(user, user.getRole(), true);
+        } else if (user.getRole().isPaid()) {
             checkUsageBasedLimit(1);
+        }
+        if (user.getRole().isPaid()) {
             int companyUsersCount =
                     (int) findByCompany(user.getCompany().getId()).stream().filter(user1 -> user1.isEnabled() && user1.isEnabledInSubscriptionAndPaid()).count();
             if (companyUsersCount + 1 > user.getCompany().getSubscription().getUsersCount())
@@ -412,7 +450,8 @@ public class UserService {
 
     public void invite(String email, Role role, User inviter, Boolean disableSendingMails) {
         if (!userRepository.existsByEmailIgnoreCase(email) && Helper.isValidEmailAddress(email)) {
-            if (role.isPaid()) checkUsageBasedLimit(1);
+            if (role.isPaid() || ("QUOREICH".equalsIgnoreCase(licenseProvider)
+                    && licenseService.getLicensingState().isValid())) checkUsageBasedLimit(1, role);
             userInvitationService.create(new UserInvitation(email, role));
             if (!enableInvitationViaEmail || !enableMails) return;
             Map<String, Object> variables = new HashMap<String, Object>() {{
@@ -564,6 +603,7 @@ public class UserService {
     }
 
     public User patchUserRole(Long userId, Long roleId, User requester) {
+        boolean licensed = licenseSeatService.lockForUserChanges();
         Optional<User> optionalUserToPatch = findByIdAndCompany(userId, requester.getCompany().getId());
         Optional<Role> optionalRole = roleService.findById(roleId);
         if (requester.getId().equals(userId)) {
@@ -579,6 +619,11 @@ public class UserService {
             throw new CustomException("Company subscription users count doesn't allow this operation",
                     HttpStatus.NOT_ACCEPTABLE);
         User userToPatch = optionalUserToPatch.get();
+        if (licensed) em.refresh(userToPatch);
+        if ("QUOREICH".equalsIgnoreCase(licenseProvider)
+                && licenseService.getLicensingState().isValid()) {
+            licenseSeatService.checkTransition(userToPatch, optionalRole.get(), userToPatch.isEnabled());
+        }
         userToPatch.setRole(optionalRole.get());
         return invalidateSessions(userToPatch);
     }
@@ -649,4 +694,3 @@ public class UserService {
         }
     }
 }
-

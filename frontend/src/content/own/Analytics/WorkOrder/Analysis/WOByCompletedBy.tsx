@@ -20,11 +20,16 @@ interface WOByPrimaryUserProps {
   companyId?: number;
 }
 
-function WOByCompletedBy({ handleOpenModal, start, end, companyId }: WOByPrimaryUserProps) {
+function WOByCompletedBy({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOByPrimaryUserProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { completeByCompletedBy, loading } = useSelector(
+  const { completeByCompletedBy, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
 
@@ -45,8 +50,13 @@ function WOByCompletedBy({ handleOpenModal, start, end, companyId }: WOByPrimary
   const title = t('grouped_by_completed_by');
   return (
     <AnalyticsCard title={title}>
-      {loading.completeByCompletedBy ? (
-        <Loading />
+      {loading.completeByCompletedBy || errors.completeByCompletedBy ? (
+        <Loading
+          error={errors.completeByCompletedBy}
+          onRetry={() =>
+            dispatch(getCompleteByCompletedBy(start, end, companyId))
+          }
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

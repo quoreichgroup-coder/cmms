@@ -19,10 +19,17 @@ interface WOStatusNumbersProps {
   companyId?: number;
 }
 
-function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersProps) {
+function Overview({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusNumbersProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { assetsCosts, loading } = useSelector((state) => state.assetAnalytics);
+  const { assetsCosts, loading, errors } = useSelector(
+    (state) => state.assetAnalytics
+  );
   const { getFormattedCurrency } = useContext(CompanySettingsContext);
   useEffect(() => {
     dispatch(getAssetsCosts(start, end, companyId));
@@ -64,8 +71,11 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
       description="rav_description"
     >
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.assetsCosts ? (
-          <Loading />
+        {loading.assetsCosts || errors.assetsCosts ? (
+          <Loading
+            error={errors.assetsCosts}
+            onRetry={() => dispatch(getAssetsCosts(start, end, companyId))}
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {formattedData.map((data) => (

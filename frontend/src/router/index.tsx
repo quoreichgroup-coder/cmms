@@ -29,6 +29,9 @@ const RequestPortalPublicPage = Loader(
       )
   )
 );
+const AboutLicenses = Loader(
+  lazy(() => import('../content/own/AboutLicenses'))
+);
 
 const router: RouteObject[] = [
   {
@@ -40,6 +43,7 @@ const router: RouteObject[] = [
     path: 'payment/success',
     element: <PaymentSuccess />
   },
+  { path: 'open-source-notices', element: <AboutLicenses /> },
   {
     path: 'request-portal/:uuid',
     element: <RequestPortalPublicPage />

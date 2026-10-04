@@ -78,6 +78,11 @@ function LoginCover() {
                 </Box>
               </Box>
             )}
+            <Box mt={2} textAlign="center">
+              <Link component={RouterLink} to="/open-source-notices">
+                {t('open_source_notices')}
+              </Link>
+            </Box>
           </Card>
         </Container>
       </Content>

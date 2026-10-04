@@ -35,7 +35,7 @@ public class UserAnalyticsController {
     private final UserService userService;
 
     @GetMapping("/me/work-orders/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getUserWOStats",
             key = "#user.id"
@@ -50,7 +50,7 @@ public class UserAnalyticsController {
     }
 
     @GetMapping("/two-weeks/work-orders/{id}")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<List<WOStatsByDay>> getWoStatsByUserFor2Weeks(@PathVariable("id") Long id,
                                                                         @Parameter(hidden = true) @CurrentUser User user) {
         if (user.getRole().getViewPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {

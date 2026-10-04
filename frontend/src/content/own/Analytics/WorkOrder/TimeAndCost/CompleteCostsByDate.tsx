@@ -28,10 +28,15 @@ interface WOStatusIncompleteProps {
   companyId?: number;
 }
 
-function CompleteCostsByDate({ handleOpenModal, start, end, companyId }: WOStatusIncompleteProps) {
+function CompleteCostsByDate({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { completeCostsByDate, loading } = useSelector(
+  const { completeCostsByDate, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
   const dispatch = useDispatch();
@@ -75,8 +80,13 @@ function CompleteCostsByDate({ handleOpenModal, start, end, companyId }: WOStatu
   const title = t('cost_trends');
   return (
     <AnalyticsCard title={title}>
-      {loading.completeCostsByDate ? (
-        <Loading />
+      {loading.completeCostsByDate || errors.completeCostsByDate ? (
+        <Loading
+          error={errors.completeCostsByDate}
+          onRetry={() =>
+            dispatch(getCompleteCostsByDate(start, end, companyId))
+          }
+        />
       ) : (
         <LineChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

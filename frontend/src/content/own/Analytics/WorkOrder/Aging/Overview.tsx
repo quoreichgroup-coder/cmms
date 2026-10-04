@@ -12,16 +12,21 @@ interface WOStatusNumbersProps {
     columns: string[],
     filters: Filter[],
     title: string
-  ) => void,
-  start: Date,
-  end: Date,
-  companyId?: number
+  ) => void;
+  start: Date;
+  end: Date;
+  companyId?: number;
 }
 
-function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersProps) {
+function Overview({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusNumbersProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { incompleteOverview, loading } = useSelector(
+  const { incompleteOverview, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
 
@@ -61,8 +66,11 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
       description="wo_age_description"
     >
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.incompleteOverview ? (
-          <Loading />
+        {loading.incompleteOverview || errors.incompleteOverview ? (
+          <Loading
+            error={errors.incompleteOverview}
+            onRetry={() => dispatch(getIncompleteStats(start, end, companyId))}
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {formattedData.map((data) => (

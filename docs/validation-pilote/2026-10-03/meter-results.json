@@ -1,0 +1,14 @@
+[
+  {
+    "condition": "MORE_THAN",
+    "threshold": 100,
+    "generatedOrders": 3,
+    "assetId": 2
+  },
+  {
+    "condition": "LESS_THAN",
+    "threshold": 100,
+    "generatedOrders": 3,
+    "assetId": 3
+  }
+]

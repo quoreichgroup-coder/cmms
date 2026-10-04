@@ -6,6 +6,7 @@ import { Box, Grid } from '@mui/material';
 import CompanyCover from './CompanyCover';
 import CompanyDetails from './CompanyDetails';
 import CompanyPlan from './CompanyPlan';
+import CompanyLicense from './CompanyLicense';
 import { TitleContext } from '../../../contexts/TitleContext';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../../../hooks/useAuth';
@@ -25,7 +26,7 @@ function CompanyProfile() {
   return (
     <>
       <Helmet>
-        <title>{company.name} - Company Details</title>
+        <title>{`${company.name || 'QPM'} - Company Details`}</title>
       </Helmet>
       <Box
         sx={{
@@ -48,7 +49,10 @@ function CompanyProfile() {
           <Grid item xs={12}>
             <CompanyDetails company={company} />
           </Grid>
-          {user.ownsCompany && (
+          <Grid item xs={12}>
+            <CompanyLicense />
+          </Grid>
+          {user.ownsCompany && company.subscription?.subscriptionPlan && (
             <Grid item xs={12}>
               <CompanyPlan plan={company.subscription.subscriptionPlan} />
             </Grid>

@@ -32,7 +32,7 @@ function RequestsByDate({ handleOpenModal, start, end, companyId }: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { requestsByDate, loading } = useSelector(
+  const { requestsByDate, loading, errors } = useSelector(
     (state) => state.requestAnalytics
   );
 
@@ -61,8 +61,11 @@ function RequestsByDate({ handleOpenModal, start, end, companyId }: OwnProps) {
   const title = t('requests_trends');
   return (
     <AnalyticsCard title={title}>
-      {loading.requestsByDate ? (
-        <Loading />
+      {loading.requestsByDate || errors.requestsByDate ? (
+        <Loading
+          error={errors.requestsByDate}
+          onRetry={() => dispatch(getRequestsByDate(start, end, companyId))}
+        />
       ) : (
         <LineChart width={900} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

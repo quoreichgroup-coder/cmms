@@ -1,0 +1,21 @@
+API: [INFO] Tests run: 971, Failures: 0, Errors: 0, Skipped: 0
+Autorité: [INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+Mobile: # tests 4; # pass 4; # fail 0; # skipped 0
+Console: # tests 2; # pass 2; # fail 0; # skipped 0
+Synthèse préventive: # tests 5; # pass 5; # fail 0; # skipped 0
+PASS connexion responsable et licence signée active
+PASS fiche convoyeur : échéances triées, plan désactivé masqué, zéro et absence de relevé
+PASS pagination des demandes et lien vers l’ordre approuvé
+PASS emplacement exact dans la liste des demandes
+PASS technicien : intervention en cours, diagnostic et tâche réalisée
+PASS temps saisi et pièce consommée sur l’ordre réel
+PASS responsable : clôture avec retour obligatoire et historique conservé
+PASS demandeur : création permise et approbation refusée par le serveur
+PASS une pièce d’une autre organisation reste inaccessible après le correctif des identifiants
+PASS fiche convoyeur responsive et ordre clôturé retrouvé
+10 vérifications métier réussies
+PASS MORE_THAN : égalité, seuil strict, répétition, modification et fréquence minimale
+PASS LESS_THAN : égalité, seuil strict, répétition, modification et fréquence minimale
+Approbation réalisée dans Chromium : HTTP 200, ordre lié créé.
+Frontend : compilation réussie, dix avertissements de sourcemaps de dépendances.
+API : packaging réussi ; /health-check HTTP 200.

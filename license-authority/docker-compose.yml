@@ -1,0 +1,40 @@
+services:
+  license-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${LICENSE_DB_NAME:-quoreich_licenses}
+      POSTGRES_USER: ${LICENSE_DB_USER:?Set LICENSE_DB_USER in the authority environment}
+      POSTGRES_PASSWORD: ${LICENSE_DB_PASSWORD:?Set LICENSE_DB_PASSWORD in the authority environment}
+    volumes:
+      - license_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  license-authority:
+    build: .
+    # Match the owner of the mounted 0600 signing key. Configure these IDs in
+    # the protected .env; the service still runs unprivileged.
+    user: "${LICENSE_UID:-10001}:${LICENSE_GID:-10001}"
+    restart: unless-stopped
+    depends_on:
+      license-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: license-db
+      DB_PORT: 5432
+      DB_NAME: ${LICENSE_DB_NAME:-quoreich_licenses}
+      DB_USER: ${LICENSE_DB_USER:?Set LICENSE_DB_USER in the authority environment}
+      DB_PASSWORD: ${LICENSE_DB_PASSWORD:?Set LICENSE_DB_PASSWORD in the authority environment}
+      LICENSE_ADMIN_TOKEN: ${LICENSE_ADMIN_TOKEN:?Set a strong LICENSE_ADMIN_TOKEN}
+      LICENSE_PRIVATE_KEY_PATH: /run/secrets/license-private.pem
+    volumes:
+      - ${LICENSE_PRIVATE_KEY_FILE:?Mount the private signing key from a protected host path}:/run/secrets/license-private.pem:ro
+    ports:
+      - "127.0.0.1:8081:8080"
+
+volumes:
+  license_data:

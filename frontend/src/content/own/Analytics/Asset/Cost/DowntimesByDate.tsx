@@ -31,11 +31,16 @@ interface DowntimesByDateProps {
   companyId?: number;
 }
 
-function DowntimesByDate({ handleOpenModal, start, end, companyId }: DowntimesByDateProps) {
+function DowntimesByDate({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: DowntimesByDateProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { downtimesByDate, loading } = useSelector(
+  const { downtimesByDate, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
 
@@ -63,18 +68,25 @@ function DowntimesByDate({ handleOpenModal, start, end, companyId }: DowntimesBy
   const title = t('downtime_and_costs_trends');
   return (
     <AnalyticsCard title={title}>
-      {loading.downtimesByDate ? (
-        <Loading />
+      {loading.downtimesByDate || errors.downtimesByDate ? (
+        <Loading
+          error={errors.downtimesByDate}
+          onRetry={() => dispatch(getDowntimesByDate(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis yAxisId="left-axis" />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" unit={t('hours')} />
+          <YAxis yAxisId="right-axis" orientation="right" unit={t('hours')} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="cost" fill="#8884d8" name={t('total_maintenance_cost')} yAxisId="left-axis">
+          <Bar
+            dataKey="cost"
+            fill="#8884d8"
+            name={t('total_maintenance_cost')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

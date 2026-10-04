@@ -7,6 +7,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import jakarta.persistence.EntityManager;
@@ -56,6 +57,9 @@ public class TenantAspect {
     }
 
     public void validateObject(Object obj) {
+        // Scalar request bodies (including lists of IDs) have no entity fields.
+        // Reflecting into JDK value classes fails under Java's module boundaries.
+        if (obj == null || BeanUtils.isSimpleValueType(obj.getClass())) return;
         Field[] fields = getAllFields(obj.getClass());
         for (Field field : fields) {
             field.setAccessible(true);
@@ -81,4 +85,3 @@ public class TenantAspect {
         }
     }
 }
-

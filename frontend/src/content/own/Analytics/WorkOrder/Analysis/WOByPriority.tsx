@@ -21,11 +21,16 @@ interface WOByPrimaryUserProps {
   companyId?: number;
 }
 
-function WOByPriority({ handleOpenModal, start, end, companyId }: WOByPrimaryUserProps) {
+function WOByPriority({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOByPrimaryUserProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { completeByPriority, loading } = useSelector(
+  const { completeByPriority, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
 
@@ -48,8 +53,11 @@ function WOByPriority({ handleOpenModal, start, end, companyId }: WOByPrimaryUse
   const title = t('grouped_by_priority');
   return (
     <AnalyticsCard title={title}>
-      {loading.completeByPriority ? (
-        <Loading />
+      {loading.completeByPriority || errors.completeByPriority ? (
+        <Loading
+          error={errors.completeByPriority}
+          onRetry={() => dispatch(getCompleteByPriority(start, end, companyId))}
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

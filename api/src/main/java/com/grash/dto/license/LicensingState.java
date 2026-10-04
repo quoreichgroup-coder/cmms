@@ -19,6 +19,9 @@ public class LicensingState {
     private boolean valid;
     @Schema(description = "Whether license entitlements are simulated for local development")
     private boolean previewMode;
+    @Builder.Default
+    @Schema(description = "Whether the instance must remain read-only until the license is renewed")
+    private boolean readOnly = false;
     @Schema(description = "Name of the current subscription plan")
     private String planName;
     @Schema(description = "Set of entitlement codes granted by the current license")
@@ -28,4 +31,18 @@ public class LicensingState {
     private Date expirationDate;
     @Schema(description = "Number of licensed users")
     private int usersCount;
+    @Schema(description = "Stable identifier of the activated license")
+    private String licenseId;
+    @Schema(description = "License commercial model, for example SUBSCRIPTION or PERPETUAL")
+    private String licenseType;
+    @Schema(description = "Customer name recorded on the license")
+    private String customerName;
+    @Schema(description = "Activated environment, for example PRODUCTION or PREPRODUCTION")
+    private String environment;
+    @Schema(description = "Maximum named full-user seats")
+    private int seatsFull;
+    @Schema(description = "Maximum named light-user seats")
+    private int seatsLight;
+    @Schema(description = "Expiration of the signed offline activation lease")
+    private Date leaseExpirationDate;
 }

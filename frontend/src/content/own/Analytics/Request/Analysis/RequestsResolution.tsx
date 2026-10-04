@@ -26,16 +26,21 @@ interface OwnProps {
     columns: string[],
     filters: Filter[],
     title: string
-  ) => void,
-  start: Date,
-  end: Date,
-  companyId?: number
+  ) => void;
+  start: Date;
+  end: Date;
+  companyId?: number;
 }
 
-function RequestsResolution({ handleOpenModal, start, end, companyId }: OwnProps) {
+function RequestsResolution({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { requestsResolvedByDate, loading } = useSelector(
+  const { requestsResolvedByDate, loading, errors } = useSelector(
     (state) => state.requestAnalytics
   );
   const dispatch = useDispatch();
@@ -57,25 +62,36 @@ function RequestsResolution({ handleOpenModal, start, end, companyId }: OwnProps
       label: getDayAndMonth(stat.date),
       received: stat.received,
       resolved: stat.resolved,
-      resolutionRate: Number(stat.received ? (stat.resolved / stat.received * 100).toFixed(2) : '0'),
+      resolutionRate: Number(
+        stat.received ? ((stat.resolved / stat.received) * 100).toFixed(2) : '0'
+      ),
       filters: []
     };
   });
   const title = t('resolution_rate');
   return (
     <AnalyticsCard title={title}>
-      {loading.requestsResolvedByDate ? (
-        <Loading />
+      {loading.requestsResolvedByDate || errors.requestsResolvedByDate ? (
+        <Loading
+          error={errors.requestsResolvedByDate}
+          onRetry={() =>
+            dispatch(getRequestsResolvedByDate(start, end, companyId))
+          }
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis yAxisId="left-axis" />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" unit={'%'} />
+          <YAxis yAxisId="right-axis" orientation="right" unit={'%'} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="received" fill="red" name={t('count')} yAxisId="left-axis">
+          <Bar
+            dataKey="received"
+            fill="red"
+            name={t('count')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}
@@ -86,7 +102,12 @@ function RequestsResolution({ handleOpenModal, start, end, companyId }: OwnProps
               />
             ))}
           </Bar>
-          <Bar dataKey="resolved" fill="blue" name={t('resolved')} yAxisId="left-axis">
+          <Bar
+            dataKey="resolved"
+            fill="blue"
+            name={t('resolved')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

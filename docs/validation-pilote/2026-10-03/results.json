@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "connexion responsable et licence signée active",
+    "fiche convoyeur : échéances triées, plan désactivé masqué, zéro et absence de relevé",
+    "pagination des demandes et lien vers l’ordre approuvé",
+    "emplacement exact dans la liste des demandes",
+    "technicien : intervention en cours, diagnostic et tâche réalisée",
+    "temps saisi et pièce consommée sur l’ordre réel",
+    "responsable : clôture avec retour obligatoire et historique conservé",
+    "demandeur : création permise et approbation refusée par le serveur",
+    "une pièce d’une autre organisation reste inaccessible après le correctif des identifiants",
+    "fiche convoyeur responsive et ordre clôturé retrouvé"
+  ],
+  "passed": 10
+}

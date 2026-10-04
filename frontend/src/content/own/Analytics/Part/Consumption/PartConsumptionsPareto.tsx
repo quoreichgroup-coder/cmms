@@ -4,8 +4,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell, ComposedChart,
-  Legend, Line,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
   Tooltip,
   XAxis,
   YAxis
@@ -30,11 +32,16 @@ interface DowntimesByMonthProps {
   companyId?: number;
 }
 
-function PartConsumptionsPareto({ handleOpenModal, start, end, companyId }: DowntimesByMonthProps) {
+function PartConsumptionsPareto({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: DowntimesByMonthProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { partConsumptionsByPart, loading } = useSelector(
+  const { partConsumptionsByPart, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
 
@@ -54,8 +61,10 @@ function PartConsumptionsPareto({ handleOpenModal, start, end, companyId }: Down
     return {
       label: part.name,
       cost: Number(part.cost.toFixed(2)),
-      cumulativePercent: 100 * array.slice(0, index).reduce((prev, curr) => prev + curr.cost, 0)
-        / array.reduce((prev, curr) => prev + curr.cost, 0),
+      cumulativePercent:
+        (100 *
+          array.slice(0, index).reduce((prev, curr) => prev + curr.cost, 0)) /
+        array.reduce((prev, curr) => prev + curr.cost, 0),
       color: getRandomColor(),
       filters: [{ key: 'part', value: part.id }]
     };
@@ -63,17 +72,36 @@ function PartConsumptionsPareto({ handleOpenModal, start, end, companyId }: Down
   const title = t('pareto_by_total_price');
   return (
     <AnalyticsCard title={title}>
-      {loading.partConsumptionsByPart ? (
-        <Loading />
+      {loading.partConsumptionsByPart || errors.partConsumptionsByPart ? (
+        <Loading
+          error={errors.partConsumptionsByPart}
+          onRetry={() =>
+            dispatch(getPartConsumptionsByPart(start, end, companyId))
+          }
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
-          <YAxis yAxisId={'left-axis'} type={'number'} domain={['dataMin', 'dataMax']} />
-          <YAxis yAxisId="right-axis" orientation="right" type={'number'} unit={'%'} />
+          <YAxis
+            yAxisId={'left-axis'}
+            type={'number'}
+            domain={['dataMin', 'dataMax']}
+          />
+          <YAxis
+            yAxisId="right-axis"
+            orientation="right"
+            type={'number'}
+            unit={'%'}
+          />
           <Tooltip />
           <Legend />
-          <Bar dataKey="cost" fill="#8884d8" name={t('cost')} yAxisId={'left-axis'}>
+          <Bar
+            dataKey="cost"
+            fill="#8884d8"
+            name={t('cost')}
+            yAxisId={'left-axis'}
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

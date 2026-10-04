@@ -1,4 +1,10 @@
 const locale = {
+  open_source_notices: 'About and open-source notices',
+  open_source_modified: 'This QPM edition is modified and maintained by QUOREICH GROUP.',
+  open_source_license: 'The application is distributed under the GNU Affero General Public License, version 3 (AGPL-3.0).',
+  open_source_no_warranty: 'This software is provided without warranty, as permitted by the license.',
+  open_source_source: 'View the corresponding source code',
+  open_source_upstream: 'This edition is derived from Atlas CMMS. The upstream project and its contributors retain their applicable copyright notices.',
   plan_catalog: 'Plan catalog',
   plan_catalog_description:
     'Choose which modules are available in each plan. Changes apply to every company using that plan.',

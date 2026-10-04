@@ -4,7 +4,6 @@ package com.grash.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grash.dto.BrandConfig;
-import com.grash.dto.license.LicenseEntitlement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 public class BrandingService {
 
     private final ObjectMapper objectMapper;
-    private final LicenseService licenseService;
     @Value("${white-labeling.custom-colors:#{null}}")
     private String customColors;
     @Value("${white-labeling.brand-config:#{null}}")
@@ -36,20 +34,22 @@ public class BrandingService {
 
     public BrandConfig getBrandConfig() {
         BrandConfig defaultConfig = BrandConfig.builder()
-                .name("QPM")
-                .shortName("QPM")
+                .name("QUOREICH GROUP · QPM")
+                .shortName("QUOREICH")
                 .website("")
                 .mail("")
                 .phone("")
                 .addressStreet("")
                 .addressCity("")
                 .build();
-        if (!licenseService.hasEntitlement(LicenseEntitlement.BRANDING)) return defaultConfig;
         if (brandRawConfig == null || brandRawConfig.isEmpty()) {
             return defaultConfig;
         } else {
             try {
-                return objectMapper.readValue(brandRawConfig, BrandConfig.class);
+                BrandConfig configured = objectMapper.readValue(brandRawConfig, BrandConfig.class);
+                configured.setName(defaultConfig.getName());
+                configured.setShortName(defaultConfig.getShortName());
+                return configured;
             } catch (Exception e) {
                 return defaultConfig;
             }

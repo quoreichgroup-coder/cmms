@@ -1,6 +1,7 @@
 import { Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import AnalyticsCard from '../../AnalyticsCard';
+import Loading from '../../Loading';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useContext, useEffect } from 'react';
@@ -21,7 +22,9 @@ interface HoursWorkedProps {
 function Costs({ handleOpenModal, start, end, companyId }: HoursWorkedProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { completeCosts, loading } = useSelector((state) => state.woAnalytics);
+  const { completeCosts, loading, errors } = useSelector(
+    (state) => state.woAnalytics
+  );
   const { getFormattedCurrency } = useContext(CompanySettingsContext);
   useEffect(() => {
     dispatch(getCompleteCosts(start, end, companyId));
@@ -48,21 +51,28 @@ function Costs({ handleOpenModal, start, end, companyId }: HoursWorkedProps) {
       description="total_cost_description"
     >
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        <Stack direction="row" spacing={2}>
-          {formattedData.map((data) => (
-            <Stack key={data.label} alignItems="center">
-              <Typography
-                variant="h2"
-                fontWeight="bold"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleOpenModal(columns, data.filters, title)}
-              >
-                {data.value}
-              </Typography>
-              <Typography>{data.label}</Typography>
-            </Stack>
-          ))}
-        </Stack>
+        {loading.completeCosts || errors.completeCosts ? (
+          <Loading
+            error={errors.completeCosts}
+            onRetry={() => dispatch(getCompleteCosts(start, end, companyId))}
+          />
+        ) : (
+          <Stack direction="row" spacing={2}>
+            {formattedData.map((data) => (
+              <Stack key={data.label} alignItems="center">
+                <Typography
+                  variant="h2"
+                  fontWeight="bold"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleOpenModal(columns, data.filters, title)}
+                >
+                  {data.value}
+                </Typography>
+                <Typography>{data.label}</Typography>
+              </Stack>
+            ))}
+          </Stack>
+        )}
       </Stack>
     </AnalyticsCard>
   );

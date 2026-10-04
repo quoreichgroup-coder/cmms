@@ -1,4 +1,10 @@
 const frJSON = {
+  open_source_notices: 'À propos et licences open source',
+  open_source_modified: 'Cette édition de QPM est modifiée et maintenue par QUOREICH GROUP.',
+  open_source_license: 'L’application est distribuée sous la licence GNU Affero General Public License, version 3 (AGPL-3.0).',
+  open_source_no_warranty: 'Ce logiciel est fourni sans garantie, conformément à la licence.',
+  open_source_source: 'Consulter le code source correspondant',
+  open_source_upstream: 'Cette édition est dérivée d’Atlas CMMS. Le projet amont et ses contributeurs conservent leurs mentions de droits applicables.',
   plan_catalog: 'Catalogue des forfaits',
   plan_catalog_description:
     'Définissez les modules disponibles dans chaque forfait. Les changements s’appliquent à toutes les entreprises qui utilisent ce forfait.',

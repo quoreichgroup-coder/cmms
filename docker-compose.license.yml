@@ -1,0 +1,11 @@
+# Connect the API to the existing QUOREICH authority network.
+# Start license-authority/docker-compose.yml before this override.
+services:
+  api:
+    networks:
+      - default
+      - license_authority
+networks:
+  license_authority:
+    external: true
+    name: license-authority_default

@@ -24,11 +24,16 @@ interface OwnProps {
   companyId?: number;
 }
 
-function PartConsumptionByWOCategory({ handleOpenModal, start, end, companyId }: OwnProps) {
+function PartConsumptionByWOCategory({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { partConsumptionByWOCategory, loading } = useSelector(
+  const { partConsumptionByWOCategory, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
 
@@ -49,8 +54,14 @@ function PartConsumptionByWOCategory({ handleOpenModal, start, end, companyId }:
   const title = t('grouped_by_wo_category');
   return (
     <AnalyticsCard title={title}>
-      {loading.partConsumptionByWOCategory ? (
-        <Loading />
+      {loading.partConsumptionByWOCategory ||
+      errors.partConsumptionByWOCategory ? (
+        <Loading
+          error={errors.partConsumptionByWOCategory}
+          onRetry={() =>
+            dispatch(getPartConsumptionsByWOCategory(start, end, companyId))
+          }
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

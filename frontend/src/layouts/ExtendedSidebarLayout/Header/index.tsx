@@ -75,13 +75,16 @@ function Header() {
         divider={<Divider orientation="vertical" flexItem />}
         alignItems="center"
         spacing={2}
+        sx={{ minWidth: 0, flex: 1, mr: 2 }}
       >
         <IconButton onClick={()=>navigate(-1)} disabled={location.key==='default'}>
           <ArrowBackTwoToneIcon/>
           </IconButton>
-        <Typography variant="h2">{title}</Typography>
+        <Typography variant="h2" noWrap title={title} sx={{ minWidth: 0 }}>
+          {title}
+        </Typography>
       </Stack>
-      <Box display="flex" alignItems="center">
+      <Box display="flex" alignItems="center" sx={{ flexShrink: 0 }}>
         <HeaderButtons />
         <HeaderUserbox />
         <Box

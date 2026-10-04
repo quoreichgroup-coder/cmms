@@ -16,7 +16,10 @@ import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
-import { getDowntimesByAsset, getMTBFByAsset } from '../../../../../slices/analytics/asset';
+import {
+  getDowntimesByAsset,
+  getMTBFByAsset
+} from '../../../../../slices/analytics/asset';
 import { getRandomColor } from '../../../../../utils/overall';
 
 interface WOStatusIncompleteProps {
@@ -31,10 +34,16 @@ interface WOStatusIncompleteProps {
   companyId?: number;
 }
 
-function MTBFByAsset({ handleOpenModal, start, end, assetColors, companyId }: WOStatusIncompleteProps) {
+function MTBFByAsset({
+  handleOpenModal,
+  start,
+  end,
+  assetColors,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { mtbfByAsset, loading } = useSelector(
+  const { mtbfByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
   const dispatch = useDispatch();
@@ -54,7 +63,8 @@ function MTBFByAsset({ handleOpenModal, start, end, assetColors, companyId }: WO
     return {
       label: asset.name,
       mtbf: asset.mtbf,
-      color: assetColors.find(assetColor => assetColor.id === asset.id)?.color,
+      color: assetColors.find((assetColor) => assetColor.id === asset.id)
+        ?.color,
       filters: [{ key: 'asset', value: asset.id }]
     };
   });
@@ -62,15 +72,23 @@ function MTBFByAsset({ handleOpenModal, start, end, assetColors, companyId }: WO
   const title = t('MTBF');
   return (
     <AnalyticsCard title={title}>
-      {loading.mtbfByAsset ? (
-        <Loading />
+      {loading.mtbfByAsset || errors.mtbfByAsset ? (
+        <Loading
+          error={errors.mtbfByAsset}
+          onRetry={() => dispatch(getMTBFByAsset(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" hide />
           <YAxis yAxisId="left-axis" />
           <Tooltip />
-          <Bar dataKey="mtbf" fill="#8884d8" name={t('MTBF')} yAxisId="left-axis">
+          <Bar
+            dataKey="mtbf"
+            fill="#8884d8"
+            name={t('MTBF')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

@@ -219,7 +219,16 @@ paddle:
   webhook-secret-key: ${PADDLE_WEBHOOK_SECRET_KEY:}
 keygen:
   product-token: ${KEYGEN_PRODUCT_TOKEN:}
-  account-id: 1ca3e517-f3d8-473f-a45c-81069900acb7
+  account-id: ${LEGACY_KEYGEN_ACCOUNT_ID:1ca3e517-f3d8-473f-a45c-81069900acb7}
+license-provider: ${LICENSE_PROVIDER:KEYGEN}
+license-authority-url: ${LICENSE_AUTHORITY_URL:}
+license-public-key-path: ${LICENSE_PUBLIC_KEY_PATH:}
+license-cache-path: ${LICENSE_CACHE_PATH:}
+license-fingerprint-path: ${LICENSE_FINGERPRINT_PATH:/app/license-cache/instance-id}
+license-fingerprint: ${LICENSE_FINGERPRINT:}
+license-environment: ${LICENSE_ENVIRONMENT:PRODUCTION}
+license:
+  read-only-enforcement: ${LICENSE_READ_ONLY_ENFORCEMENT:true}
 sendgrid:
   api:
     key: ${SENDGRID_API_KEY:}

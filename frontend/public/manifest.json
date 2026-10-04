@@ -3,8 +3,8 @@
   "background_color": "#f2f5f9",
   "display": "standalone",
   "start_url": ".",
-  "short_name": "QPM",
-  "name": "QPM",
+  "short_name": "QUOREICH",
+  "name": "QUOREICH GROUP · QPM",
   "icons": [
     {
       "src": "/static/images/logo/qpm-192.png",

@@ -28,11 +28,16 @@ interface HoursWorkedProps {
   companyId?: number;
 }
 
-function MeantimesTrends({ handleOpenModal, start, end, companyId }: HoursWorkedProps) {
+function MeantimesTrends({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: HoursWorkedProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const theme = useTheme();
-  const { downtimesMeantimeByDate, loading } = useSelector(
+  const { downtimesMeantimeByDate, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
 
@@ -61,8 +66,13 @@ function MeantimesTrends({ handleOpenModal, start, end, companyId }: HoursWorked
   const title = t('downtimes_trends');
   return (
     <AnalyticsCard title={title}>
-      {loading.downtimesMeantimeByDate ? (
-        <Loading />
+      {loading.downtimesMeantimeByDate || errors.downtimesMeantimeByDate ? (
+        <Loading
+          error={errors.downtimesMeantimeByDate}
+          onRetry={() =>
+            dispatch(getDowntimesMeantimeByDate(start, end, companyId))
+          }
+        />
       ) : (
         <LineChart width={800} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

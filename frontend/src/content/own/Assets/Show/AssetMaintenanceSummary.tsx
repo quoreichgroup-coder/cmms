@@ -47,20 +47,36 @@ export default function AssetMaintenanceSummary({
     setFailed(false);
     setItems([]);
     const criteria: SearchCriteria = {
-      filterFields: [{ field: 'asset.id', operation: 'eq', value: assetId }],
+      filterFields: [
+        { field: 'asset.id', operation: 'eq', value: assetId },
+        { field: 'schedule.disabled', operation: 'eq', value: false }
+      ],
       pageNum: 0,
-      pageSize: 20,
-      sortField: 'nextWorkOrderDate',
+      pageSize: 100,
+      sortField: 'id',
       direction: 'ASC'
     };
-    api
-      .post<Page<PreventiveMaintenance>>(
-        'preventive-maintenances/search',
-        criteria,
-        { signal: controller.signal }
-      )
-      .then((result) => {
-        if (!controller.signal.aborted) setItems(result.content);
+    const loadPlans = async () => {
+      const plans: PreventiveMaintenance[] = [];
+      let pageNum = 0;
+      let last = false;
+      // nextWorkOrderDate is computed in the response, not a database column.
+      // Read every page before choosing the four earliest computed dates.
+      while (!last && !controller.signal.aborted) {
+        const result = await api.post<Page<PreventiveMaintenance>>(
+          'preventive-maintenances/search',
+          { ...criteria, pageNum },
+          { signal: controller.signal }
+        );
+        plans.push(...result.content);
+        last = result.last;
+        pageNum += 1;
+      }
+      return plans;
+    };
+    loadPlans()
+      .then((plans) => {
+        if (!controller.signal.aborted) setItems(plans);
       })
       .catch(() => {
         if (!controller.signal.aborted) setFailed(true);

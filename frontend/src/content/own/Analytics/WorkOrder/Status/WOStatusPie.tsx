@@ -19,11 +19,16 @@ interface WOStatusPieProps {
   companyId?: number;
 }
 
-function WOStatusPie({ handleOpenModal, start, end, companyId }: WOStatusPieProps) {
+function WOStatusPie({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusPieProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { incompleteByStatus, loading } = useSelector(
+  const { incompleteByStatus, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
   const RADIAN = Math.PI / 180;
@@ -60,21 +65,33 @@ function WOStatusPie({ handleOpenModal, start, end, companyId }: WOStatusPieProp
     }
   ];
   const title = t('wo_status');
-  const renderCustomizedLabel = useCallback(({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const renderCustomizedLabel = useCallback(
+    ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    return (
-      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  }, [formattedData]);
+      return (
+        <text
+          x={x}
+          y={y}
+          fill="white"
+          textAnchor={x > cx ? 'start' : 'end'}
+          dominantBaseline="central"
+        >
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      );
+    },
+    [formattedData]
+  );
   return (
     <AnalyticsCard title={title}>
-      {loading.incompleteByStatus ? (
-        <Loading />
+      {loading.incompleteByStatus || errors.incompleteByStatus ? (
+        <Loading
+          error={errors.incompleteByStatus}
+          onRetry={() => dispatch(getIncompleteByStatus(start, end, companyId))}
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

@@ -3,6 +3,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: atlas_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: atlas
       POSTGRES_USER: ${POSTGRES_USER}
@@ -13,14 +14,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    image: intelloop/atlas-cmms-backend
+    image: atlas-cmms-backend:local
+    build:
+      context: ./api
+      dockerfile: Dockerfile
     container_name: atlas-cmms-backend
+    restart: unless-stopped
     depends_on:
       - postgres
       - minio
     volumes:
       - ./logo:/app/static/images
       - ./config:/app/static/config
+      - ./license-public:/run/license-public:ro
+      - license_cache:/app/license-cache
     environment:
       DB_URL: postgres/atlas
       DB_USER: ${POSTGRES_USER}
@@ -51,6 +58,14 @@ services:
       OAUTH2_CLIENT_ID: ${OAUTH2_CLIENT_ID}
       OAUTH2_CLIENT_SECRET: ${OAUTH2_CLIENT_SECRET}
       LICENSE_KEY: ${LICENSE_KEY:-}
+      LICENSE_PROVIDER: ${LICENSE_PROVIDER:-KEYGEN}
+      LICENSE_AUTHORITY_URL: ${LICENSE_AUTHORITY_URL:-}
+      LICENSE_PUBLIC_KEY_PATH: ${LICENSE_PUBLIC_KEY_PATH:-/run/license-public/ed25519-public.pem}
+      LICENSE_CACHE_PATH: ${LICENSE_CACHE_PATH:-/app/license-cache/license.lease}
+      LICENSE_FINGERPRINT_PATH: ${LICENSE_FINGERPRINT_PATH:-/app/license-cache/instance-id}
+      LICENSE_FINGERPRINT: ${LICENSE_FINGERPRINT:-}
+      LICENSE_ENVIRONMENT: ${LICENSE_ENVIRONMENT:-PRODUCTION}
+      LICENSE_READ_ONLY_ENFORCEMENT: ${LICENSE_READ_ONLY_ENFORCEMENT:-true}
       LICENSE_FINGERPRINT_REQUIRED: ${LICENSE_FINGERPRINT_REQUIRED:-false}
       LICENSE_FILE_PATH: ${LICENSE_FILE_PATH:-}
       LICENSE_PREVIEW_ENABLED: ${LICENSE_PREVIEW_ENABLED:-false}
@@ -94,8 +109,12 @@ services:
       - "8080"
 
   frontend:
-    image: intelloop/atlas-cmms-frontend
+    image: atlas-cmms-frontend:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: atlas-cmms-frontend
+    restart: unless-stopped
     environment:
       API_URL: /api
       GOOGLE_KEY: ${GOOGLE_KEY:- }
@@ -126,6 +145,7 @@ services:
   minio:
     image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     container_name: atlas_minio
+    restart: unless-stopped
     user: "0:0"
     environment:
       MINIO_ROOT_USER: ${MINIO_USER}
@@ -140,6 +160,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     container_name: atlas_nginx
+    restart: unless-stopped
     depends_on:
       - frontend
       - api
@@ -155,3 +176,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  license_cache:

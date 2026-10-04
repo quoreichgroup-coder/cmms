@@ -10,6 +10,7 @@ import com.grash.utils.Helper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.*;
@@ -57,6 +58,10 @@ public class LicenseService {
 
     @Value("${public-api-url:}")
     private String publicApiUrl;
+    @Value("${license-provider:KEYGEN}")
+    private String licenseProvider;
+    @Autowired
+    private QuoreichLicenseClient quoreichLicenseClient;
 
     private volatile LicenseValidationResponse cachedLicenseResponse;
     private volatile DecryptedLicenseData cachedDecryptedLicenseData;
@@ -66,6 +71,10 @@ public class LicenseService {
     public synchronized LicensingState getLicensingState() {
         if (isLocalFeaturePreviewActive()) {
             return getLocalFeaturePreviewState();
+        }
+
+        if ("QUOREICH".equalsIgnoreCase(licenseProvider) && quoreichLicenseClient != null) {
+            return quoreichLicenseClient.getLicensingState();
         }
 
         if (isCacheValid()) {
@@ -83,6 +92,17 @@ public class LicenseService {
 
         // Fall back to Keygen API validation
         return validateAndCacheLicenseKey();
+    }
+
+    public boolean isActivationAvailable() {
+        return "QUOREICH".equalsIgnoreCase(licenseProvider) && !isLocalFeaturePreviewActive()
+                && quoreichLicenseClient.isActivationConfigured();
+    }
+
+    public LicensingState activate(String key) {
+        if (!isActivationAvailable())
+            throw new com.grash.exception.CustomException("L’activation QUOREICH n’est pas configurée sur ce serveur.", HttpStatus.SERVICE_UNAVAILABLE);
+        return quoreichLicenseClient.activate(key);
     }
 
     public boolean isLocalFeaturePreviewActive() {

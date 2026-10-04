@@ -24,16 +24,21 @@ interface WOStatusIncompleteProps {
     columns: string[],
     filters: Filter[],
     title: string
-  ) => void,
-  start: Date,
-  end: Date,
-  companyId?: number
+  ) => void;
+  start: Date;
+  end: Date;
+  companyId?: number;
 }
 
-function IncompleteWOByUser({ handleOpenModal, start, end, companyId }: WOStatusIncompleteProps) {
+function IncompleteWOByUser({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { incompleteByUser, loading } = useSelector(
+  const { incompleteByUser, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
   const dispatch = useDispatch();
@@ -61,18 +66,25 @@ function IncompleteWOByUser({ handleOpenModal, start, end, companyId }: WOStatus
   const title = t('workers');
   return (
     <AnalyticsCard title={title} description="wo_age_description">
-      {loading.incompleteByUser ? (
-        <Loading />
+      {loading.incompleteByUser || errors.incompleteByUser ? (
+        <Loading
+          error={errors.incompleteByUser}
+          onRetry={() => dispatch(getIncompleteByUser(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis yAxisId="left-axis" />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" unit={t('days')} />
+          <YAxis yAxisId="right-axis" orientation="right" unit={t('days')} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="count" fill="#8884d8" name={t('work_orders')} yAxisId="left-axis">
+          <Bar
+            dataKey="count"
+            fill="#8884d8"
+            name={t('work_orders')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

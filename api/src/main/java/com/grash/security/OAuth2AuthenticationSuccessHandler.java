@@ -22,6 +22,8 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +40,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2Properties oAuth2Properties;
     private final UserRepository userRepository;
+    private final LicenseSeatService licenseSeatService;
+    private final PlatformTransactionManager transactionManager;
     private final SubscriptionService subscriptionService;
     private final SubscriptionPlanService subscriptionPlanService;
     private final CurrencyService currencyService;
@@ -85,7 +89,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             User user;
 
             if (userOptional.isEmpty()) {
-                user = createUserFromOAuth(email, attributes, authToken.getAuthorizedClientRegistrationId());
+                user = new TransactionTemplate(transactionManager).execute(status ->
+                        createUserFromOAuth(email, attributes, authToken.getAuthorizedClientRegistrationId()));
             } else {
                 user = userOptional.get();
 
@@ -114,6 +119,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private User createUserFromOAuth(String email, Map<String, Object> attributes, String provider) {
+        licenseSeatService.lockForUserChanges();
         User user = new User();
         user.setEmail(email);
         String emailDomain = user.getEmail().split("@")[1];
@@ -149,6 +155,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             user.setRole(roleService.findDefaultRoleWithCode(RoleCode.ADMIN).get());
 
             user.setCompany(company);
+            licenseSeatService.checkNewUser(user);
             User savedUser = userRepository.save(user);
 
             // Send notification to super admins about new SSO account
@@ -167,6 +174,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             }
 
             return savedUser;
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException("Error creating user from SSO: " + e.getMessage(),

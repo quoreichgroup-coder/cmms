@@ -30,10 +30,15 @@ interface WOStatusIncompleteProps {
   companyId?: number;
 }
 
-function TimeCostByAsset({ handleOpenModal, start, end, companyId }: WOStatusIncompleteProps) {
+function TimeCostByAsset({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { completeTimeCostByAsset, loading } = useSelector(
+  const { completeTimeCostByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
   const dispatch = useDispatch();
@@ -62,16 +67,27 @@ function TimeCostByAsset({ handleOpenModal, start, end, companyId }: WOStatusInc
   const title = t('hours_and_cost_by_asset');
   return (
     <AnalyticsCard title={title}>
-      {loading.completeTimeCostByAsset ? (
-        <Loading />
+      {loading.completeTimeCostByAsset || errors.completeTimeCostByAsset ? (
+        <Loading
+          error={errors.completeTimeCostByAsset}
+          onRetry={() => dispatch(getWOTimeCostByAsset(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
-          <YAxis yAxisId="left-axis" unit={'h'} type={'number'} domain={['dataMin', 'dataMax']} />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" type={'number'}
-                 domain={['dataMin', 'dataMax']} />
+          <YAxis
+            yAxisId="left-axis"
+            unit={'h'}
+            type={'number'}
+            domain={['dataMin', 'dataMax']}
+          />
+          <YAxis
+            yAxisId="right-axis"
+            orientation="right"
+            type={'number'}
+            domain={['dataMin', 'dataMax']}
+          />
           <Tooltip />
           <Legend />
           <Bar

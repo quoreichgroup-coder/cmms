@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>QUOREICH · Gestion des licences</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; background:#0d1420; color:#e7edf5 }
+    * { box-sizing:border-box } body { margin:0 } main { max-width:1100px; margin:40px auto; padding:0 20px }
+    h1,h2 { line-height:1.2 } h1 { font-size:28px; margin-bottom:4px } h2 { font-size:20px; margin-top:0 }
+    p.muted,small { color:#9aabc0 } .card { background:#151f2e; border:1px solid #29384d; border-radius:12px; padding:22px; margin:22px 0 }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px }
+    label { display:block; color:#b9c8da; font-size:13px; margin-bottom:5px } input,select,textarea,button { font:inherit; border-radius:7px }
+    input,select,textarea { width:100%; color:#edf4fc; background:#0d1420; border:1px solid #394b63; padding:10px }
+    textarea { min-height:66px; resize:vertical } button { border:0; padding:9px 13px; background:#5e9cf5; color:#071323; font-weight:650; cursor:pointer }
+    button.secondary { background:#273951; color:#e7edf5 } button.danger { background:#713642; color:#fff } button:disabled { opacity:.5; cursor:wait }
+    .actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:16px }
+    .toolbar { display:flex; align-items:end; gap:10px; margin-bottom:18px } .toolbar label { flex:1 }
+    .notice { white-space:pre-wrap; overflow-wrap:anywhere; padding:12px; border-radius:8px; background:#112c2b; border:1px solid #2d6864; margin:14px 0 }
+    .error { background:#341d27; border-color:#804050 } .license { padding:15px 0; border-top:1px solid #29384d }
+    .license:first-child { border-top:0 } .meta { color:#afc0d4; font-size:13px } .key { font:13px ui-monospace,monospace }
+    .hidden { display:none } @media(max-width:600px) { main { margin:22px auto } .toolbar { align-items:stretch; flex-direction:column } }
+  </style>
+</head>
+<body><main>
+  <h1>QUOREICH License Authority</h1>
+  <p class="muted">Console opérateur · accès protégé par le jeton administrateur.</p>
+
+  <section class="card">
+    <h2>Connexion administrateur</h2>
+    <div class="toolbar"><label>URL de l’autorité<input id="base" type="url" placeholder="https://licenses.example.com"></label>
+      <label>Jeton administrateur<input id="token" type="password" autocomplete="off" placeholder="Bearer token"></label>
+      <button id="connect">Charger les licences</button></div>
+    <p class="muted">Le jeton reste uniquement dans la mémoire de cette page et n’est jamais enregistré dans le navigateur.</p>
+  </section>
+
+  <section class="card">
+    <h2>Émettre une licence</h2>
+    <form id="issue">
+      <div class="grid">
+        <div><label>Client<input name="customerName" required maxlength="240"></label></div>
+        <div><label>Édition<input name="edition" required value="ENTERPRISE" maxlength="80"></label></div>
+        <div><label>Type<select name="licenseType"><option>SUBSCRIPTION</option><option>PERPETUAL</option></select></label></div>
+        <div><label>Places utilisateurs complets<input name="seatsFull" type="number" min="0" value="10" required></label></div>
+        <div><label>Places utilisateurs légers<input name="seatsLight" type="number" min="0" value="25" required></label></div>
+        <div><label>Début (UTC)<input name="startsAt" type="datetime-local" required></label></div>
+        <div><label>Fin abonnement (UTC)<input name="expiresAt" type="datetime-local"></label></div>
+        <div><label>Fin maintenance (UTC)<input name="maintenanceUntil" type="datetime-local"></label></div>
+      </div>
+      <div style="margin-top:14px"><label>Droits (séparés par des virgules)<textarea name="entitlements">SSO, WORKFLOW, API_ACCESS, CUSTOM_ROLES</textarea></label></div>
+      <div class="actions"><button type="submit">Émettre et afficher la clé une fois</button></div>
+    </form>
+    <div id="issued" class="notice hidden"></div>
+  </section>
+
+  <section class="card"><div class="toolbar"><div style="flex:1"><h2 style="margin:0">Licences émises</h2><small>Les clés ne sont jamais affichées dans cette liste.</small></div><button id="refresh" class="secondary">Actualiser</button></div><div id="licenses" class="muted">Connectez-vous pour afficher les licences.</div></section>
+  <div id="status" role="status" class="notice hidden"></div>
+</main>
+<script>
+  let adminToken = '';
+  const $ = id => document.getElementById(id);
+  const message = (text, error=false) => { const el=$('status'); el.textContent=text; el.className='notice'+(error?' error':''); el.classList.remove('hidden'); };
+  const api = async (path, options={}) => {
+    const base=$('base').value.trim().replace(/\/+$/,'');
+    if (!base || !adminToken) throw Error('Saisissez l’URL et le jeton administrateur.');
+    const res=await fetch(base+path,{...options,headers:{'Authorization':'Bearer '+adminToken,'Content-Type':'application/json',...(options.headers||{})}});
+    if (!res.ok) throw Error((await res.text())||('HTTP '+res.status));
+    return res.status===204?null:res.json();
+  };
+  const iso = value => value ? new Date(value + 'Z').toISOString() : null;
+  const addText = (parent, tag, text, cls) => { const el=document.createElement(tag); el.textContent=text; if(cls)el.className=cls; parent.append(el); return el; };
+  const showLicenses = async () => {
+    const items=await api('/admin/licenses'); const root=$('licenses'); root.replaceChildren();
+    if (!items.length) { root.textContent='Aucune licence.'; return; }
+    for (const item of items) {
+      const row=document.createElement('article'); row.className='license';
+      addText(row,'strong',`${item.customerName} · ${item.edition}`);
+      addText(row,'div',`${item.licenseType} · ${item.status} · ${item.seatsFull} places complètes · ${item.seatsLight} places légères`,'meta');
+      addText(row,'div',`ID ${item.id} · Début ${item.startsAt} · Fin ${item.expiresAt||'sans expiration'} · Maintenance ${item.maintenanceUntil||'—'}`,'meta');
+      const buttons=document.createElement('div'); buttons.className='actions';
+      const activations=document.createElement('button'); activations.type='button'; activations.className='secondary'; activations.textContent='Activations';
+      activations.onclick=async()=>{try{const values=await api(`/admin/licenses/${encodeURIComponent(item.id)}/activations`); const box=document.createElement('div'); box.className='notice'; for(const a of values){const line=document.createElement('div');line.className='actions';addText(line,'span',`${a.environment} · ${a.fingerprint} · ${a.active?'active':'désactivée'}`,'meta');if(a.active){const d=document.createElement('button');d.type='button';d.className='danger';d.textContent='Libérer';d.onclick=async()=>{try{await api(`/admin/licenses/activations/${encodeURIComponent(a.id)}/deactivate`,{method:'POST'});message('Activation libérée.');await showLicenses();}catch(e){message(e.message,true)}};line.append(d)}box.append(line)}row.append(box)}catch(e){message(e.message,true)}};
+      buttons.append(activations);
+      if(item.status==='ACTIVE'){const revoke=document.createElement('button');revoke.type='button';revoke.className='danger';revoke.textContent='Révoquer';revoke.onclick=async()=>{if(!confirm('Révoquer cette licence ?'))return;try{await api(`/admin/licenses/${encodeURIComponent(item.id)}/revoke`,{method:'POST'});message('Licence révoquée.');await showLicenses();}catch(e){message(e.message,true)}};buttons.append(revoke)}
+      row.append(buttons); root.append(row);
+    }
+  };
+  $('connect').onclick=async()=>{adminToken=$('token').value.trim();try{await showLicenses();message('Connexion réussie.');}catch(e){message(e.message,true)}};
+  $('refresh').onclick=async()=>{try{await showLicenses();message('Liste actualisée.')}catch(e){message(e.message,true)}};
+  $('issue').addEventListener('submit',async event=>{
+    event.preventDefault(); const form=event.currentTarget; const f=new FormData(form);
+    const body={customerName:f.get('customerName').trim(),edition:f.get('edition').trim(),licenseType:f.get('licenseType'),seatsFull:Number(f.get('seatsFull')),seatsLight:Number(f.get('seatsLight')),entitlements:f.get('entitlements').split(',').map(x=>x.trim()).filter(Boolean),startsAt:iso(f.get('startsAt')),expiresAt:iso(f.get('expiresAt')),maintenanceUntil:iso(f.get('maintenanceUntil'))};
+    if(body.licenseType==='PERPETUAL')body.expiresAt=null;
+    try{const result=await api('/admin/licenses',{method:'POST',body:JSON.stringify(body)});const box=$('issued');box.textContent=`Licence créée pour ${body.customerName}. Copiez cette clé :\n${result.licenseKey}\nElle ne sera plus affichée.`;box.classList.remove('hidden');message('Licence créée. Enregistrez la clé dans un gestionnaire sécurisé.');form.reset();await showLicenses()}catch(e){message(e.message,true)}
+  });
+  const now=new Date(); $('issue').elements.startsAt.value=now.toISOString().slice(0,16);
+  $('issue').elements.expiresAt.value=new Date(Date.now()+365*86400000).toISOString().slice(0,16);
+  $('issue').elements.maintenanceUntil.value=$('issue').elements.expiresAt.value;
+</script></body></html>

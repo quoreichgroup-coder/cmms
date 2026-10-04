@@ -68,6 +68,11 @@ class OAuth2AuthenticationSuccessHandlerTest {
     @Mock
     private OAuth2User oauth2User;
 
+    @Mock
+    private LicenseSeatService licenseSeatService;
+    @Mock
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
     @InjectMocks
     private OAuth2AuthenticationSuccessHandler handler;
 
@@ -273,6 +278,25 @@ class OAuth2AuthenticationSuccessHandlerTest {
             lenient().when(companyService.create(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
             lenient().when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             lenient().when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(adminRole));
+        }
+
+        @Test
+        void seatRejectionRollsBackProvisioningAndDoesNotCreateToken() {
+            stubNewUserFlow();
+            stubCreateCompany();
+            var status = mock(org.springframework.transaction.TransactionStatus.class);
+            when(transactionManager.getTransaction(any())).thenReturn(status);
+            doThrow(new com.grash.exception.CustomException("No seats available", org.springframework.http.HttpStatus.PAYMENT_REQUIRED))
+                    .when(licenseSeatService).checkNewUser(any(User.class));
+
+            String result = handler.determineTargetUrl(request, response, authToken);
+
+            assertTrue(result.startsWith(failureUrl));
+            assertTrue(result.contains("No seats available"));
+            verify(transactionManager).rollback(status);
+            verify(transactionManager, never()).commit(any());
+            verify(userRepository, never()).save(any());
+            verify(jwtTokenProvider, never()).createToken(anyString(), anyList());
         }
 
         @Test

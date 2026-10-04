@@ -19,10 +19,15 @@ interface WOStatusNumbersProps {
   companyId?: number;
 }
 
-function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersProps) {
+function Overview({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusNumbersProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { consumptionsOverview, loading } = useSelector(
+  const { consumptionsOverview, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
   const { getFormattedCurrency } = useContext(CompanySettingsContext);
@@ -58,8 +63,13 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
   return (
     <AnalyticsCard title={t('the_numbers')} height={200}>
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.consumptionsOverview ? (
-          <Loading />
+        {loading.consumptionsOverview || errors.consumptionsOverview ? (
+          <Loading
+            error={errors.consumptionsOverview}
+            onRetry={() =>
+              dispatch(getPartConsumptionOverview(start, end, companyId))
+            }
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {formattedData.map((data) => (

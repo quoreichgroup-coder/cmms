@@ -30,11 +30,16 @@ interface WOByPrimaryUserProps {
   companyId?: number;
 }
 
-function DowntimesAndCosts({ handleOpenModal, start, end, companyId }: WOByPrimaryUserProps) {
+function DowntimesAndCosts({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOByPrimaryUserProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { downtimesAndCostsByAsset, loading } = useSelector(
+  const { downtimesAndCostsByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
 
@@ -62,15 +67,19 @@ function DowntimesAndCosts({ handleOpenModal, start, end, companyId }: WOByPrima
   const title = t('downtime_and_costs');
   return (
     <AnalyticsCard title={title}>
-      {loading.downtimesAndCostsByAsset ? (
-        <Loading />
+      {loading.downtimesAndCostsByAsset || errors.downtimesAndCostsByAsset ? (
+        <Loading
+          error={errors.downtimesAndCostsByAsset}
+          onRetry={() =>
+            dispatch(getDowntimesAndCostsByAsset(start, end, companyId))
+          }
+        />
       ) : (
         <ComposedChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" hide />
           <YAxis yAxisId="left-axis" unit={t('hours')} />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" />
+          <YAxis yAxisId="right-axis" orientation="right" />
           <Tooltip />
           <Legend />
           <Bar

@@ -31,10 +31,16 @@ interface WOStatusIncompleteProps {
   companyId?: number;
 }
 
-function DowntimesByAsset({ handleOpenModal, start, end, assetColors, companyId }: WOStatusIncompleteProps) {
+function DowntimesByAsset({
+  handleOpenModal,
+  start,
+  end,
+  assetColors,
+  companyId
+}: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { downtimesByAsset, loading } = useSelector(
+  const { downtimesByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
   );
   const dispatch = useDispatch();
@@ -56,7 +62,8 @@ function DowntimesByAsset({ handleOpenModal, start, end, assetColors, companyId 
       label: asset.name,
       count: asset.count,
       percent: asset.percent,
-      color: assetColors.find(assetColor => assetColor.id === asset.id)?.color,
+      color: assetColors.find((assetColor) => assetColor.id === asset.id)
+        ?.color,
       filters: [{ key: 'asset', value: asset.id }]
     };
   });
@@ -64,18 +71,25 @@ function DowntimesByAsset({ handleOpenModal, start, end, assetColors, companyId 
   const title = t('downtime_by_asset');
   return (
     <AnalyticsCard title={title}>
-      {loading.downtimesByAsset ? (
-        <Loading />
+      {loading.downtimesByAsset || errors.downtimesByAsset ? (
+        <Loading
+          error={errors.downtimesByAsset}
+          onRetry={() => dispatch(getDowntimesByAsset(start, end, companyId))}
+        />
       ) : (
         <ComposedChart width={800} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" hide />
           <YAxis yAxisId="left-axis" />
-          <YAxis yAxisId="right-axis"
-                 orientation="right" unit={'%'} />
+          <YAxis yAxisId="right-axis" orientation="right" unit={'%'} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="count" fill="#8884d8" name={t('downtime_events')} yAxisId="left-axis">
+          <Bar
+            dataKey="count"
+            fill="#8884d8"
+            name={t('downtime_events')}
+            yAxisId="left-axis"
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}

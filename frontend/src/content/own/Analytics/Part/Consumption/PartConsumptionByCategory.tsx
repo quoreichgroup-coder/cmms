@@ -21,11 +21,16 @@ interface PartConsumptionByCategoryProps {
   companyId?: number;
 }
 
-function PartConsumptionByCategory({ handleOpenModal, start, end, companyId }: PartConsumptionByCategoryProps) {
+function PartConsumptionByCategory({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: PartConsumptionByCategoryProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { partConsumptionsByCategory, loading } = useSelector(
+  const { partConsumptionsByCategory, loading, errors } = useSelector(
     (state) => state.partAnalytics
   );
 
@@ -46,8 +51,14 @@ function PartConsumptionByCategory({ handleOpenModal, start, end, companyId }: P
   const title = t('grouped_by_category');
   return (
     <AnalyticsCard title={title}>
-      {loading.partConsumptionsByCategory ? (
-        <Loading />
+      {loading.partConsumptionsByCategory ||
+      errors.partConsumptionsByCategory ? (
+        <Loading
+          error={errors.partConsumptionsByCategory}
+          onRetry={() =>
+            dispatch(getPartConsumptionsByPartCategory(start, end, companyId))
+          }
+        />
       ) : (
         <PieChart width={200} height={300}>
           <Pie

@@ -1060,9 +1060,11 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     );
   };
   const hasFeature = (feature: PlanFeature) => {
-    return state.company.subscription.subscriptionPlan.features.includes(
-      feature
-    );
+    // Super admins may operate without a company subscription. For regular
+    // accounts, a missing plan must not crash the UI or grant gated features.
+    if (state.user?.role?.roleType === 'ROLE_SUPER_ADMIN') return true;
+    const features = state.company?.subscription?.subscriptionPlan?.features;
+    return Array.isArray(features) && features.includes(feature);
   };
   const getFilteredFields = (defaultFields: Array<IField>): IField[] => {
     let fields = [...defaultFields];

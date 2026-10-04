@@ -1,10 +1,11 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from 'src/store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
 import {
   CountByCategory,
-  RequestsByDate, RequestsResolvedByDate,
+  RequestsByDate,
+  RequestsResolvedByDate,
   RequestStats,
   RequestStatsByPriority
 } from '../../models/owns/analytics/request';
@@ -12,7 +13,8 @@ import { revertAll } from 'src/utils/redux';
 
 const basePath = 'analytics/requests';
 
-const companyQuery = (companyId?: number) => companyId ? `?companyId=${companyId}` : '';
+const companyQuery = (companyId?: number) =>
+  companyId ? `?companyId=${companyId}` : '';
 
 interface RequestStatstate {
   overview: RequestStats;
@@ -20,7 +22,8 @@ interface RequestStatstate {
   requestsResolvedByDate: RequestsResolvedByDate[];
   requestsByCategory: CountByCategory[];
   requestStatsByPriority: RequestStatsByPriority;
-  loading: Omit<Record<keyof RequestStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<string, string>>;
+  loading: Omit<Record<keyof RequestStatstate, boolean>, 'loading' | 'errors'>;
 }
 
 type Operation = keyof RequestStatstate;
@@ -41,6 +44,7 @@ const initialState: RequestStatstate = {
   requestsByDate: [],
   requestsResolvedByDate: [],
   requestsByCategory: [],
+  errors: {},
   loading: {
     overview: false,
     requestsByDate: false,
@@ -90,100 +94,195 @@ const slice = createSlice({
       const { stats } = action.payload;
       state.requestsByCategory = stats;
     },
+    setError(
+      state,
+      action: PayloadAction<{ operation: string; message: string }>
+    ) {
+      state.errors[action.payload.operation] = action.payload.message;
+    },
     setLoading(
       state: RequestStatstate,
       action: PayloadAction<{ loading: boolean; operation: Operation }>
     ) {
       const { loading, operation } = action.payload;
       state.loading[operation] = loading;
+      if (loading) delete state.errors[operation];
     }
   }
 });
 
 export const reducer = slice.reducer;
 
-export const getRequestOverview = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'overview',
-      loading: true
-    })
-  );
-  const stats = await api.post<RequestStats>(`${basePath}/overview${companyQuery(companyId)}`, { start, end });
-  dispatch(slice.actions.getOverview({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'overview',
-      loading: false
-    })
-  );
-};
-export const getRequestStatsByPriority = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestStatsByPriority',
-      loading: true
-    })
-  );
-  const stats = await api.post<RequestStatsByPriority>(`${basePath}/priority${companyQuery(companyId)}`, { start, end });
-  dispatch(slice.actions.getRequestStatsByPriority({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestStatsByPriority',
-      loading: false
-    })
-  );
-};
+export const getRequestOverview =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'overview',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<RequestStats>(
+        `${basePath}/overview${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getOverview({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'overview',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'overview',
+          loading: false
+        })
+      );
+    }
+  };
+export const getRequestStatsByPriority =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'requestStatsByPriority',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<RequestStatsByPriority>(
+        `${basePath}/priority${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getRequestStatsByPriority({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'requestStatsByPriority',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'requestStatsByPriority',
+          loading: false
+        })
+      );
+    }
+  };
 
-export const getRequestsByDate = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsByDate',
-      loading: true
-    })
-  );
-  const stats = await api.post<RequestsByDate[]>(
-    `${basePath}/cycle-time/date${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getRequestsByDate({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsByDate',
-      loading: false
-    })
-  );
-};
-export const getRequestsResolvedByDate = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsResolvedByDate',
-      loading: true
-    })
-  );
-  const stats = await api.post<RequestsResolvedByDate[]>(`${basePath}/received-and-resolved${companyQuery(companyId)}`, { start, end });
-  dispatch(slice.actions.getRequestsResolvedByDate({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsResolvedByDate',
-      loading: false
-    })
-  );
-};
+export const getRequestsByDate =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'requestsByDate',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<RequestsByDate[]>(
+        `${basePath}/cycle-time/date${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getRequestsByDate({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'requestsByDate',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'requestsByDate',
+          loading: false
+        })
+      );
+    }
+  };
+export const getRequestsResolvedByDate =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'requestsResolvedByDate',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<RequestsResolvedByDate[]>(
+        `${basePath}/received-and-resolved${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getRequestsResolvedByDate({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'requestsResolvedByDate',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'requestsResolvedByDate',
+          loading: false
+        })
+      );
+    }
+  };
 
-export const getRequestsByCategory = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsByCategory',
-      loading: true
-    })
-  );
-  const stats = await api.post<CountByCategory[]>(`${basePath}/counts/category${companyQuery(companyId)}`, { start, end });
-  dispatch(slice.actions.getRequestsByCategory({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'requestsByCategory',
-      loading: false
-    })
-  );
-};
+export const getRequestsByCategory =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'requestsByCategory',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<CountByCategory[]>(
+        `${basePath}/counts/category${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getRequestsByCategory({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'requestsByCategory',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'requestsByCategory',
+          loading: false
+        })
+      );
+    }
+  };
 export default slice;

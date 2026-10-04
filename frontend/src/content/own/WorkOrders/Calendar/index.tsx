@@ -7,6 +7,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import {
+  Alert,
+  Button,
   Box,
   Card,
   CircularProgress,
@@ -180,7 +182,7 @@ function ApplicationsCalendar({
   const { i18n } = useTranslation();
   const calendarRef = useRef<FullCalendar | null>(null);
   const dispatch = useDispatch();
-  const { calendar, loadingGet } = useSelector((state) => state.workOrders);
+  const { calendar } = useSelector((state) => state.workOrders);
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>('timeGridWeek');
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>({
@@ -314,8 +316,31 @@ function ApplicationsCalendar({
         }
       />
       <Divider />
+      {calendar.error && (
+        <Alert
+          severity="error"
+          action={
+            <Button
+              onClick={() =>
+                dispatch(
+                  getWorkOrderEvents(
+                    visibleRange.start,
+                    visibleRange.end,
+                    companyId,
+                    filterFields
+                  )
+                )
+              }
+            >
+              Réessayer
+            </Button>
+          }
+        >
+          {calendar.error}
+        </Alert>
+      )}
       <FullCalendarWrapper>
-        {loadingGet && (
+        {calendar.loading && (
           <Stack position="absolute" top={'45%'} left={'45%'} zIndex={10}>
             <CircularProgress size={64} />
           </Stack>
@@ -336,7 +361,12 @@ function ApplicationsCalendar({
           dateClick={(event) => handleAddWorkOrder(event.date)}
           dayMaxEventRows={4}
           datesSet={(arg) =>
-            setVisibleRange({ start: arg.start, end: arg.end })
+            setVisibleRange((current) =>
+              current.start?.getTime() === arg.start.getTime() &&
+              current.end?.getTime() === arg.end.getTime()
+                ? current
+                : { start: arg.start, end: arg.end }
+            )
           }
           events={calendar.events.map((eventPayload) =>
             getEventFromWO(eventPayload)

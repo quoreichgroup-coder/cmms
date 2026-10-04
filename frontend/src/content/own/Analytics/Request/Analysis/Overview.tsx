@@ -18,10 +18,17 @@ interface WOStatusNumbersProps {
   companyId?: number;
 }
 
-function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersProps) {
+function Overview({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: WOStatusNumbersProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { overview, loading } = useSelector((state) => state.requestAnalytics);
+  const { overview, loading, errors } = useSelector(
+    (state) => state.requestAnalytics
+  );
   useEffect(() => {
     dispatch(getRequestOverview(start, end, companyId));
   }, [start, end, companyId]);
@@ -37,7 +44,9 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
     };
   }[] = [
     {
-      label: t('approved_requests') + ` (${(overview.approved * 100 / totalCount).toFixed(0)}%)`,
+      label:
+        t('approved_requests') +
+        ` (${((overview.approved * 100) / totalCount).toFixed(0)}%)`,
       value: overview.approved,
       config: {
         columns: ['id'],
@@ -45,7 +54,9 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
       }
     },
     {
-      label: t('pending_requests') + ` (${(overview.pending * 100 / totalCount).toFixed(0)}%)`,
+      label:
+        t('pending_requests') +
+        ` (${((overview.pending * 100) / totalCount).toFixed(0)}%)`,
       value: overview.pending,
       config: {
         columns: ['id'],
@@ -53,7 +64,9 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
       }
     },
     {
-      label: t('cancelled_requests') + ` (${(overview.cancelled * 100 / totalCount).toFixed(0)}%)`,
+      label:
+        t('cancelled_requests') +
+        ` (${((overview.cancelled * 100) / totalCount).toFixed(0)}%)`,
       value: overview.cancelled,
       config: {
         columns: ['id'],
@@ -80,8 +93,11 @@ function Overview({ handleOpenModal, start, end, companyId }: WOStatusNumbersPro
   return (
     <AnalyticsCard title={t('the_numbers')} height={200}>
       <Stack sx={{ height: '100%', justifyContent: 'center' }}>
-        {loading.overview ? (
-          <Loading />
+        {loading.overview || errors.overview ? (
+          <Loading
+            error={errors.overview}
+            onRetry={() => dispatch(getRequestOverview(start, end, companyId))}
+          />
         ) : (
           <Stack direction="row" spacing={2}>
             {formattedData.map((data) => (

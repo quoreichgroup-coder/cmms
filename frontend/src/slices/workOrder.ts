@@ -2,7 +2,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from 'src/store';
 import WorkOrder from '../models/owns/workOrder';
-import api from '../utils/api';
+import api, { getErrorMessage } from '../utils/api';
 import { Task } from '../models/owns/tasks';
 import {
   FilterField,
@@ -22,6 +22,7 @@ import { addToUnscheduled } from './workload';
 import type { WorkloadWorkOrderDTO } from 'src/models/owns/workload';
 
 const basePath = 'work-orders';
+let calendarRequestId = 0;
 
 export interface CalendarEvent<T extends WorkOrderBase> {
   type: string;
@@ -39,6 +40,9 @@ interface WorkOrderState {
   urgentCount: number;
   loadingGet: boolean;
   calendar: {
+    loading: boolean;
+    error: string | null;
+    requestId: number;
     events: CalendarEvent<WorkOrder | PreventiveMaintenance>[];
   };
 }
@@ -52,6 +56,9 @@ const initialState: WorkOrderState = {
   loadingGet: false,
   workOrdersMini: getInitialPage<WorkOrderBaseMiniDTO>(),
   calendar: {
+    loading: false,
+    error: null,
+    requestId: 0,
     events: []
   }
 };
@@ -183,10 +190,30 @@ const slice = createSlice({
       state: WorkOrderState,
       action: PayloadAction<{
         events: CalendarEvent<WorkOrder | PreventiveMaintenance>[];
+        requestId: number;
       }>
     ) {
       const { events } = action.payload;
-      state.calendar.events = events;
+      if (action.payload.requestId === state.calendar.requestId)
+        state.calendar.events = events;
+    },
+    setCalendarLoading(
+      state: WorkOrderState,
+      action: PayloadAction<{
+        loading: boolean;
+        requestId: number;
+        error?: string;
+      }>
+    ) {
+      const { loading, requestId, error } = action.payload;
+      if (loading) {
+        state.calendar.requestId = requestId;
+        state.calendar.events = [];
+        state.calendar.error = null;
+      }
+      if (requestId !== state.calendar.requestId) return;
+      state.calendar.loading = loading;
+      if (error) state.calendar.error = error;
     },
     setLoadingGet(
       state: WorkOrderState,
@@ -448,20 +475,31 @@ export const getWorkOrderEvents =
     filterFields: FilterField[] = null
   ): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
-    const response = await api.post<
-      CalendarEvent<WorkOrder | PreventiveMaintenance>[]
-    >(`${basePath}/events?companyId=${companyId || ''}`, {
-      start,
-      end,
-      filterFields
-    });
-    dispatch(
-      slice.actions.getEvents({
-        events: response
-      })
-    );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+    const requestId = ++calendarRequestId;
+    dispatch(slice.actions.setCalendarLoading({ loading: true, requestId }));
+    try {
+      const response = await api.post<
+        CalendarEvent<WorkOrder | PreventiveMaintenance>[]
+      >(`${basePath}/events?companyId=${companyId || ''}`, {
+        start,
+        end,
+        filterFields
+      });
+      dispatch(slice.actions.getEvents({ events: response, requestId }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setCalendarLoading({
+          loading: false,
+          requestId,
+          error:
+            error?.status === 403
+              ? 'Accès refusé au calendrier.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(slice.actions.setCalendarLoading({ loading: false, requestId }));
+    }
   };
 export const getUrgentWorkOrdersCount = (): AppThunk => async (dispatch) => {
   const response = await api.get<{ success: boolean; message: string }>(

@@ -316,14 +316,15 @@ class WorkOrderControllerTest extends AbstractControllerTest {
         }
 
         @Test
-        void getEvents_requiresRoleClient() throws Exception {
+        void getEvents_allowsSuperadminAndDelegatesToScopedService() throws Exception {
             setCurrentUser(nonClientUser);
             when(userService.whoami(any())).thenReturn(nonClientUser);
 
             mockMvc.perform(post("/work-orders/events")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"start\":\"2024-01-01T00:00:00\",\"end\":\"2024-12-31T23:59:59\"}"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isOk());
+            verify(workOrderService).getEvents(any(), isNull(), eq(nonClientUser));
         }
 
         @Test

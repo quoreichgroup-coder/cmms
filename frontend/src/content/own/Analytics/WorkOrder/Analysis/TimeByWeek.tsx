@@ -1,3 +1,4 @@
+import Loading from '../../Loading';
 import { CircularProgress, Stack, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,7 +28,7 @@ interface WOStatusIncompleteProps {
 function TimeByWeek({ handleOpenModal, companyId }: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
-  const { completeTimesByWeek, loading } = useSelector(
+  const { completeTimesByWeek, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
   const dispatch = useDispatch();
@@ -73,15 +74,11 @@ function TimeByWeek({ handleOpenModal, companyId }: WOStatusIncompleteProps) {
   ];
   return (
     <AnalyticsCard title={title}>
-      {loading.completeTimesByWeek ? (
-        <Stack
-          width="100%"
-          height="100%"
-          justifyContent="center"
-          alignItems="center"
-        >
-          <CircularProgress />
-        </Stack>
+      {loading.completeTimesByWeek || errors.completeTimesByWeek ? (
+        <Loading
+          error={errors.completeTimesByWeek}
+          onRetry={() => dispatch(getCompleteTimesByWeek(companyId))}
+        />
       ) : (
         <LineChart width={508} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />

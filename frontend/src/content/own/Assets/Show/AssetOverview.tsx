@@ -539,11 +539,6 @@ const AssetOverview = ({ asset }: PropsType) => {
               </Card>
             </Grid>
           )}
-        {hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES) && (
-          <Grid item xs={12} md={6}>
-            <AssetMaintenanceSummary key={asset.id} assetId={asset.id} />
-          </Grid>
-        )}
         {hasViewPermission(PermissionEntity.ASSETS) && (
           <Grid item xs={12} md={6}>
             <AssetDowntimeSummary key={asset.id} assetId={asset.id} />

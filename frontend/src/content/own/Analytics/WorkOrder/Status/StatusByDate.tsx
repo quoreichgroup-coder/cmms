@@ -30,19 +30,29 @@ interface DowntimesByMonthProps {
   companyId?: number;
 }
 
-function StatusByDate({ handleOpenModal, start, end, companyId }: DowntimesByMonthProps) {
+function StatusByDate({
+  handleOpenModal,
+  start,
+  end,
+  companyId
+}: DowntimesByMonthProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { statusesByDate, loading } = useSelector(
+  const { statusesByDate, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
 
-  useEffect(() => {
+  const loadReport = () => {
     const localStart = new Date(end);
     localStart.setDate(localStart.getDate() - 7);
-    dispatch(getStatusesByDate(start > localStart ? start : localStart, end, companyId));
-  }, [end, companyId]);
+    dispatch(
+      getStatusesByDate(start > localStart ? start : localStart, end, companyId)
+    );
+  };
+  useEffect(() => {
+    loadReport();
+  }, [start, end, companyId]);
 
   const columns: string[] = ['id'];
 
@@ -66,8 +76,8 @@ function StatusByDate({ handleOpenModal, start, end, companyId }: DowntimesByMon
   const title = t('wo_status');
   return (
     <AnalyticsCard title={title}>
-      {loading.statusesByDate ? (
-        <Loading />
+      {loading.statusesByDate || errors.statusesByDate ? (
+        <Loading error={errors.statusesByDate} onRetry={loadReport} />
       ) : (
         <BarChart width={900} height={508} data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -75,10 +85,30 @@ function StatusByDate({ handleOpenModal, start, end, companyId }: DowntimesByMon
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="complete" fill={theme.colors.primary.main} name={t('COMPLETE')} stackId={'a'} />
-          <Bar dataKey="onHold" fill={theme.colors.warning.main} name={t('ON_HOLD')} stackId={'a'} />
-          <Bar dataKey="inProgress" fill={theme.colors.success.main} name={t('IN_PROGRESS')} stackId={'a'} />
-          <Bar dataKey="open" fill={theme.colors.alpha.black[70]} name={t('OPEN')} stackId={'a'} />
+          <Bar
+            dataKey="complete"
+            fill={theme.colors.primary.main}
+            name={t('COMPLETE')}
+            stackId={'a'}
+          />
+          <Bar
+            dataKey="onHold"
+            fill={theme.colors.warning.main}
+            name={t('ON_HOLD')}
+            stackId={'a'}
+          />
+          <Bar
+            dataKey="inProgress"
+            fill={theme.colors.success.main}
+            name={t('IN_PROGRESS')}
+            stackId={'a'}
+          />
+          <Bar
+            dataKey="open"
+            fill={theme.colors.alpha.black[70]}
+            name={t('OPEN')}
+            stackId={'a'}
+          />
         </BarChart>
       )}
     </AnalyticsCard>

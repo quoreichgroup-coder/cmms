@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -121,6 +125,35 @@ class TenantAspectTest {
         tenantAspect.validateTenant(joinPoint);
 
         verify(entityManager, times(2)).find(TestEntity.class, 5L);
+    }
+
+    @Test
+    void requestBodyIsIdCollection_doesNotReflectIntoJdkClasses() throws Exception {
+        stubMethod("createCollection", List.class);
+        when(joinPoint.getArgs()).thenReturn(new Object[]{Arrays.asList(12L, 34L, null)});
+
+        assertDoesNotThrow(() -> tenantAspect.validateTenant(joinPoint));
+
+        verifyNoInteractions(entityManager);
+    }
+
+    @Test
+    void scalarAndNullBodies_haveNoTenantEntityFields() {
+        for (Object value : Arrays.asList(null, "user@pilot.test", 12L, 3.5, true)) {
+            assertDoesNotThrow(() -> tenantAspect.validateObject(value));
+        }
+
+        verifyNoInteractions(entityManager);
+    }
+
+    @Test
+    void relatedEntityFromAnotherCompany_stillPropagatesTenantRejection() throws Exception {
+        stubMethod("create", Object.class);
+        when(joinPoint.getArgs()).thenReturn(new Object[]{new DtoWithAuditField()});
+        IllegalArgumentException denied = new IllegalArgumentException("Another company");
+        when(entityManager.find(TestEntity.class, 5L)).thenThrow(denied);
+
+        assertThrows(IllegalArgumentException.class, () -> tenantAspect.validateTenant(joinPoint));
     }
 
     @Test

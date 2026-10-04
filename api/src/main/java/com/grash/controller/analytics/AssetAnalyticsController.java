@@ -43,7 +43,7 @@ public class AssetAnalyticsController {
     private final AssetDowntimeService assetDowntimeService;
 
     @PostMapping("/time-cost")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getTimeCostByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -79,7 +79,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getOverviewStats",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -109,7 +109,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/downtimes")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getDowntimesByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -140,7 +140,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/mtbf")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getMTBFByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -167,7 +167,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/meantimes")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getMeantimes",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -201,7 +201,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/repair-times")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getRepairTimeByAsset",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -227,7 +227,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/downtimes/meantime/date")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getDowntimesMeantimeByMonth",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -266,7 +266,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/costs/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getAssetsCosts",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -300,7 +300,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/downtimes/costs")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getDowntimesAndCosts",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -334,7 +334,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/downtimes/costs/date")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getDowntimesByMonth",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end) + " +
@@ -378,7 +378,7 @@ public class AssetAnalyticsController {
     }
 
     @PostMapping("/{id}/overview")
-    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     @Cacheable(
             value = "getDateRangeOverview",
             key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end)+'_'+#id"

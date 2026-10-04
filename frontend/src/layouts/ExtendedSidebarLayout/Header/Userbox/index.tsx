@@ -26,6 +26,7 @@ import type { ApexOptions } from 'apexcharts';
 import PersonOutlineTwoToneIcon from '@mui/icons-material/PersonOutlineTwoTone';
 import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
 import SwitchLeftTwoToneIcon from '@mui/icons-material/SwitchLeftTwoTone';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const DotLegend = styled('span')(
   ({ theme }) => `
@@ -359,6 +360,23 @@ function HeaderUserbox() {
               </Box>
             </MenuItem>
           )}
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              navigate('/app/about-licenses');
+            }}
+          >
+            <ListItemIcon>
+              <InfoOutlinedIcon />
+            </ListItemIcon>
+            <ListItemText
+              primaryTypographyProps={{ variant: 'h5' }}
+              primary={t('open_source_notices')}
+            />
+            <ChevronRightTwoToneIcon
+              sx={{ color: `${theme.colors.alpha.black[30]}`, opacity: 0.8 }}
+            />
+          </MenuItem>
         </MenuListWrapperPrimary>
         <Divider />
         {/*<Box m={1}>*/}

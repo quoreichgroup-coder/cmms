@@ -1,7 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from 'src/store';
-import api from '../../utils/api';
+import api, { getErrorMessage } from '../../utils/api';
 import {
   IncompleteWOByAsset,
   IncompleteWOByUser,
@@ -14,14 +14,16 @@ import {
   WOHours,
   WoOverviewStats,
   WOStatsByPriority,
-  WOStatsByStatus, WOStatusesByDate,
+  WOStatsByStatus,
+  WOStatusesByDate,
   WOTimeByWeek
 } from '../../models/owns/analytics/workOrder';
 import { revertAll } from 'src/utils/redux';
 
 const basePath = 'analytics/work-orders';
 
-const companyQuery = (companyId?: number) => companyId ? `?companyId=${companyId}` : '';
+const companyQuery = (companyId?: number) =>
+  companyId ? `?companyId=${companyId}` : '';
 
 interface WOStatstate {
   overview: WoOverviewStats;
@@ -40,7 +42,8 @@ interface WOStatstate {
   completeCostsByDate: WOCostByDate[];
   statusesByDate: WOStatusesByDate[];
   hours: WOHours;
-  loading: Omit<Record<keyof WOStatstate, boolean>, 'loading'>;
+  errors: Partial<Record<string, string>>;
+  loading: Omit<Record<keyof WOStatstate, boolean>, 'loading' | 'errors'>;
 }
 
 type Operation = keyof WOStatstate;
@@ -103,6 +106,7 @@ const initialState: WOStatstate = {
   incompleteByUser: [],
   completeCostsByDate: [],
   statusesByDate: [],
+  errors: {},
   loading: {
     overview: false,
     incompleteByPriority: false,
@@ -237,281 +241,560 @@ const slice = createSlice({
       const { stats } = action.payload;
       state.statusesByDate = stats;
     },
+    setError(
+      state,
+      action: PayloadAction<{ operation: string; message: string }>
+    ) {
+      state.errors[action.payload.operation] = action.payload.message;
+    },
     setLoading(
       state: WOStatstate,
       action: PayloadAction<{ loading: boolean; operation: Operation }>
     ) {
       const { loading, operation } = action.payload;
       state.loading[operation] = loading;
+      if (loading) delete state.errors[operation];
     }
   }
 });
 
 export const reducer = slice.reducer;
 
-export const getOverviewStats = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: true }));
-  const overviewStats = await api.post<WoOverviewStats>(
-    `${basePath}/complete/overview${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getStats({ overviewStats }));
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: false }));
-};
-export const getIncompleteStats = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: true }));
-  const overviewStats = await api.post<IncompleteWoStats>(
-    `${basePath}/incomplete/overview${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getIncompleteStats({ overviewStats }));
-  dispatch(slice.actions.setLoading({ operation: 'overview', loading: false }));
-};
-export const getIncompleteByPriority = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByPriority',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOStatsByPriority>(
-    `${basePath}/incomplete/priority${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getIncompleteByPriority({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByPriority',
-      loading: false
-    })
-  );
-};
-export const getIncompleteByStatus = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByStatus',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOStatsByStatus>(
-    `${basePath}/incomplete/statuses${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getIncompleteByStatus({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByStatus',
-      loading: false
-    })
-  );
-};
-export const getWOHours = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'hours',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOHours>(`${basePath}/hours${companyQuery(companyId)}`, { start, end });
-  dispatch(slice.actions.getWOHours({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'hours',
-      loading: false
-    })
-  );
-};
-export const getCountsByUser = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByPrimaryUser',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOCountsByUser[]>(
-    `${basePath}/complete/counts/primaryUser${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCountsByUser({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByPrimaryUser',
-      loading: false
-    })
-  );
-};
+export const getOverviewStats =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({ operation: 'overview', loading: true })
+    );
+    try {
+      const overviewStats = await api.post<WoOverviewStats>(
+        `${basePath}/complete/overview${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getStats({ overviewStats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'overview',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({ operation: 'overview', loading: false })
+      );
+    }
+  };
+export const getIncompleteStats =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'incompleteOverview',
+        loading: true
+      })
+    );
+    try {
+      const overviewStats = await api.post<IncompleteWoStats>(
+        `${basePath}/incomplete/overview${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getIncompleteStats({ overviewStats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'incompleteOverview',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'incompleteOverview',
+          loading: false
+        })
+      );
+    }
+  };
+export const getIncompleteByPriority =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'incompleteByPriority',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOStatsByPriority>(
+        `${basePath}/incomplete/priority${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getIncompleteByPriority({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'incompleteByPriority',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'incompleteByPriority',
+          loading: false
+        })
+      );
+    }
+  };
+export const getIncompleteByStatus =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'incompleteByStatus',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOStatsByStatus>(
+        `${basePath}/incomplete/statuses${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getIncompleteByStatus({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'incompleteByStatus',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'incompleteByStatus',
+          loading: false
+        })
+      );
+    }
+  };
+export const getWOHours =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'hours',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOHours>(
+        `${basePath}/hours${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getWOHours({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'hours',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'hours',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCountsByUser =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeByPrimaryUser',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOCountsByUser[]>(
+        `${basePath}/complete/counts/primaryUser${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCountsByUser({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeByPrimaryUser',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeByPrimaryUser',
+          loading: false
+        })
+      );
+    }
+  };
 
-export const getCompleteByCompletedBy = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByCompletedBy',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOCountsByUser[]>(
-    `${basePath}/complete/counts/completedBy${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCountsByCompletedBy({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByCompletedBy',
-      loading: false
-    })
-  );
-};
-export const getCompleteByPriority = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByPriority',
-      loading: true
-    })
-  );
-  const stats = await api.post<{ [key: string]: number }>(
-    `${basePath}/complete/counts/priority${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCompleteByPriority({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByPriority',
-      loading: false
-    })
-  );
-};
-export const getCompleteByCategory = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByCategory',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOCountsByCategory[]>(
-    `${basePath}/complete/counts/category${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCountsByCategory({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByCategory',
-      loading: false
-    })
-  );
-};
-export const getCompleteCosts = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeCosts',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOCostsAndTime>(
-    `${basePath}/complete/costs-time${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCompleteCosts({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeCosts',
-      loading: false
-    })
-  );
-};
-export const getCompleteByWeek = (companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByWeek',
-      loading: true
-    })
-  );
-  const stats = await api.get<WOCountsByWeek[]>(
-    `${basePath}/complete/counts/week${companyQuery(companyId)}`
-  );
-  dispatch(slice.actions.getCompleteByWeek({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeByWeek',
-      loading: false
-    })
-  );
-};
-export const getCompleteTimesByWeek = (companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeTimesByWeek',
-      loading: true
-    })
-  );
-  const stats = await api.get<WOTimeByWeek[]>(`${basePath}/complete/time/week${companyQuery(companyId)}`);
-  dispatch(slice.actions.getCompleteTimesByWeek({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeTimesByWeek',
-      loading: false
-    })
-  );
-};
-export const getIncompleteByAsset = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByAsset',
-      loading: true
-    })
-  );
-  const stats = await api.post<IncompleteWOByAsset[]>(
-    `${basePath}/incomplete/age/assets${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getIncompleteByAsset({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByAsset',
-      loading: false
-    })
-  );
-};
-export const getIncompleteByUser = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByUser',
-      loading: true
-    })
-  );
-  const stats = await api.post<IncompleteWOByUser[]>(
-    `${basePath}/incomplete/age/users${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getIncompleteByUser({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'incompleteByUser',
-      loading: false
-    })
-  );
-};
-export const getCompleteCostsByDate = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeCostsByDate',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOCostByDate[]>(
-    `${basePath}/complete/costs/date${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getCompleteCostsByDate({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'completeCostsByDate',
-      loading: false
-    })
-  );
-};
-export const getStatusesByDate = (start: Date, end: Date, companyId?: number): AppThunk => async (dispatch) => {
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'statusesByDate',
-      loading: true
-    })
-  );
-  const stats = await api.post<WOStatusesByDate[]>(
-    `${basePath}/statuses${companyQuery(companyId)}`, { start, end }
-  );
-  dispatch(slice.actions.getStatusesByDate({ stats }));
-  dispatch(
-    slice.actions.setLoading({
-      operation: 'statusesByDate',
-      loading: false
-    })
-  );
-};
+export const getCompleteByCompletedBy =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeByCompletedBy',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOCountsByUser[]>(
+        `${basePath}/complete/counts/completedBy${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCountsByCompletedBy({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeByCompletedBy',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeByCompletedBy',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteByPriority =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeByPriority',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<{ [key: string]: number }>(
+        `${basePath}/complete/counts/priority${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCompleteByPriority({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeByPriority',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeByPriority',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteByCategory =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeByCategory',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOCountsByCategory[]>(
+        `${basePath}/complete/counts/category${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCountsByCategory({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeByCategory',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeByCategory',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteCosts =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeCosts',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOCostsAndTime>(
+        `${basePath}/complete/costs-time${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCompleteCosts({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeCosts',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeCosts',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteByWeek =
+  (companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeByWeek',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.get<WOCountsByWeek[]>(
+        `${basePath}/complete/counts/week${companyQuery(companyId)}`
+      );
+      dispatch(slice.actions.getCompleteByWeek({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeByWeek',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeByWeek',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteTimesByWeek =
+  (companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeTimesByWeek',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.get<WOTimeByWeek[]>(
+        `${basePath}/complete/time/week${companyQuery(companyId)}`
+      );
+      dispatch(slice.actions.getCompleteTimesByWeek({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeTimesByWeek',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeTimesByWeek',
+          loading: false
+        })
+      );
+    }
+  };
+export const getIncompleteByAsset =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'incompleteByAsset',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<IncompleteWOByAsset[]>(
+        `${basePath}/incomplete/age/assets${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getIncompleteByAsset({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'incompleteByAsset',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'incompleteByAsset',
+          loading: false
+        })
+      );
+    }
+  };
+export const getIncompleteByUser =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'incompleteByUser',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<IncompleteWOByUser[]>(
+        `${basePath}/incomplete/age/users${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getIncompleteByUser({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'incompleteByUser',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'incompleteByUser',
+          loading: false
+        })
+      );
+    }
+  };
+export const getCompleteCostsByDate =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'completeCostsByDate',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOCostByDate[]>(
+        `${basePath}/complete/costs/date${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getCompleteCostsByDate({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'completeCostsByDate',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'completeCostsByDate',
+          loading: false
+        })
+      );
+    }
+  };
+export const getStatusesByDate =
+  (start: Date, end: Date, companyId?: number): AppThunk =>
+  async (dispatch) => {
+    dispatch(
+      slice.actions.setLoading({
+        operation: 'statusesByDate',
+        loading: true
+      })
+    );
+    try {
+      const stats = await api.post<WOStatusesByDate[]>(
+        `${basePath}/statuses${companyQuery(companyId)}`,
+        { start, end }
+      );
+      dispatch(slice.actions.getStatusesByDate({ stats }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setError({
+          operation: 'statusesByDate',
+          message:
+            error?.status === 403
+              ? 'Accès refusé à ce rapport.'
+              : getErrorMessage(error)
+        })
+      );
+    } finally {
+      dispatch(
+        slice.actions.setLoading({
+          operation: 'statusesByDate',
+          loading: false
+        })
+      );
+    }
+  };
 export default slice;
