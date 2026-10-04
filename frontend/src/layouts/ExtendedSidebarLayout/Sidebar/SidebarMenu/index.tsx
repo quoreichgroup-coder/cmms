@@ -255,11 +255,11 @@ function SidebarMenu() {
   const subscription = company?.subscription;
 
   useEffect(() => {
-    if (user.id) {
+    if (user.id && user.role.roleType === 'ROLE_CLIENT') {
       dispatch(getUrgentWorkOrdersCount());
       if (user.role.code !== 'REQUESTER') dispatch(getPendingRequestsCount());
     }
-  }, [user.id]);
+  }, [user.id, user.role.roleType]);
   return (
     <>
       {isCloudVersion &&

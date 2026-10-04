@@ -914,6 +914,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
   const hasCreatePermission = (permissionEntity: PermissionEntity) => {
     return (
+      state.user.role.roleType === 'ROLE_CLIENT' &&
       state.user.role.createPermissions.includes(permissionEntity) &&
       state.user.superAccountRelations.length === 0
     );
@@ -922,7 +923,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity) return false;
+    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT') return false;
     if (state.user.superAccountRelations.length > 0) return false;
     if (permissionEntity === PermissionEntity.PEOPLE_AND_TEAMS) {
       return (
@@ -1052,7 +1053,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity) return false;
+    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT') return false;
     if (state.user.superAccountRelations.length > 0) return false;
     return (
       state.user.id === entity.createdBy ||

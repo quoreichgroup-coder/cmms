@@ -306,8 +306,8 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   }, [criteria, enabledOnly]);
 
   useEffect(() => {
-    dispatch(getLastWeekInvitations());
-  }, []);
+    if (user.role.roleType === 'ROLE_CLIENT') dispatch(getLastWeekInvitations());
+  }, [user.role.roleType]);
 
   //see changes in ui on edit
   useEffect(() => {

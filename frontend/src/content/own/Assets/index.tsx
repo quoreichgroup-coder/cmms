@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -110,6 +111,7 @@ function Assets() {
     assetsHierarchy,
     loadingGet,
     loadingHierarchy,
+    hierarchyError,
     assets,
     childrenPages
   } = useSelector((state) => state.assets);
@@ -1039,6 +1041,11 @@ function Assets() {
             }}
           >
             <Box sx={{ width: '95%' }}>
+              {hierarchyError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {hierarchyError}
+                </Alert>
+              )}
               <CustomDatagrid2
                 columns={view === 'hierarchy' ? columns : columns.slice(1)}
                 data={tableData}

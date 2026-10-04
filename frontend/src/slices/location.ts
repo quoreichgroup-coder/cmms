@@ -5,7 +5,7 @@ import Location, {
   LocationMiniDTO,
   LocationRow
 } from '../models/owns/location';
-import api, { authHeader } from '../utils/api';
+import api, { authHeader, getErrorMessage } from '../utils/api';
 import { revertAll } from 'src/utils/redux';
 import {
   getInitialPage,
@@ -22,6 +22,7 @@ interface LocationState {
   locationsMini: LocationMiniDTO[];
   loadingGet: boolean;
   loadingHierarchy: boolean;
+  hierarchyError: string | null;
   childrenPages: { [key: number]: Page<Location> };
 }
 
@@ -31,6 +32,7 @@ const initialState: LocationState = {
   locationsMini: [],
   loadingGet: false,
   loadingHierarchy: false,
+  hierarchyError: null,
   childrenPages: {}
 };
 
@@ -71,8 +73,16 @@ const slice = createSlice({
       if (locationIndex === -1) {
         state.locations.content = [...state.locations.content, location];
       } else {
-        state.locations[locationIndex] = location;
+        state.locations.content[locationIndex] = location;
       }
+      const hierarchyRow = state.locationsHierarchy.find(
+        (row) => row.id === location.id
+      );
+      if (hierarchyRow) Object.assign(hierarchyRow, location);
+      Object.values(state.childrenPages).forEach((page) => {
+        const row = page.content.find((row) => row.id === location.id);
+        if (row) Object.assign(row, location);
+      });
     },
     deleteLocation(
       state: LocationState,
@@ -82,7 +92,8 @@ const slice = createSlice({
       const locationIndex = state.locations.content.findIndex(
         (location) => location.id === id
       );
-      state.locations.content.splice(locationIndex, 1);
+      if (locationIndex !== -1)
+        state.locations.content.splice(locationIndex, 1);
 
       const locationHierarchyIndex = state.locationsHierarchy.findIndex(
         (location) => location.id === id
@@ -120,6 +131,9 @@ const slice = createSlice({
       }, state.locationsHierarchy);
 
       state.childrenPages[id] = locations;
+    },
+    setHierarchyError(state, action: PayloadAction<string | null>) {
+      state.hierarchyError = action.payload;
     },
     setLoadingHierarchy(
       state: LocationState,
@@ -217,17 +231,23 @@ export const getLocationChildrenPaginated =
   (id: number, parents: number[], pageable: Pageable): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingHierarchy({ loading: true }));
-    const locations = await api.get<Page<Location>>(
-      `locations/children/${id}/paginated?${pageableToQueryParams(pageable)}`
-    );
-    dispatch(
-      slice.actions.getLocationChildrenPaginated({
-        id,
-        locations,
-        parents
-      })
-    );
-    dispatch(slice.actions.setLoadingHierarchy({ loading: false }));
+    dispatch(slice.actions.setHierarchyError(null));
+    try {
+      const locations = await api.get<Page<Location>>(
+        `locations/children/${id}/paginated?${pageableToQueryParams(pageable)}`
+      );
+      dispatch(
+        slice.actions.getLocationChildrenPaginated({
+          id,
+          locations,
+          parents
+        })
+      );
+    } catch (error) {
+      dispatch(slice.actions.setHierarchyError(getErrorMessage(error)));
+    } finally {
+      dispatch(slice.actions.setLoadingHierarchy({ loading: false }));
+    }
   };
 
 export const resetLocationsHierarchy =
@@ -235,7 +255,7 @@ export const resetLocationsHierarchy =
   async (dispatch) => {
     dispatch(slice.actions.resetHierarchy({}));
     if (callApi) {
-      dispatch(getLocationChildrenPaginated(0, [], pageable));
+      await dispatch(getLocationChildrenPaginated(0, [], pageable));
     }
   };
 

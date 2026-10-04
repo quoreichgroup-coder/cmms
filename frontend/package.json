@@ -132,7 +132,8 @@
     "test:license-console": "cross-env TZ=Europe/Berlin node --test scripts/license-authority-console.test.cjs",
     "test:asset-maintenance": "node --test scripts/asset-maintenance-summary.test.cjs",
     "test:license-ui": "node --test scripts/company-license.test.cjs scripts/company-profile.test.cjs",
-    "test:reports": "node --test scripts/report-loading.test.cjs"
+    "test:reports": "node --test scripts/report-loading.test.cjs",
+    "test:hierarchy": "node --test scripts/hierarchy-loading.test.cjs"
   },
   "browserslist": {
     "production": [

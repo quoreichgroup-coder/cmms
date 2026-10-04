@@ -120,3 +120,7 @@ Refus HTTP 403 du superadmin aux rapports et événements reproduits. Correction
 Validation finale : 392 tests backend ciblés réussis, 7 tests rapports/calendrier et 7 tests UI licence réussis ; build frontend et typage TypeScript réussis. Les neuf routes de rapports et le calendrier vérifiés dans Chromium sur les erreurs HTTP 403 réelles de l’API courante. L’accès corrigé est testé séparément avec Spring Method Security réel, y compris le refus d’une société étrangère. Voir docs/CORRECTION-RAPPORTS-CALENDRIER-2026-10-03.md.
 
 Publication demandée par l’utilisateur : branche projet, origin https://github.com/quoreichgroup-coder/cmms.git. Les fichiers privés et les trois fichiers vides api/nginx* restent hors commit. Contrôle des secrets locaux sur les fichiers préparés : aucun secret trouvé. Les conteneurs locaux nécessitent la reconstruction pour appliquer ces derniers correctifs.
+
+## Diagnostic CRUD complémentaire
+
+Le diagnostic du 3 octobre a reproduit les 404 des racines Locations/Assets et les refus de création avec le superadmin. Les corrections et validations HTTP/navigateur sont détaillées dans [DIAGNOSTIC-CRUD-2026-10-03.md](DIAGNOSTIC-CRUD-2026-10-03.md). Les tests ont utilisé une base isolée. Les logs historiques Docker restent à fournir et les nouveaux correctifs doivent encore être reconstruits dans les conteneurs actuels.

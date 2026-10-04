@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -111,7 +112,8 @@ function Locations() {
     locations,
     loadingGet,
     childrenPages,
-    loadingHierarchy
+    loadingHierarchy,
+    hierarchyError
   } = useSelector((state) => state.locations);
   const { customFields } = useSelector((state) => state.customFields);
   const [deployedLocations, setDeployedLocations] = useState<
@@ -237,6 +239,7 @@ function Locations() {
     setOpenAddModal(false);
     setInitialLocationName('');
     showSnackBar(t('location_create_success'), 'success');
+    dispatch(resetLocationsHierarchy(pageable, true));
 
     if (createdLocation) {
       if (returnField) {
@@ -256,6 +259,14 @@ function Locations() {
     setOpenUpdateModal(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
+  useEffect(() => {
+    if (!currentLocation?.id) return;
+    const updated =
+      locationsHierarchy.find((row) => row.id === currentLocation.id) ||
+      locations.content.find((row) => row.id === currentLocation.id);
+    if (updated) setCurrentLocation(updated);
+  }, [locationsHierarchy, locations.content, currentLocation?.id]);
+
   const onEditFailure = (err) =>
     showSnackBar(t('location_edit_failure'), 'error');
   const onDeleteSuccess = () => {
@@ -1078,6 +1089,11 @@ function Locations() {
               }}
             >
               <Box sx={{ width: '95%' }}>
+                {hierarchyError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {hierarchyError}
+                  </Alert>
+                )}
                 <CustomDatagrid2
                   columns={isHierarchyView ? columns : columns.slice(1)}
                   data={filteredTableData}

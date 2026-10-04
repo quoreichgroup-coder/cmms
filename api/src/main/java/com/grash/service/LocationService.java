@@ -340,7 +340,7 @@ public class LocationService {
     public Collection<Location> getChildren(Long id, User user) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.LOCATIONS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        if (id.equals(0L) && user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
+        if (id.equals(0L)) {
             return locationRepository.findByCompany_Id(user.getCompany().getId()).stream()
                     .filter(location -> location.getParentLocation() == null)
                     .collect(Collectors.toList());
@@ -355,7 +355,7 @@ public class LocationService {
     public Page<Location> getChildrenPaginated(Long id, Pageable pageable, User user) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.LOCATIONS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        if (id.equals(0L) && user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
+        if (id.equals(0L)) {
             return locationRepository.findByCompany_IdAndParentLocationIsNull(user.getCompany().getId(), pageable);
         }
         Optional<Location> optionalLocation = locationRepository.findById(id);

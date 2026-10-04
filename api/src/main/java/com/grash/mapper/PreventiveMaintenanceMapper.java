@@ -11,6 +11,8 @@ import com.grash.service.WorkOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Mappings;
 import org.quartz.Scheduler;
@@ -36,6 +38,7 @@ public abstract class PreventiveMaintenanceMapper {
     @Autowired
     private WorkOrderService workOrderService;
 
+    @Mapping(target = "title", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     public abstract PreventiveMaintenance updatePreventiveMaintenance(@MappingTarget PreventiveMaintenance entity,
                                                                       PreventiveMaintenancePatchDTO dto);
 

@@ -366,7 +366,7 @@ public class AssetService {
     public List<Asset> findChildren(Long id, User user, Pageable pageable) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        if (id.equals(0L) && user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
+        if (id.equals(0L)) {
             return findByCompanyAndParentAssetNull(user.getCompany().getId(), pageable);
         }
         Optional<Asset> optionalAsset = findById(id);
@@ -378,7 +378,7 @@ public class AssetService {
     public Page<Asset> findChildrenPaginated(Long id, User user, Pageable pageable) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        if (id.equals(0L) && user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
+        if (id.equals(0L)) {
             return assetRepository.findByCompany_IdAndParentAssetIsNull(user.getCompany().getId(), pageable);
         }
         Optional<Asset> optionalAsset = findById(id);
@@ -421,6 +421,9 @@ public class AssetService {
             Asset savedAsset = optionalAsset.get();
             em.detach(savedAsset);
             if (savedAsset.canBeEditedBy(user)) {
+                if (asset.getStatus() == null) {
+                    asset.setStatus(savedAsset.getStatus());
+                }
                 if (!asset.getStatus().isReallyDown() && savedAsset.getStatus().isReallyDown()) {
                     stopDownTime(savedAsset.getId(), Helper.getLocale(user));
                 } else if (asset.getStatus().isReallyDown() && !savedAsset.getStatus().isReallyDown()) {

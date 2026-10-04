@@ -617,6 +617,24 @@ class AssetServiceTest {
         }
 
         @Test
+        void omittedStatusPreservesCurrentStatus() {
+            Asset saved = buildAsset(1L);
+            AssetPatchDTO dto = buildPatchDTO();
+            dto.setStatus(null);
+            when(assetRepository.findById(1L)).thenReturn(Optional.of(saved));
+            stubUpdatePipeline();
+            when(assetMapper.updateAsset(any(Asset.class), any(AssetPatchDTO.class))).thenAnswer(inv -> inv.getArgument(0));
+            stubMessageKeys();
+
+            Asset result = assetService.patch(1L, dto, user);
+
+            assertSame(saved, result);
+            assertEquals(saved.getStatus(), dto.getStatus());
+            verify(em).detach(saved);
+            verify(assetRepository).saveAndFlush(saved);
+        }
+
+        @Test
         void assetNotFound_throwsNotFound() {
             when(assetRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -1685,6 +1703,18 @@ class AssetServiceTest {
 
         @Test
         void rootIdForClient_returnsTopLevelAssets() {
+            Asset asset = buildAsset(1L);
+            when(assetRepository.findByCompany_IdAndParentAssetIsNull(1L, Pageable.unpaged()))
+                    .thenReturn(new PageImpl<>(Collections.singletonList(asset)));
+
+            Page<Asset> result = assetService.findChildrenPaginated(0L, user, Pageable.unpaged());
+
+            assertEquals(Collections.singletonList(asset), result.getContent());
+        }
+
+        @Test
+        void rootIdForSuperAdmin_returnsTopLevelAssets() {
+            role.setRoleType(RoleType.ROLE_SUPER_ADMIN);
             Asset asset = buildAsset(1L);
             when(assetRepository.findByCompany_IdAndParentAssetIsNull(1L, Pageable.unpaged()))
                     .thenReturn(new PageImpl<>(Collections.singletonList(asset)));

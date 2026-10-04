@@ -2,7 +2,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from 'src/store';
 import { AssetDTO, AssetMiniDTO, AssetRow } from '../models/owns/asset';
-import api, { authHeader } from '../utils/api';
+import api, { authHeader, getErrorMessage } from '../utils/api';
 import WorkOrder from '../models/owns/workOrder';
 import {
   getInitialPage,
@@ -12,9 +12,7 @@ import {
   SearchCriteria
 } from 'src/models/owns/page';
 import { revertAll } from 'src/utils/redux';
-import {
-  cancellableFetch,
-} from 'src/utils/cancellableRequest';
+import { cancellableFetch } from 'src/utils/cancellableRequest';
 
 const basePath = 'assets';
 interface AssetState {
@@ -26,6 +24,7 @@ interface AssetState {
   assetsMini: AssetMiniDTO[];
   loadingGet: boolean;
   loadingHierarchy: boolean;
+  hierarchyError: string | null;
   childrenPages: { [key: number]: Page<AssetDTO> };
 }
 
@@ -38,6 +37,7 @@ const initialState: AssetState = {
   assetsMini: [],
   loadingGet: false,
   loadingHierarchy: false,
+  hierarchyError: null,
   childrenPages: {}
 };
 
@@ -83,6 +83,9 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    setHierarchyError(state, action: PayloadAction<string | null>) {
+      state.hierarchyError = action.payload;
     },
     setLoadingHierarchy(
       state: AssetState,
@@ -180,7 +183,8 @@ export const getAssets =
     await cancellableFetch(
       dispatch,
       'getAssets',
-      (signal) => api.post<Page<AssetDTO>>(`${basePath}/search`, criteria, { signal }),
+      (signal) =>
+        api.post<Page<AssetDTO>>(`${basePath}/search`, criteria, { signal }),
       (assets) => dispatch(slice.actions.getAssets({ assets })),
       (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
     );
@@ -191,7 +195,11 @@ export const getAssetsMini =
     await cancellableFetch(
       dispatch,
       'getAssetsMini',
-      (signal) => api.get<AssetMiniDTO[]>(`${basePath}/mini?locationId=${locationId ?? ''}`, { signal }),
+      (signal) =>
+        api.get<AssetMiniDTO[]>(
+          `${basePath}/mini?locationId=${locationId ?? ''}`,
+          { signal }
+        ),
       (assets) => dispatch(slice.actions.getAssetsMini({ assets })),
       (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
     );
@@ -246,16 +254,24 @@ export const getAssetChildren =
   (id: number, pageable: Pageable): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingHierarchy({ loading: true }));
-    const assets = await api.get<Page<AssetDTO>>(
-      `${basePath}/children/${id}/paginated?${pageableToQueryParams(pageable)}`
-    );
-    dispatch(
-      slice.actions.getAssetChildrenPaginated({
-        id,
-        assets
-      })
-    );
-    dispatch(slice.actions.setLoadingHierarchy({ loading: false }));
+    dispatch(slice.actions.setHierarchyError(null));
+    try {
+      const assets = await api.get<Page<AssetDTO>>(
+        `${basePath}/children/${id}/paginated?${pageableToQueryParams(
+          pageable
+        )}`
+      );
+      dispatch(
+        slice.actions.getAssetChildrenPaginated({
+          id,
+          assets
+        })
+      );
+    } catch (error) {
+      dispatch(slice.actions.setHierarchyError(getErrorMessage(error)));
+    } finally {
+      dispatch(slice.actions.setLoadingHierarchy({ loading: false }));
+    }
   };
 
 export const getAssetDetails =
@@ -319,6 +335,6 @@ export const resetAssetsHierarchy =
   (callApi: boolean): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.resetHierarchy({}));
-    if (callApi) dispatch(getAssetChildren(0, { page: 0, size: 10 }));
+    if (callApi) await dispatch(getAssetChildren(0, { page: 0, size: 10 }));
   };
 export default slice;

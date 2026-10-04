@@ -532,6 +532,18 @@ class LocationServiceTest {
         }
 
         @Test
+        void rootIdForSuperAdmin_returnsTopLevelLocations() {
+            role.setRoleType(RoleType.ROLE_SUPER_ADMIN);
+            Location location = buildLocation(1L);
+            when(locationRepository.findByCompany_IdAndParentLocationIsNull(1L, Pageable.unpaged()))
+                    .thenReturn(new PageImpl<>(Collections.singletonList(location)));
+
+            Page<Location> result = locationService.getChildrenPaginated(0L, Pageable.unpaged(), user);
+
+            assertEquals(Collections.singletonList(location), result.getContent());
+        }
+
+        @Test
         void locationNotFound_throwsNotFound() {
             when(locationRepository.findById(5L)).thenReturn(Optional.empty());
 
