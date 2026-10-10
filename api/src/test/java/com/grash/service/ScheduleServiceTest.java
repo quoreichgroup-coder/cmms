@@ -13,11 +13,15 @@ import com.grash.model.Schedule;
 import com.grash.model.Subscription;
 import com.grash.model.SubscriptionPlan;
 import com.grash.model.WorkOrder;
+import com.grash.model.PreventiveMaintenanceMeterCall;
 import com.grash.model.enums.PlanFeatures;
 import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
 import com.grash.model.enums.Status;
+import com.grash.model.enums.ScheduleTriggerType;
+import com.grash.model.enums.PreventiveMaintenanceCallStatus;
 import com.grash.repository.ScheduleRepository;
+import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,6 +39,7 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
+import org.quartz.TriggerKey;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
@@ -86,6 +91,8 @@ class ScheduleServiceTest {
     private ScheduleMapper scheduleMapper;
     @Mock
     private WorkOrderService workOrderService;
+    @Mock
+    private PreventiveMaintenanceMeterCallRepository callRepository;
     @Mock
     private Scheduler scheduler;
 
@@ -393,10 +400,44 @@ class ScheduleServiceTest {
 
             assertFalse(scheduleService.checkIfWeeklyShouldRun(schedule));
         }
+
+        @Test
+        void completionBasedWeeklySchedule_doesNotReapplyStartDateIntervalFilter() {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceType(RecurrenceType.WEEKLY);
+            schedule.setFrequency(2);
+            schedule.setRecurrenceBasedOn(RecurrenceBasedOn.COMPLETED_DATE);
+            schedule.setStartsOn(daysFromNow(-8)); // Original start-date week is off interval.
+
+            assertTrue(scheduleService.checkIfWeeklyShouldRun(schedule));
+        }
     }
 
     @Nested
     class ScheduleWorkOrderGuards {
+
+        @Test
+        void persistsUpcomingCalendarOccurrencesInCallRegister() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            schedule.setTriggerType(ScheduleTriggerType.CALENDAR);
+            schedule.setStartsOn(daysFromNow(1));
+            when(callRepository.findBySchedule_IdAndCallTypeAndStatus(SCHEDULE_ID, ScheduleTriggerType.METER,
+                    PreventiveMaintenanceCallStatus.PLANNED)).thenReturn(Collections.emptyList());
+            when(callRepository.findBySchedule_IdAndCallTypeAndStatus(SCHEDULE_ID, ScheduleTriggerType.CALENDAR,
+                    PreventiveMaintenanceCallStatus.PLANNED)).thenReturn(Collections.emptyList());
+
+            scheduleService.scheduleWorkOrder(schedule);
+
+            ArgumentCaptor<PreventiveMaintenanceMeterCall> calls =
+                    ArgumentCaptor.forClass(PreventiveMaintenanceMeterCall.class);
+            verify(callRepository, times(12)).save(calls.capture());
+            assertEquals(12, calls.getAllValues().size());
+            assertTrue(calls.getAllValues().stream().allMatch(call ->
+                    call.getCallType() == ScheduleTriggerType.CALENDAR
+                            && call.getStatus() == PreventiveMaintenanceCallStatus.PLANNED
+                            && call.getDueDate() != null));
+            assertEquals(schedule.getStartsOn(), calls.getAllValues().get(0).getDueDate());
+        }
 
         @Test
         void disabledSchedule_isNotScheduled() throws SchedulerException {
@@ -505,7 +546,7 @@ class ScheduleServiceTest {
     class ScheduleWorkOrderByRecurrenceType {
 
         @Test
-        void daily_buildsRepeatForeverHourlyTrigger() throws SchedulerException {
+        void daily_buildsCalendarIntervalTriggerInDays() throws SchedulerException {
             Schedule schedule = buildSchedule();
             schedule.setRecurrenceType(RecurrenceType.DAILY);
             schedule.setFrequency(3);
@@ -521,10 +562,28 @@ class ScheduleServiceTest {
             assertEquals(schedule.getStartsOn(), scheduled.trigger.getStartTime());
             assertNull(scheduled.trigger.getEndTime());
 
-            SimpleTrigger trigger = (SimpleTrigger) scheduled.trigger;
-            assertEquals(TimeUnit.HOURS.toMillis(24L * 3), trigger.getRepeatInterval());
-            assertEquals(-1, trigger.getRepeatCount());
-            assertEquals(SimpleTrigger.MISFIRE_INSTRUCTION_FIRE_NOW, trigger.getMisfireInstruction());
+            CalendarIntervalTrigger trigger = (CalendarIntervalTrigger) scheduled.trigger;
+            assertEquals(3, trigger.getRepeatInterval());
+            assertEquals(IntervalUnit.DAY, trigger.getRepeatIntervalUnit());
+            assertTrue(trigger.isPreserveHourOfDayAcrossDaylightSavings());
+            assertEquals(TIME_ZONE, trigger.getTimeZone().getID());
+        }
+
+        @Test
+        void dailyEverySevenDays_preservesLocalTimeAcrossDaylightSavingChange() throws SchedulerException {
+            company.getCompanySettings().getGeneralPreferences().setTimeZone("Europe/Berlin");
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceType(RecurrenceType.DAILY);
+            schedule.setFrequency(7);
+            schedule.setStartsOn(Date.from(Instant.parse("2026-10-24T07:00:00Z"))); // 09:00 CEST
+
+            scheduleService.scheduleWorkOrder(schedule);
+
+            CalendarIntervalTrigger trigger = (CalendarIntervalTrigger) jobNamed("wo-job-" + SCHEDULE_ID).trigger;
+            assertEquals(IntervalUnit.DAY, trigger.getRepeatIntervalUnit());
+            assertEquals("Europe/Berlin", trigger.getTimeZone().getID());
+            assertEquals(Instant.parse("2026-10-31T08:00:00Z"),
+                    trigger.getFireTimeAfter(schedule.getStartsOn()).toInstant()); // 09:00 CET
         }
 
         @Test
@@ -539,6 +598,24 @@ class ScheduleServiceTest {
             assertInstanceOf(CalendarIntervalTrigger.class, trigger);
             assertEquals(6, ((CalendarIntervalTrigger) trigger).getRepeatInterval());
             assertEquals(IntervalUnit.MONTH, ((CalendarIntervalTrigger) trigger).getRepeatIntervalUnit());
+            assertEquals(TIME_ZONE, ((CalendarIntervalTrigger) trigger).getTimeZone().getID());
+        }
+
+        @Test
+        void monthly_preservesCompanyTimeZoneAcrossDaylightSavingChange() throws SchedulerException {
+            company.getCompanySettings().getGeneralPreferences().setTimeZone("Europe/Berlin");
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceType(RecurrenceType.MONTHLY);
+            schedule.setFrequency(1);
+            schedule.setStartsOn(Date.from(Instant.parse("2026-10-24T07:00:00Z"))); // 09:00 CEST
+
+            scheduleService.scheduleWorkOrder(schedule);
+
+            CalendarIntervalTrigger trigger = (CalendarIntervalTrigger) jobNamed("wo-job-" + SCHEDULE_ID).trigger;
+            assertEquals("Europe/Berlin", trigger.getTimeZone().getID());
+            assertTrue(trigger.isPreserveHourOfDayAcrossDaylightSavings());
+            assertEquals(Instant.parse("2026-11-24T08:00:00Z"),
+                    trigger.getFireTimeAfter(schedule.getStartsOn()).toInstant()); // 09:00 CET
         }
 
         @Test
@@ -553,6 +630,7 @@ class ScheduleServiceTest {
             assertInstanceOf(CalendarIntervalTrigger.class, trigger);
             assertEquals(2, ((CalendarIntervalTrigger) trigger).getRepeatInterval());
             assertEquals(IntervalUnit.YEAR, ((CalendarIntervalTrigger) trigger).getRepeatIntervalUnit());
+            assertEquals(TIME_ZONE, ((CalendarIntervalTrigger) trigger).getTimeZone().getID());
         }
 
         @Test
@@ -823,6 +901,23 @@ class ScheduleServiceTest {
         }
 
         @Test
+        void configuredLeadDays_runEarlyButKeepPlannedOccurrence() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceBasedOn(RecurrenceBasedOn.COMPLETED_DATE);
+            schedule.setRecurrenceType(RecurrenceType.DAILY);
+            schedule.setFrequency(1);
+            schedule.setWorkOrderGenerationLeadDays(3);
+            when(scheduleRepository.findById(SCHEDULE_ID)).thenReturn(Optional.of(schedule));
+
+            scheduleService.scheduleNextWorkOrderJobAfterCompletion(SCHEDULE_ID, Date.from(MONDAY_0915));
+
+            Date plannedDate = Date.from(MONDAY_0915.plus(1, ChronoUnit.DAYS));
+            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + plannedDate.getTime());
+            assertEquals(Date.from(MONDAY_0915.minus(2, ChronoUnit.DAYS)), chained.trigger.getStartTime());
+            assertEquals(plannedDate.getTime(), chained.job.getJobDataMap().getLong("occurrenceTimestamp"));
+        }
+
+        @Test
         void schedulerException_isSwallowed() throws SchedulerException {
             Schedule schedule = buildSchedule();
             schedule.setRecurrenceBasedOn(RecurrenceBasedOn.COMPLETED_DATE);
@@ -935,6 +1030,35 @@ class ScheduleServiceTest {
 
             verify(scheduler).deleteJob(new JobKey("wo-job-" + SCHEDULE_ID, "wo-group"));
             verifyNoJobScheduled();
+        }
+    }
+
+    @Nested
+    class EnsureWorkOrderScheduled {
+
+        @Test
+        void preservesExistingPersistentTriggerOnApplicationRestart() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            TriggerKey triggerKey = new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group");
+            when(scheduler.checkExists(triggerKey)).thenReturn(true);
+
+            scheduleService.ensureWorkOrderScheduled(schedule);
+
+            verify(scheduler).checkExists(triggerKey);
+            verify(scheduler, never()).deleteJob(any(JobKey.class));
+            verify(scheduler, never()).scheduleJob(any(JobDetail.class), any(Trigger.class));
+        }
+
+        @Test
+        void createsMissingTrigger() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            TriggerKey triggerKey = new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group");
+            when(scheduler.checkExists(triggerKey)).thenReturn(false);
+
+            scheduleService.ensureWorkOrderScheduled(schedule);
+
+            assertEquals(1, scheduledCount());
+            verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
         }
     }
 }

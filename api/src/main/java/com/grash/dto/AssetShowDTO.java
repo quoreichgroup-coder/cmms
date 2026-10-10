@@ -32,6 +32,9 @@ public class AssetShowDTO extends AuditShowDTO {
     @Schema(description = "Location information")
     private LocationMiniDTO location;
 
+    private Long siteId;
+    private String siteName;
+
     @Schema(description = "Parent asset information")
     private AssetMiniDTO parentAsset;
 

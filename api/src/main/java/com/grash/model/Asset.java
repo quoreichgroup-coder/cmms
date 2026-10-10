@@ -47,6 +47,9 @@ public class Asset extends CompanyAudit {
     @ManyToOne(fetch = FetchType.LAZY)
     private Location location;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Site site;
+
     @Schema(description = "The parent asset in a hierarchical structure", implementation = IdDTO.class)
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)

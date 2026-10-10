@@ -19,6 +19,7 @@ import com.grash.model.enums.PortalFieldType;
 import com.grash.model.enums.RoleType;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.AssetRepository;
+import com.grash.repository.SiteRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @RequiredArgsConstructor
 public class AssetService {
     private final AssetRepository assetRepository;
+    private final SiteRepository siteRepository;
     private LocationService locationService;
     private final AssetCategoryService assetCategoryService;
     private final UserService userService;
@@ -88,6 +90,7 @@ public class AssetService {
                 setAssetCustomFields(asset, assetPostDTO.getCustomFields(), company);
             }
         }
+        if (asset.getSite() != null) asset.setSite(resolveSite(asset.getSite(), company));
         if (asset.getParentAsset() != null && !licenseService.hasEntitlement(LicenseEntitlement.ASSET_HIERARCHY))
             throw new CustomException("You need a license to add a child asset to another asset.",
                     HttpStatus.FORBIDDEN);
@@ -140,6 +143,7 @@ public class AssetService {
                 setAssetCustomFields(savedAsset, asset.getCustomFields(), company);
             }
             Asset patchedAsset = assetMapper.updateAsset(savedAsset, asset);
+            patchedAsset.setSite(asset.getSite() == null ? savedAsset.getSite() : resolveSite(asset.getSite(), company));
             Sanitizer.sanitizeAsset(patchedAsset);
             patchedAsset = assetRepository.saveAndFlush(patchedAsset);
             em.refresh(patchedAsset);
@@ -150,6 +154,12 @@ public class AssetService {
 
             return patchedAsset;
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+    }
+
+    private Site resolveSite(Site reference, Company company) {
+        return siteRepository.findById(reference.getId())
+                .filter(site -> site.getCompany().getId().equals(company.getId()))
+                .orElseThrow(() -> new CustomException("Site not found", HttpStatus.BAD_REQUEST));
     }
 
     private void checkUsageBasedLimit(Company company) {

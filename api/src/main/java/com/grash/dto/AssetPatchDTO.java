@@ -25,6 +25,7 @@ public class AssetPatchDTO {
 
     @Schema(description = "The location where the asset is situated", implementation = IdDTO.class)
     private Location location;
+    private Site site;
 
     @Schema(description = "The parent asset in a hierarchical structure", implementation = IdDTO.class)
     private Asset parentAsset;

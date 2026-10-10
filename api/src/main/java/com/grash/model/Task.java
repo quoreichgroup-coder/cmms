@@ -16,6 +16,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +30,10 @@ import java.util.Locale;
 @AllArgsConstructor
 @Schema(description = "Task entity representing individual steps within a work order or preventive maintenance")
 public class Task extends CompanyAudit {
+    @Column(name = "task_order", nullable = false)
+    @Builder.Default
+    private int taskOrder = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @NotNull
     private TaskBase taskBase;

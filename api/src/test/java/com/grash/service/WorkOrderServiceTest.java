@@ -22,6 +22,7 @@ import com.grash.model.enums.webhook.WOField;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.FileRepository;
 import com.grash.repository.WorkOrderRepository;
+import com.grash.repository.SiteRepository;
 import com.grash.utils.Consts;
 import com.grash.utils.PdfReportUtils;
 import jakarta.persistence.EntityManager;
@@ -61,6 +62,10 @@ class WorkOrderServiceTest {
 
     @Mock
     private WorkOrderRepository workOrderRepository;
+    @Mock
+    private SiteRepository siteRepository;
+    @Mock
+    private DocumentContextResolver documentContextResolver;
     @Mock
     private TeamService teamService;
     @Mock
@@ -209,6 +214,11 @@ class WorkOrderServiceTest {
         user.setEnabled(true);
         user.setSuperAccountRelations(new ArrayList<>());
         user.setUserSettings(new UserSettings());
+
+        lenient().when(documentContextResolver.resolve(any(com.grash.model.abstracts.WorkOrderBase.class)))
+                .thenReturn(new DocumentContextResolver.DocumentContext(
+                        company.getName(), null, company.getPhone(), company.getEmail(), company.getAddress(),
+                        null, null, "$", null, "UTC", Language.EN, Locale.ENGLISH, null, null));
     }
 
     // ─── Helper methods ───────────────────────────────────────────────

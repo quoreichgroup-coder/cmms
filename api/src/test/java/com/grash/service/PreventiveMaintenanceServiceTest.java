@@ -3,6 +3,8 @@ package com.grash.service;
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.PreventiveMaintenancePatchDTO;
 import com.grash.dto.PreventiveMaintenancePostDTO;
+import com.grash.dto.PreventiveMaintenanceCallDTO;
+import com.grash.dto.PreventiveMaintenanceCallRescheduleRequest;
 import com.grash.dto.PreventiveMaintenanceShowDTO;
 import com.grash.dto.cutomField.CustomFieldValuePostDTO;
 import com.grash.dto.license.LicenseEntitlement;
@@ -12,6 +14,12 @@ import com.grash.mapper.PreventiveMaintenanceMapper;
 import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.repository.PreventiveMaintenanceRepository;
+import com.grash.repository.PreventiveMaintenanceCallRescheduleRepository;
+import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
+import com.grash.repository.PreventiveMaintenancePlanCycleStateRepository;
+import com.grash.repository.ReadingRepository;
+import com.grash.repository.ScheduleRepository;
+import com.grash.repository.SiteRepository;
 import com.grash.utils.Consts;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,6 +51,18 @@ class PreventiveMaintenanceServiceTest {
     @Mock
     private PreventiveMaintenanceRepository preventiveMaintenanceRepository;
     @Mock
+    private PreventiveMaintenanceMeterCallRepository meterCallRepository;
+    @Mock
+    private PreventiveMaintenanceCallRescheduleRepository callRescheduleRepository;
+    @Mock
+    private PreventiveMaintenancePlanCycleStateRepository planCycleStateRepository;
+    @Mock
+    private ReadingRepository readingRepository;
+    @Mock
+    private ScheduleRepository scheduleRepository;
+    @Mock
+    private SiteRepository siteRepository;
+    @Mock
     private EntityManager em;
     @Mock
     private CustomSequenceService customSequenceService;
@@ -68,6 +88,8 @@ class PreventiveMaintenanceServiceTest {
     private WorkOrderService workOrderService;
     @Mock
     private TaskService taskService;
+    @Mock
+    private MeterService meterService;
 
     private Company company;
     private User user;
@@ -188,6 +210,50 @@ class PreventiveMaintenanceServiceTest {
             assertEquals("PM000001", result.getCustomId());
             verify(preventiveMaintenanceRepository).saveAndFlush(any());
             verify(scheduleService).scheduleWorkOrder(any());
+        }
+
+        @Test
+        void create_meterBasedPM_setsFirstCounterTargetWithoutCalendarRequirements() {
+            subscriptionPlan.setFeatures(new HashSet<>(Arrays.asList(
+                    PlanFeatures.PREVENTIVE_MAINTENANCE, PlanFeatures.METER)));
+            role.setViewPermissions(new HashSet<>(Arrays.asList(
+                    PermissionEntity.PREVENTIVE_MAINTENANCES, PermissionEntity.METERS)));
+            Asset asset = new Asset();
+            asset.setId(55L);
+            asset.setCompany(company);
+            Meter meter = new Meter();
+            meter.setId(8L);
+            meter.setCompany(company);
+            meter.setAsset(asset);
+            meter.setCreatedBy(user.getId());
+            meter.setUnit("hours");
+            PreventiveMaintenancePostDTO dto = buildPostDTO();
+            dto.setTriggerType(ScheduleTriggerType.METER);
+            dto.setMeterId(8L);
+            dto.setMeterCycleInterval(100d);
+            dto.setMeterReferenceValue(50d);
+            dto.setMeterEndValue(450d);
+            Date planEndDate = new Date(System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000);
+            dto.setEndsOn(planEndDate);
+            PreventiveMaintenance mappedPM = buildPM(null);
+            mappedPM.setAsset(asset);
+            when(preventiveMaintenanceMapper.toModel(dto)).thenReturn(mappedPM);
+            when(customSequenceService.getNextPreventiveMaintenanceSequence(company)).thenReturn(1L);
+            when(meterService.findById(8L)).thenReturn(Optional.of(meter));
+            when(preventiveMaintenanceRepository.saveAndFlush(any())).thenAnswer(inv -> {
+                PreventiveMaintenance saved = inv.getArgument(0);
+                saved.setId(1L);
+                return saved;
+            });
+            when(scheduleService.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            PreventiveMaintenance result = preventiveMaintenanceService.create(dto, user);
+
+            assertEquals(ScheduleTriggerType.METER, result.getSchedule().getTriggerType());
+            assertEquals(150d, result.getSchedule().getNextMeterValue());
+            assertEquals(450d, result.getSchedule().getMeterEndValue());
+            assertEquals(planEndDate, result.getSchedule().getEndsOn());
+            verify(scheduleService).scheduleWorkOrder(result.getSchedule());
         }
 
         @Test
@@ -318,6 +384,107 @@ class PreventiveMaintenanceServiceTest {
                             && schedule.getDaysOfWeek().equals(List.of(0, 1, 2))
             ));
         }
+    }
+
+    @Test
+    void meterCycleCreatesOneOrderPerReadingAndAdvancesOneCycleWithoutAlarmEntitlement() {
+        subscriptionPlan.setFeatures(new HashSet<>(Arrays.asList(
+                PlanFeatures.PREVENTIVE_MAINTENANCE, PlanFeatures.METER)));
+        Meter meter = new Meter();
+        meter.setId(8L);
+        meter.setCompany(company);
+        meter.setUnit("hours");
+        Reading reading = new Reading();
+        reading.setId(23L);
+        reading.setMeter(meter);
+        reading.setValue(250d);
+        Schedule schedule = buildPM(4L).getSchedule();
+        schedule.setTriggerType(ScheduleTriggerType.METER);
+        schedule.setMeter(meter);
+        schedule.setMeterCycleInterval(100d);
+        schedule.setMeterReferenceValue(0d);
+        schedule.setNextMeterValue(100d);
+        when(readingRepository.findFirstByMeter_IdOrderByCreatedAtDescIdDesc(8L)).thenReturn(Optional.of(reading));
+        when(scheduleRepository.findByMeter_IdAndTriggerTypeAndDisabledFalseOrderById(8L, ScheduleTriggerType.METER))
+                .thenReturn(Collections.singletonList(schedule));
+        when(meterCallRepository.existsBySchedule_IdAndReading_Id(100L, 23L)).thenReturn(false, true);
+        PreventiveMaintenanceService service = spy(preventiveMaintenanceService);
+        doReturn(new WorkOrder()).when(service).createWorkOrderFromPreventiveMaintenance(any(), isNull());
+
+        service.processMeterCycleReading(meter, reading);
+        service.processMeterCycleReading(meter, reading);
+
+        verify(service, times(1)).createWorkOrderFromPreventiveMaintenance(any(), isNull());
+        verify(meterCallRepository, times(1)).saveAndFlush(any(PreventiveMaintenanceMeterCall.class));
+        verify(meterCallRepository).saveAndFlush(argThat(call ->
+                call.getStatus() == PreventiveMaintenanceCallStatus.GENERATED
+                        && call.getDueValue() == 100d
+                        && call.getReadingValue() == 250d
+                        && call.getWorkOrder() != null));
+        verify(meterCallRepository).deleteBySchedule_IdAndCallTypeAndStatus(100L, ScheduleTriggerType.METER,
+                PreventiveMaintenanceCallStatus.PLANNED);
+        verify(meterCallRepository, times(12)).save(any(PreventiveMaintenanceMeterCall.class));
+        assertEquals(200d, schedule.getNextMeterValue());
+    }
+
+    @Test
+    void rescheduleCalendarCallStoresReasonAndActorAndQueuesDeferredOccurrence() {
+        PreventiveMaintenance pm = buildPM(50L);
+        pm.getSchedule().setTriggerType(ScheduleTriggerType.CALENDAR);
+        PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+        call.setId(70L);
+        call.setSchedule(pm.getSchedule());
+        call.setCallType(ScheduleTriggerType.CALENDAR);
+        call.setStatus(PreventiveMaintenanceCallStatus.PLANNED);
+        call.setDueDate(new Date(System.currentTimeMillis() + 86_400_000L));
+        when(meterCallRepository.findByIdAndSchedule_PreventiveMaintenance_Company_Id(70L, company.getId()))
+                .thenReturn(Optional.of(call));
+        PreventiveMaintenanceCallRescheduleRequest request = new PreventiveMaintenanceCallRescheduleRequest();
+        request.setRescheduledFor(new Date(System.currentTimeMillis() + 3 * 86_400_000L));
+        request.setReason("Production line unavailable");
+
+        PreventiveMaintenanceCallDTO result = preventiveMaintenanceService.rescheduleCalendarCall(50L, 70L, request,
+                user);
+
+        assertEquals(PreventiveMaintenanceCallStatus.RESCHEDULED, result.getStatus());
+        assertEquals(request.getRescheduledFor(), result.getDueDate());
+        assertEquals(call.getDueDate(), result.getOriginalDueDate());
+        assertEquals("Production line unavailable", result.getRescheduleHistory().get(0).getReason());
+        assertEquals(user.getId(), result.getRescheduleHistory().get(0).getActorUserId());
+        assertEquals("John Doe", result.getRescheduleHistory().get(0).getActorName());
+        verify(meterCallRepository).saveAndFlush(call);
+        verify(callRescheduleRepository).saveAndFlush(any(PreventiveMaintenanceCallReschedule.class));
+        verify(scheduleService).scheduleDeferredOccurrence(call);
+        verify(scheduleService).refreshCalendarCallRegister(pm.getSchedule());
+    }
+
+    @Test
+    void rescheduleCalendarCallRequiresEditPermission() {
+        PreventiveMaintenance pm = buildPM(50L);
+        pm.getSchedule().setTriggerType(ScheduleTriggerType.CALENDAR);
+        PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+        call.setId(70L);
+        call.setSchedule(pm.getSchedule());
+        call.setCallType(ScheduleTriggerType.CALENDAR);
+        call.setStatus(PreventiveMaintenanceCallStatus.PLANNED);
+        call.setDueDate(new Date(System.currentTimeMillis() + 86_400_000L));
+        when(meterCallRepository.findByIdAndSchedule_PreventiveMaintenance_Company_Id(70L, company.getId()))
+                .thenReturn(Optional.of(call));
+        Role restrictedRole = Role.builder().editOtherPermissions(Collections.emptySet()).build();
+        User restrictedUser = new User();
+        restrictedUser.setId(2L);
+        restrictedUser.setCompany(company);
+        restrictedUser.setRole(restrictedRole);
+        PreventiveMaintenanceCallRescheduleRequest request = new PreventiveMaintenanceCallRescheduleRequest();
+        request.setRescheduledFor(new Date(System.currentTimeMillis() + 3 * 86_400_000L));
+        request.setReason("Maintenance window changed");
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> preventiveMaintenanceService.rescheduleCalendarCall(50L, 70L, request, restrictedUser));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getHttpStatus());
+        verify(scheduleService, never()).scheduleDeferredOccurrence(any());
+        verify(callRescheduleRepository, never()).save(any(PreventiveMaintenanceCallReschedule.class));
     }
 
     @Nested
@@ -829,12 +996,15 @@ class PreventiveMaintenanceServiceTest {
 
             Task task = new Task();
             task.setId(1L);
+            task.setTaskOrder(3);
             when(taskService.findByPreventiveMaintenance(1L)).thenReturn(Collections.singletonList(task));
 
             WorkOrder result = preventiveMaintenanceService.createWorkOrderFromPreventiveMaintenance(pm);
 
             assertEquals(20L, result.getId());
-            verify(taskService).create(any(Task.class));
+            org.mockito.ArgumentCaptor<Task> copiedTask = org.mockito.ArgumentCaptor.forClass(Task.class);
+            verify(taskService).create(copiedTask.capture());
+            assertEquals(3, copiedTask.getValue().getTaskOrder());
         }
 
         @Test

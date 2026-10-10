@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="20261004-5" author="codex">
+        <dropNotNullConstraint tableName="preventive_maintenance_meter_call" columnName="reading_id" columnDataType="bigint"/>
+        <dropNotNullConstraint tableName="preventive_maintenance_meter_call" columnName="reading_value" columnDataType="double precision"/>
+        <addColumn tableName="preventive_maintenance_meter_call">
+            <column name="call_status" type="varchar(24)" defaultValue="GENERATED">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createIndex tableName="preventive_maintenance_meter_call" indexName="idx_pm_meter_call_status">
+            <column name="call_status"/>
+            <column name="due_value"/>
+        </createIndex>
+        <sql dbms="postgresql" splitStatements="false"><![CDATA[
+            INSERT INTO preventive_maintenance_meter_call
+                (schedule_id, due_value, reading_id, work_order_id, reading_value, call_status, created_at, updated_at)
+            SELECT s.id,
+                   s.next_meter_value + (steps.step * s.meter_cycle_interval),
+                   NULL, NULL, NULL, 'PLANNED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            FROM schedule s
+            CROSS JOIN generate_series(0, 11) AS steps(step)
+            WHERE s.trigger_type = 'METER'
+              AND s.disabled = false
+              AND s.next_meter_value IS NOT NULL
+              AND s.meter_cycle_interval IS NOT NULL
+              AND (s.meter_end_value IS NULL OR
+                   s.next_meter_value + (steps.step * s.meter_cycle_interval) <= s.meter_end_value)
+              AND (s.ends_on IS NULL OR s.ends_on > CURRENT_TIMESTAMP)
+            ON CONFLICT (schedule_id, due_value) DO NOTHING
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

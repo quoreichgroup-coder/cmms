@@ -12,6 +12,7 @@ import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.AssetRepository;
+import com.grash.repository.SiteRepository;
 import com.grash.utils.Consts;
 import io.github.bucket4j.Bucket;
 import jakarta.persistence.EntityManager;
@@ -48,6 +49,8 @@ class AssetServiceTest {
 
     @Mock
     private AssetRepository assetRepository;
+    @Mock
+    private SiteRepository siteRepository;
     @Mock
     private AssetCategoryService assetCategoryService;
     @Mock

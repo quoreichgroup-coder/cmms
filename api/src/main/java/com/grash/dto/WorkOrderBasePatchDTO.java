@@ -37,6 +37,7 @@ public class WorkOrderBasePatchDTO {
     private WorkOrderCategory category;
     @Schema(description = "Location where the work is to be performed", implementation = IdDTO.class)
     private Location location;
+    private Site site;
 
     @Schema(description = "Team assigned to the work order", implementation = IdDTO.class)
     private Team team;

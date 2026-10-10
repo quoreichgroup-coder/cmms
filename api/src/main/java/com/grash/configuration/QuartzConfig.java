@@ -6,8 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.quartz.listeners.JobListenerSupport;
 import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 
 @Configuration
 public class QuartzConfig {
@@ -32,8 +34,17 @@ public class QuartzConfig {
     }
 
     @Bean
-    public SchedulerFactoryBeanCustomizer sentryQuartzSchedulerCustomizer() {
-        return schedulerFactoryBean -> schedulerFactoryBean.setGlobalJobListeners(new SentryJobListener());
+    public SchedulerFactoryBeanCustomizer sentryQuartzSchedulerCustomizer(
+            AutowireCapableBeanFactory beanFactory) {
+        return schedulerFactoryBean -> {
+            schedulerFactoryBean.setGlobalJobListeners(new SentryJobListener());
+            schedulerFactoryBean.setJobFactory(new SpringBeanJobFactory() {
+                @Override
+                protected Object createJobInstance(org.quartz.spi.TriggerFiredBundle bundle) {
+                    return beanFactory.createBean(bundle.getJobDetail().getJobClass());
+                }
+            });
+        };
     }
 
     @Slf4j

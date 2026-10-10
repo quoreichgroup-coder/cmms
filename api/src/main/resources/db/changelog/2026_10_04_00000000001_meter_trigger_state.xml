@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="20261004-1" author="codex">
+        <addColumn tableName="work_order_meter_trigger">
+            <column name="armed" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="has_triggered" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pending_since" type="timestamp"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20261004-2" author="codex">
+        <sql>
+            UPDATE work_order_meter_trigger t
+            SET armed = false, has_triggered = true
+            WHERE EXISTS (
+                SELECT 1
+                FROM reading r
+                WHERE r.meter_id = t.meter_id
+                  AND r.id = (
+                    SELECT latest.id
+                    FROM reading latest
+                    WHERE latest.meter_id = t.meter_id
+                    ORDER BY latest.created_at DESC, latest.id DESC
+                    LIMIT 1
+                  )
+                  AND ((t.trigger_condition = 1 AND r.value &gt; t.value)
+                    OR (t.trigger_condition = 0 AND r.value &lt; t.value))
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_09_company_legal_profile_1" author="QPM">
+        <createTable tableName="company_legal_profile">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false" unique="true" foreignKeyName="fk_company_legal_profile_company"
+                             references="company(id)"/>
+            </column>
+            <column name="legal_name" type="VARCHAR(160)"/>
+            <column name="registration_country" type="VARCHAR(2)"/>
+            <column name="business_registration_number" type="VARCHAR(120)"/>
+            <column name="tax_identification_number" type="VARCHAR(120)"/>
+            <column name="registered_address" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

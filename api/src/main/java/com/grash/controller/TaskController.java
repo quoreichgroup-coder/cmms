@@ -109,7 +109,8 @@ public class TaskController {
         List<Task> matchedTasks = new ArrayList<>();
 
         // Process each incoming task
-        for (TaskBaseDTO reqTaskBase : incomingTasks) {
+        for (int taskOrder = 0; taskOrder < incomingTasks.size(); taskOrder++) {
+            TaskBaseDTO reqTaskBase = incomingTasks.get(taskOrder);
             // Find matching existing task by comparing task base properties
             Task matchedTask = savedTasks.stream()
                     .filter(task -> !matchedTasks.contains(task) && tasksMatch(task.getTaskBase(), reqTaskBase))
@@ -119,6 +120,7 @@ public class TaskController {
             if (matchedTask != null) {
                 // Task already exists - preserve it with all its data (notes, images, value)
                 matchedTasks.add(matchedTask);
+                matchedTask.setTaskOrder(taskOrder);
                 resultTasks.add(matchedTask);
             } else {
                 // New task - create it
@@ -130,6 +132,7 @@ public class TaskController {
                     value.append("FLAG");
                 }
                 Task newTask = new Task(taskBase, workOrder, preventiveMaintenance, value.toString());
+                newTask.setTaskOrder(taskOrder);
                 Task createdTask = taskService.create(newTask);
                 resultTasks.add(createdTask);
             }

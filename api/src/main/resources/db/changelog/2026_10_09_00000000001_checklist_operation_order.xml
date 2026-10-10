@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.17.xsd">
+    <changeSet id="2026_10_09_00000000001" author="qpm">
+        <addColumn tableName="checklist_task_bases">
+            <column name="operation_order" type="INT"/>
+        </addColumn>
+
+        <!-- Remove obsolete join rows left behind by legacy SET NULL foreign keys. -->
+        <sql>
+            DELETE FROM checklist_task_bases
+            WHERE checklist_id IS NULL OR task_bases_id IS NULL;
+        </sql>
+
+        <!-- Preserve the existing creation order; use the task ID as a stable tie-breaker. -->
+        <sql>
+            UPDATE checklist_task_bases relation
+            SET operation_order = ordered.operation_index
+            FROM (
+                SELECT relation.checklist_id,
+                       relation.task_bases_id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY relation.checklist_id
+                           ORDER BY task_base.created_at ASC, task_base.id ASC
+                       ) - 1 AS operation_index
+                FROM checklist_task_bases relation
+                JOIN task_base ON task_base.id = relation.task_bases_id
+            ) ordered
+            WHERE relation.checklist_id = ordered.checklist_id
+              AND relation.task_bases_id = ordered.task_bases_id;
+        </sql>
+
+        <addNotNullConstraint tableName="checklist_task_bases"
+                              columnName="operation_order"
+                              columnDataType="INT"/>
+    </changeSet>
+</databaseChangeLog>

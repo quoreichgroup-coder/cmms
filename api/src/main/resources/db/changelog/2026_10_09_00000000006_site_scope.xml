@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_09_site_scope_1" author="QPM">
+        <addColumn tableName="asset">
+            <column name="site_id" type="BIGINT"><constraints foreignKeyName="fk_asset_site" references="site(id)"/></column>
+        </addColumn>
+        <addColumn tableName="work_order">
+            <column name="site_id" type="BIGINT"><constraints foreignKeyName="fk_work_order_site" references="site(id)"/></column>
+        </addColumn>
+        <addColumn tableName="preventive_maintenance">
+            <column name="site_id" type="BIGINT"><constraints foreignKeyName="fk_preventive_maintenance_site" references="site(id)"/></column>
+        </addColumn>
+        <createIndex tableName="asset" indexName="idx_asset_site"><column name="site_id"/></createIndex>
+        <createIndex tableName="work_order" indexName="idx_work_order_site"><column name="site_id"/></createIndex>
+        <createIndex tableName="preventive_maintenance" indexName="idx_pm_site"><column name="site_id"/></createIndex>
+    </changeSet>
+</databaseChangeLog>

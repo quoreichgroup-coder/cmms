@@ -147,7 +147,7 @@ public class Helper {
         return getLocale(language);
     }
 
-    private static Locale getLocale(Language language) {
+    public static Locale getLocale(Language language) {
         return switch (language) {
             case FR -> Locale.FRANCE;
             case TR -> new Locale("tr", "TR");

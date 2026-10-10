@@ -12,4 +12,8 @@ public class MeterMiniDTO {
 
     @Schema(description = "Name")
     private String name;
+
+    private String unit;
+
+    private Long assetId;
 }

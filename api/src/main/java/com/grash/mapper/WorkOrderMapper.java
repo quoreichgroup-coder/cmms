@@ -21,6 +21,8 @@ public interface WorkOrderMapper {
     @Mappings({
             @Mapping(source = "parentRequest.audioDescription", target = "audioDescription"),
             @Mapping(target = "image", source = "image", qualifiedByName = "toThumbnailDto"),
+            @Mapping(target = "siteId", source = "site.id"),
+            @Mapping(target = "siteName", source = "site.name"),
 
     })
     WorkOrderShowDTO toShowDto(WorkOrder model);

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="20261005-2" author="codex">
+        <addColumn tableName="preventive_maintenance_meter_call">
+            <column name="rescheduled_for" type="timestamp"/>
+        </addColumn>
+        <createTable tableName="preventive_maintenance_call_reschedule">
+            <column name="id" type="bigserial">
+                <constraints primaryKey="true" primaryKeyName="pk_pm_call_reschedule" nullable="false"/>
+            </column>
+            <column name="call_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_pm_call_reschedule_call"
+                             references="preventive_maintenance_meter_call(id)" deleteCascade="true"/>
+            </column>
+            <column name="previous_due_date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rescheduled_for" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reason" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor_user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor_name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="preventive_maintenance_call_reschedule" indexName="idx_pm_call_reschedule_call_created">
+            <column name="call_id"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

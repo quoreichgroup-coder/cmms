@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_09_company_configuration_audit_1" author="QPM">
+        <createTable tableName="company_configuration_audit">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_company_configuration_audit_company" references="company(id)"/></column>
+            <column name="entity_type" type="VARCHAR(40)"><constraints nullable="false"/></column>
+            <column name="entity_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="action" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="changed_fields" type="VARCHAR(1000)"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="company_configuration_audit" indexName="idx_company_configuration_audit_company">
+            <column name="company_id"/><column name="created_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

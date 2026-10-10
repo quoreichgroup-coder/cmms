@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="20261005-1" author="codex">
+        <dropNotNullConstraint tableName="preventive_maintenance_meter_call" columnName="due_value" columnDataType="double precision"/>
+        <addColumn tableName="preventive_maintenance_meter_call">
+            <column name="due_date" type="timestamp"/>
+            <column name="call_type" type="varchar(24)" defaultValue="METER">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addUniqueConstraint tableName="preventive_maintenance_meter_call"
+                             columnNames="schedule_id,due_date"
+                             constraintName="uk_pm_meter_call_schedule_due_date"/>
+        <createIndex tableName="preventive_maintenance_meter_call" indexName="idx_pm_call_schedule_due_date">
+            <column name="schedule_id"/>
+            <column name="due_date"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.quartz.DisallowConcurrentExecution;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@DisallowConcurrentExecution
 public class WorkOrderCreationJob extends QuartzJobBean {
 
     private final ScheduleRepository scheduleRepository;
@@ -37,7 +39,12 @@ public class WorkOrderCreationJob extends QuartzJobBean {
             log.info("Skipping work order creation, schedule {} is disabled.", scheduleId);
             return;
         }
-        if (!scheduleService.checkIfWeeklyShouldRun(schedule)) {
+        org.quartz.JobDataMap jobData = context.getMergedJobDataMap();
+        boolean deferredOccurrence = jobData.getBooleanValue("deferredOccurrence");
+        java.util.Date occurrenceDate = jobData.containsKey("occurrenceTimestamp")
+                ? new java.util.Date(jobData.getLong("occurrenceTimestamp"))
+                : context.getScheduledFireTime();
+        if (!scheduleService.checkIfWeeklyShouldRun(schedule, occurrenceDate)) {
             log.info("Skipping work order creation, schedule {} is not on a valid week interval.", scheduleId);
             return;
         }
@@ -45,8 +52,8 @@ public class WorkOrderCreationJob extends QuartzJobBean {
         PreventiveMaintenance preventiveMaintenance = schedule.getPreventiveMaintenance();
         Long pmId = preventiveMaintenance.getId();
         try {
-            WorkOrder workOrder = preventiveMaintenanceService
-                    .createWorkOrderFromPreventiveMaintenance(preventiveMaintenance);
+            WorkOrder workOrder = preventiveMaintenanceService.createScheduledWorkOrder(
+                    preventiveMaintenance, occurrenceDate, deferredOccurrence);
             log.info("Work order {} generated for preventive maintenance {} (schedule {}).",
                     workOrder == null ? null : workOrder.getCustomId(), pmId, scheduleId);
         } catch (RuntimeException e) {

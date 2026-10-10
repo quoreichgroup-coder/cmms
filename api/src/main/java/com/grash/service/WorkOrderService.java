@@ -17,6 +17,7 @@ import com.grash.mapper.PreventiveMaintenanceMapper;
 import com.grash.mapper.WorkOrderMapper;
 import com.grash.factory.MailServiceFactory;
 import com.grash.model.*;
+import com.grash.repository.SiteRepository;
 import com.grash.model.abstracts.Cost;
 import com.grash.model.abstracts.WorkOrderBase;
 import com.grash.model.enums.*;
@@ -100,6 +101,8 @@ public class WorkOrderService {
     private final WorkOrderHistoryService workOrderHistoryService;
     private final SpringTemplateEngine thymeleafTemplateEngine;
     private final StorageServiceFactory storageServiceFactory;
+    private final DocumentContextResolver documentContextResolver;
+    private final SiteRepository siteRepository;
     private final Environment environment;
     private final ResourceBundleMessageSource emailMessageSource;
     private TaskService taskService;
@@ -125,6 +128,7 @@ public class WorkOrderService {
                 setWOCustomFields(workOrder, workOrderPostDTO.getCustomFields(), company);
             }
         }
+        if (workOrder.getSite() != null) workOrder.setSite(resolveSite(workOrder.getSite(), company));
         workOrder.setCustomId(getWorkOrderNumber(company));
         workOrder.setId(null);
         workOrder.setCompletedBy(null);
@@ -209,6 +213,8 @@ public class WorkOrderService {
                     null;
 
             WorkOrder newWorkOrder = workOrderMapper.updateWorkOrder(savedWorkOrder, workOrder);
+            newWorkOrder.setSite(workOrder.getSite() == null ? savedWorkOrder.getSite() :
+                    resolveSite(workOrder.getSite(), user.getCompany()));
             Sanitizer.sanitizeWorkOrder(newWorkOrder);
             if (!workOrder.getCustomFields().isEmpty()) {
                 setWOCustomFields(newWorkOrder, workOrder.getCustomFields(), user.getCompany());
@@ -369,6 +375,11 @@ public class WorkOrderService {
                 Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
+    public Page<WorkOrder> findPMWorkOrderHistory(Long id, int page, int size) {
+        return workOrderRepository.findByParentPreventiveMaintenance_Id(id, PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC, "createdAt")));
+    }
+
     public Collection<WorkOrder> findByLocation(Long id) {
         return workOrderRepository.findByLocation_Id(id);
     }
@@ -464,6 +475,7 @@ public class WorkOrderService {
         workOrder.getFiles().addAll(workOrderBase.getFiles());
         workOrder.setAsset(workOrderBase.getAsset());
         workOrder.setLocation(workOrderBase.getLocation());
+        workOrder.setSite(workOrderBase.getSite());
         workOrder.setPrimaryUser(workOrderBase.getPrimaryUser());
         workOrder.setTeam(workOrderBase.getTeam());
         workOrder.setCategory(workOrderBase.getCategory());
@@ -478,6 +490,12 @@ public class WorkOrderService {
             return customFieldValuePostDTO;
         }).collect(Collectors.toList()));
         return workOrder;
+    }
+
+    private Site resolveSite(Site reference, Company company) {
+        return siteRepository.findById(reference.getId())
+                .filter(site -> site.getCompany().getId().equals(company.getId()))
+                .orElseThrow(() -> new CustomException("Site not found", HttpStatus.BAD_REQUEST));
     }
 
     public Collection<WorkOrder> findByAssignedToUser(Long id) {
@@ -949,7 +967,8 @@ public class WorkOrderService {
     public void generatePdfStream(WorkOrder savedWorkOrder, User user, ReportConfig config, OutputStream outputStream) {
         StorageService storageService = storageServiceFactory.getStorageService();
         Context thymeleafContext = new Context();
-        thymeleafContext.setLocale(Helper.getLocale(user));
+        DocumentContextResolver.DocumentContext documentContext = documentContextResolver.resolve(savedWorkOrder);
+        thymeleafContext.setLocale(documentContext.locale());
         Optional<User> creator = savedWorkOrder.getCreatedBy() == null ? Optional.empty() :
                 userService.findById(savedWorkOrder.getCreatedBy());
         List<Task> tasks = taskService.findByWorkOrder(savedWorkOrder.getId());
@@ -993,14 +1012,19 @@ public class WorkOrderService {
                 user.getCompany().getCompanySettings().getGeneralPreferences().getColor(),
                 brandingService.getMailBackgroundColor());
         Map<String, Object> variables = new HashMap<String, Object>() {{
-            put("companyName", user.getCompany().getName());
-            put("companyPhone", user.getCompany().getPhone());
+            put("companyName", documentContext.companyName());
+            put("companyLegalName", documentContext.legalName());
+            put("companyLegalAddress", documentContext.registeredAddress());
+            put("companyRegistrationNumber", documentContext.registrationNumber());
+            put("companyTaxNumber", documentContext.taxNumber());
+            put("companyPhone", documentContext.phone());
+            put("companyEmail", documentContext.email());
+            put("siteName", documentContext.siteName());
             put("companyLogo", user.getCompany().getLogo() == null ? null :
                     PdfReportUtils.getImageReportStoragePath(user.getCompany().getLogo()));
-            put("currency",
-                    user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
-            put("dateFormat", user.getCompany().getCompanySettings().getGeneralPreferences().getDateFormat());
-            put("timeZone", user.getCompany().getCompanySettings().getGeneralPreferences().getTimeZone());
+            put("currency", documentContext.currency());
+            put("dateFormat", documentContext.dateFormat());
+            put("timeZone", documentContext.timeZone());
             put("assignedTo",
                     Helper.enumerate(savedWorkOrder.getAssignedTo().stream().map(User::getFullName).collect(Collectors.toList())));
             put("customers",
@@ -1018,7 +1042,7 @@ public class WorkOrderService {
             put("environment", environment);
             put("tasksImagesPaths", tasksImagesPaths);
             put("messageSource", messageSource);
-            put("locale", Helper.getLocale(user));
+            put("locale", documentContext.locale());
             put("dir", Helper.isRtl(user.getCompany()) ? "rtl" : "ltr");
             put("reportConfig", config);
             put("comments", comments);

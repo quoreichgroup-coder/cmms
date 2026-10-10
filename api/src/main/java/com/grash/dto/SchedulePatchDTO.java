@@ -2,6 +2,7 @@ package com.grash.dto;
 
 import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
+import com.grash.model.PreventiveMaintenancePlanConfiguration;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,8 @@ public class SchedulePatchDTO {
     @Schema(description = "Due date delay")
     private Integer dueDateDelay;
 
+    private Integer workOrderGenerationLeadDays;
+
     @Schema(description = "Recurrence type")
     @NotNull
     private RecurrenceType recurrenceType;
@@ -37,5 +40,7 @@ public class SchedulePatchDTO {
 
     @Schema(description = "Days of week for recurrence")
     private List<Integer> daysOfWeek = new ArrayList<>();
-}
 
+    private PreventiveMaintenancePlanConfiguration planConfiguration;
+
+}

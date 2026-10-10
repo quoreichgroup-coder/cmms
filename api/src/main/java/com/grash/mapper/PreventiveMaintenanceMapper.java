@@ -7,6 +7,7 @@ import com.grash.model.WorkOrder;
 import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
 import com.grash.model.enums.Status;
+import com.grash.model.enums.ScheduleTriggerType;
 import com.grash.service.WorkOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.AfterMapping;
@@ -45,6 +46,8 @@ public abstract class PreventiveMaintenanceMapper {
     @Mappings({})
     public abstract PreventiveMaintenancePatchDTO toPatchDto(PreventiveMaintenance model);
 
+    @Mapping(target = "siteId", source = "site.id")
+    @Mapping(target = "siteName", source = "site.name")
     public abstract PreventiveMaintenanceShowDTO toShowDto(PreventiveMaintenance model);
 
     public abstract PreventiveMaintenance toModel(PreventiveMaintenancePostDTO dto);
@@ -59,6 +62,8 @@ public abstract class PreventiveMaintenanceMapper {
         if (schedule == null || schedule.isDisabled()) {
             return;
         }
+
+        if (schedule.getTriggerType() == ScheduleTriggerType.METER) return;
 
         Date nextWorkOrderDate = null;
 

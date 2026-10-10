@@ -21,7 +21,7 @@ public class WorkOrderMeterTriggerShowDTO extends WorkOrderBaseShowDTO {
     @Schema(description = "Threshold value for the trigger condition")
     private int value;
 
-    @Schema(description = "Wait time before triggering, in specified units")
+    @Schema(description = "Wait time the threshold must remain active before triggering, in seconds")
     private int waitBefore;
 
 }

@@ -2,6 +2,7 @@ package com.grash.dto;
 
 import com.grash.model.enums.WorkOrderMeterTriggerCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -21,7 +22,8 @@ public class WorkOrderMeterTriggerPatchDTO extends WorkOrderBasePatchDTO {
     @Schema(description = "Threshold value for the trigger")
     private int value;
 
-    @Schema(description = "Wait time before triggering (in seconds)")
+    @Schema(description = "Wait time the threshold must remain active before triggering (in seconds)")
+    @Min(0)
     private int waitBefore;
 
 }

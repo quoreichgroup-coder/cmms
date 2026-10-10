@@ -6,6 +6,7 @@ import com.grash.dto.ReadingPatchDTO;
 import com.grash.dto.license.LicenseEntitlement;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
 import com.grash.exception.CustomException;
+import com.grash.job.MeterTriggerExecutionJob;
 import com.grash.mapper.ReadingMapper;
 import com.grash.mapper.WorkOrderMapper;
 import com.grash.model.Meter;
@@ -19,6 +20,7 @@ import com.grash.model.enums.PlanFeatures;
 import com.grash.model.enums.WorkOrderMeterTriggerCondition;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.ReadingRepository;
+import com.grash.repository.UserRepository;
 import com.grash.utils.Helper;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,14 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SimpleScheduleBuilder;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -39,14 +49,17 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReadingService {
     private final ReadingRepository readingRepository;
+    private final UserRepository userRepository;
     private final ReadingMapper readingMapper;
     private final LicenseService licenseService;
     private final WorkOrderMeterTriggerService workOrderMeterTriggerService;
+    private final PreventiveMaintenanceService preventiveMaintenanceService;
     private final NotificationService notificationService;
     private final WorkOrderService workOrderService;
     private final MessageSource messageSource;
     private final WebhookDispatchService webhookDispatchService;
     private final WorkOrderMapper workOrderMapper;
+    private final Scheduler scheduler;
     private MeterService meterService;
 
     @Autowired
@@ -78,8 +91,11 @@ public class ReadingService {
                     throw new CustomException("The update frequency has not been respected", HttpStatus.NOT_ACCEPTABLE);
                 }
             }
-            processMeterTriggers(meter, readingReq.getValue(), user);
-            return readingRepository.save(readingReq);
+            readingReq.setMeter(meter);
+            Reading savedReading = readingRepository.save(readingReq);
+            processMeterTriggers(meter, savedReading, user);
+            preventiveMaintenanceService.processMeterCycleReading(meter, savedReading);
+            return savedReading;
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -124,7 +140,8 @@ public class ReadingService {
             if (!savedReading.getMeter().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             Reading updated = readingRepository.save(readingMapper.updateReading(savedReading, reading));
-            processMeterTriggers(savedReading.getMeter(), updated.getValue(), user);
+            processMeterTriggers(savedReading.getMeter(), updated, user);
+            preventiveMaintenanceService.processMeterCycleReading(savedReading.getMeter(), updated);
             return updated;
         } else throw new CustomException("Reading not found", HttpStatus.NOT_FOUND);
     }
@@ -152,48 +169,132 @@ public class ReadingService {
         return readingRepository.findFirstByMeter_IdOrderByCreatedAtDesc(id);
     }
 
-    private void processMeterTriggers(Meter meter, double readingValue, User user) {
+    private void processMeterTriggers(Meter meter, Reading reading, User user) {
         if (!licenseService.hasEntitlement(LicenseEntitlement.CONDITION_BASED_PM)) return;
-        Collection<WorkOrderMeterTrigger> meterTriggers = workOrderMeterTriggerService.findByMeter(meter.getId());
-        Locale locale = Helper.getLocale(user);
-        meterTriggers.forEach(meterTrigger -> {
-            boolean error = false;
-            StringBuilder message = new StringBuilder();
-            String title = messageSource.getMessage("new_wo", null, locale);
-            Object[] notificationArgs = new Object[]{meter.getName(), meterTrigger.getValue(), meter.getUnit()};
-            if (meterTrigger.getTriggerCondition().equals(WorkOrderMeterTriggerCondition.LESS_THAN)) {
-                if (readingValue < meterTrigger.getValue()) {
-                    error = true;
-                    message.append(messageSource.getMessage("notification_reading_less_than", notificationArgs,
-                            locale));
-                }
-            } else if (readingValue > meterTrigger.getValue()) {
-                error = true;
-                message.append(messageSource.getMessage("notification_reading_more_than", notificationArgs,
-                        locale));
-            }
-            if (error) {
-                notificationService.createMultiple(meter.getUsers().stream().map(user1 ->
-                        new Notification(message.toString(), user1, NotificationType.METER, meter.getId())
-                ).collect(Collectors.toList()), true, title);
-                WorkOrderPostDTO workOrder = workOrderService.getWorkOrderFromWorkOrderBase(meterTrigger);
-                WorkOrder createdWorkOrder = workOrderService.create(workOrder, user.getCompany());
+        Optional<Reading> latestReading = readingRepository
+                .findFirstByMeter_IdOrderByCreatedAtDescIdDesc(meter.getId());
+        if (latestReading.isEmpty() || !Objects.equals(latestReading.get().getId(), reading.getId())) return;
 
-                Map<String, Object> webhookPayload = new HashMap<>();
-                webhookPayload.put("meterId", meter.getId());
-                webhookPayload.put("meterName", meter.getName());
-                webhookPayload.put("meterTriggerId", meterTrigger.getId());
-                webhookPayload.put("meterTriggerName", meterTrigger.getName());
-                webhookPayload.put("readingValue", readingValue);
-                webhookPayload.put("triggerValue", meterTrigger.getValue());
-                webhookPayload.put("triggerCondition", meterTrigger.getTriggerCondition().name());
-                webhookPayload.put("workOrderId", createdWorkOrder.getId());
-                Object serializedWorkOrder = workOrderMapper.toShowDto(createdWorkOrder);
-                webhookDispatchService.dispatchWebhook(user.getCompany(),
-                        WebhookEvent.METER_TRIGGER_STATUS_CHANGE, webhookPayload,
-                        "triggeredWorkOrder", serializedWorkOrder, null, null, null, null, null);
+        Collection<WorkOrderMeterTrigger> meterTriggers = workOrderMeterTriggerService.findByMeterForUpdate(meter.getId());
+        meterTriggers.forEach(meterTrigger -> {
+            double readingValue = reading.getValue();
+            boolean conditionMet = MeterTriggerPolicy.conditionMet(meterTrigger, readingValue);
+            if (!conditionMet) {
+                boolean hadPendingTrigger = meterTrigger.getPendingSince() != null;
+                boolean shouldRearm = meterTrigger.isRecurrent() || !meterTrigger.isHasTriggered();
+                if (!hadPendingTrigger && (!shouldRearm || meterTrigger.isArmed())) return;
+                if (hadPendingTrigger) cancelPendingMeterTrigger(meterTrigger.getId());
+                MeterTriggerPolicy.clearCondition(meterTrigger);
+                workOrderMeterTriggerService.save(meterTrigger);
+                return;
+            }
+
+            Date pendingSince = new Date();
+            if (!MeterTriggerPolicy.beginPending(meterTrigger, pendingSince)) return;
+            workOrderMeterTriggerService.save(meterTrigger);
+            if (meterTrigger.getWaitBefore() <= 0) {
+                executePendingMeterTrigger(meterTrigger.getId(), pendingSince.getTime(), user.getId());
+            } else {
+                schedulePendingMeterTrigger(meterTrigger, pendingSince, user.getId());
             }
         });
+    }
+
+    @Transactional
+    public void executePendingMeterTrigger(long triggerId, long pendingSinceMillis, long userId) {
+        Optional<WorkOrderMeterTrigger> optionalTrigger = workOrderMeterTriggerService.findByIdForUpdate(triggerId);
+        if (optionalTrigger.isEmpty()) return;
+        WorkOrderMeterTrigger trigger = optionalTrigger.get();
+        Date pendingSince = trigger.getPendingSince();
+        if (pendingSince == null || pendingSince.getTime() != pendingSinceMillis) return;
+        Date dueAt = new Date(pendingSinceMillis + TimeUnit.SECONDS.toMillis(trigger.getWaitBefore()));
+        if (new Date().before(dueAt)) return;
+
+        Meter meter = trigger.getMeter();
+        Optional<Reading> latestReading = readingRepository
+                .findFirstByMeter_IdOrderByCreatedAtDescIdDesc(meter.getId());
+        if (latestReading.isEmpty() || !MeterTriggerPolicy.conditionMet(trigger, latestReading.get().getValue())) {
+            MeterTriggerPolicy.clearCondition(trigger);
+            workOrderMeterTriggerService.save(trigger);
+            return;
+        }
+
+        User user = userRepository.findByIdAndCompany_Id(userId, meter.getCompany().getId()).orElse(null);
+        if (user == null || !licenseService.hasEntitlement(LicenseEntitlement.CONDITION_BASED_PM)
+                || !meter.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.METER)) {
+            MeterTriggerPolicy.clearCondition(trigger);
+            workOrderMeterTriggerService.save(trigger);
+            return;
+        }
+
+        createMeterTriggerWorkOrder(trigger, latestReading.get().getValue(), user);
+        MeterTriggerPolicy.markTriggered(trigger);
+        workOrderMeterTriggerService.save(trigger);
+    }
+
+    private void createMeterTriggerWorkOrder(WorkOrderMeterTrigger meterTrigger, double readingValue, User user) {
+        Meter meter = meterTrigger.getMeter();
+        Locale locale = Helper.getLocale(user);
+        Object[] notificationArgs = new Object[]{meter.getName(), meterTrigger.getValue(), meter.getUnit()};
+        String messageKey = meterTrigger.getTriggerCondition() == WorkOrderMeterTriggerCondition.LESS_THAN
+                ? "notification_reading_less_than" : "notification_reading_more_than";
+        String message = messageSource.getMessage(messageKey, notificationArgs, locale);
+        String title = messageSource.getMessage("new_wo", null, locale);
+        notificationService.createMultiple(meter.getUsers().stream().map(meterUser ->
+                new Notification(message, meterUser, NotificationType.METER, meter.getId())
+        ).collect(Collectors.toList()), true, title);
+
+        WorkOrderPostDTO workOrder = workOrderService.getWorkOrderFromWorkOrderBase(meterTrigger);
+        WorkOrder createdWorkOrder = workOrderService.create(workOrder, user.getCompany());
+        Map<String, Object> webhookPayload = new HashMap<>();
+        webhookPayload.put("meterId", meter.getId());
+        webhookPayload.put("meterName", meter.getName());
+        webhookPayload.put("meterTriggerId", meterTrigger.getId());
+        webhookPayload.put("meterTriggerName", meterTrigger.getName());
+        webhookPayload.put("readingValue", readingValue);
+        webhookPayload.put("triggerValue", meterTrigger.getValue());
+        webhookPayload.put("triggerCondition", meterTrigger.getTriggerCondition().name());
+        webhookPayload.put("workOrderId", createdWorkOrder.getId());
+        Object serializedWorkOrder = workOrderMapper.toShowDto(createdWorkOrder);
+        webhookDispatchService.dispatchWebhook(user.getCompany(), WebhookEvent.METER_TRIGGER_STATUS_CHANGE,
+                webhookPayload, "triggeredWorkOrder", serializedWorkOrder, null, null, null, null, null);
+    }
+
+    private void schedulePendingMeterTrigger(WorkOrderMeterTrigger trigger, Date pendingSince, Long userId) {
+        long triggerId = trigger.getId();
+        JobKey jobKey = meterTriggerJobKey(triggerId);
+        try {
+            scheduler.deleteJob(jobKey);
+            JobDetail job = JobBuilder.newJob(MeterTriggerExecutionJob.class)
+                    .withIdentity(jobKey)
+                    .usingJobData("meterTriggerId", triggerId)
+                    .usingJobData("pendingSince", pendingSince.getTime())
+                    .usingJobData("userId", userId)
+                    .build();
+            Date runAt = new Date(pendingSince.getTime() + TimeUnit.SECONDS.toMillis(trigger.getWaitBefore()));
+            Trigger quartzTrigger = TriggerBuilder.newTrigger()
+                    .withIdentity("meter-trigger-pending-" + triggerId, "meter-trigger-pending")
+                    .forJob(job)
+                    .startAt(runAt)
+                    .withSchedule(SimpleScheduleBuilder.simpleSchedule().withRepeatCount(0))
+                    .build();
+            scheduler.scheduleJob(job, quartzTrigger);
+        } catch (SchedulerException e) {
+            throw new CustomException("Unable to schedule meter threshold trigger", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void cancelPendingMeterTrigger(Long triggerId) {
+        try {
+            scheduler.deleteJob(meterTriggerJobKey(triggerId));
+        } catch (SchedulerException e) {
+            throw new CustomException("Unable to cancel pending meter threshold trigger",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private JobKey meterTriggerJobKey(Long triggerId) {
+        return new JobKey("meter-trigger-pending-" + triggerId, "meter-trigger-pending");
     }
 
     public List<ReadingHistogramDTO> getHistogramData(Long meterId, Date start, Date end, @NotNull String timeZone) {

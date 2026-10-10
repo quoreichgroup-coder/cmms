@@ -16,8 +16,10 @@ import org.springframework.http.HttpStatus;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -33,6 +35,19 @@ public class WorkOrderMeterTrigger extends WorkOrderBase {
     @Schema(description = "Whether the trigger is recurrent")
     private boolean recurrent;
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Schema(description = "Whether this threshold is armed for a new crossing", accessMode = Schema.AccessMode.READ_ONLY)
+    private boolean armed = true;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Schema(description = "Whether this trigger has already generated a work order", accessMode = Schema.AccessMode.READ_ONLY)
+    private boolean hasTriggered;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Schema(description = "Time at which the current threshold condition began", accessMode = Schema.AccessMode.READ_ONLY)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date pendingSince;
+
     @NotNull
     @Schema(description = "Name of the meter trigger", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
@@ -46,7 +61,8 @@ public class WorkOrderMeterTrigger extends WorkOrderBase {
     private int value;
 
     @NotNull
-    @Schema(description = "Wait time before triggering", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Min(0)
+    @Schema(description = "Wait time the threshold must remain active before triggering, in seconds", requiredMode = Schema.RequiredMode.REQUIRED)
     private int waitBefore;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -61,6 +77,3 @@ public class WorkOrderMeterTrigger extends WorkOrderBase {
     private List<CustomFieldValue> customFieldValues = new ArrayList<>();
 
 }
-
-
-

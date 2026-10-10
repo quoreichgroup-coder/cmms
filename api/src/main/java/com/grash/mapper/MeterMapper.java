@@ -50,6 +50,7 @@ public interface MeterMapper {
         return target;
     }
 
+    @Mapping(target = "assetId", source = "asset.id")
     MeterMiniDTO toMiniDto(Meter model);
 
     Meter fromPostDto(MeterPostDTO dto);

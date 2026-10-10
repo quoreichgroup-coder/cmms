@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
+    boolean existsBySite_Id(Long siteId);
     List<Asset> findByCompany_Id(Long id);
 
     List<Asset> findByCompany_Id(Long id, Sort sort);

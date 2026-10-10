@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="20261004-3" author="codex">
+        <addColumn tableName="schedule">
+            <column name="trigger_type" type="varchar(32)" defaultValue="CALENDAR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meter_id" type="bigint"/>
+            <column name="meter_cycle_interval" type="double precision"/>
+            <column name="meter_reference_value" type="double precision"/>
+            <column name="meter_end_value" type="double precision"/>
+            <column name="next_meter_value" type="double precision"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="schedule" baseColumnNames="meter_id"
+                                 constraintName="fk_schedule_meter" referencedTableName="meter"
+                                 referencedColumnNames="id" onDelete="RESTRICT"/>
+        <createIndex tableName="schedule" indexName="idx_schedule_meter_trigger">
+            <column name="meter_id"/>
+            <column name="trigger_type"/>
+            <column name="disabled"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20261004-4" author="codex">
+        <createTable tableName="preventive_maintenance_meter_call">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="schedule_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reading_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="work_order_id" type="bigint"/>
+            <column name="due_value" type="double precision">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reading_value" type="double precision">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="preventive_maintenance_meter_call" baseColumnNames="schedule_id"
+                                 constraintName="fk_pm_meter_call_schedule" referencedTableName="schedule"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="preventive_maintenance_meter_call" baseColumnNames="reading_id"
+                                 constraintName="fk_pm_meter_call_reading" referencedTableName="reading"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="preventive_maintenance_meter_call" baseColumnNames="work_order_id"
+                                 constraintName="fk_pm_meter_call_work_order" referencedTableName="work_order"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+        <addUniqueConstraint tableName="preventive_maintenance_meter_call"
+                             columnNames="schedule_id, reading_id"
+                             constraintName="uk_pm_meter_call_schedule_reading"/>
+        <addUniqueConstraint tableName="preventive_maintenance_meter_call"
+                             columnNames="schedule_id, due_value"
+                             constraintName="uk_pm_meter_call_schedule_due_value"/>
+        <createIndex tableName="preventive_maintenance_meter_call" indexName="idx_pm_meter_call_schedule_created">
+            <column name="schedule_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

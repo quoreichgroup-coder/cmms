@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_09_site_1" author="QPM">
+        <createTable tableName="site">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_site_company" references="company(id)"/></column>
+            <column name="name" type="VARCHAR(120)"><constraints nullable="false"/></column>
+            <column name="code" type="VARCHAR(40)"><constraints nullable="false"/></column>
+            <column name="root_location_id" type="BIGINT"><constraints foreignKeyName="fk_site_root_location" references="location(id)"/></column>
+            <column name="time_zone" type="VARCHAR(80)"/>
+            <column name="document_language" type="VARCHAR(16)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/><column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="site" columnNames="company_id,code" constraintName="uk_site_company_code"/>
+        <createIndex tableName="site" indexName="idx_site_company"><column name="company_id"/><column name="name"/></createIndex>
+    </changeSet>
+</databaseChangeLog>

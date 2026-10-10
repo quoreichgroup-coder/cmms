@@ -16,6 +16,7 @@ import java.util.Optional;
 
 public interface PreventiveMaintenanceRepository extends JpaRepository<PreventiveMaintenance, Long>,
         JpaSpecificationExecutor<PreventiveMaintenance> {
+    boolean existsBySite_Id(Long siteId);
     Collection<PreventiveMaintenance> findByCompany_Id(@Param("x") Long id);
 
 

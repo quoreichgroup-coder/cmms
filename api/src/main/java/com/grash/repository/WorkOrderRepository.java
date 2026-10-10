@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, JpaSpecificationExecutor<WorkOrder> {
+    boolean existsBySite_Id(Long siteId);
     Collection<WorkOrder> findByCompany_Id(Long id);
 
     @Query("SELECT w FROM WorkOrder w " +

@@ -2,9 +2,11 @@ package com.grash.dto;
 
 import com.grash.dto.cutomField.CustomFieldValuePostDTO;
 import com.grash.model.CustomFieldValue;
+import com.grash.model.PreventiveMaintenancePlanConfiguration;
 import com.grash.model.abstracts.WorkOrderBase;
 import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
+import com.grash.model.enums.ScheduleTriggerType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,25 +29,36 @@ public class PreventiveMaintenancePostDTO extends WorkOrderBase {
     private String name;
 
     @Schema(description = "Frequency of recurrence")
-    @NotNull
-    private int frequency;
+    private Integer frequency;
 
     @Schema(description = "Due date delay")
     private Integer dueDateDelay;
+
+    private Integer workOrderGenerationLeadDays = 0;
 
     @Schema(description = "End date of the maintenance")
     private Date endsOn;
 
     @Schema(description = "Recurrence type")
-    @NotNull
     private RecurrenceType recurrenceType;
 
     @Schema(description = "What the recurrence is based on")
-    @NotNull
     private RecurrenceBasedOn recurrenceBasedOn;
 
     @Schema(description = "Days of week for recurrence")
     private List<Integer> daysOfWeek = new ArrayList<>();
+
+    private ScheduleTriggerType triggerType = ScheduleTriggerType.CALENDAR;
+
+    private Long meterId;
+
+    private Double meterCycleInterval;
+
+    private Double meterReferenceValue;
+
+    private Double meterEndValue;
+
+    private PreventiveMaintenancePlanConfiguration planConfiguration;
 
     @Schema(description = "List of custom field values")
     private List<CustomFieldValuePostDTO> customFields = new ArrayList<>();
@@ -56,5 +69,3 @@ public class PreventiveMaintenancePostDTO extends WorkOrderBase {
         return List.of();
     }
 }
-
-

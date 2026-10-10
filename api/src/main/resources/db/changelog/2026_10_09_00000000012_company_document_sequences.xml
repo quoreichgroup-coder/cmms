@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_09_company_configuration_audit_seq" author="QPM">
+        <preConditions onFail="MARK_RAN"><not><sequenceExists sequenceName="company_configuration_audit_seq"/></not></preConditions>
+        <createSequence sequenceName="company_configuration_audit_seq" startValue="1" incrementBy="50"/>
+        <sql>SELECT setval('company_configuration_audit_seq', COALESCE((SELECT MAX(id) FROM company_configuration_audit), 0) + 1, false)</sql>
+    </changeSet>
+    <changeSet id="2026_10_09_company_legal_profile_seq" author="QPM">
+        <preConditions onFail="MARK_RAN"><not><sequenceExists sequenceName="company_legal_profile_seq"/></not></preConditions>
+        <createSequence sequenceName="company_legal_profile_seq" startValue="1" incrementBy="50"/>
+        <sql>SELECT setval('company_legal_profile_seq', COALESCE((SELECT MAX(id) FROM company_legal_profile), 0) + 1, false)</sql>
+    </changeSet>
+    <changeSet id="2026_10_09_generated_document_seq" author="QPM">
+        <preConditions onFail="MARK_RAN"><not><sequenceExists sequenceName="generated_document_seq"/></not></preConditions>
+        <createSequence sequenceName="generated_document_seq" startValue="1" incrementBy="50"/>
+        <sql>SELECT setval('generated_document_seq', COALESCE((SELECT MAX(id) FROM generated_document), 0) + 1, false)</sql>
+    </changeSet>
+    <changeSet id="2026_10_09_site_seq" author="QPM">
+        <preConditions onFail="MARK_RAN"><not><sequenceExists sequenceName="site_seq"/></not></preConditions>
+        <createSequence sequenceName="site_seq" startValue="1" incrementBy="50"/>
+        <sql>SELECT setval('site_seq', COALESCE((SELECT MAX(id) FROM site), 0) + 1, false)</sql>
+    </changeSet>
+</databaseChangeLog>

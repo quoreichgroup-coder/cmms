@@ -6,11 +6,16 @@ import com.grash.job.PreventiveMaintenanceNotificationJob;
 import com.grash.job.WorkOrderCreationJob;
 import com.grash.mapper.ScheduleMapper;
 import com.grash.model.PreventiveMaintenance;
+import com.grash.model.PreventiveMaintenanceMeterCall;
+import com.grash.model.PreventiveMaintenancePlanConfiguration;
 import com.grash.model.Schedule;
 import com.grash.model.WorkOrder;
+import com.grash.model.enums.PreventiveMaintenanceCallStatus;
 import com.grash.model.enums.RecurrenceType;
+import com.grash.model.enums.ScheduleTriggerType;
 import com.grash.model.enums.Status;
 import com.grash.repository.ScheduleRepository;
+import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
@@ -38,6 +43,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final ScheduleMapper scheduleMapper;
     private final WorkOrderService workOrderService;
+    private final PreventiveMaintenanceMeterCallRepository callRepository;
 
     // Quartz Scheduler
     private final Scheduler scheduler;
@@ -72,6 +78,19 @@ public class ScheduleService {
     }
 
     public void scheduleWorkOrder(Schedule schedule) {
+        if (schedule.getTriggerType() == ScheduleTriggerType.METER) {
+            stopScheduleJobs(schedule.getId());
+            syncCalendarCallRegister(schedule, Collections.emptyList());
+            return;
+        }
+        // A plan can be switched from meter-driven to calendar-driven. Preserve its
+        // meter history, but retire the old upcoming meter thresholds.
+        callRepository.findBySchedule_IdAndCallTypeAndStatus(schedule.getId(), ScheduleTriggerType.METER,
+                        PreventiveMaintenanceCallStatus.PLANNED)
+                .forEach(call -> {
+                    call.setStatus(PreventiveMaintenanceCallStatus.IGNORED);
+                    callRepository.save(call);
+                });
         int limit = 5;
         PreventiveMaintenance preventiveMaintenance = schedule.getPreventiveMaintenance();
         Page<WorkOrder> workOrdersPage = workOrderService.findLastByPM(preventiveMaintenance.getId(), limit);
@@ -86,6 +105,7 @@ public class ScheduleService {
 
         boolean shouldSchedule =
                 !schedule.isDisabled() && (schedule.getEndsOn() == null || schedule.getEndsOn().after(new Date())) && !isStale;
+        if (!shouldSchedule) syncCalendarCallRegister(schedule, Collections.emptyList());
 
         if (shouldSchedule) {
             try {
@@ -102,7 +122,10 @@ public class ScheduleService {
                                         .filter(w -> Status.COMPLETE.equals(w.getStatus()))
                                         .max(Comparator.comparing(WorkOrder::getCompletedOn))
                                         .orElse(null);
-                        if (lastCompletedWorkOrder == null) return;
+                        if (lastCompletedWorkOrder == null) {
+                            syncCalendarCallRegister(schedule, Collections.emptyList());
+                            return;
+                        }
                         scheduleNextWorkOrderJobAfterCompletion(schedule.getId(),
                                 lastCompletedWorkOrder.getCompletedOn());
                         return; // Exit after scheduling completion-based job
@@ -115,10 +138,11 @@ public class ScheduleService {
 
                     switch (schedule.getRecurrenceType()) {
                         case DAILY:
-                            scheduleBuilder = SimpleScheduleBuilder.simpleSchedule()
-                                    .withIntervalInHours(24 * schedule.getFrequency())
-                                    .repeatForever()
-                                    .withMisfireHandlingInstructionFireNow();
+                            scheduleBuilder = CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
+                                    .withIntervalInDays(schedule.getFrequency())
+                                    .withMisfireHandlingInstructionFireAndProceed()
+                                    .preserveHourOfDayAcrossDaylightSavings(true)
+                                    .inTimeZone(timeZone);
                             break;
 
                         case WEEKLY:
@@ -146,14 +170,16 @@ public class ScheduleService {
                             scheduleBuilder = CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                                     .withIntervalInMonths(schedule.getFrequency())
                                     .withMisfireHandlingInstructionFireAndProceed()
-                                    .preserveHourOfDayAcrossDaylightSavings(true);
+                                    .preserveHourOfDayAcrossDaylightSavings(true)
+                                    .inTimeZone(timeZone);
                             break;
 
                         case YEARLY:
                             scheduleBuilder = CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                                     .withIntervalInYears(schedule.getFrequency())
                                     .withMisfireHandlingInstructionFireAndProceed()
-                                    .preserveHourOfDayAcrossDaylightSavings(true);
+                                    .preserveHourOfDayAcrossDaylightSavings(true)
+                                    .inTimeZone(timeZone);
                             break;
 
                         default:
@@ -171,6 +197,7 @@ public class ScheduleService {
                     log.warn("Schedule {} has endsOn date {} that is not after effective start date {}. Skipping " +
                                     "scheduling.",
                             schedule.getId(), schedule.getEndsOn(), startsOn);
+                    syncCalendarCallRegister(schedule, Collections.emptyList());
                     return;
                 }
 
@@ -188,6 +215,12 @@ public class ScheduleService {
                         .build();
 
                 scheduler.scheduleJob(woJob, woTrigger);
+                if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE) {
+                    syncCalendarCallRegister(schedule, forecastFromTrigger(schedule, woTrigger, timeZone,
+                            calendarForecastLimit(schedule)));
+                } else {
+                    syncCalendarCallRegister(schedule, forecastFromCompletion(schedule, startsOn, timeZone, 12));
+                }
 
                 // ---------------------------------------------------------
                 // JOB 2: Notification (Shared Method Call - FIXED CALL SITE)
@@ -220,6 +253,27 @@ public class ScheduleService {
         // to ensure all parameters (trigger times, data map) are fresh.
         stopScheduleJobs(newSchedule.getId());
         scheduleWorkOrder(newSchedule);
+    }
+
+    public void ensureWorkOrderScheduled(Schedule schedule) {
+        if (schedule.getTriggerType() == ScheduleTriggerType.METER) return;
+        TriggerKey triggerKey = new TriggerKey("wo-trigger-" + schedule.getId(), "wo-group");
+        try {
+            if (scheduler.checkExists(triggerKey)) {
+                Trigger trigger = scheduler.getTrigger(triggerKey);
+                if (trigger != null && schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE) {
+                    TimeZone timeZone = TimeZone.getTimeZone(schedule.getPreventiveMaintenance().getCompany()
+                            .getCompanySettings().getGeneralPreferences().getTimeZone());
+                    syncCalendarCallRegister(schedule, forecastFromTrigger(schedule, trigger, timeZone,
+                            calendarForecastLimit(schedule)));
+                }
+                return;
+            }
+            scheduleWorkOrder(schedule);
+        } catch (SchedulerException e) {
+            throw new CustomException("Error checking quartz trigger for schedule " + schedule.getId(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public void stopScheduleJobs(Long scheduleId) {
@@ -336,24 +390,7 @@ public class ScheduleService {
         if (schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.COMPLETED_DATE) return;
 
         // 1. Calculate the next run date based on Frequency
-        Calendar cal = Calendar.getInstance(timeZone);
-        cal.setTime(completedDate);
-
-        switch (schedule.getRecurrenceType()) {
-            case DAILY:
-                cal.add(Calendar.DAY_OF_YEAR, schedule.getFrequency());
-                break;
-            case WEEKLY:
-                cal.add(Calendar.WEEK_OF_YEAR, schedule.getFrequency());
-                break;
-            case MONTHLY:
-                cal.add(Calendar.MONTH, schedule.getFrequency());
-                break;
-            case YEARLY:
-                cal.add(Calendar.YEAR, schedule.getFrequency());
-                break;
-        }
-        Date nextRunDate = cal.getTime();
+        Date nextRunDate = getNextCompletionDate(schedule, completedDate, timeZone);
 
         // The one-shot schedule for the chained job
         ScheduleBuilder<SimpleTrigger> oneShotSchedule = SimpleScheduleBuilder.simpleSchedule().withRepeatCount(0);
@@ -365,15 +402,17 @@ public class ScheduleService {
             JobDetail woJob = JobBuilder.newJob(WorkOrderCreationJob.class)
                     .withIdentity(jobKey)
                     .usingJobData("scheduleId", schedule.getId())
+                    .usingJobData("occurrenceTimestamp", nextRunDate.getTime())
                     .storeDurably()
                     .build();
 
             Trigger woTrigger = TriggerBuilder.newTrigger()
-                    .startAt(nextRunDate)
+                    .startAt(generationDate(schedule, nextRunDate, timeZone))
                     .withSchedule(oneShotSchedule) // Run Once
                     .build();
 
             scheduler.scheduleJob(woJob, woTrigger);
+            syncCalendarCallRegister(schedule, forecastFromCompletion(schedule, nextRunDate, timeZone, 12));
             log.info("Chained next schedule for Schedule ID {} at {}", schedule.getId(), nextRunDate);
 
             int daysBeforePMNotification = pm.getCompany()
@@ -402,6 +441,13 @@ public class ScheduleService {
     }
 
     public boolean checkIfWeeklyShouldRun(Schedule schedule) {
+        return checkIfWeeklyShouldRun(schedule, new Date());
+    }
+
+    public boolean checkIfWeeklyShouldRun(Schedule schedule, Date occurrence) {
+        // Completion-based schedules are already chained from the previous completion date.
+        // Re-applying the scheduled-date week index can skip valid chained occurrences.
+        if (schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.SCHEDULED_DATE) return true;
         if (schedule.getRecurrenceType() == RecurrenceType.WEEKLY && schedule.getFrequency() > 1) {
             String tzId = schedule.getPreventiveMaintenance()
                     .getCompany().getCompanySettings()
@@ -410,7 +456,7 @@ public class ScheduleService {
 
             long daysSinceStart = ChronoUnit.DAYS.between(
                     schedule.getStartsOn().toInstant().atZone(zoneId).toLocalDate(),
-                    new Date().toInstant().atZone(zoneId).toLocalDate()
+                    occurrence.toInstant().atZone(zoneId).toLocalDate()
             );
             long weeksSinceStart = daysSinceStart / 7;
 
@@ -420,6 +466,237 @@ public class ScheduleService {
             }
         }
         return true;
+    }
+
+    public void refreshCalendarCallRegister(Schedule schedule) {
+        if (schedule == null || schedule.getTriggerType() != ScheduleTriggerType.CALENDAR
+                || schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.SCHEDULED_DATE) return;
+        try {
+            Trigger trigger = scheduler.getTrigger(new TriggerKey("wo-trigger-" + schedule.getId(), "wo-group"));
+            if (trigger == null) return;
+            TimeZone timeZone = TimeZone.getTimeZone(schedule.getPreventiveMaintenance().getCompany()
+                    .getCompanySettings().getGeneralPreferences().getTimeZone());
+            syncCalendarCallRegister(schedule, forecastFromTrigger(schedule, trigger, timeZone,
+                    calendarForecastLimit(schedule)));
+        } catch (SchedulerException e) {
+            throw new CustomException("Unable to refresh preventive maintenance calls.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public void scheduleDeferredOccurrence(PreventiveMaintenanceMeterCall call) {
+        if (call == null || call.getId() == null || call.getSchedule() == null
+                || call.getCallType() != ScheduleTriggerType.CALENDAR
+                || call.getStatus() != PreventiveMaintenanceCallStatus.RESCHEDULED
+                || call.getRescheduledFor() == null || call.getDueDate() == null) return;
+        JobKey jobKey = new JobKey("wo-deferred-job-" + call.getId(), "wo-group");
+        TriggerKey triggerKey = new TriggerKey("wo-deferred-trigger-" + call.getId(), "wo-group");
+        try {
+            JobDetail job = JobBuilder.newJob(WorkOrderCreationJob.class)
+                    .withIdentity(jobKey)
+                    .usingJobData("scheduleId", call.getSchedule().getId())
+                    .usingJobData("occurrenceTimestamp", call.getDueDate().getTime())
+                    .usingJobData("deferredOccurrence", true)
+                    .build();
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity(triggerKey)
+                    .forJob(jobKey)
+                    .startAt(generationDate(call.getSchedule(), call.getRescheduledFor(), TimeZone.getTimeZone(
+                            call.getSchedule().getPreventiveMaintenance().getCompany().getCompanySettings()
+                                    .getGeneralPreferences().getTimeZone())))
+                    .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                            .withRepeatCount(0)
+                            .withMisfireHandlingInstructionFireNow())
+                    .build();
+            if (scheduler.checkExists(triggerKey)) {
+                scheduler.rescheduleJob(triggerKey, trigger);
+            } else if (scheduler.checkExists(jobKey)) {
+                scheduler.scheduleJob(trigger);
+            } else {
+                scheduler.scheduleJob(job, trigger);
+            }
+        } catch (SchedulerException e) {
+            throw new CustomException("Unable to schedule the deferred preventive maintenance call.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public void recoverDeferredOccurrences() {
+        callRepository.findByStatusAndCallTypeAndRescheduledForNotNull(
+                        PreventiveMaintenanceCallStatus.RESCHEDULED, ScheduleTriggerType.CALENDAR)
+                .forEach(call -> {
+                    try {
+                        scheduleDeferredOccurrence(call);
+                    } catch (RuntimeException e) {
+                        log.error("Unable to restore deferred PM call {}", call.getId(), e);
+                    }
+                });
+    }
+
+    private List<Date> forecastFromTrigger(Schedule schedule, Trigger trigger, TimeZone timeZone, int limit) {
+        List<Date> result = new ArrayList<>();
+        Date now = new Date();
+        Date cursor = new Date(now.getTime() - 1);
+        if (trigger.getStartTime().after(cursor)) cursor = new Date(trigger.getStartTime().getTime() - 1);
+        int attempts = 0;
+        while (result.size() < limit && attempts++ < 1200) {
+            Date occurrence = trigger.getFireTimeAfter(cursor);
+            if (occurrence == null || (schedule.getEndsOn() != null && occurrence.after(schedule.getEndsOn()))) break;
+            cursor = occurrence;
+            if (schedule.getRecurrenceType() == RecurrenceType.WEEKLY
+                    && !isValidWeeklyOccurrence(schedule, occurrence, timeZone)) continue;
+            result.add(occurrence);
+        }
+        return result;
+    }
+
+    private boolean isValidWeeklyOccurrence(Schedule schedule, Date occurrence, TimeZone timeZone) {
+        ZoneId zone = timeZone.toZoneId();
+        java.time.LocalDate startWeek = schedule.getStartsOn().toInstant().atZone(zone).toLocalDate()
+                .with(java.time.DayOfWeek.MONDAY);
+        java.time.LocalDate occurrenceWeek = occurrence.toInstant().atZone(zone).toLocalDate()
+                .with(java.time.DayOfWeek.MONDAY);
+        long week = ChronoUnit.WEEKS.between(startWeek, occurrenceWeek);
+        return week >= 0 && week % schedule.getFrequency() == 0;
+    }
+
+    private List<Date> forecastFromCompletion(Schedule schedule, Date firstDate, TimeZone timeZone, int limit) {
+        List<Date> result = new ArrayList<>();
+        if (firstDate == null) return result;
+        Calendar cursor = Calendar.getInstance(timeZone);
+        cursor.setTime(firstDate);
+        while (result.size() < limit) {
+            Date occurrence = cursor.getTime();
+            if (schedule.getEndsOn() != null && occurrence.after(schedule.getEndsOn())) break;
+            result.add(occurrence);
+            cursor.setTime(getNextCompletionDate(schedule, occurrence, timeZone));
+        }
+        return result;
+    }
+
+    private Date getNextCompletionDate(Schedule schedule, Date completedDate, TimeZone timeZone) {
+        Calendar cursor = Calendar.getInstance(timeZone);
+        cursor.setTime(completedDate);
+        switch (schedule.getRecurrenceType()) {
+            case DAILY -> cursor.add(Calendar.DAY_OF_YEAR, schedule.getFrequency());
+            case WEEKLY -> cursor.add(Calendar.WEEK_OF_YEAR, schedule.getFrequency());
+            case MONTHLY -> cursor.add(Calendar.MONTH, schedule.getFrequency());
+            case YEARLY -> cursor.add(Calendar.YEAR, schedule.getFrequency());
+        }
+        return cursor.getTime();
+    }
+
+    private void syncCalendarCallRegister(Schedule schedule, List<Date> dueDates) {
+        if (schedule.getId() == null || schedule.getTriggerType() != ScheduleTriggerType.CALENDAR) return;
+        PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
+        if (plan != null && plan.getMode() == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY) {
+            ZoneId zone = ZoneId.of(schedule.getPreventiveMaintenance().getCompany().getCompanySettings()
+                    .getGeneralPreferences().getTimeZone());
+            dueDates = dueDates.stream()
+                    .filter(date -> !PreventiveMaintenancePlanPolicy.duePackages(plan,
+                            PreventiveMaintenancePlanPolicy.calendarCycleNumber(schedule, date, zone)).isEmpty())
+                    .toList();
+        }
+        Set<Long> dueEpochs = dueDates.stream().map(Date::getTime).collect(Collectors.toSet());
+        List<PreventiveMaintenanceMeterCall> reservedCalls = dueDates.isEmpty() ? Collections.emptyList()
+                : callRepository.findBySchedule_IdAndCallTypeAndDueDateIn(
+                        schedule.getId(), ScheduleTriggerType.CALENDAR, dueDates);
+        Set<Long> reservedEpochs = reservedCalls.stream()
+                .filter(call -> call.getDueDate() != null)
+                .map(call -> call.getDueDate().getTime())
+                .collect(Collectors.toSet());
+        List<PreventiveMaintenanceMeterCall> existing = callRepository.findBySchedule_IdAndCallTypeAndStatus(
+                schedule.getId(), ScheduleTriggerType.CALENDAR, PreventiveMaintenanceCallStatus.PLANNED);
+        Set<Long> existingEpochs = new HashSet<>();
+        for (PreventiveMaintenanceMeterCall call : existing) {
+            if (call.getDueDate() != null && dueEpochs.contains(call.getDueDate().getTime())) {
+                existingEpochs.add(call.getDueDate().getTime());
+            } else {
+                call.setStatus(PreventiveMaintenanceCallStatus.IGNORED);
+                callRepository.save(call);
+                cancelLeadGenerationJob(call.getId());
+            }
+        }
+        for (Date dueDate : dueDates) {
+            if (existingEpochs.contains(dueDate.getTime()) || reservedEpochs.contains(dueDate.getTime())) continue;
+            PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+            call.setSchedule(schedule);
+            call.setDueDate(dueDate);
+            call.setCallType(ScheduleTriggerType.CALENDAR);
+            call.setStatus(PreventiveMaintenanceCallStatus.PLANNED);
+            call = callRepository.save(call);
+            scheduleLeadGenerationJob(schedule, call);
+        }
+        // Existing forecast calls also need their one-shot lead job after a restart or edit.
+        List<PreventiveMaintenanceMeterCall> currentCalls = callRepository
+                .findBySchedule_IdAndCallTypeAndDueDateIn(schedule.getId(), ScheduleTriggerType.CALENDAR, dueDates);
+        for (PreventiveMaintenanceMeterCall call : currentCalls) {
+            if (call.getStatus() == PreventiveMaintenanceCallStatus.PLANNED) {
+                if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE) {
+                    scheduleLeadGenerationJob(schedule, call);
+                } else {
+                    cancelLeadGenerationJob(call.getId());
+                }
+            }
+        }
+    }
+
+    private Date generationDate(Schedule schedule, Date dueDate, TimeZone timeZone) {
+        if (schedule.getWorkOrderGenerationLeadDays() <= 0) return dueDate;
+        Calendar calendar = Calendar.getInstance(timeZone);
+        calendar.setTime(dueDate);
+        calendar.add(Calendar.DAY_OF_YEAR, -schedule.getWorkOrderGenerationLeadDays());
+        return calendar.getTime();
+    }
+
+    private int calendarForecastLimit(Schedule schedule) {
+        int leadDays = schedule.getWorkOrderGenerationLeadDays();
+        int intervalDays = switch (schedule.getRecurrenceType()) {
+            case DAILY -> schedule.getFrequency();
+            case WEEKLY -> 7 * schedule.getFrequency();
+            case MONTHLY -> 30 * schedule.getFrequency();
+            case YEARLY -> 365 * schedule.getFrequency();
+        };
+        int occurrencesInLeadWindow = (leadDays + intervalDays - 1) / intervalDays;
+        return Math.min(400, 12 + occurrencesInLeadWindow * (schedule.getRecurrenceType() == RecurrenceType.WEEKLY
+                ? Math.max(1, schedule.getDaysOfWeek().size()) : 1));
+    }
+
+    private void scheduleLeadGenerationJob(Schedule schedule, PreventiveMaintenanceMeterCall call) {
+        if (call == null) return;
+        if (schedule.getWorkOrderGenerationLeadDays() <= 0 || call.getId() == null
+                || call.getDueDate() == null || schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.SCHEDULED_DATE) {
+            cancelLeadGenerationJob(call.getId());
+            return;
+        }
+        TimeZone timeZone = TimeZone.getTimeZone(schedule.getPreventiveMaintenance().getCompany()
+                .getCompanySettings().getGeneralPreferences().getTimeZone());
+        JobKey jobKey = new JobKey("wo-lead-job-" + call.getId(), "wo-group");
+        TriggerKey triggerKey = new TriggerKey("wo-lead-trigger-" + call.getId(), "wo-group");
+        try {
+            JobDetail job = JobBuilder.newJob(WorkOrderCreationJob.class).withIdentity(jobKey)
+                    .usingJobData("scheduleId", schedule.getId())
+                    .usingJobData("occurrenceTimestamp", call.getDueDate().getTime())
+                    .build();
+            Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerKey).forJob(jobKey)
+                    .startAt(generationDate(schedule, call.getDueDate(), timeZone))
+                    .withSchedule(SimpleScheduleBuilder.simpleSchedule().withRepeatCount(0)
+                            .withMisfireHandlingInstructionFireNow()).build();
+            if (scheduler.checkExists(triggerKey)) scheduler.rescheduleJob(triggerKey, trigger);
+            else if (scheduler.checkExists(jobKey)) scheduler.scheduleJob(trigger);
+            else scheduler.scheduleJob(job, trigger);
+        } catch (SchedulerException e) {
+            throw new CustomException("Unable to schedule early preventive maintenance work order.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void cancelLeadGenerationJob(Long callId) {
+        if (callId == null) return;
+        try {
+            scheduler.deleteJob(new JobKey("wo-lead-job-" + callId, "wo-group"));
+        } catch (SchedulerException e) {
+            log.warn("Unable to cancel lead generation job for PM call {}", callId, e);
+        }
     }
 
     public Collection<Schedule> findActive() {

@@ -18,6 +18,7 @@ import org.quartz.JobExecutionContext;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,6 +54,7 @@ class WorkOrderCreationJobTest {
         jobDataMap.put("scheduleId", scheduleId);
         JobExecutionContext context = mock(JobExecutionContext.class);
         when(context.getMergedJobDataMap()).thenReturn(jobDataMap);
+        lenient().when(context.getScheduledFireTime()).thenReturn(new Date());
         return context;
     }
 
@@ -62,8 +64,8 @@ class WorkOrderCreationJobTest {
 
         assertDoesNotThrow(() -> workOrderCreationJob.executeInternal(contextWithScheduleId(1L)));
 
-        verify(scheduleService, never()).checkIfWeeklyShouldRun(any());
-        verify(preventiveMaintenanceService, never()).createWorkOrderFromPreventiveMaintenance(any());
+        verify(scheduleService, never()).checkIfWeeklyShouldRun(any(), any(Date.class));
+        verify(preventiveMaintenanceService, never()).createScheduledWorkOrder(any(), any(Date.class), anyBoolean());
     }
 
     @Test
@@ -73,44 +75,48 @@ class WorkOrderCreationJobTest {
 
         assertDoesNotThrow(() -> workOrderCreationJob.executeInternal(contextWithScheduleId(1L)));
 
-        verify(scheduleService, never()).checkIfWeeklyShouldRun(any());
-        verify(preventiveMaintenanceService, never()).createWorkOrderFromPreventiveMaintenance(any());
+        verify(scheduleService, never()).checkIfWeeklyShouldRun(any(), any(Date.class));
+        verify(preventiveMaintenanceService, never()).createScheduledWorkOrder(any(), any(Date.class), anyBoolean());
     }
 
     @Test
     void weeklyShouldNotRun_returnsWithoutCreatingWorkOrder() {
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(false);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(Date.class))).thenReturn(false);
 
         assertDoesNotThrow(() -> workOrderCreationJob.executeInternal(contextWithScheduleId(1L)));
 
-        verify(preventiveMaintenanceService, never()).createWorkOrderFromPreventiveMaintenance(any());
+        verify(preventiveMaintenanceService, never()).createScheduledWorkOrder(any(), any(Date.class), anyBoolean());
     }
 
     @Test
     void validSchedule_createsWorkOrderFromPreventiveMaintenance() {
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(true);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(Date.class))).thenReturn(true);
         WorkOrder workOrder = new WorkOrder();
         workOrder.setCustomId("WO000042");
-        when(preventiveMaintenanceService.createWorkOrderFromPreventiveMaintenance(any()))
+        when(preventiveMaintenanceService.createScheduledWorkOrder(eq(schedule.getPreventiveMaintenance()),
+                any(Date.class), eq(false)))
                 .thenReturn(workOrder);
 
         assertDoesNotThrow(() -> workOrderCreationJob.executeInternal(contextWithScheduleId(1L)));
 
-        verify(preventiveMaintenanceService).createWorkOrderFromPreventiveMaintenance(schedule.getPreventiveMaintenance());
+        verify(preventiveMaintenanceService).createScheduledWorkOrder(eq(schedule.getPreventiveMaintenance()),
+                any(Date.class), eq(false));
     }
 
     @Test
     void workOrderCreationFails_rethrowsSoTheTransactionIsRolledBack() {
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(true);
-        when(preventiveMaintenanceService.createWorkOrderFromPreventiveMaintenance(any()))
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(Date.class))).thenReturn(true);
+        when(preventiveMaintenanceService.createScheduledWorkOrder(eq(schedule.getPreventiveMaintenance()),
+                any(Date.class), eq(false)))
                 .thenThrow(new CustomException("You need a license to add a new work order.", HttpStatus.FORBIDDEN));
 
         assertThrows(CustomException.class, () -> workOrderCreationJob.executeInternal(contextWithScheduleId(1L)));
 
-        verify(preventiveMaintenanceService).createWorkOrderFromPreventiveMaintenance(schedule.getPreventiveMaintenance());
+        verify(preventiveMaintenanceService).createScheduledWorkOrder(eq(schedule.getPreventiveMaintenance()),
+                any(Date.class), eq(false));
     }
 
     @Test
@@ -122,6 +128,6 @@ class WorkOrderCreationJobTest {
         assertThrows(ClassCastException.class, () -> workOrderCreationJob.executeInternal(context));
 
         verify(scheduleRepository, never()).findById(anyLong());
-        verify(preventiveMaintenanceService, never()).createWorkOrderFromPreventiveMaintenance(any());
+        verify(preventiveMaintenanceService, never()).createScheduledWorkOrder(any(), any(Date.class), anyBoolean());
     }
 }

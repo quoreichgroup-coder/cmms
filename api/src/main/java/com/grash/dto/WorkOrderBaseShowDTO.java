@@ -35,6 +35,8 @@ public class WorkOrderBaseShowDTO extends AuditShowDTO {
 
     @Schema(description = "Location where the work will be performed")
     private LocationMiniDTO location;
+    private Long siteId;
+    private String siteName;
 
     @Schema(description = "Team assigned to the work order")
     private TeamMiniDTO team;

@@ -24,7 +24,7 @@ public class Checklist extends DateAudit {
     private Long id;
 
     @OneToMany(orphanRemoval = true)
-    @OrderBy("createdAt ASC")
+    @OrderColumn(name = "operation_order")
     private List<TaskBase> taskBases = new ArrayList<>();
 
     @Schema(description = "Name of the checklist", requiredMode = Schema.RequiredMode.REQUIRED)

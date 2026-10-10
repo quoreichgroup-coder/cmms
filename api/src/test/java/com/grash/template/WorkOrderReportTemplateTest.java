@@ -30,6 +30,7 @@ class WorkOrderReportTemplateTest extends AbstractTemplateTest {
         String html = render(variables, Locale.ENGLISH);
 
         assertTrue(html.contains("Grash Test Co."));
+        assertTrue(html.contains("size: A4 landscape"));
         assertTrue(html.contains("+1-555-0100"));
         assertTrue(html.contains("data-storage-path=\"logos/logo.png\""));
         assertTrue(html.contains("Work Order"));
@@ -53,7 +54,8 @@ class WorkOrderReportTemplateTest extends AbstractTemplateTest {
         assertTrue(html.contains(panelTitle("Details")));
         assertTrue(html.contains("Warehouse A"));
         assertTrue(html.contains("Conveyor Belt #3 (CB-003)"));
-        assertTrue(html.contains("Jan 07"));
+        assertTrue(html.contains("01/07/24"));
+        assertTrue(html.contains("01/10/24"));
         assertTrue(html.contains("4.0"));
         assertTrue(html.contains("Maintenance Crew"));
         assertTrue(html.contains("Mechanical"));
@@ -215,7 +217,18 @@ class WorkOrderReportTemplateTest extends AbstractTemplateTest {
         String html = render(variables, Locale.ENGLISH);
 
         assertTrue(html.contains("05/01/24"));
+        assertTrue(html.contains("07/01/24"));
         assertTrue(html.contains("08/01/24"));
+        assertTrue(html.contains("10/01/24"));
+    }
+
+    @Test
+    void usesPrintReadyA4LayoutAndAvoidsSplittingReportSections() {
+        String html = render(variables, Locale.ENGLISH);
+
+        assertTrue(html.contains("size: A4"));
+        assertTrue(html.contains("page-break-inside: avoid"));
+        assertTrue(html.contains("display: table-header-group"));
     }
 
     @Test

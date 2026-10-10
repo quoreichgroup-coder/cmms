@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import jakarta.persistence.*;
 import org.hibernate.envers.NotAudited;
@@ -37,6 +38,7 @@ public class PreventiveMaintenance extends WorkOrderBase {
     @Schema(description = "Schedule that defines when this preventive maintenance generates work orders")
     @OneToOne(cascade = CascadeType.ALL)
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @ToString.Exclude
     private Schedule schedule = new Schedule(this);
 
     @OneToMany(mappedBy = "preventiveMaintenance", cascade = CascadeType.ALL, orphanRemoval = true)

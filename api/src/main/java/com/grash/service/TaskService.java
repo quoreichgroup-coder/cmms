@@ -59,11 +59,11 @@ public class TaskService {
     }
 
     public List<Task> findByWorkOrder(Long id) {
-        return taskRepository.findByWorkOrder_IdOrderByCreatedAtAsc(id);
+        return taskRepository.findByWorkOrder_IdOrderByTaskOrderAscCreatedAtAscIdAsc(id);
     }
 
     public List<Task> findByPreventiveMaintenance(Long id) {
-        return taskRepository.findByPreventiveMaintenance_Id(id);
+        return taskRepository.findByPreventiveMaintenance_IdOrderByTaskOrderAscCreatedAtAscIdAsc(id);
     }
 }
 

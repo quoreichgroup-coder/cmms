@@ -65,6 +65,11 @@ public abstract class WorkOrderBase extends CompanyAudit {
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED, withModifiedFlag = true)
     private Location location;
 
+    @Schema(description = "Operational site for this maintenance work")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED, withModifiedFlag = true)
+    private Site site;
+
     @Schema(description = "The team assigned to perform the work", implementation = IdDTO.class)
     @ManyToOne
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED, withModifiedFlag = true)

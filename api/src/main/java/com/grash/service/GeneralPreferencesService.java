@@ -6,7 +6,6 @@ import com.grash.mapper.GeneralPreferencesMapper;
 import com.grash.model.GeneralPreferences;
 import com.grash.model.User;
 import com.grash.repository.GeneralPreferencesRepository;
-import com.grash.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,6 @@ public class GeneralPreferencesService {
 
     private static final Pattern URL_PATTERN =
             Pattern.compile("(?i)\\b(https?://|www\\.)\\S+\\b");
-    private final UserRepository userRepository;
 
     public static boolean isValidColor(String text) {
         if (text == null || text.isBlank()) {
@@ -48,10 +46,6 @@ public class GeneralPreferencesService {
                     throw new CustomException("Invalid color format", HttpStatus.BAD_REQUEST);
                 }
             GeneralPreferences savedGeneralPreferences = generalPreferencesRepository.findById(id).get();
-            if (savedGeneralPreferences.getLanguage() != generalPreferencesPatchDTO.getLanguage()) {
-                user.setLanguage(generalPreferencesPatchDTO.getLanguage());
-                userRepository.save(user);
-            }
             GeneralPreferences result =
                     generalPreferencesRepository.save(generalPreferencesMapper.updateGeneralPreferences(savedGeneralPreferences, generalPreferencesPatchDTO));
             cacheService.evictCompanyUsersFromCache(savedGeneralPreferences.getCompanySettings().getCompany().getId());

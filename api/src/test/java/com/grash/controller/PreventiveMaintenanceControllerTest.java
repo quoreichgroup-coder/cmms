@@ -2,6 +2,7 @@ package com.grash.controller;
 
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.PreventiveMaintenancePatchDTO;
+import com.grash.dto.PreventiveMaintenanceCallDTO;
 import com.grash.dto.PreventiveMaintenanceShowDTO;
 import com.grash.dto.workOrder.WorkOrderMiniDTO;
 import com.grash.exception.CustomException;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -143,6 +145,84 @@ class PreventiveMaintenanceControllerTest extends AbstractControllerTest {
             mockMvc.perform(get("/preventive-maintenances/1/recent-work-orders"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].id").value(10));
+        }
+
+        @Test
+        void workOrderHistory_returnsPaginatedOrdersForClient() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            WorkOrder wo = new WorkOrder();
+            wo.setId(10L);
+            when(preventiveMaintenanceService.getWorkOrderHistory(1L, clientUser, 0, 10))
+                    .thenReturn(new PageImpl<>(List.of(wo), PageRequest.of(0, 10), 1));
+            WorkOrderMiniDTO miniDto = new WorkOrderMiniDTO();
+            miniDto.setId(10L);
+            miniDto.setCustomId("WO000010");
+            when(workOrderMapper.toMiniDto(wo)).thenReturn(miniDto);
+
+            mockMvc.perform(get("/preventive-maintenances/1/work-order-history?page=0&size=10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[0].id").value(10))
+                    .andExpect(jsonPath("$.content[0].customId").value("WO000010"))
+                    .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void workOrderHistory_requiresRoleClient() throws Exception {
+            setCurrentUser(nonClientUser);
+            when(userService.whoami(any())).thenReturn(nonClientUser);
+
+            mockMvc.perform(get("/preventive-maintenances/1/work-order-history"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void callHistory_returnsPaginatedMeterCallsForClient() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            PreventiveMaintenanceCallDTO call = new PreventiveMaintenanceCallDTO();
+            call.setId(27L);
+            call.setDueValue(100d);
+            call.setUnit("h");
+            call.setStatus(com.grash.model.enums.PreventiveMaintenanceCallStatus.PLANNED);
+            when(preventiveMaintenanceService.getMeterCallHistory(1L, clientUser, 0, 10))
+                    .thenReturn(new PageImpl<>(List.of(call), PageRequest.of(0, 10), 1));
+
+            mockMvc.perform(get("/preventive-maintenances/1/call-history?page=0&size=10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[0].dueValue").value(100))
+                    .andExpect(jsonPath("$.content[0].unit").value("h"))
+                    .andExpect(jsonPath("$.content[0].status").value("PLANNED"))
+                    .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void callHistory_requiresRoleClient() throws Exception {
+            setCurrentUser(nonClientUser);
+            when(userService.whoami(any())).thenReturn(nonClientUser);
+            mockMvc.perform(get("/preventive-maintenances/1/call-history"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void rescheduleCall_acceptsReasonAndNewDateForClient() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            PreventiveMaintenanceCallDTO result = new PreventiveMaintenanceCallDTO();
+            result.setId(27L);
+            result.setStatus(com.grash.model.enums.PreventiveMaintenanceCallStatus.RESCHEDULED);
+            when(preventiveMaintenanceService.rescheduleCalendarCall(eq(1L), eq(27L), any(), eq(clientUser)))
+                    .thenReturn(result);
+
+            mockMvc.perform(post("/preventive-maintenances/1/call-history/27/reschedule")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"rescheduledFor\":\"2035-01-02T09:00:00.000Z\","
+                                    + "\"reason\":\"Production line unavailable\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(27))
+                    .andExpect(jsonPath("$.status").value("RESCHEDULED"));
+
+            verify(preventiveMaintenanceService).rescheduleCalendarCall(eq(1L), eq(27L), any(), eq(clientUser));
         }
 
         @Test

@@ -98,4 +98,16 @@ public class WorkOrderMeterTriggerService {
     public Collection<WorkOrderMeterTrigger> findByMeter(Long id) {
         return workOrderMeterTriggerRepository.findByMeter_Id(id);
     }
+
+    public WorkOrderMeterTrigger save(WorkOrderMeterTrigger trigger) {
+        return workOrderMeterTriggerRepository.save(trigger);
+    }
+
+    public Collection<WorkOrderMeterTrigger> findByMeterForUpdate(Long id) {
+        return workOrderMeterTriggerRepository.findByMeterIdForUpdate(id);
+    }
+
+    public Optional<WorkOrderMeterTrigger> findByIdForUpdate(Long id) {
+        return workOrderMeterTriggerRepository.findByIdForUpdate(id);
+    }
 }

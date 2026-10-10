@@ -17,5 +17,7 @@ public interface ReadingRepository extends JpaRepository<Reading, Long> {
 
     Optional<Reading> findFirstByMeter_IdOrderByCreatedAtDesc(Long id);
 
+    Optional<Reading> findFirstByMeter_IdOrderByCreatedAtDescIdDesc(Long id);
+
     Collection<Reading> findByMeter_IdAndCreatedAtBetween(Long meterId, Date start, Date end);
 }

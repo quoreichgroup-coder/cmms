@@ -2,6 +2,8 @@ package com.grash.controller;
 
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.PreventiveMaintenancePatchDTO;
+import com.grash.dto.PreventiveMaintenanceCallDTO;
+import com.grash.dto.PreventiveMaintenanceCallRescheduleRequest;
 import com.grash.dto.PreventiveMaintenancePostDTO;
 import com.grash.dto.PreventiveMaintenanceShowDTO;
 import com.grash.dto.SuccessResponse;
@@ -61,6 +63,33 @@ public class PreventiveMaintenanceController {
         return preventiveMaintenanceService.getRecentWorkOrders(id, user).stream()
                 .map(workOrderMapper::toMiniDto)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/{id}/work-order-history")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public Page<WorkOrderMiniDTO> getWorkOrderHistory(@PathVariable("id") Long id,
+                                                      @RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "10") int size,
+                                                      @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceService.getWorkOrderHistory(id, user, page, size)
+                .map(workOrderMapper::toMiniDto);
+    }
+
+    @GetMapping("/{id}/call-history")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public Page<PreventiveMaintenanceCallDTO> getCallHistory(@PathVariable("id") Long id,
+                                                              @RequestParam(defaultValue = "0") int page,
+                                                              @RequestParam(defaultValue = "10") int size,
+                                                              @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceService.getMeterCallHistory(id, user, page, size);
+    }
+
+    @PostMapping("/{id}/call-history/{callId}/reschedule")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public PreventiveMaintenanceCallDTO rescheduleCall(@PathVariable("id") Long pmId,
+            @PathVariable Long callId, @Valid @RequestBody PreventiveMaintenanceCallRescheduleRequest request,
+            @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceService.rescheduleCalendarCall(pmId, callId, request, user);
     }
 
     @PostMapping("/{id}/trigger-work-order")

@@ -28,9 +28,13 @@ public interface AssetMapper {
     AssetPatchDTO toPatchDto(Asset model);
 
     @Mapping(target = "image", source = "image", qualifiedByName = "toThumbnailDto")
+    @Mapping(target = "siteId", source = "site.id")
+    @Mapping(target = "siteName", source = "site.name")
     AssetShowDTO toShowDto(Asset model, @Context AssetService assetService);
 
     @Mapping(target = "image", source = "image", qualifiedByName = "toThumbnailDto")
+    @Mapping(target = "siteId", source = "site.id")
+    @Mapping(target = "siteName", source = "site.name")
     AssetShowDTO toShowDto(Asset model, @Context Set<Long> parentIdsWithChildren);
 
     @Mapping(target = "parentId", source = "parentAsset.id")
