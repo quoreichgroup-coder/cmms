@@ -60,6 +60,8 @@ export interface AssetDTO extends Audit {
   manufacturer: string;
   customId: string;
   customFieldValues: CustomFieldValue[];
+  siteId?: number | null;
+  siteName?: string | null;
 }
 export interface AssetRow extends AssetDTO {
   childrenFetched?: boolean;

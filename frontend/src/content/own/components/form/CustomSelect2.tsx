@@ -32,6 +32,7 @@ import { getPriorityLabel } from '../../../../utils/formatters';
 import { addCategory, getCategories } from '../../../../slices/category';
 import { getRoles } from '../../../../slices/role';
 import { getCurrencies } from '../../../../slices/currency';
+import { getMetersMini } from '../../../../slices/meter';
 import { useTranslation } from 'react-i18next';
 import SelectLocationModal from './SelectLocationModal';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -40,10 +41,13 @@ import { LocationMiniDTO } from '../../../../models/owns/location';
 import { AssetMiniDTO } from '../../../../models/owns/asset';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
+import api from '../../../../utils/api';
 
 interface OptionType {
   label: string;
   value: string | number;
+  unit?: string;
+  assetId?: number;
   __createOption__?: boolean;
 }
 
@@ -72,6 +76,8 @@ export const CustomSelect = ({
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [sites, setSites] = useState<{ id: number; name: string; code: string }[]>([]);
+  const [sitesLoaded, setSitesLoaded] = useState(false);
   const { t } = useTranslation();
   const formik = useFormikContext();
   const [openTask, setOpenTask] = useState(false);
@@ -94,6 +100,7 @@ export const CustomSelect = ({
   const { teamsMini } = useSelector((state) => state.teams);
   const { roles } = useSelector((state) => state.roles);
   const { currencies } = useSelector((state) => state.currencies);
+  const { metersMini } = useSelector((state) => state.meters);
 
   const fetchCustomers = async () => {
     dispatch(getCustomersMini());
@@ -123,6 +130,19 @@ export const CustomSelect = ({
   };
   const fetchCurrencies = async () => {
     if (!currencies.length) dispatch(getCurrencies());
+  };
+  const fetchMeters = async () => {
+    if (!metersMini.length) dispatch(getMetersMini());
+  };
+  const fetchSites = async () => {
+    if (sitesLoaded) return;
+    try {
+      const result = await api.get<{ id: number; name: string; code: string }[]>('sites');
+      setSites(result);
+      setSitesLoaded(true);
+    } catch (error) {
+      console.error('Could not load company sites', error);
+    }
   };
 
   // Handle inline category creation
@@ -373,6 +393,13 @@ export const CustomSelect = ({
         };
       });
       onOpen = fetchCurrencies;
+      break;
+    case 'site':
+      options = sites.map((site) => ({
+        label: `${site.name} (${site.code})`,
+        value: site.id
+      }));
+      onOpen = fetchSites;
       break;
     case 'location':
     case 'parentLocation':
@@ -726,6 +753,42 @@ export const CustomSelect = ({
         </>
       );
     }
+    case 'meter': {
+      const selectedAssetId = field.relatedFields?.length
+        ? formik.values[field.relatedFields[0].field]?.value
+        : undefined;
+      const meterOptions = metersMini
+        .filter((meter) => !selectedAssetId || meter.assetId === Number(selectedAssetId))
+        .map((meter) => ({
+          label: meter.unit ? `${meter.name} (${meter.unit})` : meter.name,
+          value: meter.id,
+          unit: meter.unit,
+          assetId: meter.assetId
+        }));
+      return (
+        <Autocomplete
+          options={meterOptions}
+          value={fieldValue ?? null}
+          onOpen={fetchMeters}
+          onChange={(_event, value) => handleChange(formik, field.name, value)}
+          isOptionEqualToValue={(option, value) => option.value === value?.value}
+          getOptionLabel={(option) => option?.label ?? ''}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              fullWidth
+              variant="outlined"
+              required={field.required}
+              label={field.label}
+              placeholder={field.placeholder}
+              error={!!formik.errors[field.name] || field.error}
+              helperText={typeof formik.errors[field.name] === 'string' ? (formik.errors[field.name] as string) : ''}
+            />
+          )}
+          disabled={formik.isSubmitting}
+        />
+      );
+    }
     case 'role':
       options = roles.map((role) => {
         return {
@@ -950,6 +1013,12 @@ export const CustomSelect = ({
                 <Typography variant="subtitle1">
                   {t('assign_tasks_description')}
                 </Typography>
+                {!!fieldValue?.length && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {fieldValue.slice(0, 3).map((task) => task.taskBase?.label || t('task_without_name')).join(' · ')}
+                    {fieldValue.length > 3 ? ` · +${fieldValue.length - 3}` : ''}
+                  </Typography>
+                )}
               </Box>
               <IconButton>
                 {fieldValue?.length ? (

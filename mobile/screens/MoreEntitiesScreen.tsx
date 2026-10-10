@@ -59,6 +59,14 @@ export default function MoreEntitiesScreen({
       uiConfigKey: 'meters'
     },
     {
+      label: 'preventive_maintenance',
+      icon: 'calendar-clock',
+      color: '#245bd1',
+      backgroundColor: '#c8ccd3',
+      link: 'PreventiveMaintenances',
+      visible: hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES)
+    },
+    {
       label: 'people_teams',
       icon: 'account',
       color: '#245bd1',

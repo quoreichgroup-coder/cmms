@@ -45,7 +45,9 @@ export interface IField {
     | 'category'
     | 'parentLocation'
     | 'role'
-    | 'currency';
+    | 'currency'
+    | 'meter'
+    | 'site';
   category?:
     | 'purchase-order-categories'
     | 'cost-categories'

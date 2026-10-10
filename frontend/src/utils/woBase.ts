@@ -157,6 +157,9 @@ export const getWOBaseValues = <T extends WorkOrderBase>(t: any, entity: T) => {
           value: entity.location.id.toString()
         }
       : null,
+    site: entity?.siteId
+      ? { label: entity.siteName || `Site ${entity.siteId}`, value: entity.siteId.toString() }
+      : null,
     asset: entity?.asset
       ? {
           label: entity.asset?.name,

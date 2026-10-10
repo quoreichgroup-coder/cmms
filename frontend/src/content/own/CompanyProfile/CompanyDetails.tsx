@@ -22,6 +22,7 @@ import { phoneRegExp, websiteRegExp } from '../../../utils/validators';
 import CustomDialog from '../components/CustomDialog';
 import { Company } from '../../../models/owns/company';
 import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/owns/role';
 
 interface CompanyDetailsProps {
   company: Company;
@@ -29,6 +30,8 @@ interface CompanyDetailsProps {
 function CompanyDetails(props: CompanyDetailsProps) {
   const { company } = props;
   const { patchCompany, user } = useAuth();
+  const canEdit = user.ownsCompany || (user.role?.viewPermissions?.includes(PermissionEntity.SETTINGS)
+    && user.role?.editOtherPermissions?.includes(PermissionEntity.SETTINGS));
   const { t }: { t: any } = useTranslation();
   const [openEditModal, setOpenEditModal] = useState<boolean>(false);
   const handleOpenEditModal = () => setOpenEditModal(true);
@@ -37,6 +40,10 @@ function CompanyDetails(props: CompanyDetailsProps) {
   const companyDetails = {
     name: { value: company.name, title: t('name') },
     address: { value: company.address, title: t('address') },
+    email: { value: company.email, title: t('email') },
+    city: { value: company.city, title: t('city') },
+    state: { value: company.state, title: t('state') },
+    zipCode: { value: company.zipCode, title: t('zip_code') },
     website: { value: company.website, title: t('website'), isLink: true },
     phone: { value: company.phone, title: t('phone') }
   };
@@ -93,12 +100,20 @@ function CompanyDetails(props: CompanyDetailsProps) {
         initialValues={{
           name: companyDetails.name.value,
           address: companyDetails.address.value,
+          email: companyDetails.email.value,
+          city: companyDetails.city.value,
+          state: companyDetails.state.value,
+          zipCode: companyDetails.zipCode.value,
           phone: companyDetails.phone.value,
           website: companyDetails.website.value
         }}
         validationSchema={Yup.object().shape({
           name: Yup.string().max(100).required(t('required_name')),
           address: Yup.string().max(100).nullable(),
+          email: Yup.string().email(t('invalid_email')).nullable(),
+          city: Yup.string().max(100).nullable(),
+          state: Yup.string().max(100).nullable(),
+          zipCode: Yup.string().max(30).nullable(),
           phone: Yup.string()
             .matches(phoneRegExp, t('invalid_phone'))
             .nullable(),
@@ -134,8 +149,50 @@ function CompanyDetails(props: CompanyDetailsProps) {
             >
               <Grid container spacing={3}>
                 <Grid item xs={12} lg={12}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        error={Boolean(touched.email && errors.email)}
+                        fullWidth
+                        helperText={touched.email && errors.email}
+                        label={t('email')}
+                        name="email"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        value={values.email ?? ''}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label={t('city')}
+                        name="city"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        value={values.city ?? ''}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label={t('state')}
+                        name="state"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        value={values.state ?? ''}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label={t('zip_code')}
+                        name="zipCode"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        value={values.zipCode ?? ''}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         error={Boolean(touched.name && errors.name)}
                         fullWidth
@@ -148,7 +205,7 @@ function CompanyDetails(props: CompanyDetailsProps) {
                         variant="outlined"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         error={Boolean(touched.address && errors.address)}
                         fullWidth
@@ -161,7 +218,7 @@ function CompanyDetails(props: CompanyDetailsProps) {
                         variant="outlined"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         error={Boolean(touched.phone && errors.phone)}
                         fullWidth
@@ -234,7 +291,7 @@ function CompanyDetails(props: CompanyDetailsProps) {
                 {t('company_details_description')}
               </Typography>
             </Box>
-            {user.ownsCompany && (
+            {canEdit && (
               <Box>
                 <Button
                   onClick={handleOpenEditModal}

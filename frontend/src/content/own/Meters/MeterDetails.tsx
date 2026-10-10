@@ -340,6 +340,11 @@ export default function MeterDetails(props: MeterDetailsProps) {
                     {t('upgrade_condition_based_pm')}
                   </Alert>
                 )}
+                {currentMeterTriggers.length > 0 && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    {t('meter_trigger_repeat_warning')}
+                  </Alert>
+                )}
                 <List>
                   {currentMeterTriggers.map((trigger) => (
                     <ListItem

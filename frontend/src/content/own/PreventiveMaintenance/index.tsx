@@ -12,6 +12,7 @@ import {
   Drawer,
   Grid,
   IconButton,
+  Paper,
   Menu,
   MenuItem,
   Stack,
@@ -28,7 +29,6 @@ import {
   editPreventiveMaintenance,
   getPreventiveMaintenances,
   getSinglePreventiveMaintenance,
-  patchSchedule
 } from '../../../slices/preventiveMaintenance';
 import { useDispatch, useSelector } from '../../../store';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -101,6 +101,10 @@ import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { getErrorMessage } from '../../../utils/api';
 import { getPreventiveMaintenanceUrl } from '../../../utils/urlPaths';
 import useDateLocale from '../../../hooks/useDateLocale';
+import { getPMBaseCycleNumber, getPMSchedulePreview } from '../../../utils/pmSchedulePreview';
+import MeterCycleForecast from './MeterCycleForecast';
+import PMPlanConfigurationEditor from './PMPlanConfigurationEditor';
+import { parsePMPlanConfiguration, validatePMPlanConfiguration } from '../../../utils/pmPlanConfiguration';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof PreventiveMaintenance>([
   'title',
@@ -242,6 +246,10 @@ function PMs() {
     { label: t('months'), value: 'MONTHLY' },
     { label: t('years'), value: 'YEARLY' }
   ];
+  const triggerTypes = [
+    { label: t('pm_calendar_based'), value: 'CALENDAR' },
+    { label: t('pm_meter_based'), value: 'METER' }
+  ];
   useEffect(() => {
     setTitle(t('preventive_maintenance'));
   }, []);
@@ -358,7 +366,7 @@ function PMs() {
     showSnackBar(t('changes_saved_success'), 'success');
   };
   const onEditFailure = (err) =>
-    showSnackBar(t('wo_trigger_edit_failure'), 'error');
+    showSnackBar(getErrorMessage(err, t('wo_trigger_edit_failure')), 'error');
   const onDeleteSuccess = () => {
     showSnackBar(t('wo_trigger_delete_success'), 'success');
   };
@@ -403,12 +411,43 @@ function PMs() {
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
 
+  const numericSchema = () =>
+    Yup.number()
+      .transform((value, originalValue) => {
+        if (typeof originalValue === 'number' && Number.isNaN(originalValue)) {
+          return undefined;
+        }
+        if (typeof originalValue !== 'string') return value;
+        let normalized = originalValue
+          .trim()
+          .replace(/[\s\u00a0\u202f'’]/g, '');
+        if (!normalized) return undefined;
+        const lastComma = normalized.lastIndexOf(',');
+        const lastDot = normalized.lastIndexOf('.');
+        if (lastComma >= 0 && lastDot >= 0) {
+          normalized =
+            lastComma > lastDot
+              ? normalized.replace(/\./g, '').replace(',', '.')
+              : normalized.replace(/,/g, '');
+        } else if (lastComma >= 0) {
+          normalized = normalized.replace(',', '.');
+        }
+        const parsed = Number(normalized);
+        return Number.isNaN(parsed) ? value : parsed;
+      })
+      .typeError(t('invalid_number'));
+
   const getPMFormValues = (
     entity: PreventiveMaintenance | null | undefined
   ) => ({
     ...entity,
     ...getWOBaseValues(t, entity),
     startsOn: entity?.schedule?.startsOn,
+    triggerType: triggerTypes.find(({ value }) => value === (entity?.schedule?.triggerType ?? 'CALENDAR')),
+    meter: entity?.schedule?.meterId ? { label: `${entity.schedule.meterName ?? ''}${entity.schedule.meterUnit ? ` (${entity.schedule.meterUnit})` : ''}`, value: entity.schedule.meterId, unit: entity.schedule.meterUnit, assetId: entity.asset?.id } : null,
+    meterCycleInterval: entity?.schedule?.meterCycleInterval,
+    meterReferenceValue: entity?.schedule?.meterReferenceValue,
+    meterEndValue: entity?.schedule?.meterEndValue,
     endsOn: entity?.schedule?.endsOn,
     recurrenceBasedOn: entity?.schedule?.recurrenceBasedOn
       ? basedOnArray.find(
@@ -426,12 +465,15 @@ function PMs() {
     })),
     frequency: Number(entity?.schedule?.frequency),
     dueDateDelay: entity?.schedule?.dueDateDelay,
+    workOrderGenerationLeadDays: entity?.schedule?.workOrderGenerationLeadDays ?? 0,
+    planConfigurationJson: JSON.stringify(entity?.schedule?.planConfiguration ?? { mode: 'SINGLE' }, null, 2),
     tasks
   });
   const formatValues = (values) => {
     const newValues = { ...values };
     newValues.primaryUser = formatSelect(newValues.primaryUser);
     newValues.location = formatSelect(newValues.location);
+    newValues.site = formatSelect(newValues.site);
     newValues.team = formatSelect(newValues.team);
     newValues.asset = formatSelect(newValues.asset);
     newValues.assignedTo = formatSelectMultiple(newValues.assignedTo);
@@ -440,6 +482,22 @@ function PMs() {
     newValues.daysOfWeek = newValues.daysOfWeek?.map((day) => day.value) ?? [];
     newValues.recurrenceBasedOn = newValues.recurrenceBasedOn?.value;
     newValues.recurrenceType = newValues.recurrenceType?.value;
+    newValues.triggerType = newValues.triggerType?.value ?? 'CALENDAR';
+    try {
+      newValues.planConfiguration = JSON.parse(newValues.planConfigurationJson || '{"mode":"SINGLE"}');
+    } catch {
+      throw new Error(t('pm_plan_configuration_invalid_json'));
+    }
+    delete newValues.planConfigurationJson;
+    newValues.meterId = newValues.meter?.value ? Number(newValues.meter.value) : null;
+    if (newValues.workOrderGenerationLeadDays === ''
+      || newValues.workOrderGenerationLeadDays === null
+      || newValues.workOrderGenerationLeadDays === undefined) {
+      newValues.workOrderGenerationLeadDays = 0;
+    } else {
+      newValues.workOrderGenerationLeadDays = Number(newValues.workOrderGenerationLeadDays);
+    }
+    delete newValues.meter;
     newValues.requiredSignature = Array.isArray(newValues.requiredSignature)
       ? newValues?.requiredSignature.includes('on')
       : newValues.requiredSignature;
@@ -482,7 +540,15 @@ function PMs() {
     columnHelper.accessor('schedule', {
       id: 'next',
       header: () => t('next_wo'),
-      cell: (info) => getFormattedDate(info.row.original.nextWorkOrderDate),
+      cell: (info) => {
+        const schedule = info.row.original.schedule;
+        if (schedule?.triggerType === 'METER') {
+          return schedule.nextMeterValue == null
+            ? ''
+            : `${schedule.nextMeterValue} ${schedule.meterUnit ?? ''}`.trim();
+        }
+        return getFormattedDate(info.row.original.nextWorkOrderDate);
+      },
       size: 150
     }),
     columnHelper.accessor('primaryUser', {
@@ -528,6 +594,17 @@ function PMs() {
       label: t('trigger_configuration')
     },
     {
+      name: 'triggerType',
+      type: 'select',
+      label: t('pm_trigger_type'),
+      items: triggerTypes,
+      required: true,
+      relatedFields: [
+        ...['recurrenceBasedOn', 'startsOn', 'frequency', 'recurrenceType', 'daysOfWeek', 'workOrderGenerationLeadDays'].map((field) => ({ field, value: 'METER', hide: true })),
+        ...['meter', 'meterCycleInterval', 'meterReferenceValue', 'meterEndValue'].map((field) => ({ field, value: 'CALENDAR', hide: true }))
+      ]
+    },
+    {
       name: 'name',
       type: 'text',
       label: t('trigger_name'),
@@ -535,11 +612,21 @@ function PMs() {
       required: true
     },
     {
+      name: 'meter',
+      type: 'select',
+      type2: 'meter',
+      label: t('pm_meter'),
+      required: true,
+      relatedFields: [{ field: 'asset', value: undefined }]
+    },
+    { name: 'meterCycleInterval', type: 'number', label: t('pm_meter_cycle_interval'), helperText: t('pm_meter_numeric_hint'), required: true, midWidth: true },
+    { name: 'meterReferenceValue', type: 'number', label: t('pm_meter_reference_value'), helperText: t('pm_meter_numeric_hint'), required: true, midWidth: true },
+    { name: 'meterEndValue', type: 'number', label: t('pm_meter_end_value'), helperText: t('pm_meter_numeric_hint'), midWidth: true },
+    {
       name: 'recurrenceBasedOn',
       type: 'select',
       label: t('based_on'),
       items: basedOnArray,
-      required: true,
       relatedFields: [
         {
           field: 'daysOfWeek',
@@ -552,7 +639,6 @@ function PMs() {
       name: 'startsOn',
       type: 'date',
       label: t('starts_on'),
-      required: true,
       midWidth: true
     },
     {
@@ -565,7 +651,12 @@ function PMs() {
       name: 'frequency',
       type: 'number',
       label: t('frequency'),
-      required: true,
+      midWidth: true
+    },
+    {
+      name: 'workOrderGenerationLeadDays',
+      type: 'number',
+      label: t('pm_generation_lead_days'),
       midWidth: true
     },
     {
@@ -573,7 +664,6 @@ function PMs() {
       type: 'select',
       label: '',
       items: recurrenceTypes,
-      required: true,
       midWidth: true,
       relatedFields: ['DAILY', 'MONTHLY', 'YEARLY'].map((item) => ({
         field: 'daysOfWeek',
@@ -602,6 +692,13 @@ function PMs() {
       { delay: true }
     ),
     {
+      name: 'site',
+      type: 'select',
+      type2: 'site',
+      label: t('site'),
+      placeholder: t('select_site')
+    },
+    {
       name: 'requiredSignature',
       type: 'switch',
       label: t('requires_signature')
@@ -615,20 +712,59 @@ function PMs() {
     }
   ];
   const defaultShape = {
+    planConfigurationJson: Yup.string().required().test('valid-pm-plan-json', t('pm_plan_configuration_invalid_json'), (value) => {
+      if (!value) return false;
+      try {
+        return validatePMPlanConfiguration(parsePMPlanConfiguration(value)) === null;
+      } catch {
+        return false;
+      }
+    }),
     name: Yup.string().required(t('required_trigger_name')),
     title: Yup.string().required(t('required_wo_title')),
+    triggerType: Yup.mixed().required(),
+    recurrenceBasedOn: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
+    recurrenceType: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
+    startsOn: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
+    meter: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.required(t('required')).test('meter-asset-match', t('pm_meter_must_match_asset'), function (meter) {
+      const assetId = this.parent.asset?.value;
+      return !!assetId && !!meter?.value && Number(meter.assetId) === Number(assetId);
+    }) }),
+    // Meter-only values are null on calendar PMs. Keep their numeric validation
+    // for meter schedules, but explicitly make them optional for calendar ones.
+    meterCycleInterval: numericSchema().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) => schema.required(t('required')).moreThan(0),
+      otherwise: (schema) => schema.nullable().notRequired()
+    }),
+    meterReferenceValue: numericSchema().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) => schema.required(t('required')).min(0),
+      otherwise: (schema) => schema.nullable().notRequired()
+    }),
+    meterEndValue: numericSchema().nullable().test('meter-end-after-reference', t('pm_meter_end_must_exceed_reference'), function (value) {
+      if ((this.parent.triggerType?.value ?? this.parent.triggerType) !== 'METER' || value == null || Number.isNaN(value)) return true;
+      return value > Number(this.parent.meterReferenceValue);
+    }),
     frequency: Yup.number()
-      .required(t('required_frequency'))
+      .when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required_frequency')) })
       .test(
         'test-frequency', // this is used internally by yup
         t('invalid_frequency'),
-        (value) => value > 0
+        function (value) {
+          if ((this.parent.triggerType?.value ?? this.parent.triggerType) === 'METER') return true;
+          return value > 0;
+        }
       ),
+    workOrderGenerationLeadDays: Yup.number()
+      .transform((value, originalValue) => originalValue === '' ? 0 : value)
+      .min(0).max(365).integer(),
     daysOfWeek: Yup.array().test(
       'test-days-of-week',
       t('required_days_of_week'),
       function (value) {
         const { recurrenceBasedOn, recurrenceType } = this.parent;
+        if ((this.parent.triggerType?.value ?? this.parent.triggerType) === 'METER') return true;
         if (
           recurrenceBasedOn?.value === 'SCHEDULED_DATE' &&
           recurrenceType?.value === 'WEEKLY'
@@ -644,6 +780,81 @@ function PMs() {
       t
     )
   };
+
+  const renderPMSchedulePreview = (values, setFieldValue) => {
+    const planEditor = <PMPlanConfigurationEditor
+      values={values}
+      setFieldValue={setFieldValue}
+      t={t}
+      meterTriggerOption={triggerTypes.find(({ value }) => value === 'METER')!}
+    />;
+    if ((values.triggerType?.value ?? values.triggerType) === 'METER') {
+      return <>{planEditor}<MeterCycleForecast values={values} t={t} /></>;
+    }
+    const startsOn = values.startsOn;
+    if (!startsOn) return planEditor;
+
+    const timeZone =
+      companySettings?.generalPreferences?.timeZone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const dates = getPMSchedulePreview(values, timeZone);
+    let previewPlan: any = { mode: 'SINGLE' };
+    try { previewPlan = JSON.parse(values.planConfigurationJson || '{"mode":"SINGLE"}'); } catch { /* The form validation shows the JSON error. */ }
+    const packageForecast = dates.map((date) => {
+      const cycleNumber = getPMBaseCycleNumber(values, date, timeZone);
+      return {
+        date,
+        packages: (previewPlan.packages ?? []).filter((item: any) => Number(item.everyBaseCycles) > 0
+          && cycleNumber > 0 && cycleNumber % Number(item.everyBaseCycles) === 0)
+      };
+    }).filter(({ packages }) => previewPlan.mode !== 'STRATEGY' || packages.length > 0);
+    const isCompletionBased =
+      values.recurrenceBasedOn?.value === 'COMPLETED_DATE' ||
+      values.recurrenceBasedOn === 'COMPLETED_DATE';
+
+    return (
+      <>
+      {planEditor}
+      <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {t('pm_schedule_forecast')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {t('pm_schedule_forecast_description')}
+        </Typography>
+        {isCompletionBased && (
+          <Typography variant="body2" color="info.main" sx={{ mb: 1 }}>
+            {t('pm_schedule_forecast_completion_note')}
+          </Typography>
+        )}
+        {packageForecast.length > 0 ? (
+          <Box component="ol" sx={{ m: 0, pl: 3 }}>
+            {packageForecast.map(({ date, packages }, index) => (
+              <li key={`${date.toISOString()}-${index}`}>
+                <Typography variant="body2">
+                  {getFormattedDate(date.toISOString())}{previewPlan.mode === 'STRATEGY'
+                    ? ` · ${packages.map((item: any) => item.name || item.code).join(', ')}` : ''}
+                </Typography>
+              </li>
+            ))}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            {t(
+              previewPlan.mode === 'STRATEGY'
+                ? 'pm_schedule_forecast_no_packages'
+                : values.recurrenceType?.value === 'WEEKLY' &&
+                !(values.daysOfWeek?.length ?? 0)
+                ? 'pm_schedule_forecast_select_days'
+                : 'pm_schedule_forecast_no_dates'
+            )}
+          </Typography>
+        )}
+      </Paper>
+      </>
+    );
+  };
+
   const getFieldsAndShapes = (): [Array<IField>, { [key: string]: any }] => {
     const fieldsAndShapes = getWOFieldsAndShapes(defaultFields, defaultShape);
     return [
@@ -692,6 +903,10 @@ function PMs() {
               copyPmData
                 ? { ...getPMFormValues(copyPmData), id: null }
                 : {
+                    triggerType: triggerTypes[0],
+                    planConfigurationJson: '{\n  "mode": "SINGLE"\n}',
+                    workOrderGenerationLeadDays: 0,
+                    meterReferenceValue: null,
                     startsOn: null,
                     endsOn: null,
                     dueDate: null,
@@ -706,6 +921,7 @@ function PMs() {
                   }
             }
             onChange={() => setIsFormDirty(true)}
+            renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
               setIsFormDirty(false);
               let formattedValues = formatValues(values);
@@ -780,6 +996,7 @@ function PMs() {
             submitText={t('save')}
             values={getPMFormValues(currentPM)}
             onChange={({ field, e }) => {}}
+            renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
               try {
                 let formattedValues = formatValues(values);
@@ -814,12 +1031,6 @@ function PMs() {
                   editPreventiveMaintenance(currentPM?.id, formattedValues)
                 );
 
-                await dispatch(
-                  patchSchedule(currentPM.schedule.id, currentPM.id, {
-                    ...currentPM.schedule,
-                    ...formattedValues
-                  })
-                );
                 if (hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES))
                   dispatch(getPreventiveMaintenances(criteria));
                 onEditSuccess();
@@ -857,8 +1068,17 @@ function PMs() {
                 startIcon={<AddTwoToneIcon />}
                 onMainClick={() => setOpenAddModal(true)}
                 sx={{ mt: 1, alignSelf: 'flex-end' }}
-                menuItems={
-                  hasViewPermission(PermissionEntity.SETTINGS) &&
+                menuItems={[
+                  ...(hasViewPermission(PermissionEntity.SETTINGS) &&
+                  hasFeature(PlanFeature.CHECKLIST)
+                    ? [
+                        {
+                          label: t('view_task_list_library'),
+                          onClick: () => navigate('/app/settings/checklists')
+                        }
+                      ]
+                    : []),
+                  ...(hasViewPermission(PermissionEntity.SETTINGS) &&
                   hasFeature(PlanFeature.IMPORT_CSV)
                     ? [
                         {
@@ -867,8 +1087,8 @@ function PMs() {
                             navigate('/app/imports/preventive-maintenances')
                         }
                       ]
-                    : []
-                }
+                    : [])
+                ]}
               />
             )}
           </Stack>

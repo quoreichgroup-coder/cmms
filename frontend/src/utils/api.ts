@@ -1,5 +1,6 @@
 import { apiUrl } from '../config';
 import { normalizeStorageUrls } from './storageUrl';
+import { getApiErrorMessage } from './apiError';
 
 type Options = RequestInit & { raw?: boolean; headers?: HeadersInit };
 
@@ -85,14 +86,23 @@ async function doFetch<T>(
       if (onConflictError) onConflictError();
       throw new Error('conflict_error');
     }
-    let body: any = null;
+    let responseText = '';
     try {
-      body = await response.json();
+      responseText = await response.text();
     } catch {
-      body = null;
+      responseText = '';
     }
-    const err = new Error(JSON.stringify(body));
+    let body: unknown;
+    if (responseText) {
+      try {
+        body = JSON.parse(responseText);
+      } catch {
+        body = responseText;
+      }
+    }
+    const err = new Error(`Request failed (${response.status})`);
     (err as any).status = response.status;
+    (err as any).responseBody = body;
     throw err;
   }
   if (options?.raw) return response as unknown as Promise<T>;
@@ -149,14 +159,7 @@ export function authHeader(publicRoute: boolean): HeadersInit {
 export const getErrorMessage = (
   error: any,
   defaultMessage: string = 'An error occurred'
-): string => {
-  try {
-    const parsed = JSON.parse(error.message);
-    return parsed?.message ?? error.message ?? defaultMessage;
-  } catch {
-    return error.message ?? defaultMessage;
-  }
-};
+): string => getApiErrorMessage(error, defaultMessage);
 
 export const isNetworkError = (error: any): boolean => {
   if (!error) return false;

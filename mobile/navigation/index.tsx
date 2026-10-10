@@ -91,6 +91,7 @@ import { navigate, navigationRef } from './RootNavigation';
 import { getNotificationUrlFromData } from '../utils/urlPaths';
 import SettingsScreen from '../screens/SettingsScreen';
 import LicenseScreen from '../screens/LicenseScreen';
+import CompanyProfileScreen from '../screens/CompanyProfileScreen';
 import WorkOrderFilters from '../screens/workOrders/WorkOrderFilters';
 import CreateAdditionalCost from '../screens/workOrders/CreateAdditionalCost';
 import EditAdditionalCost from '../screens/workOrders/EditAdditionalCost';
@@ -101,6 +102,8 @@ import SelectBarcodeModal from '../screens/modals/SelectBarcodeModal';
 import ScanAssetScreen from '../screens/ScanAssetScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import SelectMetersModal from '../screens/modals/SelectMetersModal';
+import PreventiveMaintenancesScreen from '../screens/preventiveMaintenance/PreventiveMaintenancesScreen';
+import PreventiveMaintenanceDetailsScreen from '../screens/preventiveMaintenance/PreventiveMaintenanceDetailsScreen';
 import {
   createEntities,
   PermissionEntity,
@@ -263,6 +266,16 @@ function RootNavigator() {
         options={{ title: t('meters') }}
       />
       <Stack.Screen
+        name="PreventiveMaintenances"
+        component={PreventiveMaintenancesScreen}
+        options={{ title: t('preventive_maintenance') }}
+      />
+      <Stack.Screen
+        name="PreventiveMaintenanceDetails"
+        component={PreventiveMaintenanceDetailsScreen}
+        options={{ title: t('pm_details') }}
+      />
+      <Stack.Screen
         name="MeterDetails"
         component={MeterDetails}
         options={{ title: t('meter_details') }}
@@ -389,6 +402,7 @@ function RootNavigator() {
         options={{ title: t('Notifications') }}
       />
       <Stack.Screen name="License" component={LicenseScreen} options={{ title: t('company_license') }} />
+      <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} options={{ title: t('company_profile') }} />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

@@ -30,6 +30,8 @@ export interface WorkOrderBase extends Audit {
   requestPortal: RequestPortalMiniDTO | null;
   requiredSignature: boolean;
   customFieldValues: { customField: CustomField; value: string }[];
+  siteId?: number | null;
+  siteName?: string | null;
 }
 
 export interface WorkOrderBaseMiniDTO {

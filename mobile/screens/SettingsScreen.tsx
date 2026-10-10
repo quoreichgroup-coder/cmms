@@ -20,12 +20,14 @@ import { RootStackScreenProps } from '../types';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
+import { PermissionEntity } from '../models/role';
 
 export default function SettingsScreen({
   navigation
 }: RootStackScreenProps<'Settings'>) {
   const theme = useTheme();
-  const { user, switchAccount, logout } = useAuth();
+  const { user, switchAccount, logout, hasViewPermission } = useAuth();
+  const canViewCompanySettings = user?.ownsCompany || hasViewPermission(PermissionEntity.SETTINGS);
   const [switchingAccount, setSwitchingAccount] = useState<boolean>(false);
   const { t } = useTranslation();
   const [versionPressCount, setVersionPressCount] = useState<number>(0);
@@ -118,6 +120,13 @@ export default function SettingsScreen({
         <List.Item title={t('company_license')}
           left={() => <IconButton icon="license" />}
           onPress={() => navigation.navigate('License')} />
+        {canViewCompanySettings && <List.Item
+          style={{ paddingHorizontal: 20 }}
+          title={t('company_profile')}
+          description={t('company_profile_mobile_description')}
+          left={() => <IconButton icon="domain" />}
+          onPress={() => navigation.navigate('CompanyProfile')}
+        />}
         <List.Item
           onPress={() => {
             if (devMode) {

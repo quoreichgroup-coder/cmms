@@ -105,6 +105,9 @@ const ShowAsset = ({}: PropsType) => {
           value: entity?.location.id
         }
       : null,
+    site: entity?.siteId
+      ? { label: entity.siteName || `Site ${entity.siteId}`, value: entity.siteId }
+      : null,
     category: entity?.category
       ? {
           label: entity.category.name,

@@ -132,7 +132,9 @@
     "test:license-console": "cross-env TZ=Europe/Berlin node --test scripts/license-authority-console.test.cjs",
     "test:asset-maintenance": "node --test scripts/asset-maintenance-summary.test.cjs",
     "test:license-ui": "node --test scripts/company-license.test.cjs scripts/company-profile.test.cjs",
+    "test:pm-schedule": "node --test scripts/pm-call-reschedule.test.cjs scripts/pm-meter-forecast.test.cjs scripts/pm-meter-reference.test.cjs scripts/pm-schedule-preview.test.cjs scripts/pm-plan-configuration.test.cjs",
     "test:reports": "node --test scripts/report-loading.test.cjs",
+    "test:api-errors": "node --test scripts/api-error-message.test.cjs scripts/api-client-errors.test.cjs",
     "test:hierarchy": "node --test scripts/hierarchy-loading.test.cjs",
     "test:storage-url": "node --test scripts/storage-url.test.cjs"
   },

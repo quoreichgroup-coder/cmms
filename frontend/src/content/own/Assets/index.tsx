@@ -601,6 +601,14 @@ function Assets() {
       midWidth: true
     },
     {
+      name: 'site',
+      type: 'select',
+      type2: 'site',
+      label: t('site'),
+      placeholder: t('select_site'),
+      midWidth: true
+    },
+    {
       name: 'acquisitionCost',
       type: 'number',
       label: t('acquisition_cost'),

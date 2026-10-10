@@ -11,7 +11,8 @@ import {
   Menu,
   MenuItem,
   Select,
-  TextField
+  TextField,
+  Typography
 } from '@mui/material';
 import { makeStyles } from '@mui/styles';
 import DragIndicatorTwoToneIcon from '@mui/icons-material/DragIndicatorTwoTone';
@@ -164,6 +165,11 @@ const DraggableListItem = ({
                 }}
               >
                 <Box sx={{ alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('operation_number', {
+                      number: String((index + 1) * 10).padStart(4, '0')
+                    })}
+                  </Typography>
                   <TextField
                     onChange={(event) =>
                       onLabelChange(event.target.value, task.id)

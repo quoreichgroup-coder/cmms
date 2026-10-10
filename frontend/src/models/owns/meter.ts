@@ -23,4 +23,6 @@ export default interface Meter extends Audit {
 export interface MeterMiniDTO {
   name: string;
   id: number;
+  unit?: string;
+  assetId?: number;
 }

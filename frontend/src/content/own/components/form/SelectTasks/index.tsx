@@ -6,8 +6,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Alert,
+  Divider,
   Grid,
   MenuItem,
+  Paper,
   Select,
   Tab,
   Tabs,
@@ -17,6 +20,7 @@ import {
   Zoom
 } from '@mui/material';
 import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import PlaylistAddCheckTwoToneIcon from '@mui/icons-material/PlaylistAddCheckTwoTone';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DropResult } from 'react-beautiful-dnd';
@@ -29,7 +33,8 @@ import { useSnackbar } from 'notistack';
 import { Checklist } from '../../../../../models/owns/checklists';
 import { getTaskFromTaskBase } from '../../../../../utils/formatters';
 import { useDispatch, useSelector } from '../../../../../store';
-import { getChecklists } from '../../../../../slices/checklist';
+import { addChecklist, getChecklists } from '../../../../../slices/checklist';
+import { getErrorMessage } from '../../../../../utils/api';
 import useAuth from '../../../../../hooks/useAuth';
 import { PlanFeature } from '../../../../../models/owns/subscriptionPlan';
 import { AssetMiniDTO } from '../../../../../models/owns/asset';
@@ -57,16 +62,17 @@ export default function SelectTasks({
   const { enqueueSnackbar } = useSnackbar();
   const [currentTab, setCurrentTab] = useState<string>('edit');
   const [openChecklist, setOpenChecklist] = useState<boolean>(false);
+  const [saveAsChecklist, setSaveAsChecklist] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
   };
   const [tasks, setTasks] = useState<Task[]>([]);
   const [name, setName] = useState<string>('');
-  const [description, setDescription] = useState<string>();
-  const [category, setCategory] = useState<string>();
+  const [description, setDescription] = useState<string>('');
+  const [category, setCategory] = useState<string>('');
   const dispatch = useDispatch();
-  const { hasFeature } = useAuth();
+  const { hasFeature, user } = useAuth();
   const { checklists } = useSelector((state) => state.checklists);
 
   useEffect(() => {
@@ -75,11 +81,14 @@ export default function SelectTasks({
   useEffect(() => {
     setTasks(selected);
   }, [selected]);
+  useEffect(() => {
+    if (!open) setSaveAsChecklist(false);
+  }, [open]);
 
   useEffect(() => {
-    setName(infos?.name);
-    setDescription(infos?.description);
-    setCategory(infos?.category);
+    setName(infos?.name ?? '');
+    setDescription(infos?.description ?? '');
+    setCategory(infos?.category ?? '');
   }, [infos]);
 
   const showError = (error: string) => {
@@ -158,13 +167,29 @@ export default function SelectTasks({
     setTasks(newTasks);
   };
   const onSave = () => {
-    if (tasks.some((task) => !task.taskBase.label)) {
+    const isChecklistAction = ['createChecklist', 'editChecklist'].includes(action);
+    if ((saveAsChecklist || isChecklistAction) && !name?.trim()) {
+      showError(t('required_name'));
+    } else if (
+      !tasks.length &&
+      (saveAsChecklist || isChecklistAction)
+    ) {
+      showError(t('task_list_requires_operation'));
+    } else if (tasks.some((task) => !task.taskBase.label?.trim())) {
       showError(t('remove_blank_tasks'));
     } else if (
       tasks.some(
         (task) =>
           task.taskBase.taskType === 'MULTIPLE' &&
-          task.taskBase.options.some((option) => !option.label.trim())
+          (task.taskBase.options ?? []).filter((option) => option.label.trim()).length < 2
+      )
+    ) {
+      showError(t('multiple_task_requires_two_options'));
+    } else if (
+      tasks.some(
+        (task) =>
+          task.taskBase.taskType === 'MULTIPLE' &&
+          (task.taskBase.options ?? []).some((option) => !option.label.trim())
       )
     ) {
       showError(t('remove_blank_options'));
@@ -176,9 +201,38 @@ export default function SelectTasks({
       showError(t('remove_blank_meter_tasks'));
     } else {
       setSubmitting(true);
-      onSelect(tasks, { name, description, category })
-        .then(onClose)
-        .finally(() => setSubmitting(false));
+      const saveTasks = async () => {
+        try {
+          if (saveAsChecklist) {
+            if (!hasFeature(PlanFeature.CHECKLIST)) {
+              throw new Error(t('upgrade_checklist'));
+            }
+            await dispatch(addChecklist({
+              name: name.trim(),
+              description: description?.trim(),
+              category: category?.trim(),
+              taskBases: tasks.map((task) => ({
+                ...task.taskBase,
+                options: (task.taskBase.options ?? []).map((option) => option.label)
+              }))
+            }, user.companySettingsId));
+          }
+          await onSelect(tasks, { name, description, category });
+          if (saveAsChecklist) {
+            enqueueSnackbar(t('checklist_create_success', {
+              name: name.trim(),
+              taskCount: tasks.length
+            }), { variant: 'success' });
+          }
+          setSaveAsChecklist(false);
+          onClose();
+        } catch (error) {
+          showError(getErrorMessage(error, t('an_error_occured')));
+        } finally {
+          setSubmitting(false);
+        }
+      };
+      void saveTasks();
     }
   };
 
@@ -219,14 +273,16 @@ export default function SelectTasks({
   };
   return (
     <Box>
-      <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <Dialog fullWidth maxWidth="md" open={open} onClose={() => !submitting && onClose()}>
         <DialogTitle
           sx={{
             p: 3
           }}
         >
           <Typography variant="h4" gutterBottom>
-            {action === 'createChecklist'
+            {saveAsChecklist
+              ? t('save_tasks_as_checklist_title')
+              : action === 'createChecklist'
               ? t('create_checklist')
               : action === 'editChecklist'
                 ? t('edit_checklist')
@@ -243,8 +299,9 @@ export default function SelectTasks({
             sx={{
               display: 'flex',
               justifyContent: 'space-between',
-              flexDirection: 'row',
-              alignItems: 'center'
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' },
+              gap: 1.5
             }}
           >
             <Tabs
@@ -262,7 +319,9 @@ export default function SelectTasks({
             </Tabs>
             <Box>
               <Button onClick={addTask} startIcon={<AddTwoToneIcon />}>
-                {t('task')}
+                {action || saveAsChecklist
+                  ? t('add_task_list_operation')
+                  : t('task')}
               </Button>
               <Tooltip
                 title={
@@ -275,27 +334,80 @@ export default function SelectTasks({
                   <Button
                     disabled={!hasFeature(PlanFeature.CHECKLIST)}
                     startIcon={<AddTwoToneIcon />}
-                    onClick={() => setOpenChecklist(true)}
+                    onClick={() => setOpenChecklist((current) => !current)}
                   >
                     {t('checklist')}
                   </Button>
+                  {!action && hasFeature(PlanFeature.CHECKLIST) && (
+                    <Button
+                      color="secondary"
+                      startIcon={<PlaylistAddCheckTwoToneIcon />}
+                      onClick={() => {
+                        const next = !saveAsChecklist;
+                        setSaveAsChecklist(next);
+                        if (next) {
+                          setName('');
+                          setDescription('');
+                          setCategory('');
+                          setCurrentTab('edit');
+                        }
+                        setOpenChecklist(false);
+                      }}
+                    >
+                      {t('create_reusable_task_list')}
+                    </Button>
+                  )}
                 </span>
               </Tooltip>
             </Box>
           </Box>
+          {saveAsChecklist && (
+            <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: 'secondary.light' }}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                {t('save_tasks_as_checklist_title')}
+              </Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {t('save_tasks_as_checklist_help')}
+              </Alert>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} md={4}>
+                  <TextField fullWidth required label={t('name')} value={name ?? ''}
+                    error={!name?.trim()} helperText={!name?.trim() ? t('required_name') : undefined}
+                    onChange={(event) => setName(event.target.value)} />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField fullWidth label={`${t('description')} (${t('optional')})`} value={description ?? ''}
+                    onChange={(event) => setDescription(event.target.value)} />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField fullWidth label={`${t('category')} (${t('optional')})`} value={category ?? ''}
+                    onChange={(event) => setCategory(event.target.value)} />
+                </Grid>
+              </Grid>
+              <Alert severity="info" sx={{ mt: 2, mb: 0 }}>
+                {t('checklist_task_format_help')}
+              </Alert>
+              <Divider sx={{ mt: 2 }} />
+            </Paper>
+          )}
+          {['createChecklist', 'editChecklist'].includes(action) && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {t('task_list_header_help')}
+            </Alert>
+          )}
           <Box>
             {openChecklist && (
               <Select
                 displayEmpty
                 defaultValue=""
                 sx={{ mb: 1 }}
-                onChange={(event) =>
-                  addCheckList(
-                    checklists.find(
-                      (checklist) => checklist.id === Number(event.target.value)
-                    )
-                  )
-                }
+                onChange={(event) => {
+                  const checklist = checklists.find(
+                    (item) => item.id === Number(event.target.value)
+                  );
+                  if (checklist) addCheckList(checklist);
+                  setOpenChecklist(false);
+                }}
               >
                 <MenuItem value="">{t('select_checklist')}</MenuItem>
                 {checklists.map((checklist) => (
@@ -308,7 +420,7 @@ export default function SelectTasks({
             {currentTab === 'edit' && (
               <Box>
                 <Grid container spacing={1}>
-                  {['createChecklist', 'editChecklist'].includes(action) && (
+              {['createChecklist', 'editChecklist'].includes(action) && (
                     <>
                       <Grid item>
                         <TextField
@@ -341,6 +453,11 @@ export default function SelectTasks({
                     </>
                   )}
                   <Grid item>
+                    {!tasks.length && (
+                      <Alert severity="warning" sx={{ mb: 1 }}>
+                        {t('task_list_requires_operation')}
+                      </Alert>
+                    )}
                     <DraggableTaskList
                       tasks={tasks}
                       onDragEnd={onDragEnd}
@@ -366,23 +483,25 @@ export default function SelectTasks({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button variant="outlined" onClick={onClose}>
+          <Button variant="outlined" onClick={onClose} disabled={submitting}>
             {t('cancel')}
           </Button>
           <Button
             disabled={
-              !tasks.length ||
               submitting ||
-              (['createChecklist', 'editChecklist'].includes(action) &&
-                (!name || name.trim() === ''))
+              (!tasks.length &&
+                !saveAsChecklist &&
+                !['createChecklist', 'editChecklist'].includes(action))
             }
             startIcon={submitting ? <CircularProgress size="1rem" /> : null}
             onClick={onSave}
             variant="contained"
           >
-            {['createChecklist', 'editChecklist'].includes(action)
-              ? t('save_checklist')
-              : t('add_tasks')}
+            {saveAsChecklist
+              ? t('save_checklist_and_add_tasks')
+              : ['createChecklist', 'editChecklist'].includes(action)
+                ? t('save_checklist')
+                : t('add_tasks')}
           </Button>
         </DialogActions>
       </Dialog>

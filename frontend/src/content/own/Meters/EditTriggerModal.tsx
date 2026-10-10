@@ -77,6 +77,19 @@ export default function EditTriggerModal({
       required: true
     },
     {
+      name: 'recurrent',
+      type: 'switch',
+      label: t('meter_trigger_recurrent')
+    },
+    {
+      name: 'waitBefore',
+      type: 'number',
+      label: t('meter_trigger_wait_seconds'),
+      helperText: t('meter_trigger_wait_help'),
+      midWidth: true,
+      required: true
+    },
+    {
       name: 'workOrderConfig',
       type: 'titleGroupField',
       label: t('wo_configuration')
@@ -94,6 +107,8 @@ export default function EditTriggerModal({
     name: Yup.string().required(t('Trequired_trigger_name')),
     title: Yup.string().required(t('required_wo_title')),
     value: Yup.number().required(t('required_value')),
+    recurrent: Yup.boolean(),
+    waitBefore: Yup.number().integer().min(0).required(),
     triggerCondition: Yup.object().required(t('required_trigger_condition')),
     ...getCustomFieldsRequiredShape(
       customFields,
@@ -142,6 +157,8 @@ export default function EditTriggerModal({
           submitText={t('save')}
           values={{
             ...workOrderMeterTrigger,
+            waitBefore: workOrderMeterTrigger?.waitBefore ?? 0,
+            recurrent: workOrderMeterTrigger?.recurrent ?? false,
             triggerCondition: {
               label: t(workOrderMeterTrigger?.triggerCondition),
               value: workOrderMeterTrigger?.triggerCondition

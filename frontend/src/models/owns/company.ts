@@ -9,6 +9,10 @@ export interface Company extends Audit {
   address: string;
   website: string;
   phone: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   subscription: OwnSubscription;
   companySettings: CompanySettings;
   demo: boolean;

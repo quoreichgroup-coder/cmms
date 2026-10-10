@@ -24,15 +24,25 @@ const slice = createSlice({
       state: ChecklistState,
       action: PayloadAction<{ checklists: Checklist[] }>
     ) {
-      const { checklists } = action.payload;
-      state.checklists = checklists;
+      // A checklist can be created while the initial fetch is still in flight.
+      // Merge by ID so that a late response cannot hide the newly created row.
+      const checklistsById = new Map(
+        state.checklists.map((checklist) => [checklist.id, checklist])
+      );
+      action.payload.checklists.forEach((checklist) => {
+        checklistsById.set(checklist.id, checklist);
+      });
+      state.checklists = Array.from(checklistsById.values());
     },
     addChecklist(
       state: ChecklistState,
       action: PayloadAction<{ checklist: Checklist }>
     ) {
       const { checklist } = action.payload;
-      state.checklists = [...state.checklists, checklist];
+      state.checklists = [
+        ...state.checklists.filter((item) => item.id !== checklist.id),
+        checklist
+      ];
     },
     editChecklist(
       state: ChecklistState,

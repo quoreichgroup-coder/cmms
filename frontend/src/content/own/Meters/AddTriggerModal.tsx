@@ -75,6 +75,19 @@ export default function AddTriggerModal({
       required: true
     },
     {
+      name: 'recurrent',
+      type: 'switch',
+      label: t('meter_trigger_recurrent')
+    },
+    {
+      name: 'waitBefore',
+      type: 'number',
+      label: t('meter_trigger_wait_seconds'),
+      helperText: t('meter_trigger_wait_help'),
+      midWidth: true,
+      required: true
+    },
+    {
       name: 'workOrderConfig',
       type: 'titleGroupField',
       label: t('wo_configuration')
@@ -85,6 +98,8 @@ export default function AddTriggerModal({
     name: Yup.string().required(t('required_trigger_name')),
     title: Yup.string().required(t('required_wo_title')),
     value: Yup.number().required(t('required_value')),
+    recurrent: Yup.boolean(),
+    waitBefore: Yup.number().integer().min(0).required(),
     triggerCondition: Yup.object().required(t('required_trigger_condition')),
     ...getCustomFieldsRequiredShape(
       customFields,
@@ -138,7 +153,7 @@ export default function AddTriggerModal({
           fields={fields}
           validation={Yup.object().shape(shape)}
           submitText={t('add')}
-          values={{ dueDate: null }}
+          values={{ dueDate: null, recurrent: false, waitBefore: 0 }}
           onChange={({ field, e }) => {}}
           onSubmit={async (values) => {
             let formattedValues = formatValues(values);

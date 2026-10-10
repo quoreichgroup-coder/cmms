@@ -446,6 +446,7 @@ function WorkOrders() {
     newValues.assetStatus = newValues.assetStatus?.value ?? null;
     newValues.primaryUser = formatSelect(newValues.primaryUser);
     newValues.location = formatSelect(newValues.location);
+    newValues.site = formatSelect(newValues.site);
     newValues.team = formatSelect(newValues.team);
     newValues.asset = formatSelect(newValues.asset);
     newValues.assignedTo = formatSelectMultiple(newValues.assignedTo);
@@ -672,6 +673,13 @@ function WorkOrders() {
       type2: 'location',
       label: t('location'),
       placeholder: t('select_location')
+    },
+    {
+      name: 'site',
+      type: 'select',
+      type2: 'site',
+      label: t('site'),
+      placeholder: t('select_site')
     },
     {
       name: 'asset',

@@ -21,6 +21,7 @@ export const formatAssetValues = (values) => {
   const newValues = { ...values };
   newValues.primaryUser = formatSelect(newValues.primaryUser);
   newValues.location = formatSelect(newValues.location);
+  newValues.site = formatSelect(newValues.site);
   newValues.category = formatSelect(newValues.category);
   newValues.parentAsset = formatSelect(newValues.parentAsset);
   newValues.customers = formatSelectMultiple(newValues.customers);

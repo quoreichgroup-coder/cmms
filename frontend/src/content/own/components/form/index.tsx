@@ -1,5 +1,6 @@
 import {
   Box,
+  Alert,
   Button,
   CircularProgress,
   Grid,
@@ -37,7 +38,28 @@ interface PropsType {
   isButtonEnabled?: (values: IHash<any>, ...props: any[]) => boolean;
   enableReinitialize?: boolean;
   nextToButton?: React.ReactNode;
+  renderValues?: (values: IHash<any>, setFieldValue: (field: string, value: any) => void) => React.ReactNode;
 }
+
+const flattenFormikErrors = (
+  errors: unknown,
+  path = ''
+): Array<{ path: string; message: string }> => {
+  if (typeof errors === 'string' || typeof errors === 'number') {
+    return [{ path, message: String(errors) }];
+  }
+  if (Array.isArray(errors)) {
+    return errors.flatMap((error, index) =>
+      flattenFormikErrors(error, path ? `${path}[${index}]` : String(index))
+    );
+  }
+  if (errors && typeof errors === 'object') {
+    return Object.entries(errors).flatMap(([key, error]) =>
+      flattenFormikErrors(error, path ? `${path}.${key}` : key)
+    );
+  }
+  return [];
+};
 
 export default (props: PropsType) => {
   const { t }: { t: any } = useTranslation();
@@ -57,13 +79,22 @@ export default (props: PropsType) => {
   const validationSchema = Yup.object().shape(shape);
 
   const handleChange = (formik: FormikProps<IHash<any>>, field: string, e) => {
+    const isChangeEvent = Boolean(e && typeof e === 'object' && 'target' in e);
+    const value = isChangeEvent
+      ? e.target.type === 'checkbox'
+        ? e.target.checked
+        : e.target.value
+      : e;
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    props.onChange && props.onChange({ field, e });
+    props.onChange && props.onChange({ field, e: value });
     if (props.fields.length == 1) {
       formik.setFieldTouched(field, true);
     }
-    formik.setFieldValue(field, e);
-    return formik.handleChange(field);
+    if (isChangeEvent) {
+      formik.handleChange(e);
+      return;
+    }
+    formik.setFieldValue(field, value);
   };
 
   const handleKeyDown =
@@ -266,9 +297,7 @@ export default (props: PropsType) => {
                       value={formik.values[field.name]}
                       onBlur={formik.handleBlur}
                       // onChange={formik.handleChange}
-                      onChange={(e) => {
-                        handleChange(formik, field.name, e.target.value);
-                      }}
+                      onChange={(e) => handleChange(formik, field.name, e)}
                       onKeyDown={handleKeyDown(formik, field.multiple)}
                       error={!!formik.errors[field.name] || field.error}
                       errorMessage={formik.errors[field.name]}
@@ -278,6 +307,35 @@ export default (props: PropsType) => {
                 </Grid>
               );
             })}
+
+            {props.renderValues && (
+              <Grid item xs={12}>
+                {props.renderValues(formik.values, formik.setFieldValue)}
+              </Grid>
+            )}
+
+            {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && (
+              <Grid item xs={12}>
+                <Alert severity="error">
+                  <Typography>{t('form_validation_error_summary')}</Typography>
+                  <Box component="ul" sx={{ mb: 0, pl: 2 }}>
+                    {flattenFormikErrors(formik.errors).map(({ path, message }) => {
+                      const fieldName = path.split(/[.[\]]/)[0];
+                      const field = props.fields.find(
+                        (item) => item.name === fieldName
+                      );
+                      const label = field?.label ? t(field.label) : fieldName;
+
+                      return (
+                        <li key={path}>
+                          <strong>{label || path}:</strong> {message}
+                        </li>
+                      );
+                    })}
+                  </Box>
+                </Alert>
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <Button

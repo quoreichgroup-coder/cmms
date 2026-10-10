@@ -35,4 +35,6 @@ export interface WorkOrderMini {
   title: string;
   status: string;
   createdAt: string;
+  dueDate?: string | null;
+  customId?: string | null;
 }

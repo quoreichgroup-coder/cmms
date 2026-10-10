@@ -1,4 +1,16 @@
-import { Box, Button, Grid } from '@mui/material';
+import {
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  Stack,
+  Typography
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SettingsLayout from '../SettingsLayout';
 import CustomDataGrid from '../../components/CustomDatagrid';
@@ -15,6 +27,8 @@ import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
 import SelectTasksModal from '../../components/form/SelectTasks';
 import { useContext, useEffect, useState } from 'react';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import VisibilityTwoToneIcon from '@mui/icons-material/VisibilityTwoTone';
+import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
 import { useDispatch, useSelector } from '../../../../store';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import {
@@ -34,6 +48,7 @@ function Checklists() {
   const { t }: { t: any } = useTranslation();
   const [openCreateChecklist, setOpenCreateChecklist] = useState(false);
   const [openEditChecklist, setOpenEditChecklist] = useState(false);
+  const [openDetails, setOpenDetails] = useState(false);
   const [currentChecklist, setCurrentChecklist] = useState<Checklist>();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const { hasFeature } = useAuth();
@@ -56,6 +71,14 @@ function Checklists() {
     showSnackBar(t('changes_saved_success'), 'success');
   };
   const onEditFailure = (err) => showSnackBar(getErrorMessage(err), 'error');
+  const openChecklistDetails = (checklist: Checklist) => {
+    setCurrentChecklist(checklist);
+    setOpenDetails(true);
+  };
+  const openChecklistEditor = (checklist: Checklist) => {
+    setCurrentChecklist(checklist);
+    setOpenEditChecklist(true);
+  };
   const handleDelete = (id: number) => {
     dispatch(deleteChecklist(id)).then(onDeleteSuccess).catch(onDeleteFailure);
     setOpenDelete(false);
@@ -88,7 +111,7 @@ function Checklists() {
       headerName: t('tasks'),
       description: t('tasks'),
       valueGetter: (params: GridValueGetterParams<null, Checklist>) =>
-        params.row.taskBases.length,
+        params.row.taskBases?.length ?? 0,
       width: 150
     },
     {
@@ -97,6 +120,18 @@ function Checklists() {
       headerName: t('actions'),
       description: t('actions'),
       getActions: (params: GridRowParams<Checklist>) => [
+        <GridActionsCellItem
+          key="view"
+          icon={<VisibilityTwoToneIcon fontSize="small" />}
+          onClick={() => openChecklistDetails(params.row)}
+          label={t('view_task_list')}
+        />,
+        <GridActionsCellItem
+          key="edit"
+          icon={<EditTwoToneIcon fontSize="small" />}
+          onClick={() => openChecklistEditor(params.row)}
+          label={t('edit_task_list')}
+        />,
         <GridActionsCellItem
           key="delete"
           icon={<DeleteTwoToneIcon fontSize="small" color="error" />}
@@ -130,6 +165,9 @@ function Checklists() {
               >
                 {t('create_checklist')}
               </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {t('task_list_library_help')}
+              </Typography>
               <CustomDataGrid
                 columns={columns}
                 rows={checklists}
@@ -138,8 +176,7 @@ function Checklists() {
                   Toolbar: GridToolbar
                 }}
                 onRowClick={(params: GridRowParams<Checklist>) => {
-                  setCurrentChecklist(params.row);
-                  setOpenEditChecklist(true);
+                  openChecklistDetails(params.row);
                 }}
                 initialState={{
                   columns: {
@@ -149,6 +186,110 @@ function Checklists() {
               />
             </Box>
           </Grid>
+          <Dialog
+            open={openDetails}
+            onClose={() => setOpenDetails(false)}
+            fullWidth
+            maxWidth="sm"
+          >
+            <DialogTitle>{currentChecklist?.name}</DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={2}>
+                {currentChecklist?.description && (
+                  <Typography color="text.secondary">
+                    {currentChecklist.description}
+                  </Typography>
+                )}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Chip label={t('general_task_list')} size="small" color="primary" />
+                  {currentChecklist?.category && (
+                    <Chip label={currentChecklist.category} size="small" />
+                  )}
+                  <Typography variant="body2" color="text.secondary">
+                    {t('task_count', {
+                      count: currentChecklist?.taskBases?.length ?? 0
+                    })}
+                  </Typography>
+                </Stack>
+                <Divider />
+                <Typography variant="subtitle2">{t('operations')}</Typography>
+                {(currentChecklist?.taskBases ?? []).length ? (
+                  <Stack spacing={1}>
+                    {(currentChecklist?.taskBases ?? []).map((task, index) => (
+                      <Box
+                        key={task.id || `${task.label}-${index}`}
+                        sx={{
+                          p: 1.5,
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                          spacing={1}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ minWidth: 42 }}
+                            >
+                              {String((index + 1) * 10).padStart(4, '0')}
+                            </Typography>
+                            <Typography>{task.label}</Typography>
+                          </Stack>
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label={
+                              {
+                                SUBTASK: t('sub_task_status'),
+                                TEXT: t('text_field'),
+                                NUMBER: t('number_field'),
+                                INSPECTION: t('inspection_check'),
+                                MULTIPLE: t('multiple_choices'),
+                                METER: t('meter_reading')
+                              }[task.taskType] ?? task.taskType
+                            }
+                          />
+                        </Stack>
+                        {task.options?.length > 0 && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 0.75 }}
+                          >
+                            {task.options.map((option) => option.label).join(' · ')}
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary">
+                    {t('task_list_empty')}
+                  </Typography>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenDetails(false)}>
+                {t('close')}
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setOpenDetails(false);
+                  if (currentChecklist) openChecklistEditor(currentChecklist);
+                }}
+              >
+                {t('edit_task_list')}
+              </Button>
+            </DialogActions>
+          </Dialog>
           <SelectTasksModal
             open={openCreateChecklist}
             onClose={() => setOpenCreateChecklist(false)}
@@ -161,7 +302,7 @@ function Checklists() {
                     taskBases: tasks.map((task) => {
                       return {
                         ...task.taskBase,
-                        options: task.taskBase.options.map(
+                        options: (task.taskBase.options ?? []).map(
                           (option) => option.label
                         )
                       };
@@ -169,7 +310,14 @@ function Checklists() {
                   },
                   companySettingsId
                 )
-              ).catch((error) => showSnackBar(getErrorMessage(error), 'error'));
+              );
+              showSnackBar(
+                t('checklist_create_success', {
+                  name: infos.name,
+                  taskCount: tasks.length
+                }),
+                'success'
+              );
             }}
             action="createChecklist"
           />
@@ -189,7 +337,7 @@ function Checklists() {
                     taskBases: tasks.map((task) => {
                       return {
                         ...task.taskBase,
-                        options: task.taskBase.options.map(
+                        options: (task.taskBase.options ?? []).map(
                           (option) => option.label
                         )
                       };

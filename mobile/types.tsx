@@ -24,6 +24,7 @@ import Category from './models/category';
 import { FilterField } from './models/page';
 import Request from './models/request';
 import Meter, { MeterMiniDTO } from './models/meter';
+import PreventiveMaintenance from './models/preventiveMaintenance';
 
 declare global {
   namespace ReactNavigation {
@@ -79,6 +80,7 @@ export type RootStackParamList = {
   RequestDetails: { id: number; requestProp?: Request };
   UserDetails: { id: number; userProp?: OwnUser };
   UserProfile: undefined;
+  CompanyProfile: undefined;
   TeamDetails: { id: number; teamProp?: Team };
   PartDetails: { id: number; partProp?: Part };
   MeterDetails: {
@@ -86,6 +88,8 @@ export type RootStackParamList = {
     meterProp?: Meter;
     onNewReading?: (readingValue: number) => void;
   };
+  PreventiveMaintenances: undefined;
+  PreventiveMaintenanceDetails: { id: number; pmProp?: PreventiveMaintenance };
   CustomerDetails: { id: number; customerProp?: Customer };
   VendorDetails: { id: number; vendorProp?: Vendor };
   Modal: undefined;

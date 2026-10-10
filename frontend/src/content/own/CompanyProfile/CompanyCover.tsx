@@ -12,6 +12,8 @@ import UploadTwoToneIcon from '@mui/icons-material/UploadTwoTone';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
 import { Company } from '../../../models/owns/company';
+import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
+import { getErrorMessage } from '../../../utils/api';
 
 const Input = styled('input')({
   display: 'none'
@@ -37,26 +39,36 @@ const CardCoverAction = styled(Box)(
 
 interface CompanyCoverProps {
   image: string;
+  canEdit: boolean;
 }
 
-const CompanyCover: FC<CompanyCoverProps> = ({ image }) => {
+const CompanyCover: FC<CompanyCoverProps> = ({ image, canEdit }) => {
   const { t }: { t: any } = useTranslation();
   const [changingPicture, setChangingPicture] = useState<boolean>(false);
   const { uploadFiles } = useContext(CompanySettingsContext);
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const { patchCompany } = useAuth();
-  const onChangePicture = (event: ChangeEvent<HTMLInputElement>) => {
+  const onChangePicture = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    if (!input.files?.length) return;
     setChangingPicture(true);
-    uploadFiles([], Array.from(event.target.files))
-      .then((files) =>
-        patchCompany({ logo: { id: files[0].id } } as Partial<Company>)
-      )
-      .finally(() => setChangingPicture(false));
+    try {
+      const files = await uploadFiles([], Array.from(input.files));
+      if (!files?.[0]?.id) throw new Error('company_logo_upload_error');
+      await patchCompany({ logo: { id: files[0].id } } as Partial<Company>);
+      showSnackBar(t('company_logo_saved'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error, t('company_logo_upload_error')), 'error');
+    } finally {
+      input.value = '';
+      setChangingPicture(false);
+    }
   };
   return (
     <>
       <CardCover>
         <CardMedia image={image} />
-        <CardCoverAction>
+        {canEdit && <CardCoverAction>
           <Input
             accept="image/*"
             id="change-cover"
@@ -81,7 +93,7 @@ const CompanyCover: FC<CompanyCoverProps> = ({ image }) => {
               {t('change_cover')}
             </Button>
           </label>
-        </CardCoverAction>
+        </CardCoverAction>}
       </CardCover>
     </>
   );

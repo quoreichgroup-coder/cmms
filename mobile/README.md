@@ -4,7 +4,7 @@ Application mobile React Native du CMMS QPM.
 
 ## Installer sur Android
 
-Téléchargez `dist/QPM-1.0.53.apk` sur le téléphone et ouvrez le fichier pour l’installer. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md).
+Le dernier APK déjà construit et validé dans le dépôt est `dist/QPM-1.0.54.apk`. La version source 1.0.55 est prête, mais son APK doit encore être construit. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md).
 
 L’APK utilise par défaut `https://169-58-86-7.sslip.io/api/`. Le certificat HTTPS est émis et renouvelé automatiquement par Caddy. Si une ancienne adresse personnalisée est conservée après la mise à jour, ouvrez **Serveur personnalisé** depuis l’écran de connexion et choisissez **Réinitialiser**. Connectez-vous avec un compte utilisateur de l’entreprise ; le superadmin de plateforme est un compte technique et le parcours mobile client ne l’accepte pas. Les taps de notification ouvrent maintenant leur ressource après le démarrage et la restauration de session. La réception des push demande encore les credentials Firebase de l’entreprise. Au premier démarrage, le propriétaire de l’entreprise peut saisir la clé de licence depuis **Réglages → Licence de l’entreprise**.
 
