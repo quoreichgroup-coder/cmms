@@ -156,3 +156,50 @@ Ajout de `scripts/preflight-quoreich-cutover.sh`, un contrôle local en lecture 
 Vérification en lecture seule de l’installation HTTPS : GET `/api/license/state` répond HTTP 200 avec `valid=true`, `readOnly=false`, édition ENTERPRISE, environnement PRODUCTION et échéance au 2 novembre 2026. La réponse ne contient ni clé de licence ni jeton. L’instance en ligne est donc actuellement activée. Aucun conteneur n’a été redémarré par ce travail. Une checklist d’essai photo/document Android et iOS est ajoutée à `mobile/INSTALLER-APK.md`. La prochaine suite est la revue des changements locaux avant enregistrement; les tests réels d’upload, notifications et fonctionnement iOS/Android nécessitent encore les téléphones.
 
 Première passe de revue locale : aucun fichier n’est indexé et `git diff --check` passe. Les changements forment plusieurs lots (reverse proxy/Caddy, correctifs API/UI de licences et rapports, contrats d’import/export, préparation et versionnement mobile). Les trois fichiers vides `api/nginx`, `api/nginx:80` et `api/nginx:800.0.0.0:3000` sont des résidus hors périmètre et restent à exclure. Le lockfile mobile reflète aussi le passage Sentry de 8.26 à 6.14; la compilation 1.0.53 réussit, mais cette mise à niveau/downgrade mérite une vérification de compatibilité distincte avant un enregistrement global des lots.
+
+### Avertissement des déclencheurs compteur — 2026-10-04
+
+Le prochain point produit concerne la répétition des ordres générés par seuil compteur. La fiche affiche maintenant un avertissement lorsqu’un déclencheur est présent, et les formulaires de création/modification présentent le même avertissement renforcé. Aucun comportement backend n’a changé : chaque relevé du côté déclencheur peut toujours créer un ordre. La décision sur l’effet de `recurrent` et `waitBefore` reste à valider avec le site; l’implémentation dépend de cette règle. Les trois fichiers temporaires `api/nginx*` restent non suivis et exclus.
+
+### Déclencheurs compteur et cadence WEEKLY PM — 2026-10-04
+
+Les seuils génèrent désormais au plus un ordre par franchissement. Le délai `waitBefore` est en secondes et exige que le seuil reste actif; Quartz annule ou revalide le déclenchement différé au dernier relevé avant de créer l’ordre. Les déclencheurs non récurrents restent à usage unique; les récurrents se réarment après retour à l’état normal. Une migration Liquibase ajoute l’état de déclenchement et initialise les seuils déjà actifs comme consommés pour éviter un doublon immédiat après déploiement. Les formulaires exposent maintenant ces deux paramètres.
+
+Correction WEEKLY PM : les occurrences `COMPLETED_DATE` sont déjà calculées à partir de la clôture précédente. Le filtre d’intervalle ancré à `startsOn` ne s’applique qu’aux récurrences `SCHEDULED_DATE`, afin d’éviter de sauter une occurrence hebdomadaire après une clôture tardive. Le script isolé `frontend/scripts/mine-meter-pilot.cjs` couvre les deux sens de seuil, l’égalité, l’attente, l’annulation, l’absence de doublon et le réarmement. Il requiert toujours sa fixture/base de pilote; tests ciblés de `ScheduleService` et de la politique de seuil sont exécutés localement.
+
+La base locale contient le PM `WEEKLY BEARING INSPECTION`, enregistré `DAILY` avec une fréquence de 7 jours et sans jours de semaine. Le traitement utilise maintenant des intervalles Quartz calendaires dans le fuseau de l’entreprise et conserve l’heure locale lors du changement d’heure pour les cadences quotidiennes, mensuelles et annuelles. L’enregistrement n’a pas été modifié. Le rebuild backend a été appliqué; Liquibase a terminé et `/health-check` répond HTTP 200. Le trigger de ce PM est bien `CAL_INT`.
+
+L’écran de création et de modification PM affiche maintenant un aperçu non persistant des huit prochaines occurrences selon les valeurs du formulaire et le fuseau de l’entreprise. Les récurrences basées sur l’achèvement indiquent que les dates après la première supposent une clôture à la date prévue. Les tests d’aperçu couvrent le changement d’heure, la cadence hebdomadaire multiple, les jours choisis et la date de fin. Les builds frontend local et Docker passent; les avertissements de source maps tierces restent inchangés.
+
+La comparaison SAP et les écarts fonctionnels restants sont suivis dans [BACKLOG-MAINTENANCE-PREVENTIVE.md](BACKLOG-MAINTENANCE-PREVENTIVE.md). En particulier, un déclencheur au seuil n’est pas un plan récurrent basé sur un cycle compteur; cette évolution doit conserver deux parcours distincts.
+
+### Historique des appels PM — 2026-10-04
+
+La fiche de PM expose maintenant les ordres générés sous forme d’historique paginé, avec ID personnalisé, date de création, échéance et statut. La route `/preventive-maintenances/{id}/work-order-history` requiert le rôle client, vérifie le droit de visibilité sur le PM et borne la taille de page à 100. Les tests vérifient le contrat paginé et le refus des autres rôles. Cela complète les ordres déjà créés seulement; les occurrences prévues sans ordre et les appels ignorés/reportés nécessitent toujours une entité d’historique durable distincte. Les cycles PM basés sur compteur restent la prochaine tranche fonctionnelle.
+
+## Stabilisation des rapports analytiques — 9 octobre 2026
+
+Les 13 widgets signalés sur les rapports **Time and Cost**, **Incomplete Work Orders** et **Work Order Analysis** partageaient le traitement d’accès analytique. Les anciennes traces de navigateur disponibles montrent des refus HTTP 403; l’ancien client transformait parfois une réponse vide ou `null` en erreur opaque. Le code actuel contient le contrôle d’accès superadmin sans abonnement, garde le périmètre société, libère les états de chargement dans les thunks et affiche un message exploitable avec possibilité de réessayer. Le client API conserve aussi le statut HTTP et le corps de réponse pour éviter le message littéral `null`.
+
+Vérifications ciblées du 9 octobre :
+
+- `node --test scripts/report-loading.test.cjs scripts/api-error-message.test.cjs scripts/api-client-errors.test.cjs` depuis `frontend` : **3 suites réussies**, dont le contrôle des 40 thunks analytiques et du calendrier.
+- `AnalyticsAccessScopeTest` : **5 tests réussis** dans une copie temporaire de l’API.
+- `AnalyticsMethodSecurityTest` : non validé dans cet environnement. Mockito/Byte Buddy ne peut pas s’attacher à la JVM ici; l’échec est environnemental, sans assertion métier échouée.
+- Build frontend : arrêté par manque de mémoire. Les conteneurs locaux ne sont pas accessibles depuis cette session; aucun statut d’API live après reconstruction n’est revendiqué.
+
+Le correctif reste à confirmer sur l’instance après reconstruction de l’API et du frontend. Si un widget échoue encore, relever le statut HTTP et le corps expurgé dans l’onglet Network; ne partager aucun jeton ni secret.
+
+## Suite du MVP
+
+Le guide [`TESTS-PM-STRATEGIES-MULTICOMPTEURS.md`](TESTS-PM-STRATEGIES-MULTICOMPTEURS.md) marque encore les tests multi-compteurs OR/AND, les reports, certains relevés de seuil et les contrôles mobile/droits comme à faire ou partiels. La priorité est de terminer ces scénarios terrain et de confirmer les rapports avec les réponses live. La refonte UI/UX et le branding viendront après cette validation, comme prévu dans [`BACKLOG-MAINTENANCE-PREVENTIVE.md`](BACKLOG-MAINTENANCE-PREVENTIVE.md).
+
+## Revue globale du projet et préparation UI/UX — 2026-10-10
+
+La revue ciblée du dépôt, des routes web/mobile et de `docs/design.md` est consignée dans [`AUDIT-ETAT-PROJET-UI-UX-2026-10-10.md`](AUDIT-ETAT-PROJET-UI-UX-2026-10-10.md). QPM contient les domaines CMMS/EAM principaux et la version source mobile indique 1.0.55; cela ne confirme ni l’état de l’instance courante ni la disponibilité d’un APK/IPA de cette version.
+
+**État opérationnel à confirmer avant toute recette utilisateur :** les derniers journaux communiqués le 9 octobre montrent le backend en redémarrage après échec de validation Hibernate/JPA (`request.site_id`, `work_order_aud.site_mod`, puis séquence `company_configuration_audit_seq`). Liquibase annonçait alors que les 836 changesets étaient à jour et les requêtes `/api/health-check` via nginx renvoyaient 502. Des migrations correctives figurent depuis dans le dépôt local, mais aucun résultat ultérieur de démarrage stable et de contrôle HTTP n’est consigné ici. Ne pas considérer ces endpoints comme réparés tant que `docker compose ps`, les logs et les réponses HTTP ne le prouvent pas.
+
+Les changements locaux touchent plusieurs chantiers, notamment PM/compteurs, société/sites/documents, API/frontend/mobile et le proxy. Ils n’ont pas été commités par cette revue. La validation visuelle authentifiée, la recette des écrans réels et les tests sur appareils ne sont pas revendiqués. Le rapport distingue le code repéré, les anciennes validations datées et ce qui reste à exercer.
+
+La refonte est préparée selon la séquence **stabilisation → recette MVP → recherche et baseline UI/UX → prototype → implémentation responsive web et native → branding**. La recherche de références externes et la validation de prototypes n’ont pas commencé; elles sont à réaliser avant un redesign majeur, comme l’exige [`design.md`](design.md).

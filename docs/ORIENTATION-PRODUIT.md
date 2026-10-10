@@ -42,7 +42,7 @@ On privilégie d’abord la configuration existante (champs personnalisés, pré
 - QPM est un nom de travail ; son développement et sa forme longue restent à définir.
 - L’identité visuelle de référence n’est pas encore arrêtée.
 - Le nom, le logo, les couleurs, la devise, la langue et les coordonnées d’une entreprise cliente doivent rester des paramètres de déploiement ou d’organisation, et ne pas être inscrits en dur dans les parcours métier.
-- Le dépôt officiel dispose de réglages de marque globaux ; le code vérifie un droit de licence pour le nom et les logos personnalisés. Avant d’en faire la solution multi-client, il faudra confirmer le mode de déploiement et vérifier que chaque entreprise puisse bien gérer sa propre identité.
+- Le déploiement QPM actuel reste **mono-entreprise** : une installation représente une seule entreprise, avec ses sites et utilisateurs. Les réglages de marque et d’organisation s’appliquent à cette entreprise. Une architecture multi-entreprise dans une même installation n’est pas prévue dans le périmètre actuel et ne doit pas être ajoutée sans nouvelle décision produit.
 
 ## Garde-fous produit
 

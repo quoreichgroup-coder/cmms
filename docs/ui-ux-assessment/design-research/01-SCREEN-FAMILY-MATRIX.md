@@ -1,0 +1,29 @@
+# Screen family matrix
+
+**Source of truth:** `../screen-inventory.json` (106 active Web destinations, 76 registered Mobile destinations; redirects and the commented declaration are separate). IDs below are generated from the inventory. Each screen is listed once under its dominant UX job; actual screens may support other tasks.
+
+| UX family | Main job and shared interaction pattern | Web screen IDs | Mobile screen IDs | Existing source anchors | Priority |
+|---|---|---|---|---|---|
+| **Demande et qualification** | Intake clair, contexte équipement/site, priorisation et transfert à un WO. | WEB-003, WEB-013, WEB-014, WEB-027, WEB-028, WEB-045, WEB-046, WEB-103 | MOB-007, MOB-021, MOB-022, MOB-075 | `Requests/index.tsx`, `Requests/RequestDetails.tsx`, mobile `CreateRequestScreen.tsx`/`RequestsScreen.tsx` | **P0** |
+| **Ordre de travail et exécution** | File de travail, détail exploitable, tâches, coûts/temps/pièces, pièces jointes et clôture contrôlée. | WEB-010, WEB-012, WEB-054, WEB-055, WEB-063, WEB-070, WEB-086 | MOB-003, MOB-005, MOB-006, MOB-013, MOB-044, MOB-048, MOB-060, MOB-062, MOB-063, MOB-064, MOB-065, MOB-066, MOB-073 | `WorkOrders/index.tsx`, `WorkOrders/Details/`, `WODetailsScreen.tsx`, `TasksScreen.tsx`, `CompleteWorkOrderModal.tsx` | **P0** |
+| **Équipement et localisation 360** | Identifier l’actif/site et accéder à sa hiérarchie, son historique et ses données connexes. | WEB-016, WEB-018, WEB-052, WEB-053, WEB-060, WEB-062, WEB-064, WEB-065, WEB-066, WEB-067, WEB-068, WEB-069, WEB-071, WEB-087, WEB-088, WEB-099, WEB-100, WEB-101 | MOB-008, MOB-009, MOB-029, MOB-030, MOB-031, MOB-032, MOB-033, MOB-034, MOB-045, MOB-057, MOB-058 | `Assets/Show/`, `Assets/index.tsx`, `Locations/index.tsx`, mobile `screens/assets/` et `screens/locations/` | **P0** |
+| **Préventif, compteurs et inspection** | Configurer plan simple/avancé, distinguer occurrence prévue, appel et WO généré, saisir les compteurs et exécuter les checklists. | WEB-021, WEB-022, WEB-043, WEB-044, WEB-047, WEB-048, WEB-073, WEB-090, WEB-091 | MOB-011, MOB-014, MOB-015, MOB-016, MOB-017, MOB-018, MOB-050, MOB-061 | `PreventiveMaintenance/index.tsx`, `PMPlanConfigurationEditor.tsx`, `MeterCycleForecast.tsx`, `Meters/index.tsx`, mobile PM/meter screens | **P1** |
+| **Pièces, stock et approvisionnement** | Consulter disponibilité, pièces liées, consommations et commandes avec unités/quantités lisibles. | WEB-019, WEB-020, WEB-049, WEB-050, WEB-051, WEB-056, WEB-057, WEB-058, WEB-059, WEB-072, WEB-076, WEB-089, WEB-102 | MOB-010, MOB-019, MOB-020, MOB-023, MOB-049 | `Inventory/`, `PurchaseOrders/`, `mobile/slices/{part,partQuantity,purchaseOrder}.ts` | **P2** |
+| **Personnes, équipes et partenaires** | Comprendre responsabilité et attribution; gérer équipes, utilisateurs et partenaires selon autorisations. | WEB-025, WEB-026, WEB-077, WEB-078, WEB-079, WEB-080, WEB-081, WEB-082, WEB-083, WEB-084 | MOB-012, MOB-024, MOB-025, MOB-026, MOB-027, MOB-028, MOB-035, MOB-036, MOB-037, MOB-038, MOB-039, MOB-042, MOB-053, MOB-054, MOB-055, MOB-056 | `PeopleAndTeams/`, `VendorsAndCustomers/`, mobile people/teams and vendor/customer screens | **P2** |
+| **Pilotage et analyses** | Voir des indicateurs utiles avec filtres, dates, unités, fraîcheur, détail et états API explicites. | WEB-006, WEB-095, WEB-096, WEB-097, WEB-098 | — | `Analytics/`, ApexCharts wrappers, `WorkOrderStatsScreen.tsx` | **P2** |
+| **Administration et configuration** | Paramétrer champs, fonctionnalités, entreprise, licence et configuration sans mélanger les opérations quotidiennes. | WEB-002, WEB-007, WEB-008, WEB-009, WEB-011, WEB-015, WEB-017, WEB-023, WEB-024, WEB-029, WEB-030, WEB-031, WEB-032, WEB-034, WEB-035, WEB-036, WEB-037, WEB-039, WEB-040, WEB-041, WEB-092, WEB-093, WEB-094, WEB-104, WEB-105, WEB-106, WEB-107, WEB-108 | MOB-001, MOB-002, MOB-004, MOB-040, MOB-041, MOB-043, MOB-046, MOB-047, MOB-051, MOB-052, MOB-059, MOB-071, MOB-072, MOB-074, MOB-076 | `Settings/`, `CompanyProfile/`, `AboutLicenses`, `Subscription/`, profile and import screens | **P3** |
+| **Accès et utilitaires transverses** | Authentification, erreurs de route, notifications/aide et sélection/capture transversale. | WEB-001, WEB-004, WEB-038, WEB-042, WEB-074, WEB-075, WEB-109, WEB-110 | MOB-067, MOB-068, MOB-069, MOB-070 | `router/`, `mobile/navigation/index.tsx`, auth and selector/capture screens | **P2** |
+
+## Cross-family patterns
+
+- **Record header:** stable identifier, human name, status, priority where relevant, site/equipment context, clear primary action.
+- **Work queue:** search/filters persist visibly; compact Web table and mobile list expose matching essentials; preserve list position when returning.
+- **List → detail:** split pane on wide desktop only where it improves triage; full route detail on narrow screens; preserve browser/native back behavior.
+- **Related records:** local tabs/sections for same-record context. Bound tab count, use short labels, and ensure selected tab remains visible.
+- **Forms:** group identity, planning/context, work definition, assignment and review; progressive disclosure only for advanced configuration; field-level validation and explicit save feedback.
+- **Async state matrix:** loading, valid empty, API error/retry, denied, unavailable entitlement, saving/saved; stale/offline only where current behavior supports it.
+- **Dangerous actions:** permission-conditioned and confirmed, with consequence and recovery/audit context; restyling cannot alter authorization.
+
+## Evidence and confidence
+
+Route registrations and source components are repository facts. Role, primary task, loaded data, live request success, and exact conditional visibility are inferred from module/API source until confirmed with a live account. Historical screenshots in `docs/validation-pilote/2026-10-03/` show a clipped asset title and tab label; treat as dated evidence, not current-build proof.

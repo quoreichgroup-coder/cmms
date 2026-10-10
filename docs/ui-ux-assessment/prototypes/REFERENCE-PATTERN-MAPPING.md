@@ -1,0 +1,25 @@
+# QPM — Réplication et adaptation des patterns
+
+Cette cartographie sépare les références visuelles locales vérifiables des descriptions de référence externe. Elle guide les compositions des prototypes sans prétendre disposer des images originales Dribbble qui ne sont pas dans le dépôt.
+
+| Écran cible | Inventaire QPM | Pattern observé | Référence | Adaptation et composants communs | Écart / justification |
+|---|---|---|---|---|---|
+| Tableau de bord mobile | `MOB-001` | Liste de travail centrée sur aujourd’hui; prochaine action dominante; raccourcis en bas | [Field Service Mobile App, Dribbble](https://dribbble.com/shots/26378456-Field-Service-Mobile-App-UI-UX-Design); guide Fiix mobile, pages 5–8 | `ShiftStrip`, `DaySummary`, `WorkOrderCard`, `StatusBadge`, `QuickActionGrid`, `BottomTabs` | Référence mobile publiée décrit planning et mises à jour. Données de WO sont triées échéance/priorité dans le prototype; actions de signature non ajoutées car absentes de ce flux précis QPM. |
+| Équipement | `WEB-062–069`, `MOB-030` | Bande de navigation d’entité; identité et action principale; trois cartes métriques; contenu en paires | Capture locale `docs/validation-pilote/2026-10-03/convoyeur-desktop.png` et `convoyeur-mobile.png` | `AssetContextBar`, `AssetTabs`, `AssetIdentity`, `ThreeMetricStrip`, `AssetInfoPanel`, `RelatedWorkOrders`, `MaintenancePanel` | La hiérarchie fonctionnelle est un contexte associé plutôt qu’une colonne permanente, afin de préserver la largeur des informations asset; petit écran: panneaux empilés et onglets défilants, titre non tronqué. |
+| Calendrier préventif | `WEB-047/048`, `WEB-043` | Calendrier mensuel + panneaux d’échéances et registre d’appels | [Facility Management Smart Dashboard, Dribbble](https://dribbble.com/shots/25733778-Facility-Management-System-Smart-Dashboard-UI); [Supervision Platform Dashboard, Dribbble](https://dribbble.com/shots/20775764-Supervision-Platform-Dashboard-UX-UI) | `ScheduleToolbar`, `MonthGrid`, `OccurrenceChip`, `UpcomingList`, `CallRegister` | Les références décrivent le calendrier/centralisation des actifs, mais la capture exacte d’un calendrier QPM n’est pas fournie. Le calendrier et le registre sont une adaptation du besoin de prévision; `Upcoming` reste distinct d’un WO réellement généré. |
+| Liste WO | `WEB-054`, `MOB-073` | Navigation de file par statut, recherche, lignes denses avec priorité et échéance | [Work Order Management Redesign, Dribbble](https://dribbble.com/shots/23423933-Work-Order-Management-Re-Design); R1 | `StatusSegments`, `WorkOrderQueueRow`, `PriorityMarker`, `DueDate`, `SearchField` | Contrôle responsive conserve l’information essentielle; tableau défile horizontalement sur petits écrans, sans réordonner les états métiers. |
+| Détail WO | `WEB-055`, `MOB-002/003/048` | Tiroir latéral avec hiérarchie titre/statut/actions/onglets/faits/tâches; page pleine hauteur sur mobile | Capture locale `intervention-cloturee.png`; [Auto Repair Inspection Dashboard, Dribbble](https://dribbble.com/shots/26418808-Auto-Repair-Inspection-Dashboard-UI-Work-Order) | `WorkOrderDrawer`, `DrawerActions`, `DetailTabs`, `FactGrid`, `TaskChecklist`, `ProgressBar` | Sur écran étroit, page dédiée plutôt qu’un drawer trop étroit; tâches accessibles en grandes cibles tactiles. Le prototype n’affirme pas appliquer de vraies transitions ou permissions. |
+| Création WO | `WEB-055`, `MOB-005` | Sections courtes par décision, aperçu de l’ordre, priorité/asset/date/assignation | [Create Work Order User Flow, Dribbble](https://dribbble.com/shots/2802454-Create-work-order-user-flow); [Enterprise SaaS Forms, Dribbble](https://dribbble.com/shots/14617634-EnterpriseSaaSForms-DarkVersions) | `FormSection`, `AssetSelector`, `PlanningFields`, `OrderPreview`, mobile form fields | Maintien d’une seule page de formulaire QPM pour éviter de transformer une création rapide en wizard imposé; validations et champs restent des exemples, les règles réelles nécessitent le formulaire source. |
+
+## Grammaire visuelle et interaction commune
+
+- En tête de chaque vue: contexte d’écran, titre orienté tâche, une action primaire identifiable.
+- Sur les vues de maintenance: ID/équipement, statut, priorité et échéance sont visibles sans ouvrir un menu.
+- Les tâches sont sélectionnables par ligne entière et s’accompagnent d’un état d’avancement explicite.
+- L’action primaire est placée au plus près de l’objet concerné; les actions secondaires passent dans un menu ou une action plus discrète.
+- Les mêmes `StatusBadge`, `PriorityMarker`, `WorkOrderCard/Row`, `AssetIdentity` et `TaskChecklist` servent sur les vues liées.
+- Les états erreur, chargement, vide, refus et succès sont des variantes de composants, pas des pages ad hoc.
+
+## Sources de comparaison
+
+Les captures QPM locales servent de preuve d’interface actuelle; les pages Dribbble servent de références de pattern. Les pages Dribbble et leurs auteurs restent crédités dans les liens. Leur description publique n’est pas une preuve de test d’utilisabilité. Les captures manquantes ne sont pas reconstituées ni remplacées par un faux visuel.
