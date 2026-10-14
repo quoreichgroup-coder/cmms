@@ -83,9 +83,12 @@ export const getReadings =
   (id: number): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
-    const readings = await api.get<Reading[]>(`${basePath}/meter/${id}`);
-    dispatch(slice.actions.getReadings({ id, readings }));
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+    try {
+      const readings = await api.get<Reading[]>(`${basePath}/meter/${id}`);
+      dispatch(slice.actions.getReadings({ id, readings }));
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 
 export const createReading =

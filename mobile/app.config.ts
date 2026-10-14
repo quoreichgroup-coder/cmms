@@ -4,13 +4,24 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+// Keep the dynamic Expo config self-contained: Expo evaluates this file before
+// Metro's TypeScript resolver is installed, so local TS imports can fail here.
 const apiUrl = process.env.API_URL || 'https://169-58-86-7.sslip.io/api';
 const easProjectId = process.env.EAS_PROJECT_ID;
 const clarityId = process.env.CLARITY_ID;
 const googleServicesPlist = process.env.GOOGLE_SERVICES_PLIST;
 const sentryDsn = process.env.SENTRY_DSN;
 const sentryEnvironment = process.env.SENTRY_ENVIRONMENT || 'production';
-const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+let gitHash = 'local';
+try {
+  gitHash =
+    execSync('git rev-parse --short HEAD', { stdio: 'ignore' })
+      .toString()
+      .trim() || 'local';
+} catch {
+  // Expo can still start from source archives, read-only workspaces or Docker
+  // mounts where Git metadata is unavailable.
+}
 const sentryRelease = process.env.SENTRY_RELEASE || gitHash;
 
 const androidGoogleServicesPath = path.resolve(
@@ -51,10 +62,6 @@ const plugins: ExpoConfig['plugins'] = [
   ]
 ];
 
-if (fs.existsSync(androidGoogleServicesPath) || (googleServicesPlist && fs.existsSync(googleServicesPlist))) {
-  plugins.push('@react-native-firebase/app');
-}
-
 if (process.env.SENTRY_AUTH_TOKEN) {
   plugins.push([
     '@sentry/react-native/expo',
@@ -71,7 +78,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
   slug: 'atlas-cmms',
-  version: '1.0.55',
+  version: '1.0.58',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'atlascmms',
@@ -83,7 +90,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    dark: {
+      image: './assets/images/splash-dark.png',
+      backgroundColor: '#0D1220'
+    }
   },
   updates: {
     fallbackToCacheTimeout: 0,
@@ -93,11 +104,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: 'com.cmms.atlas',
-    buildNumber: '9',
+    buildNumber: '12',
     jsEngine: 'hermes',
     supportsTablet: false,
     runtimeVersion: { policy: 'appVersion' },
-    ...(googleServicesPlist && fs.existsSync(googleServicesPlist) ? { googleServicesFile: googleServicesPlist } : {}),
+    ...(googleServicesPlist && fs.existsSync(googleServicesPlist)
+      ? { googleServicesFile: googleServicesPlist }
+      : {}),
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false
     }
@@ -107,11 +120,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#071b3d'
     },
-    versionCode: 38,
+    versionCode: 41,
     package: 'com.atlas.cmms',
     jsEngine: 'hermes',
     edgeToEdgeEnabled: true,
-    ...(fs.existsSync(androidGoogleServicesPath) ? { googleServicesFile: androidGoogleServicesPath } : {}),
+    ...(fs.existsSync(androidGoogleServicesPath)
+      ? { googleServicesFile: androidGoogleServicesPath }
+      : {}),
     runtimeVersion: { policy: 'appVersion' } // Changed from policy object to fixed string
   },
   web: {

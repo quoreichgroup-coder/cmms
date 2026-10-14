@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QPM — aperçu du système d’apparence</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --brand: #4b5fe8;
+        --brand-strong: #4055dd;
+        --brand-soft: #eef0ff;
+        --canvas: #f7f8fc;
+        --surface: #fff;
+        --surface-raised: #f6f7ff;
+        --ink: #202943;
+        --muted: #5e687e;
+        --outline: #d7ddee;
+        --divider: #e7eaf2;
+        --success: #237a32;
+        --warning: #8a5700;
+        --danger: #c6283d;
+        --info: #1675a8;
+        --neutral: #5e687e;
+        --shadow: 0 14px 40px rgb(26 37 69 / 10%);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --brand: #aab5ff;
+          --brand-strong: #aab5ff;
+          --brand-soft: #222d4d;
+          --canvas: #0d1220;
+          --surface: #151d2e;
+          --surface-raised: #1c263a;
+          --ink: #f1f4fc;
+          --muted: #b5c0d4;
+          --outline: #35415a;
+          --divider: #29344a;
+          --success: #77d18a;
+          --warning: #ffc66d;
+          --danger: #ff8292;
+          --info: #71c9f2;
+          --neutral: #aab5c8;
+          --shadow: 0 14px 40px rgb(0 0 0 / 30%);
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --brand: #aab5ff;
+        --brand-strong: #aab5ff;
+        --brand-soft: #222d4d;
+        --canvas: #0d1220;
+        --surface: #151d2e;
+        --surface-raised: #1c263a;
+        --ink: #f1f4fc;
+        --muted: #b5c0d4;
+        --outline: #35415a;
+        --divider: #29344a;
+        --success: #77d18a;
+        --warning: #ffc66d;
+        --danger: #ff8292;
+        --info: #71c9f2;
+        --neutral: #aab5c8;
+        --shadow: 0 14px 40px rgb(0 0 0 / 30%);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #e9ecf5;
+        color: #202943;
+        font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      button { font: inherit; }
+      .prototype { max-width: 1040px; margin: 0 auto; }
+      .toolbar {
+        display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+        gap: 12px; margin-bottom: 18px; padding: 14px 16px; border-radius: 16px;
+        background: #fff; box-shadow: var(--shadow);
+      }
+      .toolbar strong { font-size: 14px; }
+      .toolbar small { display: block; color: #65708a; }
+      .controls { display: flex; flex-wrap: wrap; gap: 6px; }
+      .controls button, .tab {
+        border: 1px solid #d7ddee; border-radius: 999px; padding: 8px 12px;
+        color: #34405a; background: #fff; cursor: pointer;
+      }
+      .controls button[aria-pressed="true"], .controls button[aria-selected="true"], .tab[aria-selected="true"] {
+        color: #fff; background: #4055dd; border-color: #4055dd;
+      }
+      .frame-wrap { display: grid; grid-template-columns: minmax(0, 390px) minmax(240px, 1fr); gap: 28px; align-items: start; }
+      .device {
+        min-height: 760px; overflow: hidden; border: 8px solid #202943; border-radius: 34px;
+        background: var(--canvas); box-shadow: var(--shadow); color: var(--ink);
+      }
+      .device-inner { min-height: 744px; position: relative; background: var(--canvas); }
+      .statusbar { height: 28px; padding: 6px 17px 0; color: var(--ink); font-size: 10px; font-weight: 700; }
+      .auth-head {
+        height: 244px; padding: 10px 24px 30px; position: relative; overflow: hidden;
+        background: var(--brand-strong); color: #fff;
+      }
+      .contours { position: absolute; inset: -85px -100px auto; height: 250px; opacity: .18; transform: rotate(-9deg); }
+      .contours span { position: absolute; width: 490px; height: 100px; border: 1px solid white; border-radius: 50%; }
+      .contours span:nth-child(2) { top: 22px; left: 16px; }
+      .contours span:nth-child(3) { top: 44px; left: 32px; }
+      .contours span:nth-child(4) { top: 66px; left: 48px; }
+      .contours span:nth-child(5) { top: 88px; left: 64px; }
+      .auth-top { position: relative; display: flex; justify-content: space-between; align-items: center; z-index: 1; }
+      .brand { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 800; letter-spacing: 1.3px; }
+      .brand-mark { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 9px; background: #fff; color: #4055dd; font-weight: 900; }
+      .lang { border: 1px solid rgb(255 255 255 / 45%); background: transparent; color: white; border-radius: 20px; min-width: 44px; min-height: 44px; }
+      .auth-copy { position: absolute; left: 27px; right: 24px; bottom: 28px; z-index: 1; }
+      .eyebrow { color: #eef0ff; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; }
+      h1 { margin: 6px 0; font-size: 27px; line-height: 1.2; }
+      .auth-copy p { color: #f0f2ff; margin: 0; }
+      .wave { position: absolute; height: 65px; bottom: -39px; left: -5%; width: 112%; border-radius: 48% 52% 0 0 / 48% 55% 0 0; background: var(--canvas); transform: rotate(-2deg); }
+      .screen { padding: 18px 22px 88px; }
+      .screen-title { margin: 0 0 3px; font-size: 21px; }
+      .subtle { color: var(--muted); }
+      .field { margin: 17px 0 0; }
+      .field label { color: var(--muted); font-size: 12px; font-weight: 700; }
+      .input { min-height: 39px; padding: 9px 0 6px; border-bottom: 1px solid var(--outline); color: var(--ink); }
+      .input.focus { border-bottom: 2px solid var(--brand); }
+      .password-row { display: flex; justify-content: space-between; }
+      .inline-link { color: var(--brand); font-size: 12px; font-weight: 700; }
+      .primary {
+        display: block; width: 100%; min-height: 48px; border: 0; border-radius: 14px;
+        margin-top: 22px; color: #fff; background: var(--brand); font-weight: 800;
+      }
+      [data-theme="dark"] .primary { color: #11182c; }
+      .footnote { text-align: center; margin: 12px 0; color: var(--muted); font-size: 12px; }
+      .features { display: grid; gap: 9px; margin-top: 19px; }
+      .feature { display: flex; gap: 10px; align-items: center; color: var(--ink); }
+      .feature-icon { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--outline); border-radius: 11px; background: var(--surface-raised); color: var(--brand); font-weight: 800; }
+      .app-head { padding: 16px 18px 18px; color: white; background: var(--brand-strong); }
+      .app-head .small { color: #eef0ff; font-size: 11px; }
+      .app-head h1 { margin-top: 18px; }
+      .app-head .subtle { color: #f0f2ff; }
+      .app-body { padding: 16px; }
+      .section-head { display: flex; justify-content: space-between; align-items: center; margin: 5px 0 11px; }
+      .section-head h2 { font-size: 16px; margin: 0; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .stat { padding: 12px; border: 1px solid var(--outline); border-top: 3px solid var(--neutral); border-radius: 14px; background: var(--surface); }
+      .stat:nth-child(2) { border-top-color: var(--warning); }
+      .stat:nth-child(3) { border-top-color: var(--info); }
+      .stat:nth-child(4) { border-top-color: var(--success); }
+      .stat small { color: var(--muted); }
+      .stat b { display: block; margin-top: 5px; font-size: 24px; }
+      .wo-card, .settings-card {
+        margin-top: 14px; padding: 14px; border: 1px solid var(--outline);
+        border-left: 4px solid var(--info); border-radius: 15px; background: var(--surface);
+      }
+      .wo-line { display: flex; justify-content: space-between; gap: 9px; align-items: start; }
+      .wo-title { font-weight: 750; }
+      .wo-meta { color: var(--muted); font-size: 12px; margin-top: 7px; }
+      .badge { display: inline-flex; padding: 4px 8px; border-radius: 999px; color: #fff; background: var(--info); font-size: 10px; font-weight: 800; white-space: nowrap; }
+      .badge.warning { color: #fff; background: var(--warning); }
+      .badge.high { color: white; background: var(--danger); }
+      .section-label { margin: 18px 0 8px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+      .tabs { display: flex; gap: 6px; overflow: auto; margin: 0 0 15px; }
+      .tab { min-height: 40px; font-size: 12px; white-space: nowrap; }
+      .settings-card { border-left: 1px solid var(--outline); }
+      .choice { display: flex; gap: 10px; align-items: center; min-height: 47px; border-top: 1px solid var(--divider); }
+      .choice:first-of-type { border: 0; }
+      .radio { width: 18px; height: 18px; border: 2px solid var(--outline); border-radius: 50%; }
+      .choice.selected .radio { border: 5px solid var(--brand); }
+      .bottomnav { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; padding: 12px 5px 13px; border-top: 1px solid var(--divider); background: var(--surface); color: var(--muted); font-size: 10px; }
+      .bottomnav b { color: var(--brand); }
+      .notes { padding: 18px 0; color: #34405a; }
+      .notes h2 { margin: 0 0 8px; font-size: 19px; }
+      .notes p { color: #58637a; line-height: 1.6; }
+      .swatches { display: flex; gap: 8px; margin: 16px 0; }
+      .swatch { width: 29px; height: 29px; border: 1px solid rgb(0 0 0 / 12%); border-radius: 8px; }
+      .sim-label { display: inline-block; margin-top: 12px; border-radius: 99px; padding: 5px 9px; background: #fff4d6; color: #684800; font-size: 11px; font-weight: 700; }
+      @media (max-width: 760px) {
+        body { padding: 12px; }
+        .frame-wrap { grid-template-columns: 1fr; justify-items: center; }
+        .device { width: min(100%, 390px); min-height: 740px; }
+        .notes { max-width: 390px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="prototype">
+      <header class="toolbar">
+        <div><strong>QPM · aperçu du système d’apparence</strong><small>Maquette isolée · données illustratives · aucun service connecté</small></div>
+        <div class="controls" aria-label="Choix d’apparence">
+          <button data-mode="light" aria-pressed="false">Clair</button>
+          <button data-mode="dark" aria-pressed="false">Sombre</button>
+          <button data-mode="system" aria-pressed="true">Système</button>
+        </div>
+        <div class="controls" aria-label="Écrans de la maquette">
+          <button data-screen="auth" aria-selected="true">Connexion</button>
+          <button data-screen="dashboard" aria-selected="false">Accueil</button>
+          <button data-screen="workorder" aria-selected="false">Ordre</button>
+          <button data-screen="settings" aria-selected="false">Apparence</button>
+        </div>
+      </header>
+      <div class="frame-wrap">
+        <section class="device" aria-label="Aperçu QPM mobile">
+          <div class="device-inner" id="device">
+            <div class="statusbar">9:41 <span style="float:right">●●●  ▰</span></div>
+            <div class="auth-head">
+              <div class="contours" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="auth-top"><div class="brand"><span class="brand-mark">Q</span><span>QPM</span></div><button class="lang">FR</button></div>
+              <div class="auth-copy"><div class="eyebrow">MAINTENANCE · TERRAIN</div><h1 id="authTitle">Votre équipe, en mouvement.</h1><p>Connectez-vous à votre espace QPM.</p></div>
+              <div class="wave"></div>
+            </div>
+            <div class="screen" id="authScreen">
+              <h2 class="screen-title">Connexion</h2><div class="subtle">Accédez à vos opérations de maintenance.</div>
+              <div class="field"><label>Adresse e-mail</label><div class="input focus">technicien@atelier.sn</div></div>
+              <div class="field"><div class="password-row"><label>Mot de passe</label><span class="inline-link">Mot de passe oublié ?</span></div><div class="input">•••••••••• <span style="float:right">◉</span></div></div>
+              <button class="primary">Se connecter&nbsp; →</button>
+              <p class="footnote">Nouveau dans QPM ? <span class="inline-link">Créer un compte</span></p>
+              <div class="features"><div class="feature"><span class="feature-icon">01</span><span>Suivez vos ordres de travail</span></div><div class="feature"><span class="feature-icon">02</span><span>Gardez l’historique des équipements</span></div></div>
+            </div>
+            <div class="app-screen" id="appScreen" hidden>
+              <header class="app-head"><div class="small">QPM · AUJOURD’HUI</div><h1>Bonjour, Aïssata</h1><div class="subtle">5 ordres actifs sur votre équipe</div></header>
+              <div class="app-body">
+                <div class="tabs" role="tablist"><button class="tab" data-screen="auth" role="tab">Authentification</button><button class="tab" data-screen="dashboard" role="tab" aria-selected="true">Accueil</button><button class="tab" data-screen="workorder" role="tab">Ordre de travail</button><button class="tab" data-screen="settings" role="tab">Apparence</button></div>
+                <div id="dashboardView"><div class="section-head"><h2>Ordres de travail</h2><span class="inline-link">Tout voir</span></div>
+                  <div class="grid"><div class="stat"><small>Ouverts</small><b>08</b></div><div class="stat"><small>En attente</small><b>02</b></div><div class="stat"><small>En cours</small><b>05</b></div><div class="stat"><small>Terminés</small><b>14</b></div></div>
+                  <div class="section-label">À traiter en priorité</div><article class="wo-card"><div class="wo-line"><div><div class="wo-title">Vérifier la pompe de refroidissement</div><div class="wo-meta">WO-2048 · P-204 · Atelier broyage</div></div><span class="badge">EN COURS</span></div><div class="wo-meta">Échéance aujourd’hui · Équipe mécanique</div><div style="margin-top:9px"><span class="badge high">PRIORITÉ HAUTE</span> <span class="badge warning">ÉCHÉANCE</span></div></article>
+                  <div class="section-label">État des couleurs métier</div><div style="display:flex;flex-wrap:wrap;gap:7px"><span class="badge" style="background:var(--neutral)">OUVERT</span><span class="badge warning">EN ATTENTE</span><span class="badge" style="background:var(--info)">EN COURS</span><span class="badge" style="background:var(--success)">TERMINÉ</span></div>
+                </div>
+                <div id="workorderView" hidden><div class="section-head"><h2>Ordre de travail</h2><span class="badge">EN COURS</span></div><article class="wo-card"><div class="wo-title">WO-2048 · Pompe P-204</div><div class="wo-meta">Bâtiment broyage · Équipe mécanique · Échéance aujourd’hui</div><div class="section-label">Tâches · 2 sur 3</div><div class="settings-card">✓ Vérifier le niveau d’huile<br><br>✓ Contrôler les vibrations<br><br>○ Relever la température</div><button class="primary">Continuer l’exécution&nbsp; →</button></article></div>
+                <div id="settingsView" hidden><div class="section-head"><h2>Apparence</h2><span class="subtle">Aperçu local</span></div><div class="settings-card"><div class="choice selected"><span class="radio"></span><div><b>Système</b><div class="subtle">Suit le réglage de votre appareil</div></div></div><div class="choice"><span class="radio"></span><b>Clair</b></div><div class="choice"><span class="radio"></span><b>Sombre</b></div></div><div class="section-label">Couleurs QPM</div><div class="swatches"><span class="swatch" style="background:#4b5fe8"></span><span class="swatch" style="background:var(--surface-raised)"></span><span class="swatch" style="background:var(--success)"></span><span class="swatch" style="background:var(--warning)"></span><span class="swatch" style="background:var(--danger)"></span></div><div class="subtle">L’accent est proposé comme choix approuvé, non comme roue chromatique.</div></div>
+              </div>
+            </div>
+            <nav class="bottomnav" id="bottomNav" hidden><b>⌂ Accueil</b><span>▣ Ordres</span><span>＋ Créer</span><span>☰ Plus</span></nav>
+          </div>
+        </section>
+        <aside class="notes"><h2 id="notesTitle">Auth · identité de référence</h2><p id="notesCopy">Le bleu, les courbes topographiques, la vague blanche, le champ souligné et le bouton ancré reprennent la composition du parcours d’authentification QPM existant. Le contenu métier de cette maquette est simulé.</p><span class="sim-label">Prototype uniquement — aucune API</span><div class="section-label" style="margin-top:24px">Palette de prévisualisation</div><div class="swatches"><span class="swatch" style="background:#4b5fe8"></span><span class="swatch" style="background:#202943"></span><span class="swatch" style="background:#f6f7ff"></span><span class="swatch" style="background:#237a32"></span><span class="swatch" style="background:#8a5700"></span><span class="swatch" style="background:#c6283d"></span></div><p>Les couleurs de statut gardent un libellé visible. Les variantes de thème proposées doivent encore être mesurées sur appareil et comparées aux règles métier actuelles.</p></aside>
+      </div>
+    </main>
+    <script>
+      const root = document.documentElement;
+      const buttons = [...document.querySelectorAll('[data-mode]')];
+      buttons.forEach((button) => button.addEventListener('click', () => {
+        const mode = button.dataset.mode;
+        if (mode === 'system') root.removeAttribute('data-theme');
+        else root.dataset.theme = mode;
+        buttons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      }));
+      const tabs = [...document.querySelectorAll('[data-screen]')];
+      const dashboard = document.getElementById('dashboardView');
+      const workorder = document.getElementById('workorderView');
+      const settings = document.getElementById('settingsView');
+      const auth = document.getElementById('authScreen');
+      const authHead = document.querySelector('.auth-head');
+      const app = document.getElementById('appScreen');
+      const nav = document.getElementById('bottomNav');
+      tabs.forEach((tab) => tab.addEventListener('click', () => {
+        const screen = tab.dataset.screen;
+        tabs.forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
+        const showAuth = screen === 'auth';
+        auth.hidden = !showAuth; authHead.hidden = !showAuth; app.hidden = showAuth; nav.hidden = showAuth;
+        dashboard.hidden = screen !== 'dashboard'; workorder.hidden = screen !== 'workorder'; settings.hidden = screen !== 'settings';
+        document.getElementById('notesTitle').textContent = showAuth ? 'Auth · identité de référence' : screen === 'settings' ? 'Personnalisation proposée' : screen === 'workorder' ? 'Exécution terrain' : 'Vue d’ensemble terrain';
+        document.getElementById('notesCopy').textContent = showAuth ? 'Le bleu, les courbes topographiques, la vague blanche, le champ souligné et le bouton ancré reprennent la composition du parcours d’authentification QPM existant. Le contenu métier de cette maquette est simulé.' : screen === 'settings' ? 'Trois choix d’apparence sont présentés avec aperçu immédiat simulé. Cette maquette ne persiste aucun choix; la proposition de préférence reste locale et séparée des API métier.' : screen === 'workorder' ? 'La tâche montre la hiérarchie d’identité équipement, état, échéance et progression sans ajouter ni modifier de transition métier.' : 'Les chiffres sont des exemples illustratifs. Le prototype montre une grille compacte, des priorités et statuts textuels avec couleurs sémantiques.';
+      }));
+    </script>
+  </body>
+</html>

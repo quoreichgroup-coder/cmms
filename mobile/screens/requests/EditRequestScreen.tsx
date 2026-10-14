@@ -4,7 +4,7 @@ import Form from '../../components/form';
 import * as Yup from 'yup';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { getImageAndFiles, handleFileUpload } from '../../utils/overall';
 import { useDispatch, useSelector } from '../../store';
@@ -20,6 +20,9 @@ import {
   getCustomFieldsValues
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { getErrorMessage } from '../../utils/api';
+import { groupRequestFormFields } from '../../utils/requestFormLayout';
 
 export default function EditRequestScreen({
   navigation,
@@ -34,13 +37,15 @@ export default function EditRequestScreen({
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const { customFields } = useSelector((state) => state.customFields);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const onEditSuccess = () => {
     showSnackBar(t('changes_saved_success'), 'success');
     navigation.goBack();
   };
   const onEditFailure = (err) =>
-    showSnackBar(t('request_edit_failure'), 'error');
+    showSnackBar(getErrorMessage(err, t('request_edit_failure')), 'error');
 
   const getFieldsAndShapes = (): [Array<IField>, { [key: string]: any }] => {
     const baseShape = getRequestFieldsAndShapes()[1];
@@ -58,12 +63,13 @@ export default function EditRequestScreen({
       { ...baseShape, ...customShape }
     ];
   };
+  const [fields, validationShape] = getFieldsAndShapes();
 
   return (
     <View style={styles.container}>
       <Form
-        fields={getFieldsAndShapes()[0]}
-        validation={Yup.object().shape(getFieldsAndShapes()[1])}
+        fields={groupRequestFormFields(fields, t)}
+        validation={Yup.object().shape(validationShape)}
         navigation={navigation}
         submitText={t('save')}
         values={{
@@ -71,7 +77,7 @@ export default function EditRequestScreen({
           ...getWOBaseValues(t, request),
           ...getCustomFieldsValues(request)
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           try {
             let formattedValues = formatRequestValues(values);
@@ -98,6 +104,8 @@ export default function EditRequestScreen({
             };
 
             await dispatch(editRequest(request?.id, formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
             onEditSuccess();
           } catch (err) {
             onEditFailure(err);

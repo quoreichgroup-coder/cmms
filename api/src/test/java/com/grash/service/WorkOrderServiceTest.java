@@ -22,6 +22,7 @@ import com.grash.model.enums.webhook.WOField;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.FileRepository;
 import com.grash.repository.WorkOrderRepository;
+import com.grash.repository.WorkOrderLifecycleEventRepository;
 import com.grash.repository.SiteRepository;
 import com.grash.utils.Consts;
 import com.grash.utils.PdfReportUtils;
@@ -62,6 +63,8 @@ class WorkOrderServiceTest {
 
     @Mock
     private WorkOrderRepository workOrderRepository;
+    @Mock
+    private WorkOrderLifecycleEventRepository workOrderLifecycleEventRepository;
     @Mock
     private SiteRepository siteRepository;
     @Mock
@@ -1112,6 +1115,8 @@ class WorkOrderServiceTest {
 
         private void stubBasic() {
             lenient().when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            lenient().when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(wo));
             lenient().when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
             lenient().when(workOrderMapper.toShowDto(any())).thenReturn(new com.grash.dto.workOrder.WorkOrderShowDTO());
             lenient().doNothing().when(em).refresh(any());
@@ -1371,8 +1376,49 @@ class WorkOrderServiceTest {
                 return saved;
             });
 
-            workOrderService.changeStatus(dto, 1L, user, "ios");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.changeStatus(dto, 1L, user, "ios"));
+            assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
             verify(reviewEligibilityService, never()).incrementWorkOrder(any());
+        }
+
+        @Test
+        void changeStatus_rejectsCompletedWorkOrder() {
+            wo.setStatus(Status.COMPLETE);
+            dto.setStatus(Status.OPEN);
+            stubBasic();
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.changeStatus(dto, 1L, user, "ios"));
+
+            assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
+            verify(workOrderRepository, never()).saveAndFlush(any());
+        }
+
+        @Test
+        void complete_enforcesRequiredTaskCompletionOnServer() {
+            wo.setStatus(Status.IN_PROGRESS);
+            dto.setStatus(Status.COMPLETE);
+            FieldConfiguration completeTasks = FieldConfiguration.builder()
+                    .fieldName("completeTasks")
+                    .fieldType(FieldType.REQUIRED)
+                    .build();
+            WorkOrderConfiguration configuration = new WorkOrderConfiguration(companySettings);
+            configuration.setWorkOrderFieldConfigurations(new HashSet<>(List.of(completeTasks)));
+            companySettings.setWorkOrderConfiguration(configuration);
+            Task incompleteTask = Task.builder()
+                    .taskBase(TaskBase.builder().taskType(TaskType.SUBTASK).build())
+                    .value("IN_PROGRESS")
+                    .build();
+            stubBasic();
+            when(taskService.findByWorkOrder(1L)).thenReturn(List.of(incompleteTask));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.changeStatus(dto, 1L, user, "ios"));
+
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getHttpStatus());
+            assertTrue(ex.getMessage().contains("completeTasks"));
+            verify(workOrderRepository, never()).saveAndFlush(any());
         }
 
         @Test
@@ -1387,6 +1433,8 @@ class WorkOrderServiceTest {
 
             when(workOrderRepository.findById(1L))
                     .thenReturn(Optional.of(originalSnapshot))
+                    .thenReturn(Optional.of(mutableCopy));
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
                     .thenReturn(Optional.of(mutableCopy));
             when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
                 WorkOrder saved = inv.getArgument(0);
@@ -1420,6 +1468,8 @@ class WorkOrderServiceTest {
             when(workOrderRepository.findById(1L))
                     .thenReturn(Optional.of(originalSnapshot))
                     .thenReturn(Optional.of(mutableCopy));
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(mutableCopy));
             when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
                 WorkOrder saved = inv.getArgument(0);
                 saved.setId(1L);
@@ -1435,6 +1485,62 @@ class WorkOrderServiceTest {
             verify(webhookDispatchService, never()).dispatchWebhook(
                     eq(company), eq(WebhookEvent.WORK_ORDER_STATUS_CHANGE),
                     anyMap(), anyString(), any(), any(), any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    class Reopen {
+        @Test
+        void reopen_requiresDedicatedRolePermission() {
+            WorkOrder completed = buildWorkOrder(1L);
+            completed.setStatus(Status.COMPLETE);
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(completed));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.reopen(1L, "Correct completion data", user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+            verify(workOrderLifecycleEventRepository, never()).save(any());
+        }
+
+        @Test
+        void reopen_preservesCompletionEvidenceAndAppendsReasonedEvent() {
+            WorkOrder completed = buildWorkOrder(1L);
+            completed.setStatus(Status.COMPLETE);
+            completed.setCompletedBy(user);
+            completed.setCompletedOn(new Date());
+            completed.setSignature("data:image/png;base64,c2ln");
+            completed.setFeedback("Repair completed");
+            role.getEditOtherPermissions().add(PermissionEntity.REOPEN_WORK_ORDERS);
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(completed));
+            when(workOrderRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(workOrderMapper.toShowDto(any())).thenReturn(new com.grash.dto.workOrder.WorkOrderShowDTO());
+
+            WorkOrder reopened = workOrderService.reopen(1L, "Correct completion data", user);
+
+            assertEquals(Status.OPEN, reopened.getStatus());
+            assertNull(reopened.getCompletedOn());
+            assertNull(reopened.getCompletedBy());
+            assertEquals("data:image/png;base64,c2ln", reopened.getSignature());
+            assertEquals("Repair completed", reopened.getFeedback());
+            verify(workOrderLifecycleEventRepository).save(argThat(event ->
+                    event.getPreviousStatus() == Status.COMPLETE
+                            && event.getNewStatus() == Status.OPEN
+                            && "Correct completion data".equals(event.getReason())
+                            && event.getActorUserId().equals(user.getId())));
+        }
+
+        @Test
+        void reopen_rejectsBlankReason() {
+            role.getEditOtherPermissions().add(PermissionEntity.REOPEN_WORK_ORDERS);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.reopen(1L, "  ", user));
+
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getHttpStatus());
+            verify(workOrderRepository, never()).findByIdAndCompany_IdForUpdate(anyLong(), anyLong());
         }
     }
 
@@ -2021,7 +2127,7 @@ class WorkOrderServiceTest {
         void foundAndAccessible_returnsWorkOrder() {
             WorkOrder wo = buildWorkOrder(1L);
             wo.setCreatedBy(user.getId());
-            when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId())).thenReturn(Optional.of(wo));
 
             WorkOrder result = workOrderService.checkAccessToWorkOrderId(1L, user);
             assertEquals(wo, result);
@@ -2029,10 +2135,24 @@ class WorkOrderServiceTest {
 
         @Test
         void notFound_throwsNotFound() {
-            when(workOrderRepository.findById(1L)).thenReturn(Optional.empty());
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId())).thenReturn(Optional.empty());
             CustomException ex = assertThrows(CustomException.class,
                     () -> workOrderService.checkAccessToWorkOrderId(1L, user));
             assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+        }
+
+        @Test
+        void workOrderFromAnotherCompany_isNotFound() {
+            WorkOrder foreignWorkOrder = buildWorkOrder(1L);
+            when(workOrderRepository.findById(1L)).thenReturn(Optional.of(foreignWorkOrder));
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId())).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.checkAccessToWorkOrderId(1L, user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+            verify(workOrderRepository).findByIdAndCompany_Id(1L, company.getId());
+            verify(workOrderRepository, never()).findById(1L);
         }
 
         @Test
@@ -2040,7 +2160,7 @@ class WorkOrderServiceTest {
             WorkOrder wo = buildWorkOrder(1L);
             wo.setCreatedBy(99L);
             role.getViewOtherPermissions().clear();
-            when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId())).thenReturn(Optional.of(wo));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> workOrderService.checkAccessToWorkOrderId(1L, user));

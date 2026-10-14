@@ -39,7 +39,11 @@ export async function generateMetadata({ params }: { params: any }): Promise<Met
       template: "%s | QPM",
     },
     icons: {
-      icon: [{ url: "/static/images/logo/logo.png", type: "image/png" }],
+      icon: [
+        { url: "/favicon.ico" },
+        { url: "/static/images/logo/qpm-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: "/static/images/logo/qpm-192.png",
     },
   };
 }

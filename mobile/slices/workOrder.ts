@@ -6,6 +6,8 @@ import api from '../utils/api';
 import { Task } from '../models/tasks';
 import { getInitialPage, Page, SearchCriteria } from '../models/page';
 import { revertAll } from '../utils/redux';
+import { createWorkOrderWithTasks } from '../utils/workOrderCreation';
+import { WorkOrderLifecycleEvent } from '../models/workOrderHistories';
 
 const basePath = 'work-orders';
 
@@ -15,6 +17,7 @@ interface WorkOrderState {
   workOrdersByPart: { [key: number]: WorkOrder[] };
   workOrderInfos: { [key: number]: { workOrder?: WorkOrder } };
   loadingGet: boolean;
+  latestListRequestId: number;
   currentPageNum: number;
   lastPage: boolean;
   calendar: {
@@ -28,6 +31,7 @@ const initialState: WorkOrderState = {
   workOrdersByPart: {},
   workOrderInfos: {},
   loadingGet: false,
+  latestListRequestId: 0,
   currentPageNum: 0,
   lastPage: true,
   calendar: {
@@ -42,18 +46,20 @@ const slice = createSlice({
   reducers: {
     getWorkOrders(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrders: Page<WorkOrder> }>
+      action: PayloadAction<{ workOrders: Page<WorkOrder>; requestId: number }>
     ) {
-      const { workOrders } = action.payload;
+      const { workOrders, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.workOrders = workOrders;
       state.currentPageNum = 0;
       state.lastPage = workOrders.last;
     },
     getMoreWorkOrders(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrders: Page<WorkOrder> }>
+      action: PayloadAction<{ workOrders: Page<WorkOrder>; requestId: number }>
     ) {
-      const { workOrders } = action.payload;
+      const { workOrders, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.workOrders.content = state.workOrders.content.concat(
         workOrders.content
       );
@@ -68,6 +74,11 @@ const slice = createSlice({
       if (state.workOrderInfos[id]) {
         state.workOrderInfos[id] = { ...state.workOrderInfos[id], workOrder };
       } else state.workOrderInfos[id] = { workOrder };
+      const workOrderIndex = state.workOrders.content.findIndex(
+        (item) => item.id === id
+      );
+      if (workOrderIndex !== -1)
+        state.workOrders.content[workOrderIndex] = workOrder;
     },
     addWorkOrder(
       state: WorkOrderState,
@@ -129,39 +140,52 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: WorkOrderState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.loadingGet = true;
+    },
+    finishListRequest(state: WorkOrderState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.loadingGet = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getWorkOrders =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const workOrders = await api.post<Page<WorkOrder>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getWorkOrders({ workOrders }));
+      dispatch(slice.actions.getWorkOrders({ workOrders, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreWorkOrders =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
     criteria = { ...criteria, pageNum };
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const workOrders = await api.post<Page<WorkOrder>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getMoreWorkOrders({ workOrders }));
+      dispatch(slice.actions.getMoreWorkOrders({ workOrders, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getWorkOrderDetails =
@@ -169,15 +193,13 @@ export const getWorkOrderDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getWorkOrderDetails({
-        id,
-        workOrder
-      })
-    );
-
+      const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getWorkOrderDetails({
+          id,
+          workOrder
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -185,23 +207,18 @@ export const getWorkOrderDetails =
 export const addWorkOrder =
   (workOrder): AppThunk =>
   async (dispatch) => {
-    const workOrderResponse = await api.post<WorkOrder>(basePath, workOrder);
+    const workOrderResponse = await createWorkOrderWithTasks(
+      workOrder,
+      (payload) => api.post<WorkOrder>(basePath, payload),
+      (workOrderId, taskBases) =>
+        api.patch<Task[]>(
+          `tasks/work-order/${workOrderId}`,
+          taskBases,
+          null,
+          true
+        )
+    );
     dispatch(slice.actions.addWorkOrder({ workOrder: workOrderResponse }));
-    const taskBases =
-      workOrder.tasks?.map((task) => {
-        return {
-          ...task.taskBase,
-          options: task.taskBase.options.map((option) => option.label)
-        };
-      }) ?? [];
-    if (taskBases.length) {
-      const tasks = await api.patch<Task[]>(
-        `tasks/work-order/${workOrderResponse.id}`,
-        taskBases,
-        null,
-        true
-      );
-    }
   };
 export const editWorkOrder =
   (id: number, workOrder): AppThunk =>
@@ -285,4 +302,21 @@ export const changeWorkOrderStatus =
     );
     dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
   };
+
+export const reopenWorkOrder =
+  (id: number, reason: string): AppThunk =>
+  async (dispatch) => {
+    const workOrderResponse = await api.post<WorkOrder>(
+      `${basePath}/${id}/reopen`,
+      { reason }
+    );
+    dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
+    return workOrderResponse;
+  };
+
+export const getWorkOrderLifecycleEvents =
+  (id: number): AppThunk =>
+  async (): Promise<WorkOrderLifecycleEvent[]> =>
+    api.get<WorkOrderLifecycleEvent[]>(`${basePath}/${id}/lifecycle-events`);
+
 export default slice;

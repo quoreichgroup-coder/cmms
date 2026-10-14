@@ -6,7 +6,7 @@ import {
   Dimensions
 } from 'react-native';
 import * as React from 'react';
-import { Fragment, useContext, useEffect, useState } from 'react';
+import { Fragment, useContext, useEffect, useRef, useState } from 'react';
 import { RootStackScreenProps } from '../../types';
 import {
   ActivityIndicator,
@@ -34,9 +34,9 @@ import { OwnUser } from '../../models/user';
 import { formatImages } from '../../utils/overall';
 import { useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
-import internationalization, {
-  supportedLanguages
-} from '../../i18n/i18n';
+import internationalization, { supportedLanguages } from '../../i18n/i18n';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import { qpmLayoutTokens } from '../../theme/tokens';
 
 export default function UserProfile({
   navigation,
@@ -56,66 +56,124 @@ export default function UserProfile({
   const { t } = useTranslation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [changingPicture, setChangingPicture] = useState<boolean>(false);
+  const [loadingUserSettings, setLoadingUserSettings] = useState(true);
+  const [userSettingsLoadError, setUserSettingsLoadError] = useState(false);
+  const [savingNotificationSetting, setSavingNotificationSetting] =
+    useState(false);
+  const [notificationSettingOverride, setNotificationSettingOverride] =
+    useState<{ accessor: keyof UserSettings; value: boolean } | null>(null);
+  const savingNotificationSettingRef = useRef(false);
+  const loadingUserSettingsRef = useRef(false);
+  const profileMountedRef = useRef(true);
   const [openChangePassword, setOpenChangePassword] = useState<boolean>();
   const [openDeleteAccountDialog, setOpenDeleteAccountDialog] =
     useState<boolean>(false);
   const [deletingAccount, setDeletingAccount] = useState<boolean>(false);
+  const deletingAccountRef = useRef(false);
   const [openLanguageDialog, setOpenLanguageDialog] = useState<boolean>(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    (user.language ||
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  const savingLanguageRef = useRef(false);
+  const getPersistedLanguage = () =>
+    (
+      user.language ||
       companySettings?.generalPreferences?.language ||
       'EN'
-    ).toLowerCase()
-  );
+    ).toLowerCase();
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<string>(getPersistedLanguage);
   const { uploadFiles } = useContext(CompanySettingsContext);
   const switches: {
-    value: boolean;
     title: string;
     accessor: keyof UserSettings;
   }[] = [
     {
-      value: userSettings?.emailNotified,
       title: t('email_notifications'),
       accessor: 'emailNotified'
     },
     {
-      value: userSettings?.emailUpdatesForWorkOrders,
       title: t('email_updates_wo'),
       accessor: 'emailUpdatesForWorkOrders'
     },
     {
-      value: userSettings?.emailUpdatesForRequests,
       title: t('email_updates_requests'),
       accessor: 'emailUpdatesForRequests'
     },
     {
-      value: userSettings?.emailUpdatesForPurchaseOrders,
       title: t('po_emails'),
       accessor: 'emailUpdatesForPurchaseOrders'
     }
   ];
 
-  useEffect(() => {
-    fetchUserSettings();
-  }, []);
-  const onPictureChange = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const loadUserSettings = async () => {
+    if (loadingUserSettingsRef.current) return;
+    loadingUserSettingsRef.current = true;
+    setUserSettingsLoadError(false);
+    setLoadingUserSettings(true);
+    try {
+      await fetchUserSettings();
+    } catch (_error) {
+      if (profileMountedRef.current) setUserSettingsLoadError(true);
+    } finally {
+      loadingUserSettingsRef.current = false;
+      if (profileMountedRef.current) setLoadingUserSettings(false);
+    }
+  };
 
-    if (status === 'granted') {
-      let result = await ImagePicker.launchImageLibraryAsync({
+  useEffect(() => {
+    profileMountedRef.current = true;
+    void loadUserSettings();
+    return () => {
+      profileMountedRef.current = false;
+    };
+  }, []);
+
+  const onNotificationSettingChange = async (
+    accessor: keyof UserSettings,
+    checked: boolean
+  ) => {
+    if (!userSettings || savingNotificationSettingRef.current) return;
+    savingNotificationSettingRef.current = true;
+    setSavingNotificationSetting(true);
+    setNotificationSettingOverride({ accessor, value: checked });
+    try {
+      await patchUserSettings({ ...userSettings, [accessor]: checked });
+      setNotificationSettingOverride(null);
+    } catch (_error) {
+      setNotificationSettingOverride(null);
+      showSnackBar(t('an_error_occured'), 'error');
+    } finally {
+      savingNotificationSettingRef.current = false;
+      setSavingNotificationSetting(false);
+    }
+  };
+
+  const onPictureChange = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showSnackBar(t('profile_image_permission_denied'), 'error');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: false,
         quality: 1
       });
 
-      if (!result.canceled) {
-        setChangingPicture(true);
-        uploadFiles([], formatImages(result), true)
-          .then((files) =>
-            patchUser({ image: { id: files[0].id } } as Partial<OwnUser>)
-          )
-          .finally(() => setChangingPicture(false));
-      }
+      if (result.canceled) return;
+
+      setChangingPicture(true);
+      const files = await uploadFiles([], formatImages(result), true);
+      if (!files?.[0]?.id)
+        throw new Error('Profile image upload returned no file');
+      await patchUser({ image: { id: files[0].id } } as Partial<OwnUser>);
+      showSnackBar(t('profile_image_update_success'), 'success');
+    } catch (_error) {
+      showSnackBar(t('profile_image_update_failure'), 'error');
+    } finally {
+      setChangingPicture(false);
     }
   };
 
@@ -125,7 +183,10 @@ export default function UserProfile({
         <Dialog
           visible={openChangePassword}
           onDismiss={() => setOpenChangePassword(false)}
-          style={{ backgroundColor: 'white', borderRadius: 5 }}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: qpmLayoutTokens.radius.sheet
+          }}
         >
           <Dialog.Title>{t('change_password')}</Dialog.Title>
           <Formik
@@ -237,11 +298,13 @@ export default function UserProfile({
   };
 
   const handleCloseDeleteAccountDialog = () => {
+    if (deletingAccountRef.current) return;
     setOpenDeleteAccountDialog(false);
-    setDeletingAccount(false);
   };
 
   const handleConfirmDeleteAccount = async () => {
+    if (deletingAccountRef.current) return;
+    deletingAccountRef.current = true;
     setDeletingAccount(true);
 
     try {
@@ -251,7 +314,25 @@ export default function UserProfile({
     } catch (err) {
       showSnackBar(t('account_delete_error'), 'error');
     } finally {
+      deletingAccountRef.current = false;
       setDeletingAccount(false);
+    }
+  };
+
+  const handleSaveLanguage = async () => {
+    if (savingLanguageRef.current) return;
+    savingLanguageRef.current = true;
+    setSavingLanguage(true);
+
+    try {
+      await patchUser({ language: selectedLanguage.toUpperCase() as any });
+      await internationalization.changeLanguage(selectedLanguage);
+      setOpenLanguageDialog(false);
+    } catch (_error) {
+      showSnackBar(t('an_error_occured'), 'error');
+    } finally {
+      savingLanguageRef.current = false;
+      if (profileMountedRef.current) setSavingLanguage(false);
     }
   };
 
@@ -260,14 +341,26 @@ export default function UserProfile({
       <Portal theme={theme}>
         <Dialog
           visible={openLanguageDialog}
-          onDismiss={() => setOpenLanguageDialog(false)}
-          style={{ backgroundColor: 'white', borderRadius: 5 }}
+          onDismiss={() => {
+            if (!savingLanguage) {
+              setSelectedLanguage(getPersistedLanguage());
+              setOpenLanguageDialog(false);
+            }
+          }}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: qpmLayoutTokens.radius.sheet
+          }}
         >
           <Dialog.Title>{t('language')}</Dialog.Title>
           <Dialog.Content>
-            <ScrollView style={{ maxHeight: Dimensions.get('window').height * 0.5 }}>
+            <ScrollView
+              style={{ maxHeight: Dimensions.get('window').height * 0.5 }}
+            >
               <RadioButton.Group
-                onValueChange={(value) => setSelectedLanguage(value)}
+                onValueChange={(value) => {
+                  if (!savingLanguage) setSelectedLanguage(value);
+                }}
                 value={selectedLanguage}
               >
                 {supportedLanguages.map((language) => (
@@ -275,21 +368,39 @@ export default function UserProfile({
                     key={language.code}
                     label={language.label}
                     value={language.code}
+                    disabled={savingLanguage}
+                    style={[
+                      styles.languageOption,
+                      {
+                        backgroundColor:
+                          selectedLanguage === language.code
+                            ? theme.colors.primaryContainer
+                            : theme.colors.surface,
+                        borderColor:
+                          selectedLanguage === language.code
+                            ? theme.colors.primary
+                            : theme.colors.outlineVariant
+                      }
+                    ]}
                   />
                 ))}
               </RadioButton.Group>
             </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpenLanguageDialog(false)}>
+            <Button
+              disabled={savingLanguage}
+              onPress={() => {
+                setSelectedLanguage(getPersistedLanguage());
+                setOpenLanguageDialog(false);
+              }}
+            >
               {t('cancel')}
             </Button>
             <Button
-              onPress={() => {
-                internationalization.changeLanguage(selectedLanguage);
-                patchUser({ language: selectedLanguage.toUpperCase() as any });
-                setOpenLanguageDialog(false);
-              }}
+              loading={savingLanguage}
+              disabled={savingLanguage}
+              onPress={handleSaveLanguage}
             >
               {t('save')}
             </Button>
@@ -305,7 +416,10 @@ export default function UserProfile({
         <Dialog
           visible={openDeleteAccountDialog}
           onDismiss={handleCloseDeleteAccountDialog}
-          style={{ backgroundColor: 'white', borderRadius: 5 }}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: qpmLayoutTokens.radius.sheet
+          }}
         >
           <Dialog.Title>{t('delete_account')}</Dialog.Title>
           <Dialog.Content>
@@ -314,6 +428,7 @@ export default function UserProfile({
           <Dialog.Actions>
             <Button
               accessibilityLabel={t('cancel')}
+              disabled={deletingAccount}
               onPress={handleCloseDeleteAccountDialog}
             >
               {t('cancel')}
@@ -348,7 +463,7 @@ export default function UserProfile({
         style={{
           alignItems: 'center',
           paddingVertical: 30,
-          backgroundColor: 'white'
+          backgroundColor: theme.colors.surface
         }}
       >
         {changingPicture ? (
@@ -373,13 +488,13 @@ export default function UserProfile({
                 borderRadius: 20,
                 padding: 4,
                 borderWidth: 2,
-                borderColor: 'white'
+                borderColor: theme.colors.surface
               }}
             >
               <Avatar.Icon
                 size={20}
                 icon="camera"
-                color="white"
+                color={theme.colors.onPrimary}
                 style={{ backgroundColor: 'transparent' }}
               />
             </View>
@@ -391,42 +506,59 @@ export default function UserProfile({
         >
           {`${user.firstName} ${user.lastName}`}
         </Text>
-        <Text variant="bodyLarge" style={{ color: theme.colors.grey }}>
+        <Text
+          variant="bodyLarge"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
           {user.jobTitle}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
+        <Text
+          variant="titleMedium"
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.onSurfaceVariant }
+          ]}
+        >
           {t('informations')}
         </Text>
-        <View style={styles.sectionContent}>
+        <View
+          style={[
+            styles.sectionContent,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outlineVariant
+            }
+          ]}
+        >
           {user.email && (
             <IconWithLabel
               label={user.email}
               icon="email-outline"
-              color={theme.colors.grey}
+              color={theme.colors.onSurfaceVariant}
             />
           )}
           {user.phone && (
             <IconWithLabel
               label={user.phone}
               icon="phone-outline"
-              color={theme.colors.grey}
+              color={theme.colors.onSurfaceVariant}
             />
           )}
           {user.role && (
             <IconWithLabel
               label={user.role.name}
               icon="shield-account-outline"
-              color={theme.colors.grey}
+              color={theme.colors.onSurfaceVariant}
             />
           )}
           {user.rate > 0 && (
             <IconWithLabel
               label={`${user.rate} / ${t('hour')}`}
               icon="currency-usd"
-              color={theme.colors.grey}
+              color={theme.colors.onSurfaceVariant}
             />
           )}
         </View>
@@ -434,27 +566,66 @@ export default function UserProfile({
 
       {user?.role.code !== 'REQUESTER' && (
         <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text
+            variant="titleMedium"
+            style={[
+              styles.sectionTitle,
+              { color: theme.colors.onSurfaceVariant }
+            ]}
+          >
             {t('notifications')}
           </Text>
-          <View style={styles.sectionContent}>
-            {switches.map(({ title, value, accessor }, index) => (
+          <View
+            style={[
+              styles.sectionContent,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
+          >
+            {userSettingsLoadError && (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('user_settings_load_error')}
+                onRetry={() => void loadUserSettings()}
+              />
+            )}
+            {loadingUserSettings && !userSettings && (
+              <ActivityIndicator
+                accessibilityLabel={t('loading')}
+                color={theme.colors.primary}
+              />
+            )}
+            {switches.map(({ title, accessor }) => (
               <Fragment key={accessor}>
                 <View style={styles.switchRow}>
                   <Text variant="bodyMedium" style={{ flexShrink: 1 }}>
                     {title}
                   </Text>
                   <Switch
-                    value={Boolean(
-                      userSettings ? userSettings[accessor] : false
-                    )}
-                    onValueChange={(checked) => {
-                      patchUserSettings({
-                        ...userSettings,
-                        [accessor]: checked
-                      });
-                    }}
+                    accessibilityLabel={title}
+                    value={
+                      notificationSettingOverride?.accessor === accessor
+                        ? notificationSettingOverride.value
+                        : Boolean(userSettings?.[accessor])
+                    }
+                    disabled={
+                      !userSettings ||
+                      loadingUserSettings ||
+                      savingNotificationSetting
+                    }
+                    onValueChange={(checked) =>
+                      void onNotificationSettingChange(accessor, checked)
+                    }
                   />
+                  {savingNotificationSetting &&
+                    notificationSettingOverride?.accessor === accessor && (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.primary}
+                      />
+                    )}
                 </View>
               </Fragment>
             ))}
@@ -463,10 +634,24 @@ export default function UserProfile({
       )}
 
       <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
+        <Text
+          variant="titleMedium"
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.onSurfaceVariant }
+          ]}
+        >
           {t('language')}
         </Text>
-        <View style={styles.sectionContent}>
+        <View
+          style={[
+            styles.sectionContent,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outlineVariant
+            }
+          ]}
+        >
           <TouchableOpacity onPress={() => setOpenLanguageDialog(true)}>
             <IconWithLabel
               label={
@@ -481,7 +666,7 @@ export default function UserProfile({
                 )?.label || 'English'
               }
               icon="translate"
-              color={theme.colors.grey}
+              color={theme.colors.onSurfaceVariant}
             />
           </TouchableOpacity>
         </View>
@@ -513,20 +698,26 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginHorizontal: 20,
     marginVertical: 8,
-    color: '#666',
     textTransform: 'uppercase',
     fontSize: 12,
     fontWeight: 'bold'
   },
   sectionContent: {
-    backgroundColor: 'white',
     padding: 20,
-    gap: 10
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
+    marginHorizontal: 16
   },
   infoRow: {},
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
+  },
+  languageOption: {
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

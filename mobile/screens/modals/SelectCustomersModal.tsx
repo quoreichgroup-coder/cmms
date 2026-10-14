@@ -11,34 +11,29 @@ import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
-import { CustomerMiniDTO } from '../../models/customer';
 import { getCustomersMini } from '../../slices/customer';
-import { Avatar, Checkbox, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 export default function SelectCustomersModal({
   navigation,
   route
 }: RootStackScreenProps<'SelectCustomers'>) {
   const { onChange, selected, multiple } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { customersMini, loadingGet } = useSelector((state) => state.customers);
-  const [selectedCustomers, setSelectedCustomers] = useState<CustomerMiniDTO[]>(
-    []
-  );
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  useEffect(() => {
-    if (customersMini.length) {
-      const newSelectedCustomers = selectedIds
-        .map((id) => {
-          return customersMini.find((customer) => customer.id == id);
-        })
-        .filter((customer) => !!customer);
-      setSelectedCustomers(newSelectedCustomers);
-    }
-  }, [selectedIds, customersMini]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const selectedCustomers = React.useMemo(
+    () =>
+      selectedIds.flatMap((id) =>
+        customersMini.filter((customer) => customer.id === id)
+      ),
+    [selectedIds, customersMini]
+  );
 
   useEffect(() => {
     if (!selectedIds.length) setSelectedIds(selected);
@@ -50,6 +45,9 @@ export default function SelectCustomersModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedCustomers.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedCustomers.length})`}
+            accessibilityState={{ disabled: !selectedCustomers.length }}
             onPress={() => {
               onChange(selectedCustomers);
               navigation.goBack();
@@ -59,33 +57,41 @@ export default function SelectCustomersModal({
           </Pressable>
         )
       });
-  }, [selectedCustomers]);
+  }, [selectedCustomers, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getCustomersMini());
   }, []);
 
-  const onSelect = (ids: number[]) => {
-    setSelectedIds(Array.from(new Set([...selectedIds, ...ids])));
-    if (!multiple) {
-      onChange([customersMini.find((customer) => customer.id === ids[0])]);
-      navigation.goBack();
-    }
-  };
-  const onUnSelect = (ids: number[]) => {
-    const newSelectedIds = selectedIds.filter((id) => !ids.includes(id));
-    setSelectedIds(newSelectedIds);
-  };
   const toggle = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onUnSelect([id]);
-    } else {
-      onSelect([id]);
+    if (multiple) {
+      setSelectedIds((previous) =>
+        previous.includes(id)
+          ? previous.filter((selectedId) => selectedId !== id)
+          : [...previous, id]
+      );
+      return;
     }
+    const customer = customersMini.find((item) => item.id === id);
+    if (customer) onChange([customer]);
+    navigation.goBack();
   };
 
+  const normalizedSearch = searchQuery.toLowerCase().trim();
+  const filteredCustomers = customersMini.filter((customer) =>
+    customer.name.toLowerCase().includes(normalizedSearch)
+  );
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Searchbar
+        placeholder={t('search')}
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={{ backgroundColor: theme.colors.background }}
+      />
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -98,49 +104,75 @@ export default function SelectCustomersModal({
           backgroundColor: theme.colors.background
         }}
       >
-        {customersMini.map((customer) => (
-          <TouchableOpacity
-            onPress={() => {
-              toggle(customer.id);
-            }}
-            key={customer.id}
-          >
-            <View style={styles.card}>
-              <View style={styles.cardRow}>
-                <Avatar.Icon
-                  size={50}
-                  icon="account-tie-outline"
-                  style={{ backgroundColor: theme.colors.primaryContainer }}
-                />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="titleMedium" style={styles.cardTitle}>
-                        {customer.name}
-                      </Text>
-                      <Text
-                        variant={'bodySmall'}
-                        style={{ color: 'grey' }}
-                      >{`#${customer.id}`}</Text>
+        {loadingGet && !customersMini.length ? (
+          <ActivityIndicator
+            animating
+            accessibilityLabel={t('loading')}
+            style={{ marginTop: 24 }}
+          />
+        ) : (
+          filteredCustomers.map((customer) => (
+            <TouchableOpacity
+              onPress={() => {
+                toggle(customer.id);
+              }}
+              accessibilityRole={multiple ? 'checkbox' : 'button'}
+              accessibilityLabel={customer.name}
+              accessibilityState={
+                multiple
+                  ? { checked: selectedIds.includes(customer.id) }
+                  : undefined
+              }
+              key={customer.id}
+            >
+              <View
+                style={[styles.card, { backgroundColor: theme.colors.surface }]}
+              >
+                <View style={styles.cardRow}>
+                  <Avatar.Icon
+                    size={50}
+                    icon="account-tie-outline"
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="titleMedium" style={styles.cardTitle}>
+                          {customer.name}
+                        </Text>
+                        <Text
+                          variant={'bodySmall'}
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >{`#${customer.id}`}</Text>
+                      </View>
+                      {multiple && (
+                        <SelectionIndicator
+                          checked={selectedIds.includes(customer.id)}
+                          color={theme.colors.primary}
+                          uncheckedColor={theme.colors.controlOutline}
+                        />
+                      )}
                     </View>
-                    {multiple && (
-                      <Checkbox
-                        status={
-                          selectedIds.includes(customer.id)
-                            ? 'checked'
-                            : 'unchecked'
-                        }
-                        onPress={() => {
-                          toggle(customer.id);
-                        }}
-                      />
-                    )}
                   </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
+        {!loadingGet && filteredCustomers.length === 0 && (
+          <Text
+            accessibilityRole="alert"
+            style={{
+              textAlign: 'center',
+              marginTop: 24,
+              color: theme.colors.onSurfaceVariant
+            }}
+          >
+            {customersMini.length
+              ? t('no_results_found')
+              : t('no_customers_available')}
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -151,7 +183,6 @@ const styles = StyleSheet.create({
     flex: 1
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10
   },

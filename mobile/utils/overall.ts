@@ -131,7 +131,8 @@ export const getPriorityColor = (
 ): string => {
   switch (priority) {
     case 'NONE':
-      return theme.colors.tertiary;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.neutral;
     case 'LOW':
       // @ts-ignore
       return theme.colors.info;
@@ -142,6 +143,27 @@ export const getPriorityColor = (
       return theme.colors.error;
   }
 };
+
+export const getPriorityForegroundColor = (
+  priority: Priority,
+  theme: MD3Theme
+): string => {
+  switch (priority) {
+    case 'NONE':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onNeutral;
+    case 'LOW':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onInfo;
+    case 'MEDIUM':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onWarning;
+    case 'HIGH':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onError;
+  }
+};
+
 export type ExtendedWorkOrderStatus =
   | WorkOrderStatus
   | 'LATE_WO'
@@ -153,7 +175,8 @@ export const getStatusColor = (
 ): string => {
   switch (status) {
     case 'OPEN':
-      return theme.colors.tertiary;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.neutral;
     case 'IN_PROGRESS':
       // @ts-ignore
       return theme.colors.success;
@@ -167,7 +190,34 @@ export const getStatusColor = (
     case 'HIGH_WO':
       return theme.colors.error;
     case 'COMPLETE':
-      return 'black';
+      // @ts-ignore
+      return theme.colors.complete;
+  }
+};
+
+export const getStatusForegroundColor = (
+  status: ExtendedWorkOrderStatus,
+  theme: MD3Theme
+): string => {
+  switch (status) {
+    case 'OPEN':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onNeutral;
+    case 'IN_PROGRESS':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onSuccess;
+    case 'ON_HOLD':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onWarning;
+    case 'LATE_WO':
+    case 'HIGH_WO':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onError;
+    case 'TODAY_WO':
+      return theme.colors.onPrimary;
+    case 'COMPLETE':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onComplete;
   }
 };
 

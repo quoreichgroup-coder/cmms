@@ -1,10 +1,14 @@
 const frJSON = {
   open_source_notices: 'À propos et licences open source',
-  open_source_modified: 'Cette édition de QPM est modifiée et maintenue par QUOREICH GROUP.',
-  open_source_license: 'L’application est distribuée sous la licence GNU Affero General Public License, version 3 (AGPL-3.0).',
-  open_source_no_warranty: 'Ce logiciel est fourni sans garantie, conformément à la licence.',
+  open_source_modified:
+    'Cette édition de QPM est modifiée et maintenue par QUOREICH GROUP.',
+  open_source_license:
+    'L’application est distribuée sous la licence GNU Affero General Public License, version 3 (AGPL-3.0).',
+  open_source_no_warranty:
+    'Ce logiciel est fourni sans garantie, conformément à la licence.',
   open_source_source: 'Consulter le code source correspondant',
-  open_source_upstream: 'Cette édition est dérivée d’Atlas CMMS. Le projet amont et ses contributeurs conservent leurs mentions de droits applicables.',
+  open_source_upstream:
+    'Cette édition est dérivée d’Atlas CMMS. Le projet amont et ses contributeurs conservent leurs mentions de droits applicables.',
   plan_catalog: 'Catalogue des forfaits',
   plan_catalog_description:
     'Définissez les modules disponibles dans chaque forfait. Les changements s’appliquent à toutes les entreprises qui utilisent ce forfait.',
@@ -186,6 +190,7 @@ const frJSON = {
     "Certaines des fonctionnalités qui font de {{shortBrandName}} l'une des meilleures GMAO disponibles aujourd'hui",
   contribute: 'Contribuer',
   work_orders: 'Ordres de travail',
+  reopen_work_orders_permission: 'Rouvrir les ordres de travail terminés',
   request_system: "Demandes d'intervention",
   mobile_app: 'Application mobile',
   asset_management: "Gestion d'équipements",
@@ -559,7 +564,8 @@ const frJSON = {
   pending: 'En attente',
   required_request_name: 'Le titre de la demande est requis',
   required_field: 'Ce champ est obligatoire',
-  form_validation_error_summary: 'Enregistrement bloqué : corrigez les champs signalés dans le formulaire.',
+  form_validation_error_summary:
+    'Enregistrement bloqué : corrigez les champs signalés dans le formulaire.',
   add_request: 'Ajouter une demande',
   add_request_description:
     'Remplissez les champs ci-dessous pour créer et ajouter une nouvelle demande',
@@ -1112,19 +1118,23 @@ const frJSON = {
   business_type_construction_management: 'BTP',
   general_asset_management: 'Gestion générale des équipements',
   physical_asset_management: 'Gestion des équipements physiques',
-  checklist_create_success: 'La liste « {{name}} » a été enregistrée avec {{taskCount}} tâche(s). Elles sont dans le formulaire du PM; enregistrez le PM pour conserver son affectation.',
+  checklist_create_success:
+    'La liste « {{name}} » a été enregistrée avec {{taskCount}} tâche(s). Elles sont dans le formulaire du PM; enregistrez le PM pour conserver son affectation.',
   checklist_delete_success: 'La Checklist a été supprimée avec succès',
   checklist_delete_failure: "La Checklist n'a pas pu être supprimée",
   create_checklist: 'Créer une Checklist',
   view_task_list_library: 'Consulter les listes de tâches',
-  task_list_library_help: 'Bibliothèque des listes réutilisables. Sélectionnez une ligne pour consulter ses tâches ; utilisez le bouton Modifier pour changer la liste.',
+  task_list_library_help:
+    'Bibliothèque des listes réutilisables. Sélectionnez une ligne pour consulter ses tâches ; utilisez le bouton Modifier pour changer la liste.',
   view_task_list: 'Consulter la liste',
   edit_task_list: 'Modifier la liste',
   task_count: '{{count}} tâche(s)',
   task_list_empty: 'Cette liste ne contient aucune tâche.',
-  task_list_header_help: 'En-tête de la liste : nom, description et catégorie. Les tâches ci-dessous forment les opérations, numérotées par pas de 10 et réordonnables.',
+  task_list_header_help:
+    'En-tête de la liste : nom, description et catégorie. Les tâches ci-dessous forment les opérations, numérotées par pas de 10 et réordonnables.',
   add_task_list_operation: 'Ajouter une opération',
-  task_list_requires_operation: 'Ajoutez au moins une opération à cette liste avant de l’enregistrer.',
+  task_list_requires_operation:
+    'Ajoutez au moins une opération à cette liste avant de l’enregistrer.',
   operation_number: 'Opération {{number}}',
   operations: 'Opérations',
   general_task_list: 'Liste générale réutilisable',
@@ -1151,55 +1161,78 @@ const frJSON = {
   preview: 'Aperçu',
   pm_schedule_forecast: 'Prévision des maintenances planifiées',
   pm_plan_configuration: 'Stratégie de maintenance et cycles',
-  pm_plan_configuration_help: 'Choisissez une récurrence standard, des packages de tâches à intervalles différents ou un plan déclenché par plusieurs compteurs.',
+  pm_plan_configuration_help:
+    'Choisissez une récurrence standard, des packages de tâches à intervalles différents ou un plan déclenché par plusieurs compteurs.',
   pm_plan_mode: 'Type de plan',
   task_without_name: 'Tâche sans nom',
   pm_plan_mode_single: 'Plan standard',
   pm_plan_mode_strategy: 'Stratégie avec packages de tâches',
   pm_plan_mode_multi_counter: 'Plan multi-compteurs',
-  pm_plan_single_help: 'Le plan crée les ordres selon la récurrence et la liste de tâches configurées ci-dessus.',
-  pm_strategy_editor_help: 'Chaque package est dû à un multiple de l’intervalle de base ci-dessus. Sélectionnez les tâches à inclure dans les ordres de ce package.',
+  pm_plan_single_help:
+    'Le plan crée les ordres selon la récurrence et la liste de tâches configurées ci-dessus.',
+  pm_strategy_editor_help:
+    'Chaque package est dû à un multiple de l’intervalle de base ci-dessus. Sélectionnez les tâches à inclure dans les ordres de ce package.',
   pm_package_default_name: 'Package de maintenance',
   pm_strategy_package_number: 'Package {{number}}',
   pm_every_base_cycles: 'Tous les {{count}} cycle(s) de base',
   pm_package_tasks: 'Tâches incluses dans ce package',
-  pm_select_tasks_before_packages: 'Ajoutez d’abord des modèles de tâches dans la liste ci-dessus.',
+  pm_select_tasks_before_packages:
+    'Ajoutez d’abord des modèles de tâches dans la liste ci-dessus.',
   pm_package_requires_task: 'Sélectionnez au moins une tâche pour ce package.',
   pm_add_package: 'Ajouter un package',
-  pm_multi_counter_editor_help: 'Les plans multi-compteurs combinent les compteurs rattachés à l’équipement choisi. Choisissez une règle et associez les tâches à chaque cycle compteur.',
+  pm_multi_counter_editor_help:
+    'Les plans multi-compteurs combinent les compteurs rattachés à l’équipement choisi. Choisissez une règle et associez les tâches à chaque cycle compteur.',
   pm_combination_rule: 'Quand créer l’ordre de travail combiné ?',
   pm_combination_or: 'OR — créer un ordre dès qu’un cycle est dû',
   pm_combination_and: 'AND — attendre que tous les cycles soient dus',
-  pm_combination_or_help: 'Chaque cycle compteur dû crée son propre ordre avec les tâches associées.',
-  pm_combination_and_help: 'Les cycles restent en attente jusqu’à ce que tous les compteurs configurés soient dus. Un ordre regroupe alors les tâches sélectionnées.',
+  pm_combination_or_help:
+    'Chaque cycle compteur dû crée son propre ordre avec les tâches associées.',
+  pm_combination_and_help:
+    'Les cycles restent en attente jusqu’à ce que tous les compteurs configurés soient dus. Un ordre regroupe alors les tâches sélectionnées.',
   pm_counter_cycle_number: 'Cycle compteur {{number}}',
   pm_cycle_default_name: 'Cycle compteur {{number}}',
   pm_cycle_meter: 'Compteur de l’équipement choisi',
   pm_select_counter: 'Choisissez un compteur',
-  pm_select_asset_first: 'Choisissez d’abord un équipement pour charger ses compteurs.',
-  pm_asset_has_no_counters: 'Aucun compteur n’est encore configuré pour cet équipement.',
+  pm_select_asset_first:
+    'Choisissez d’abord un équipement pour charger ses compteurs.',
+  pm_asset_has_no_counters:
+    'Aucun compteur n’est encore configuré pour cet équipement.',
   pm_meter_reference: 'Relevé de référence du cycle',
   pm_cycle_interval: 'Intervalle',
   pm_meter_end_optional: 'Arrêter au relevé (facultatif)',
   pm_cycle_tasks: 'Tâches de ce cycle compteur',
-  pm_select_tasks_before_cycles: 'Ajoutez d’abord des modèles de tâches dans la liste ci-dessus.',
+  pm_select_tasks_before_cycles:
+    'Ajoutez d’abord des modèles de tâches dans la liste ci-dessus.',
   pm_cycle_requires_task: 'Sélectionnez au moins une tâche pour ce cycle.',
   pm_add_counter_cycle: 'Ajouter un cycle compteur',
-  pm_multi_counter_date_limit: 'L’aperçu affiche les seuils compteur, sans date. Les cycles calendrier et compteur ne peuvent pas encore être combinés dans un même plan multi-compteurs.',
-  pm_plan_configuration_invalid_json: 'La configuration du plan est invalide. Vérifiez les choix et réessayez.',
+  pm_multi_counter_date_limit:
+    'L’aperçu affiche les seuils compteur, sans date. Les cycles calendrier et compteur ne peuvent pas encore être combinés dans un même plan multi-compteurs.',
+  pm_plan_configuration_invalid_json:
+    'La configuration du plan est invalide. Vérifiez les choix et réessayez.',
   pm_validation_add_package: 'Ajoutez au moins un package à la stratégie.',
-  pm_validation_unique_codes: 'Les noms des packages et des cycles doivent être uniques.',
-  pm_validation_code_format: 'Utilisez des lettres, chiffres, espaces, tirets ou tirets bas dans les noms.',
-  pm_validation_package_interval: 'Les intervalles des packages doivent être des nombres entiers d’au moins un cycle de base.',
-  pm_validation_package_tasks: 'Associez au moins une tâche sélectionnée à chaque package.',
-  pm_validation_combination: 'Choisissez OR ou AND pour la règle multi-compteurs.',
+  pm_validation_unique_codes:
+    'Les noms des packages et des cycles doivent être uniques.',
+  pm_validation_code_format:
+    'Utilisez des lettres, chiffres, espaces, tirets ou tirets bas dans les noms.',
+  pm_validation_package_interval:
+    'Les intervalles des packages doivent être des nombres entiers d’au moins un cycle de base.',
+  pm_validation_package_tasks:
+    'Associez au moins une tâche sélectionnée à chaque package.',
+  pm_validation_combination:
+    'Choisissez OR ou AND pour la règle multi-compteurs.',
   pm_validation_two_cycles: 'Ajoutez au moins deux cycles compteur.',
-  pm_validation_cycle_meter: 'Choisissez pour chaque cycle un compteur de l’équipement sélectionné.',
-  pm_validation_cycle_interval: 'Chaque intervalle compteur doit être supérieur à zéro.',
-  pm_validation_cycle_reference: 'Chaque relevé de référence doit être supérieur ou égal à zéro.',
-  pm_validation_cycle_end: 'Un relevé d’arrêt doit être supérieur au relevé de référence.',
-  pm_validation_cycle_tasks: 'Associez au moins une tâche sélectionnée à chaque cycle compteur.',
-  pm_multi_counter_forecast_note: 'Les seuils sont affichés sans date calendaire. La règle {combination} génère l’ordre combiné lorsque ses cycles configurés sont dus.',
+  pm_validation_cycle_meter:
+    'Choisissez pour chaque cycle un compteur de l’équipement sélectionné.',
+  pm_validation_cycle_interval:
+    'Chaque intervalle compteur doit être supérieur à zéro.',
+  pm_validation_cycle_reference:
+    'Chaque relevé de référence doit être supérieur ou égal à zéro.',
+  pm_validation_cycle_end:
+    'Un relevé d’arrêt doit être supérieur au relevé de référence.',
+  pm_validation_cycle_tasks:
+    'Associez au moins une tâche sélectionnée à chaque cycle compteur.',
+  pm_multi_counter_forecast_note:
+    'Les seuils sont affichés sans date calendaire. La règle {combination} génère l’ordre combiné lorsque ses cycles configurés sont dus.',
   pm_triggered_cycles: 'Cycles déclencheurs',
   pm_strategy_packages: 'Packages de stratégie',
   pm_every_base_cycles_one: 'À chaque cycle de base',
@@ -1213,7 +1246,8 @@ const frJSON = {
     'Sélectionnez un ou plusieurs jours pour prévisualiser les occurrences hebdomadaires.',
   pm_schedule_forecast_no_dates:
     'Aucune occurrence future ne correspond à ces dates et à cette fréquence.',
-  pm_schedule_forecast_no_packages: 'Aucun package de la stratégie n’est dû pendant cette période prévisionnelle.',
+  pm_schedule_forecast_no_packages:
+    'Aucun package de la stratégie n’est dû pendant cette période prévisionnelle.',
   pm_trigger_type: 'Déclencheur du plan',
   pm_calendar_based: 'Basé sur le calendrier',
   pm_meter_based: 'Basé sur un compteur',
@@ -1221,16 +1255,23 @@ const frJSON = {
   pm_meter_cycle_interval: 'Intervalle du cycle',
   pm_meter_reference_value: 'Valeur de référence',
   pm_meter_end_value: 'Arrêter à la valeur (facultatif)',
-  pm_meter_numeric_hint: 'Saisissez uniquement le nombre ; l’unité du compteur est affichée séparément.',
-  pm_meter_forecast_description: 'Seuils compteur prévisionnels. Un ordre est créé lorsqu’un nouveau relevé atteint le prochain seuil.',
+  pm_meter_numeric_hint:
+    'Saisissez uniquement le nombre ; l’unité du compteur est affichée séparément.',
+  pm_meter_forecast_description:
+    'Seuils compteur prévisionnels. Un ordre est créé lorsqu’un nouveau relevé atteint le prochain seuil.',
   pm_meter_current_reading: 'Dernier relevé réel',
   pm_meter_no_reading: 'Aucun relevé pour le moment',
-  pm_meter_reference_auto_hint: 'La valeur de référence reprend le dernier relevé (ou 0 en l’absence de relevé) ; tu peux la modifier si besoin.',
+  pm_meter_reference_auto_hint:
+    'La valeur de référence reprend le dernier relevé (ou 0 en l’absence de relevé) ; tu peux la modifier si besoin.',
   pm_meter_next_targets: 'Prochains seuils compteur',
-  pm_meter_estimated_date_from_usage: 'Date estimée : {{date}} (selon les relevés récents)',
-  pm_meter_complete_cycle_settings: 'Choisissez un compteur et saisissez un intervalle et une référence valides pour afficher les seuils.',
-  pm_meter_end_must_exceed_reference: 'La valeur d’arrêt doit être supérieure à la valeur de référence.',
-  pm_meter_must_match_asset: 'Choisissez un compteur installé sur l’équipement sélectionné.',
+  pm_meter_estimated_date_from_usage:
+    'Date estimée : {{date}} (selon les relevés récents)',
+  pm_meter_complete_cycle_settings:
+    'Choisissez un compteur et saisissez un intervalle et une référence valides pour afficher les seuils.',
+  pm_meter_end_must_exceed_reference:
+    'La valeur d’arrêt doit être supérieure à la valeur de référence.',
+  pm_meter_must_match_asset:
+    'Choisissez un compteur installé sur l’équipement sélectionné.',
   edit_checklist: 'Modifier la checklist',
   add_tasks: 'Ajouter des tâches',
   use_a_checklist: 'Utilisr une Checklist',
@@ -1238,10 +1279,13 @@ const frJSON = {
   save_checklist: 'Enregistrer la Checklist',
   create_reusable_task_list: 'Créer une liste réutilisable…',
   save_tasks_as_checklist_title: 'Créer une liste de tâches réutilisable',
-  save_tasks_as_checklist_help: 'Cette étape ouvre les détails, mais n’enregistre pas encore la liste. Saisissez son nom, vérifiez les tâches, puis cliquez sur « Enregistrer la liste et utiliser les tâches » en bas. La liste sera créée dans les paramètres de l’entreprise; ses tâches seront ajoutées au formulaire du PM.',
-  checklist_task_format_help: 'Chaque ligne est une tâche. Choisissez son format dans la liste : sous-tâche, texte, nombre, contrôle, choix multiples ou relevé de compteur. Les intitulés sont obligatoires; les choix multiples doivent garder au moins deux options renseignées.',
+  save_tasks_as_checklist_help:
+    'Cette étape ouvre les détails, mais n’enregistre pas encore la liste. Saisissez son nom, vérifiez les tâches, puis cliquez sur « Enregistrer la liste et utiliser les tâches » en bas. La liste sera créée dans les paramètres de l’entreprise; ses tâches seront ajoutées au formulaire du PM.',
+  checklist_task_format_help:
+    'Chaque ligne est une tâche. Choisissez son format dans la liste : sous-tâche, texte, nombre, contrôle, choix multiples ou relevé de compteur. Les intitulés sont obligatoires; les choix multiples doivent garder au moins deux options renseignées.',
   save_checklist_and_add_tasks: 'Enregistrer la liste et utiliser les tâches',
-  multiple_task_requires_two_options: 'Une tâche à choix multiples doit contenir au moins deux choix renseignés.',
+  multiple_task_requires_two_options:
+    'Une tâche à choix multiples doit contenir au moins deux choix renseignés.',
   assign_tasks_description:
     'Attribuez des tâches personnalisées aux techniciens à remplir',
   select_date: 'Sélectionner une date',
@@ -1636,8 +1680,10 @@ const frJSON = {
   pm_call_reschedule_title: 'Reporter l’appel de maintenance',
   pm_call_reschedule_date: 'Nouvelle date',
   pm_call_reschedule_reason: 'Motif',
-  pm_call_reschedule_error: 'Impossible de reporter cet appel. Vérifiez la date et réessayez.',
-  pm_call_reschedule_future_date: 'Choisissez une date après aujourd’hui. À l’heure initiale de l’appel, cette date doit encore être future.',
+  pm_call_reschedule_error:
+    'Impossible de reporter cet appel. Vérifiez la date et réessayez.',
+  pm_call_reschedule_future_date:
+    'Choisissez une date après aujourd’hui. À l’heure initiale de l’appel, cette date doit encore être future.',
   pm_call_reschedule_audit: 'Du {{from}} au {{to}} par {{actor}} : {{reason}}',
   pm_meter_due_at: 'Seuil prévu :',
   pm_call_status_planned: 'À venir',
@@ -1783,7 +1829,8 @@ const frJSON = {
   no_recent_work_orders: 'Aucun ordre de travail',
   pm_call_history: 'Historique des appels de maintenance',
   pm_call_history_load_error: 'Impossible de charger l’historique des appels.',
-  pm_work_order_history_load_error: 'Impossible de charger l’historique des ordres de maintenance préventive.',
+  pm_work_order_history_load_error:
+    'Impossible de charger l’historique des ordres de maintenance préventive.',
   no_pm_calls: 'Aucun appel de maintenance pour le moment',
   retry: 'Réessayer',
   open_work_orders: 'Ordres de travail ouverts',
@@ -2388,25 +2435,32 @@ const frJSON = {
   conflict_retry:
     'La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes.',
   company_legal_information: 'Informations légales',
-  company_legal_information_description: 'Identité juridique utilisée sur les documents officiels de la société.',
+  company_legal_information_description:
+    'Identité juridique utilisée sur les documents officiels de la société.',
   legal_company_name: 'Raison sociale',
   registration_country: 'Pays d’enregistrement (code ISO)',
-  registration_country_hint: 'Saisissez le code pays à deux lettres, par exemple BF ou FR.',
+  registration_country_hint:
+    'Saisissez le code pays à deux lettres, par exemple BF ou FR.',
   business_registration_number: 'Numéro d’immatriculation',
   tax_identification_number: 'Identifiant fiscal',
   registered_address: 'Adresse enregistrée',
-  company_legal_load_error: 'Impossible de charger le profil légal de la société.',
-  company_legal_save_error: 'Impossible d’enregistrer le profil légal de la société.',
+  company_legal_load_error:
+    'Impossible de charger le profil légal de la société.',
+  company_legal_save_error:
+    'Impossible d’enregistrer le profil légal de la société.',
   company_legal_saved: 'Les informations légales ont été enregistrées.',
   preview_print: 'Aperçu / imprimer',
   issue_archive_document: 'Émettre et archiver',
   issued_documents: 'Documents émis',
-  issued_documents_empty: 'Aucun document officiel n’a été émis pour cet ordre de travail.',
+  issued_documents_empty:
+    'Aucun document officiel n’a été émis pour cet ordre de travail.',
   issued_documents_load_error: 'Impossible de charger les documents émis.',
-  issued_document_issue_error: 'Impossible d’émettre et d’archiver ce document.',
+  issued_document_issue_error:
+    'Impossible d’émettre et d’archiver ce document.',
   issued_document_saved: 'Le document officiel a été émis et archivé.',
   company_sites: 'Sites opérationnels',
-  company_sites_description: 'Gérez les sites et leurs préférences documentaires.',
+  company_sites_description:
+    'Gérez les sites et leurs préférences documentaires.',
   company_sites_empty: 'Aucun site opérationnel n’est configuré.',
   add_site: 'Ajouter un site',
   edit_site: 'Modifier le site',
@@ -2426,19 +2480,24 @@ const frJSON = {
   subscription_plan: 'Abonnement',
   company_settings_sections: 'Sections des paramètres de la société',
   company_logo_saved: 'Le logo de la société a été mis à jour.',
-  company_logo_upload_error: 'Impossible de mettre à jour le logo de la société.',
+  company_logo_upload_error:
+    'Impossible de mettre à jour le logo de la société.',
   configuration_history: 'Historique des changements',
   configuration_audit_title: 'Historique des paramètres de la société',
-  configuration_audit_description: 'Modifications récentes de l’identité, des informations légales et des sites.',
-  configuration_audit_empty: 'Aucune modification des paramètres n’a encore été enregistrée.',
-  configuration_audit_load_error: 'Impossible de charger l’historique des paramètres.',
+  configuration_audit_description:
+    'Modifications récentes de l’identité, des informations légales et des sites.',
+  configuration_audit_empty:
+    'Aucune modification des paramètres n’a encore été enregistrée.',
+  configuration_audit_load_error:
+    'Impossible de charger l’historique des paramètres.',
   configuration_audit_fields_unavailable: 'Champs modifiés indisponibles',
   configuration_audit_actor: 'Utilisateur {{id}}',
   'configuration_entity.COMPANY_PROFILE': 'Profil de la société',
   'configuration_entity.COMPANY_LEGAL_PROFILE': 'Profil légal',
   'configuration_entity.SITE': 'Site',
   'configuration_entity.GENERAL_PREFERENCES': 'Réglages de l’entreprise',
-  settings_read_only: 'Vous pouvez consulter ces réglages, mais votre rôle ne permet pas de les modifier.',
+  settings_read_only:
+    'Vous pouvez consulter ces réglages, mais votre rôle ne permet pas de les modifier.',
   'configuration_action.CREATED': 'créé',
   'configuration_action.UPDATED': 'modifié',
   'configuration_action.DELETED': 'supprimé',
@@ -2465,15 +2524,23 @@ const frJSON = {
   'configuration_field.currency': 'devise',
   'configuration_field.businessType': 'secteur d’activité',
   'configuration_field.color': 'couleur de marque',
-  'configuration_field.autoAssignWorkOrders': 'affectation automatique des ordres',
-  'configuration_field.autoAssignRequests': 'affectation automatique des demandes',
-  'configuration_field.disableClosedWorkOrdersNotif': 'notifications des ordres clôturés',
-  'configuration_field.askFeedBackOnWOClosed': 'retour après clôture d’un ordre',
-  'configuration_field.laborCostInTotalCost': 'calcul du coût de la main-d’œuvre',
-  'configuration_field.woUpdateForRequesters': 'mises à jour des ordres pour les demandeurs',
+  'configuration_field.autoAssignWorkOrders':
+    'affectation automatique des ordres',
+  'configuration_field.autoAssignRequests':
+    'affectation automatique des demandes',
+  'configuration_field.disableClosedWorkOrdersNotif':
+    'notifications des ordres clôturés',
+  'configuration_field.askFeedBackOnWOClosed':
+    'retour après clôture d’un ordre',
+  'configuration_field.laborCostInTotalCost':
+    'calcul du coût de la main-d’œuvre',
+  'configuration_field.woUpdateForRequesters':
+    'mises à jour des ordres pour les demandeurs',
   'configuration_field.simplifiedWorkOrder': 'mode simplifié des ordres',
-  'configuration_field.daysBeforePrevMaintNotification': 'jours de rappel de maintenance préventive',
-  'configuration_field.autoGenerateAssetBarcode': 'génération automatique des codes-barres',
+  'configuration_field.daysBeforePrevMaintNotification':
+    'jours de rappel de maintenance préventive',
+  'configuration_field.autoGenerateAssetBarcode':
+    'génération automatique des codes-barres',
   'configuration_field.csvSeparator': 'séparateur CSV',
   'configuration_field.profile': 'profil'
 };

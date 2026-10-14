@@ -4,14 +4,8 @@ import { View } from '../../components/Themed';
 import { AuthStackScreenProps } from '../../types';
 import { Formik } from 'formik';
 import { useTranslation } from 'react-i18next';
-import { useContext, useEffect, useState } from 'react';
-import {
-  Button,
-  HelperText,
-  Text,
-  TextInput,
-  useTheme
-} from 'react-native-paper';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import * as React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,6 +23,8 @@ export default function CustomServerScreen({
   const theme = useAppTheme();
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [hasCustomUrl, setHasCustomUrl] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const resettingRef = useRef(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -66,24 +62,34 @@ export default function CustomServerScreen({
           })}
           onSubmit={async (
             values,
-            { setErrors, setStatus, setSubmitting }
+            { setStatus, setSubmitting }
           ): Promise<void> => {
             setSubmitting(true);
             try {
-              const url = normalizeApiUrl(values.serverUrl);
+              const url = normalizeApiUrl(values.serverUrl, t);
               const controller = new AbortController();
               const deadline = setTimeout(() => controller.abort(), 10000);
               try {
-                const response = await fetch(url + 'instance-config', { signal: controller.signal });
-                if (!response.ok && response.status !== 401) throw new Error('Serveur CMMS inaccessible. Vérifiez son adresse.');
+                const response = await fetch(url + 'instance-config', {
+                  signal: controller.signal
+                });
+                if (!response.ok && response.status !== 401)
+                  throw new Error(t('server_unreachable'));
                 if (response.status !== 401) {
                   const config = await response.json();
-                  if (typeof config.ldapEnabled !== 'boolean') throw new Error('Cette adresse ne correspond pas à un serveur CMMS.');
+                  if (typeof config.ldapEnabled !== 'boolean')
+                    throw new Error(t('invalid_cmms_server_address'));
                 }
-              } finally { clearTimeout(deadline); }
+              } finally {
+                clearTimeout(deadline);
+              }
               const previous = await AsyncStorage.getItem('customApiUrl');
               if (previous !== url) {
-                await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'companyId']);
+                await AsyncStorage.multiRemove([
+                  'accessToken',
+                  'refreshToken',
+                  'companyId'
+                ]);
                 dispatch(revertAll());
               }
               await AsyncStorage.setItem('customApiUrl', url);
@@ -96,7 +102,11 @@ export default function CustomServerScreen({
               // Navigate back to login
               navigation.goBack();
             } catch (error) {
-              showSnackBar(error.message || t('error_saving_url'), 'error');
+              const message =
+                error?.name === 'AbortError'
+                  ? t('server_unreachable')
+                  : error?.message || t('error_saving_url');
+              showSnackBar(message, 'error');
               setStatus({ success: false });
             } finally {
               setSubmitting(false);
@@ -135,7 +145,7 @@ export default function CustomServerScreen({
                 onPress={() => handleSubmit()}
                 loading={isSubmitting}
                 style={{ marginTop: 20 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isResetting}
                 mode="contained"
               >
                 {t('save')}
@@ -145,6 +155,7 @@ export default function CustomServerScreen({
                 mode="text"
                 onPress={() => navigation.goBack()}
                 style={{ marginTop: 10 }}
+                disabled={isSubmitting || isResetting}
               >
                 {t('cancel')}
               </Button>
@@ -153,14 +164,29 @@ export default function CustomServerScreen({
                 <Button
                   mode="outlined"
                   onPress={async () => {
-                    await AsyncStorage.removeItem('customApiUrl');
-                    setCurrentUrl(await getApiUrl());
-                    setHasCustomUrl(false);
-                    await dispatch(getInstanceConfig());
-                    showSnackBar(t('server_url_reset'), 'success');
+                    if (resettingRef.current || isSubmitting) return;
+                    resettingRef.current = true;
+                    setIsResetting(true);
+                    try {
+                      await AsyncStorage.removeItem('customApiUrl');
+                      setCurrentUrl(await getApiUrl());
+                      setHasCustomUrl(false);
+                      await dispatch(getInstanceConfig());
+                      showSnackBar(t('server_url_reset'), 'success');
+                    } catch (error) {
+                      showSnackBar(
+                        error?.message || t('error_saving_url'),
+                        'error'
+                      );
+                    } finally {
+                      resettingRef.current = false;
+                      setIsResetting(false);
+                    }
                   }}
                   style={{ marginTop: 20 }}
                   color={theme.colors.error}
+                  loading={isResetting}
+                  disabled={isSubmitting || isResetting}
                 >
                   {t('reset_to_default')}
                 </Button>

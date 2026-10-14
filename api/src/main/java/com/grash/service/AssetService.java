@@ -339,17 +339,28 @@ public class AssetService {
     public Asset getByNfcIdAndCompany(String nfcId, User user) {
         if (!licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE))
             throw new CustomException("You need a license to scan an asset", HttpStatus.FORBIDDEN);
-        return findByNfcIdAndCompany(nfcId, user.getCompany().getId()).get();
+        Asset asset = findByNfcIdAndCompany(nfcId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Asset not found", HttpStatus.NOT_FOUND));
+        if (!asset.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return asset;
     }
 
     public Asset getByBarcodeAndCompany(String data, User user) {
         if (!licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE))
             throw new CustomException("You need a license to scan an asset", HttpStatus.FORBIDDEN);
-        return findByBarcodeAndCompany(data, user.getCompany().getId()).get();
+        Asset asset = findByBarcodeAndCompany(data, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Asset not found", HttpStatus.NOT_FOUND));
+        if (!asset.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return asset;
     }
 
     public Asset checkAccessToAssetId(Long assetId, User user) {
-        Asset asset = findById(assetId).orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        // Scope the lookup before checking object permissions. A role with
+        // company-wide asset visibility must never resolve another tenant's ID.
+        Asset asset = findByIdAndCompany(assetId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
         if (!asset.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return asset;
@@ -374,27 +385,24 @@ public class AssetService {
     }
 
     public List<Asset> findChildren(Long id, User user, Pageable pageable) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS))
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        if (id.equals(0L)) {
-            return findByCompanyAndParentAssetNull(user.getCompany().getId(), pageable);
-        }
-        Optional<Asset> optionalAsset = findById(id);
-        if (optionalAsset.isPresent()) {
-            return findAssetChildren(id, pageable).getContent();
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        return findChildrenPaginated(id, user, pageable).getContent();
     }
 
     public Page<Asset> findChildrenPaginated(Long id, User user, Pageable pageable) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        boolean canViewOtherAssets = user.getRole().getViewOtherPermissions()
+                .contains(PermissionEntity.ASSETS);
+        Long companyId = user.getCompany().getId();
         if (id.equals(0L)) {
-            return assetRepository.findByCompany_IdAndParentAssetIsNull(user.getCompany().getId(), pageable);
+            return canViewOtherAssets
+                    ? assetRepository.findByCompany_IdAndParentAssetIsNull(companyId, pageable)
+                    : assetRepository.findVisibleRootAssets(companyId, user.getId(), pageable);
         }
-        Optional<Asset> optionalAsset = findById(id);
-        if (optionalAsset.isPresent()) {
-            return findAssetChildren(id, pageable);
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        checkAccessToAssetId(id, user);
+        return canViewOtherAssets
+                ? assetRepository.findByParentAsset_IdAndCompany_Id(id, companyId, pageable)
+                : assetRepository.findVisibleChildren(id, companyId, user.getId(), pageable);
     }
 
     @Transactional

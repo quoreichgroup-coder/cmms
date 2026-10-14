@@ -72,12 +72,8 @@ public class AssetDowntimeController {
     @PreAuthorize("permitAll()")
     public Collection<AssetDowntime> getByAsset(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<Asset> optionalAsset = assetService.findById(id);
-        if (optionalAsset.isPresent()) {
-            if (!optionalAsset.get().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return assetDowntimeService.findByAsset(id);
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        assetService.checkAccessToAssetId(id, user);
+        return assetDowntimeService.findByAsset(id);
     }
 
     @PatchMapping("/{id}")

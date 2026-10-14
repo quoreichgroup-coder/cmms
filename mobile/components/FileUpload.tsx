@@ -2,10 +2,10 @@ import { View } from './Themed';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as React from 'react';
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import * as FileSystem from 'expo-file-system';
-import { Alert, Image, ScrollView, Text, TouchableOpacity } from 'react-native';
-import { IconButton, useTheme } from 'react-native-paper';
+import { Image, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, IconButton, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { SheetManager } from 'react-native-actions-sheet';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
@@ -17,6 +17,7 @@ import {
 import { openLibraryWithPermission } from '../utils/mediaPermissions';
 import { createImageUploadFile, createUploadFile } from '../utils/uploadFiles';
 import InAppCamera from './InAppCamera';
+import { useFileUploadAccess } from '../hooks/useFileUploadAccess';
 
 interface OwnProps {
   title: string;
@@ -25,6 +26,7 @@ interface OwnProps {
   description: string;
   onChange: (files: IFile[]) => void;
   files?: IFile[];
+  disabled?: boolean;
 }
 
 export default function FileUpload({
@@ -32,14 +34,18 @@ export default function FileUpload({
   type,
   multiple,
   onChange,
-  files: defaultFiles
+  files: defaultFiles,
+  disabled = false
 }: OwnProps) {
   const theme = useTheme();
   const [images, setImages] = useState<IFile[]>(defaultFiles || []);
   const [files, setFiles] = useState<IFile[]>(defaultFiles || []);
   const [inAppCameraVisible, setInAppCameraVisible] = useState(false);
+  const [isPicking, setIsPicking] = useState(false);
+  const pickingRef = useRef(false);
   const { t } = useTranslation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const { canUpload, hasFileEntitlement } = useFileUploadAccess();
   const maxFileSize: number = 7;
 
   const onChangeInternal = (files: IFile[], type: 'file' | 'image') => {
@@ -58,6 +64,7 @@ export default function FileUpload({
     return fileSize / 1024 / 1024 > limit;
   };
   const takePhoto = () => {
+    if (pickingRef.current || disabled || !canUpload) return;
     setInAppCameraVisible(true);
   };
   const handleInAppCapture = async (uri: string) => {
@@ -65,17 +72,17 @@ export default function FileUpload({
     try {
       await checkSize(uri);
       onChangeInternal(
-        [
-          ...images,
-          createImageUploadFile({ uri }, images.length + 1)
-        ],
+        [...images, createImageUploadFile({ uri }, images.length + 1)],
         'image'
       );
-    } catch (_e) {
-      // checkSize already alerts the user
+    } catch (_error) {
+      // checkSize already displays a localized message.
     }
   };
   const pickImage = async () => {
+    if (pickingRef.current || disabled || !canUpload) return;
+    pickingRef.current = true;
+    setIsPicking(true);
     try {
       const result = await openLibraryWithPermission('ImageUpload', {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -88,15 +95,24 @@ export default function FileUpload({
       await onImagePicked(result);
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      const message = error instanceof Error ? error.message : '';
+      if (
+        message !== t('file_size_unknown') &&
+        message !== t('max_file_size_error', { size: maxFileSize })
+      ) {
+        showSnackBar(t('file_pick_error'), 'error');
+      }
+    } finally {
+      pickingRef.current = false;
+      setIsPicking(false);
     }
   };
   const checkSize = async (uri: string) => {
     const fileInfo = await getFileInfo(uri);
     if (!('size' in fileInfo)) return;
     if (!fileInfo?.size) {
-      Alert.alert("Can't select this file as the size is unknown.");
-      throw new Error();
+      showSnackBar(t('file_size_unknown'), 'error');
+      throw new Error(t('file_size_unknown'));
     }
     if (isMoreThanTheMB(fileInfo.size, maxFileSize)) {
       showSnackBar(t('max_file_size_error', { size: maxFileSize }), 'error');
@@ -121,6 +137,9 @@ export default function FileUpload({
     }
   };
   const pickFile = async () => {
+    if (pickingRef.current || disabled || !canUpload) return;
+    pickingRef.current = true;
+    setIsPicking(true);
     try {
       // Pass the 'multiple' prop to enable multi-file selection if needed
       const options: DocumentPickerOptions = {
@@ -168,6 +187,16 @@ export default function FileUpload({
       );
     } catch (error) {
       console.error('Error picking document:', error);
+      const message = error instanceof Error ? error.message : '';
+      if (
+        message !== t('file_size_unknown') &&
+        message !== t('max_file_size_error', { size: maxFileSize })
+      ) {
+        showSnackBar(t('file_pick_error'), 'error');
+      }
+    } finally {
+      pickingRef.current = false;
+      setIsPicking(false);
     }
   };
   const onPress = () => {
@@ -188,7 +217,16 @@ export default function FileUpload({
         onCapture={handleInAppCapture}
         onClose={() => setInAppCameraVisible(false)}
       />
-      <TouchableOpacity onPress={onPress}>
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={!canUpload || disabled || isPicking}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${t(isPicking ? 'loading' : 'upload')}`}
+        accessibilityState={{
+          disabled: !canUpload || disabled || isPicking,
+          busy: isPicking
+        }}
+      >
         <View
           style={{
             flexDirection: 'row',
@@ -196,10 +234,35 @@ export default function FileUpload({
             alignItems: 'center'
           }}
         >
-          <Text style={{ color: 'black' }}>{title}</Text>
-          <IconButton iconColor={theme.colors.primary} icon={'plus-circle'} />
+          <Text style={{ color: theme.colors.onSurface }}>{title}</Text>
+          {isPicking ? (
+            <ActivityIndicator
+              size={24}
+              color={theme.colors.primary}
+              accessibilityLabel={t('loading')}
+            />
+          ) : (
+            <IconButton
+              iconColor={theme.colors.primary}
+              icon={'plus-circle'}
+              disabled={!canUpload || disabled}
+              accessibilityLabel={t('upload')}
+              accessibilityHint={
+                !hasFileEntitlement ? t('you_need_a_license') : undefined
+              }
+            />
+          )}
         </View>
       </TouchableOpacity>
+      {!canUpload && (
+        <Text style={{ color: theme.colors.error, marginHorizontal: 12 }}>
+          {t(
+            hasFileEntitlement
+              ? 'file_upload_unavailable'
+              : 'you_need_a_license'
+          )}
+        </Text>
+      )}
       <View>
         {type === 'image' &&
           !!images.length &&
@@ -214,6 +277,8 @@ export default function FileUpload({
                     'image'
                   );
                 }}
+                disabled={disabled}
+                accessibilityLabel={`${t('to_delete')} ${image.name}`}
                 icon={'close-circle'}
                 iconColor={theme.colors.error}
               />
@@ -242,6 +307,8 @@ export default function FileUpload({
                     'file'
                   );
                 }}
+                disabled={disabled}
+                accessibilityLabel={`${t('to_delete')} ${file.name}`}
                 icon={'close-circle'}
                 iconColor={theme.colors.error}
               />

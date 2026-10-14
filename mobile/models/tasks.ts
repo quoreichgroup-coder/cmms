@@ -34,6 +34,21 @@ export interface Task extends Audit {
   images: File[];
 }
 
+/** Keep task progress and completion checks aligned while accepting zero readings. */
+export const isTaskComplete = (task: Task): boolean => {
+  if (task.value === undefined || task.value === null) return false;
+  const value = String(task.value).trim();
+  if (!value) return false;
+  if (task.taskBase.taskType === 'SUBTASK') return value === 'COMPLETE';
+  if (
+    task.taskBase.taskType === 'NUMBER' ||
+    task.taskBase.taskType === 'METER'
+  ) {
+    return Number.isFinite(Number(value));
+  }
+  return true;
+};
+
 export const isTask = (object): object is Task => {
   return !!object.taskBase;
 };

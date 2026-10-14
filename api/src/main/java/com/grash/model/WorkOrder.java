@@ -115,13 +115,22 @@ public class WorkOrder extends WorkOrderBase {
     }
 
     public boolean canBeEditedBy(User user) {
-        return user.getRole().getEditOtherPermissions().contains(PermissionEntity.WORK_ORDERS)
-                || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId())) || isAssignedTo(user);
+        return belongsToUserCompany(user)
+                && !Status.COMPLETE.equals(getStatus())
+                && (user.getRole().getEditOtherPermissions().contains(PermissionEntity.WORK_ORDERS)
+                || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId())) || isAssignedTo(user));
     }
 
     public boolean canBeDeletedBy(User user) {
-        return user.getRole().getDeleteOtherPermissions().contains(PermissionEntity.WORK_ORDERS)
-                || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId()));
+        return belongsToUserCompany(user)
+                && !Status.COMPLETE.equals(getStatus())
+                && (user.getRole().getDeleteOtherPermissions().contains(PermissionEntity.WORK_ORDERS)
+                || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId())));
+    }
+
+    private boolean belongsToUserCompany(User user) {
+        return user != null && user.getCompany() != null && getCompany() != null
+                && Objects.equals(user.getCompany().getId(), getCompany().getId());
     }
 
     //in days

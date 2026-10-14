@@ -10,6 +10,9 @@ const basePath = 'comments';
 interface CommentState {
   commentsByWorkOrder: { [key: number]: Comment[] };
   commentsCountByWorkOrder: { [key: number]: number };
+  loadStatusByWorkOrder: {
+    [key: number]: 'loading' | 'success' | 'error';
+  };
   loadingComments: boolean;
   loadingCreate: boolean;
   loadingUpdate: boolean;
@@ -19,6 +22,7 @@ interface CommentState {
 const initialState: CommentState = {
   commentsByWorkOrder: {},
   commentsCountByWorkOrder: {},
+  loadStatusByWorkOrder: {},
   loadingComments: false,
   loadingCreate: false,
   loadingUpdate: false,
@@ -36,6 +40,7 @@ const slice = createSlice({
     ) {
       const { workOrderId, comments } = action.payload;
       state.commentsByWorkOrder[workOrderId] = comments;
+      state.loadStatusByWorkOrder[workOrderId] = 'success';
     },
     addComment(
       state: CommentState,
@@ -81,6 +86,16 @@ const slice = createSlice({
       const { loading } = action.payload;
       state.loadingComments = loading;
     },
+    setCommentsLoadStatus(
+      state: CommentState,
+      action: PayloadAction<{
+        workOrderId: number;
+        status: 'loading' | 'error';
+      }>
+    ) {
+      state.loadStatusByWorkOrder[action.payload.workOrderId] =
+        action.payload.status;
+    },
     setLoadingCreate(
       state: CommentState,
       action: PayloadAction<{ loading: boolean }>
@@ -119,11 +134,19 @@ export const getCommentsByWorkOrder =
   async (dispatch) => {
     try {
       dispatch(slice.actions.setLoadingComments({ loading: true }));
+      dispatch(
+        slice.actions.setCommentsLoadStatus({ workOrderId, status: 'loading' })
+      );
       const comments = await api.post<Comment[]>(
         `${basePath}/search/${workOrderId}`,
         {}
       );
       dispatch(slice.actions.getComments({ workOrderId, comments }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setCommentsLoadStatus({ workOrderId, status: 'error' })
+      );
+      throw error;
     } finally {
       dispatch(slice.actions.setLoadingComments({ loading: false }));
     }

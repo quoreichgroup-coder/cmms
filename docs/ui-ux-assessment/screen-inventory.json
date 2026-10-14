@@ -7,14 +7,16 @@
     "web_redirects_excluded_for_active_destination_count": 3,
     "web_active_render_destinations": 106,
     "web_comment_caveat": "One commented route declaration is retained separately in commented_out_route_declarations and excluded from the active destination inventory.",
-    "mobile_registered_navigator_destinations": 76,
-    "mobile_screen_source_files": 97,
+    "mobile_registered_navigator_destinations": 75,
+    "mobile_screen_source_files": 99,
     "web_shared_component_modules": 59,
     "mobile_shared_component_modules": 37,
     "shared_component_modules_total": 96,
     "component_count_definition": "TS/TSX files recursively under frontend/src/components + frontend/src/content/own/components + mobile/components; platform-specific files, not unique design primitives.",
     "web_component_file_resolution": "Lazy-loaded screen source paths resolved from route module imports where declared; route wrapper/public alias may resolve to route module.",
-    "web_route_paths": "Resolved full route patterns from nested route object declarations and imported route roots (/app, /app/analytics, /account, /oauth2). Dynamic IDs remain path parameters."
+    "web_route_paths": "Resolved full route patterns from nested route object declarations and imported route roots (/app, /app/analytics, /account, /oauth2). Dynamic IDs remain path parameters.",
+    "mobile_retired_or_unmounted_destination_records": 1,
+    "mobile_screen_source_file_method": "Count of .ts/.tsx files recursively under mobile/screens, excluding test files; includes child implementation files and source-only legacy screens."
   },
   "web_destinations": [
     {
@@ -3922,22 +3924,22 @@
       "screen_id": "MOB-067",
       "platform": "mobile",
       "module": "Authentication",
-      "screen_name": "Login",
+      "screen_name": "AuthFlow",
       "navigation_file": "mobile/navigation/index.tsx",
       "navigator": "AuthStack",
-      "component": "LoginScreen",
-      "component_file": "mobile/screens/auth/LoginScreen.tsx",
+      "component": "AuthenticationScreen",
+      "component_file": "mobile/screens/auth/AuthenticationScreen.tsx",
       "primary_role": "Inferred from module and role navigation; confirm on device",
-      "purpose": "Native destination; inspect component for precise task",
-      "primary_actions": "Inspect destination component and exercise in role session",
+      "purpose": "Unauthenticated entry route; the single screen contains welcome, sign-in and sign-up modes. Email verification remains a separate route.",
+      "primary_actions": "Choose welcome/sign-in/sign-up mode, submit existing sign-in or authorized account registration, or choose a server.",
       "shared_components": "mobile/components (Paper, field/list/action-sheet helpers)",
-      "api_dependencies": "Domain API through mobile/utils/api.ts; exact calls in destination/hooks/slices",
-      "permission_dependencies": "AuthContext/useAuth role, permission, feature/license checks; verify per screen",
-      "ui_patterns": "React Native Paper; stack/tab/modal/action sheet as registered",
-      "ux_issue": "Not visually observed in current device session",
-      "redesign_priority": "P1 for WO execution/request/asset; P2 for secondary administration",
+      "api_dependencies": "Existing AuthContext login/register/server-selection flows; endpoint payloads unchanged by the UI consolidation.",
+      "permission_dependencies": "Unauthenticated flow; account registration availability follows existing instance configuration and account policy.",
+      "ui_patterns": "Shared authentication screen with mode state; branded contour header/wave, underlined fields, inline validation and bottom-anchored actions.",
+      "ux_issue": "Rendered device states and registration policy variants not independently verified in this inventory refresh.",
+      "redesign_priority": "P1",
       "record_status": "registered",
-      "evidence_confidence": "navigation declaration verified; rendered behavior/device layout unverified"
+      "evidence_confidence": "AuthFlow declaration and source component verified; runtime behavior/API execution not re-tested."
     },
     {
       "screen_id": "MOB-068",
@@ -3957,8 +3959,9 @@
       "ui_patterns": "React Native Paper; stack/tab/modal/action sheet as registered",
       "ux_issue": "Not visually observed in current device session",
       "redesign_priority": "P1 for WO execution/request/asset; P2 for secondary administration",
-      "record_status": "registered",
-      "evidence_confidence": "navigation declaration verified; rendered behavior/device layout unverified"
+      "record_status": "unmounted_legacy_source",
+      "evidence_confidence": "Source file exists, but no Register Stack.Screen is declared; registration is a mode inside AuthFlow.",
+      "replacement_screen_id": "MOB-067"
     },
     {
       "screen_id": "MOB-069",
@@ -4512,7 +4515,8 @@
       "ui_pattern": "Native implementation; runtime visual state unverified",
       "ux_issue": "Not visually observed in the current assessment",
       "redesign_priority": "Assign based on affected primary workflow; default P2",
-      "evidence_confidence": "screen source file confirmed; reachability/render condition may be conditional"
+      "evidence_confidence": "screen source file confirmed; reachability/render condition may be conditional",
+      "runtime_status": "source_only_unmounted; AuthFlow is the mounted replacement."
     },
     {
       "screen_id": "MOB-IMPL-025",
@@ -4528,7 +4532,8 @@
       "ui_pattern": "Native implementation; runtime visual state unverified",
       "ux_issue": "Not visually observed in the current assessment",
       "redesign_priority": "Assign based on affected primary workflow; default P2",
-      "evidence_confidence": "screen source file confirmed; reachability/render condition may be conditional"
+      "evidence_confidence": "screen source file confirmed; reachability/render condition may be conditional",
+      "runtime_status": "source_only_unmounted; AuthFlow is the mounted replacement."
     },
     {
       "screen_id": "MOB-IMPL-026",
@@ -5681,6 +5686,586 @@
       "ux_issue": "Not visually observed in the current assessment",
       "redesign_priority": "Assign based on affected primary workflow; default P2",
       "evidence_confidence": "screen source file confirmed; reachability/render condition may be conditional"
+    },
+    {
+      "screen_id": "MOB-IMPL-098",
+      "platform": "mobile",
+      "module": "Authentication",
+      "implementation_file": "mobile/screens/auth/AuthenticationScreen.tsx",
+      "navigation_registration": "Mounted as AuthStack route AuthFlow (MOB-067); owns welcome/sign-in/sign-up modes.",
+      "primary_user_role": "Unauthenticated user; registration remains governed by current instance policy.",
+      "purpose_actions": "Switch among welcome/sign-in/sign-up modes and use existing authentication actions.",
+      "shared_components": "mobile/components and React Native Paper patterns",
+      "api_dependencies": "Existing AuthContext flows; no contract changes.",
+      "permission_dependencies": "Authentication and instance configuration govern available flows.",
+      "ui_pattern": "Shared branded authentication composition; visual rendering on devices remains unverified.",
+      "ux_issue": "Not visually observed in the current assessment",
+      "redesign_priority": "Assign based on affected primary workflow; default P2",
+      "evidence_confidence": "Component source and navigator registration verified; API execution/device rendering not re-tested."
+    },
+    {
+      "screen_id": "MOB-IMPL-099",
+      "platform": "mobile",
+      "module": "Work Orders",
+      "implementation_file": "mobile/screens/workOrders/components/WorkOrderTimerFab.tsx",
+      "navigation_registration": "Child component mounted by WODetailsScreen (MOB-002); not a separate navigation destination.",
+      "primary_user_role": "Inferred from module; confirm on device",
+      "purpose_actions": "Quick work-order time tracking control rendered in work-order details.",
+      "shared_components": "mobile/components and React Native Paper patterns",
+      "api_dependencies": "Inspect component hooks/thunks; central client mobile/utils/api.ts",
+      "permission_dependencies": "Inspect AuthContext/useAuth and server response per role",
+      "ui_pattern": "Native implementation; runtime visual state unverified",
+      "ux_issue": "Not visually observed in the current assessment",
+      "redesign_priority": "Assign based on affected primary workflow; default P2",
+      "evidence_confidence": "Import and render call in WODetailsScreen verified; runtime timer/API behavior not re-tested."
     }
-  ]
+  ],
+  "mobile_navigation_snapshot": {
+    "audit_date": "2026-10-12",
+    "source_file": "mobile/navigation/index.tsx",
+    "active_declaration_count": 75,
+    "inventory_records_including_unmounted_legacy": 76,
+    "active_auth_routes": [
+      "AuthFlow",
+      "Verify",
+      "CustomServer"
+    ],
+    "auth_modes_inside_AuthFlow": [
+      "welcome",
+      "signin",
+      "signup"
+    ],
+    "auth_legacy_type_only_names": [
+      "Welcome",
+      "Login",
+      "Register"
+    ],
+    "route_declarations": [
+      {
+        "screen_id": "MOB-001",
+        "name": "Root",
+        "navigator": "Stack",
+        "declaration_line": 201,
+        "condition": "Authenticated non-super-account root navigator."
+      },
+      {
+        "screen_id": "MOB-002",
+        "name": "WODetails",
+        "navigator": "Stack",
+        "declaration_line": 206,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-003",
+        "name": "Tasks",
+        "navigator": "Stack",
+        "declaration_line": 211,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-004",
+        "name": "NotFound",
+        "navigator": "Stack",
+        "declaration_line": 216,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-005",
+        "name": "AddWorkOrder",
+        "navigator": "Stack",
+        "declaration_line": 221,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-006",
+        "name": "EditWorkOrder",
+        "navigator": "Stack",
+        "declaration_line": 226,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-007",
+        "name": "AddRequest",
+        "navigator": "Stack",
+        "declaration_line": 231,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-008",
+        "name": "AddAsset",
+        "navigator": "Stack",
+        "declaration_line": 236,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-009",
+        "name": "AddLocation",
+        "navigator": "Stack",
+        "declaration_line": 244,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-010",
+        "name": "AddPart",
+        "navigator": "Stack",
+        "declaration_line": 252,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-011",
+        "name": "AddMeter",
+        "navigator": "Stack",
+        "declaration_line": 260,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-012",
+        "name": "AddUser",
+        "navigator": "Stack",
+        "declaration_line": 265,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-013",
+        "name": "WorkOrderStats",
+        "navigator": "Stack",
+        "declaration_line": 273,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-014",
+        "name": "Meters",
+        "navigator": "Stack",
+        "declaration_line": 278,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-015",
+        "name": "PreventiveMaintenances",
+        "navigator": "Stack",
+        "declaration_line": 283,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-016",
+        "name": "PreventiveMaintenanceDetails",
+        "navigator": "Stack",
+        "declaration_line": 288,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-017",
+        "name": "MeterDetails",
+        "navigator": "Stack",
+        "declaration_line": 293,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-018",
+        "name": "EditMeter",
+        "navigator": "Stack",
+        "declaration_line": 298,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-019",
+        "name": "Parts",
+        "navigator": "Stack",
+        "declaration_line": 303,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-020",
+        "name": "PartDetails",
+        "navigator": "Stack",
+        "declaration_line": 308,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-021",
+        "name": "RequestDetails",
+        "navigator": "Stack",
+        "declaration_line": 313,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-022",
+        "name": "EditRequest",
+        "navigator": "Stack",
+        "declaration_line": 318,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-023",
+        "name": "EditPart",
+        "navigator": "Stack",
+        "declaration_line": 323,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-024",
+        "name": "VendorsCustomers",
+        "navigator": "Stack",
+        "declaration_line": 328,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-025",
+        "name": "CustomerDetails",
+        "navigator": "Stack",
+        "declaration_line": 336,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-026",
+        "name": "EditCustomer",
+        "navigator": "Stack",
+        "declaration_line": 341,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-027",
+        "name": "VendorDetails",
+        "navigator": "Stack",
+        "declaration_line": 346,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-028",
+        "name": "EditVendor",
+        "navigator": "Stack",
+        "declaration_line": 351,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-029",
+        "name": "Assets",
+        "navigator": "Stack",
+        "declaration_line": 356,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-030",
+        "name": "AssetDetails",
+        "navigator": "Stack",
+        "declaration_line": 361,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-031",
+        "name": "EditAsset",
+        "navigator": "Stack",
+        "declaration_line": 366,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-032",
+        "name": "Locations",
+        "navigator": "Stack",
+        "declaration_line": 371,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-033",
+        "name": "LocationDetails",
+        "navigator": "Stack",
+        "declaration_line": 376,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-034",
+        "name": "EditLocation",
+        "navigator": "Stack",
+        "declaration_line": 381,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-035",
+        "name": "PeopleTeams",
+        "navigator": "Stack",
+        "declaration_line": 386,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-036",
+        "name": "TeamDetails",
+        "navigator": "Stack",
+        "declaration_line": 394,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-037",
+        "name": "UserDetails",
+        "navigator": "Stack",
+        "declaration_line": 399,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-038",
+        "name": "UserProfile",
+        "navigator": "Stack",
+        "declaration_line": 404,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-039",
+        "name": "EditTeam",
+        "navigator": "Stack",
+        "declaration_line": 409,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-040",
+        "name": "Notifications",
+        "navigator": "Stack",
+        "declaration_line": 414,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-041",
+        "name": "License",
+        "navigator": "Stack",
+        "declaration_line": 419,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-042",
+        "name": "CompanyProfile",
+        "navigator": "Stack",
+        "declaration_line": 424,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-043",
+        "name": "Settings",
+        "navigator": "Stack",
+        "declaration_line": 429,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-044",
+        "name": "WorkOrderFilters",
+        "navigator": "Stack",
+        "declaration_line": 434,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-045",
+        "name": "ScanAsset",
+        "navigator": "Stack",
+        "declaration_line": 439,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-046",
+        "name": "Feedback",
+        "navigator": "Stack",
+        "declaration_line": 444,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-047",
+        "name": "Modal",
+        "navigator": "Stack",
+        "declaration_line": 455,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-048",
+        "name": "CompleteWorkOrder",
+        "navigator": "Stack",
+        "declaration_line": 456,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-049",
+        "name": "SelectParts",
+        "navigator": "Stack",
+        "declaration_line": 461,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-050",
+        "name": "SelectMeters",
+        "navigator": "Stack",
+        "declaration_line": 466,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-051",
+        "name": "SelectNfc",
+        "navigator": "Stack",
+        "declaration_line": 471,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-052",
+        "name": "SelectBarcode",
+        "navigator": "Stack",
+        "declaration_line": 476,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-053",
+        "name": "SelectCustomers",
+        "navigator": "Stack",
+        "declaration_line": 481,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-054",
+        "name": "SelectVendors",
+        "navigator": "Stack",
+        "declaration_line": 486,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-055",
+        "name": "SelectUsers",
+        "navigator": "Stack",
+        "declaration_line": 491,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-056",
+        "name": "SelectTeams",
+        "navigator": "Stack",
+        "declaration_line": 496,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-057",
+        "name": "SelectLocations",
+        "navigator": "Stack",
+        "declaration_line": 501,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-058",
+        "name": "SelectAssets",
+        "navigator": "Stack",
+        "declaration_line": 506,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-059",
+        "name": "SelectCategories",
+        "navigator": "Stack",
+        "declaration_line": 511,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-060",
+        "name": "SelectTasks",
+        "navigator": "Stack",
+        "declaration_line": 516,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-061",
+        "name": "SelectChecklists",
+        "navigator": "Stack",
+        "declaration_line": 521,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-062",
+        "name": "SelectTasksOrChecklist",
+        "navigator": "Stack",
+        "declaration_line": 526,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-063",
+        "name": "AddAdditionalCost",
+        "navigator": "Stack",
+        "declaration_line": 531,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-064",
+        "name": "EditAdditionalCost",
+        "navigator": "Stack",
+        "declaration_line": 536,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-065",
+        "name": "AddAdditionalTime",
+        "navigator": "Stack",
+        "declaration_line": 541,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-066",
+        "name": "EditAdditionalTime",
+        "navigator": "Stack",
+        "declaration_line": 546,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-067",
+        "name": "AuthFlow",
+        "navigator": "AuthStack",
+        "declaration_line": 563,
+        "condition": "AuthNavigator is selected while unauthenticated."
+      },
+      {
+        "screen_id": "MOB-069",
+        "name": "Verify",
+        "navigator": "AuthStack",
+        "declaration_line": 568,
+        "condition": "AuthNavigator is selected while unauthenticated."
+      },
+      {
+        "screen_id": "MOB-070",
+        "name": "CustomServer",
+        "navigator": "AuthStack",
+        "declaration_line": 573,
+        "condition": "AuthNavigator is selected while unauthenticated."
+      },
+      {
+        "screen_id": "MOB-071",
+        "name": "SwitchAccount",
+        "navigator": "SuperUserStack",
+        "declaration_line": 588,
+        "condition": "SuperUserNavigator is selected when user.superAccountRelations is non-empty."
+      },
+      {
+        "screen_id": "MOB-072",
+        "name": "Home",
+        "navigator": "BottomTab",
+        "declaration_line": 683,
+        "condition": "Bottom tab is omitted for users whose role code is REQUESTER."
+      },
+      {
+        "screen_id": "MOB-073",
+        "name": "WorkOrders",
+        "navigator": "BottomTab",
+        "declaration_line": 716,
+        "condition": "Declared in navigator; entry/action visibility may additionally depend on role, permission, license or workflow state."
+      },
+      {
+        "screen_id": "MOB-074",
+        "name": "AddEntities",
+        "navigator": "BottomTab",
+        "declaration_line": 731,
+        "condition": "Bottom tab is declared only when the user has create permission for at least one entity."
+      },
+      {
+        "screen_id": "MOB-075",
+        "name": "Requests",
+        "navigator": "BottomTab",
+        "declaration_line": 769,
+        "condition": "Bottom tab requires REQUESTS view permission and uiConfiguration.requests."
+      },
+      {
+        "screen_id": "MOB-076",
+        "name": "MoreEntities",
+        "navigator": "BottomTab",
+        "declaration_line": 781,
+        "condition": "Bottom tab requires view permission for at least one entity in viewMoreEntities."
+      }
+    ]
+  }
 }

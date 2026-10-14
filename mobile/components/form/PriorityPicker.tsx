@@ -2,15 +2,20 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import { SegmentedButtons, useTheme } from 'react-native-paper';
 import { getPriorityLabel } from '../../utils/formatters';
 import { useTranslation } from 'react-i18next';
-import { getPriorityColor } from '../../utils/overall';
+import {
+  getPriorityColor,
+  getPriorityForegroundColor
+} from '../../utils/overall';
 import { Priority } from '../../models/workOrder';
 
 export default function PriorityPicker({
   value,
-  onChange
+  onChange,
+  disabled = false
 }: {
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -24,7 +29,8 @@ export default function PriorityPicker({
             option === value
               ? getPriorityColor(option, theme)
               : theme.colors.background
-        }
+        },
+        checkedColor: getPriorityForegroundColor(option, theme)
       };
     }
   );
@@ -33,7 +39,7 @@ export default function PriorityPicker({
       <SegmentedButtons
         value={value}
         onValueChange={onChange}
-        buttons={options}
+        buttons={options.map((option) => ({ ...option, disabled }))}
       />
     </SafeAreaView>
   );

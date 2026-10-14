@@ -11,24 +11,23 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput as RNTextInput
+  TextInput as RNTextInput,
+  View
 } from 'react-native';
 import { useMentions } from 'react-native-controlled-mentions';
-import { View } from '../../components/Themed';
 import { RootStackParamList, RootStackScreenProps } from '../../types';
 import {
   Button,
   Dialog,
   Divider,
-  FAB,
+  Icon,
   IconButton,
   List,
   Portal,
   ProgressBar,
   Provider,
   Text,
-  TextInput,
-  useTheme
+  TextInput
 } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
@@ -46,9 +45,8 @@ import Tag from '../../components/Tag';
 import { getPriorityColor, getStatusColor } from '../../utils/overall';
 import { PermissionEntity } from '../../models/role';
 import useAuth from '../../hooks/useAuth';
-import { controlTimer, getLabors } from '../../slices/labor';
+import { getLabors } from '../../slices/labor';
 import { useDispatch, useSelector } from '../../store';
-import { durationToHours } from '../../utils/formatters';
 import {
   editWOPartQuantities,
   getPartQuantitiesByWorkOrder
@@ -63,20 +61,20 @@ import {
   deleteWorkOrder,
   editWorkOrder,
   getPDFReport,
-  getWorkOrderDetails
+  getWorkOrderDetails,
+  getWorkOrderLifecycleEvents,
+  reopenWorkOrder
 } from '../../slices/workOrder';
 import { PlanFeature } from '../../models/subscriptionPlan';
 import PartQuantities from '../../components/PartQuantities';
 import AdditionalCostsCard from './components/AdditionalCostsCard';
 import AdditionalTimesCard from './components/AdditionalTimesCard';
 import { SheetManager } from 'react-native-actions-sheet';
-import LoadingDialog from '../../components/LoadingDialog';
 import WorkOrder from '../../models/workOrder';
-import Labor from '../../models/labor';
 import { AudioPlayer } from '../../components/AudioPlayer';
-import { Task } from '../../models/tasks';
+import { isTaskComplete, Task } from '../../models/tasks';
 import { getErrorMessage } from '../../utils/api';
-import ImageView from 'react-native-image-viewing';
+import ImageView from '../../components/ImageViewer';
 import { getCustomFieldValuesForDetails } from '../../models/form';
 import CommentItem from '../../components/CommentItem';
 import { downloadFile } from '../../utils/fileDownload';
@@ -86,32 +84,31 @@ import { TriggersConfig } from 'react-native-controlled-mentions/dist/types/type
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createUploadFile } from '../../utils/uploadFiles';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import WorkOrderTimerFab from './components/WorkOrderTimerFab';
+import { useLicenseEntitlement } from '../../hooks/useLicenseEntitlement';
+import { WorkOrderLifecycleEvent } from '../../models/workOrderHistories';
+import {
+  canUseWorkOrderTimer,
+  getPrimaryWorkOrderLabor
+} from '../../utils/workOrderTimer';
+import {
+  getWorkOrderCompletionBlockers,
+  getWorkOrderCompletionLoadIssues,
+  getWorkOrderCompletionNextStep
+} from '../../utils/workOrderCompletion';
 
-const getRemainingTasksLength = (tasks: Task[]): number => {
-  const SECONDS_MS = 5_000;
-
-  const mappedTasks = tasks.map((task) => {
-    const createdAt = new Date(task.createdAt).getTime();
-    const updatedAt = new Date(task.updatedAt).getTime();
-
-    const updatedAfterMoreThanThreshold = updatedAt - createdAt > SECONDS_MS;
-
-    return {
-      ...task,
-      updatedAfterMoreThanThreshold
-    };
-  });
-
-  return mappedTasks.filter(
-    (task) => !task.value || !task.updatedAfterMoreThanThreshold
-  ).length;
-};
-const triggersConfig: TriggersConfig<'mention'> = {
+const getRemainingTasksLength = (tasks: Task[]): number =>
+  tasks.filter((task) => !isTaskComplete(task)).length;
+const createTriggersConfig = (
+  primaryColor: string
+): TriggersConfig<'mention'> => ({
   mention: {
     trigger: '@',
     pattern: /(@\[[^\]]+\]\(user:[^)]+\))/g,
     isInsertSpaceAfterMention: true,
-    textStyle: { fontWeight: 'bold', color: 'blue' },
+    textStyle: { fontWeight: 'bold', color: primaryColor },
     getTriggerData: (match: string) => {
       const result = match.match(/@\[(.*?)\]\(user:(.*?)\)/);
       return {
@@ -124,7 +121,7 @@ const triggersConfig: TriggersConfig<'mention'> = {
     getTriggerValue: (suggestion) =>
       `@[${suggestion.name}](user:${suggestion.id})`
   }
-};
+});
 export default function WODetailsScreen({
   navigation,
   route
@@ -142,52 +139,78 @@ export default function WODetailsScreen({
     hasFeature,
     hasViewPermission
   } = useAuth();
+  const hasTimeTrackingEntitlement = useLicenseEntitlement('TIME_TRACKING');
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { uploadFiles } = useContext(CompanySettingsContext);
-  const [runningTimerDuration, setRunningTimerDuration] = useState<string>();
   const { workOrderConfiguration, generalPreferences } = companySettings;
   const [loading, setLoading] = useState<boolean>(false);
-  const theme = useTheme();
+  const reportDownloadInProgress = useRef(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [openCompleteConfirmation, setOpenCompleteConfirmation] =
+    useState(false);
+  const [openReopenDialog, setOpenReopenDialog] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
+  const [reopening, setReopening] = useState(false);
+  const reopeningRef = useRef(false);
+  const [lifecycleEvents, setLifecycleEvents] = useState<
+    WorkOrderLifecycleEvent[]
+  >([]);
+  const [lifecycleEventsLoading, setLifecycleEventsLoading] = useState(false);
+  const [lifecycleEventsError, setLifecycleEventsError] = useState(false);
+  const statusChangeInProgress = useRef(false);
+  const [loadingWorkOrder, setLoadingWorkOrder] = useState(!workOrder);
+  const [workOrderLoadError, setWorkOrderLoadError] = useState(false);
+  const theme = useAppTheme();
+  const triggersConfig = createTriggersConfig(theme.colors.primary);
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const dispatch = useDispatch();
-  const { partQuantitiesByWorkOrder, loadingPartQuantities } = useSelector(
-    (state) => state.partQuantities
-  );
+  const {
+    partQuantitiesByWorkOrder,
+    loadingPartQuantities,
+    loadStatusByWorkOrder: partQuantityLoadStatusByWorkOrder
+  } = useSelector((state) => state.partQuantities);
   const partQuantities = partQuantitiesByWorkOrder[id] ?? [];
   const { relationsByWorkOrder, loadingRelations } = useSelector(
     (state) => state.relations
   );
-  const { tasksByWorkOrder, loadingTasks } = useSelector(
-    (state) => state.tasks
-  );
+  const { tasksByWorkOrder, loadingTasks, taskLoadStatusByWorkOrder } =
+    useSelector((state) => state.tasks);
   const tasks = tasksByWorkOrder[id] ?? [];
+  const taskLoadStatus = taskLoadStatusByWorkOrder[id];
   const currentWorkOrderRelations = relationsByWorkOrder[id] ?? [];
-  const { costsByWorkOrder, loadingCosts } = useSelector(
-    (state) => state.additionalCosts
-  );
-  const { timesByWorkOrder, loadingLabors } = useSelector(
-    (state) => state.labors
-  );
+  const {
+    costsByWorkOrder,
+    loadingCosts,
+    loadStatusByWorkOrder: costLoadStatusByWorkOrder
+  } = useSelector((state) => state.additionalCosts);
+  const { timesByWorkOrder, loadingLabors, laborLoadStatusByWorkOrder } =
+    useSelector((state) => state.labors);
   const labors = timesByWorkOrder[id] ?? [];
-  const primaryTime = labors.find(
-    (labor) => labor.logged && labor.assignedTo.id === user.id
+  const laborLoadStatus = laborLoadStatusByWorkOrder[id];
+  const canUseTimer = canUseWorkOrderTimer(
+    hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder),
+    hasFeature(PlanFeature.ADDITIONAL_TIME),
+    hasTimeTrackingEntitlement
   );
+  const primaryTime = getPrimaryWorkOrderLabor(labors, user.id);
   const additionalCosts = costsByWorkOrder[id] ?? [];
-  const runningTimer = primaryTime?.status === 'RUNNING';
-  const [controllingTime, setControllingTime] = useState<boolean>(false);
   const { getFormattedDate, getUserNameById, getFormattedCurrency } =
     useContext(CompanySettingsContext);
   const [isExtended, setIsExtended] = React.useState(true);
   const [commentContent, setCommentContent] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const submittingCommentRef = useRef(false);
   const [commentFiles, setCommentFiles] = useState<
     { uri: string; name: string; type: string }[]
   >([]);
-  const { commentsByWorkOrder, loadingComments, loadingCreate } = useSelector(
-    (state) => state.comments
-  );
+  const {
+    commentsByWorkOrder,
+    loadingCreate,
+    loadStatusByWorkOrder: commentLoadStatusByWorkOrder
+  } = useSelector((state) => state.comments);
   const { usersMini } = useSelector((state) => state.users);
   const comments = commentsByWorkOrder[id] ?? [];
   const statuses = ['OPEN', 'ON_HOLD', 'IN_PROGRESS', 'COMPLETE'].map(
@@ -195,6 +218,10 @@ export default function WODetailsScreen({
   );
   const [openDelete, setOpenDelete] = React.useState(false);
   const [openArchive, setOpenArchive] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [archiving, setArchiving] = React.useState(false);
+  const deletingRef = React.useRef(false);
+  const archivingRef = React.useRef(false);
   const remainingTasksLength = getRemainingTasksLength(tasks);
   const loadingDetails =
     loadingPartQuantities[id] ||
@@ -273,22 +300,66 @@ export default function WODetailsScreen({
       permissionEntity: PermissionEntity.PEOPLE_AND_TEAMS
     }
   ];
-  const getInfos = () => {
-    if (!workOrderProp) dispatch(getWorkOrderDetails(id));
-    if (!generalPreferences.simplifiedWorkOrder) {
-      dispatch(getPartQuantitiesByWorkOrder(id));
-      dispatch(getLabors(id));
-      dispatch(getAdditionalCosts(id));
-      dispatch(getRelations(id));
+  const loadWorkOrder = useCallback(async () => {
+    setLoadingWorkOrder(true);
+    setWorkOrderLoadError(false);
+    try {
+      await dispatch(getWorkOrderDetails(id));
+    } catch (_error) {
+      setWorkOrderLoadError(true);
+    } finally {
+      setLoadingWorkOrder(false);
     }
-    dispatch(getTasks(id));
-  };
+  }, [dispatch, id]);
+
+  const refreshWorkOrderAfterTimerStart = useCallback(() => {
+    void dispatch(getWorkOrderDetails(id)).catch((error) =>
+      showSnackBar(getErrorMessage(error), 'error')
+    );
+  }, [dispatch, getErrorMessage, id, showSnackBar]);
+
+  const getInfos = useCallback(
+    (refreshWorkOrder = false) => {
+      if (refreshWorkOrder || !workOrderProp) void loadWorkOrder();
+      const requiredFields = new Set(
+        workOrderConfiguration.workOrderFieldConfigurations
+          .filter((field) => field.fieldType === 'REQUIRED')
+          .map((field) => field.fieldName)
+      );
+      const needsParts = requiredFields.has('completeParts');
+      const needsTime = requiredFields.has('completeTime');
+      const needsCosts = requiredFields.has('completeCost');
+      if (!generalPreferences.simplifiedWorkOrder || needsParts) {
+        dispatch(getPartQuantitiesByWorkOrder(id));
+      }
+      if (!generalPreferences.simplifiedWorkOrder || needsTime) {
+        dispatch(getLabors(id));
+      }
+      if (!generalPreferences.simplifiedWorkOrder || needsCosts) {
+        dispatch(getAdditionalCosts(id));
+      }
+      if (!generalPreferences.simplifiedWorkOrder) {
+        dispatch(getRelations(id));
+      }
+      dispatch(getTasks(id));
+    },
+    [
+      dispatch,
+      generalPreferences.simplifiedWorkOrder,
+      id,
+      loadWorkOrder,
+      workOrderConfiguration.workOrderFieldConfigurations,
+      workOrderProp
+    ]
+  );
   useEffect(() => {
     navigation.setOptions({
       headerRight: () =>
         workOrder &&
         !loadingTasks[id] && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('more_options')}
             onPress={() => {
               SheetManager.show('work-order-details-sheet', {
                 payload: {
@@ -306,7 +377,7 @@ export default function WODetailsScreen({
               });
             }}
           >
-            <IconButton icon="dots-vertical" />
+            <IconButton icon="dots-vertical" accessible={false} />
           </Pressable>
         )
     });
@@ -315,44 +386,66 @@ export default function WODetailsScreen({
 
   useEffect(() => {
     getInfos();
-  }, [workOrderProp]);
+  }, [getInfos]);
 
   useEffect(() => {
-    dispatch(getCommentsByWorkOrder(id));
+    void dispatch(getCommentsByWorkOrder(id)).catch(() => undefined);
     dispatch(getUsersMini());
   }, [id]);
 
-  useEffect(() => {
-    let intervalId;
-
-    // Function to update timer duration every minute
-    if (primaryTime?.status === 'RUNNING') {
-      const updateTimerDuration = () => {
-        // Calculate new duration here
-        const newDuration = getRunningTimerDuration(primaryTime);
-        setRunningTimerDuration(newDuration);
-      };
-      updateTimerDuration();
-      // Update timer duration every minute
-      intervalId = setInterval(updateTimerDuration, 1000);
+  const loadLifecycleEvents = useCallback(async () => {
+    setLifecycleEventsLoading(true);
+    setLifecycleEventsError(false);
+    try {
+      const events = await dispatch(getWorkOrderLifecycleEvents(id));
+      setLifecycleEvents(events);
+    } catch {
+      setLifecycleEventsError(true);
+    } finally {
+      setLifecycleEventsLoading(false);
     }
-    // Cleanup function
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      setRunningTimerDuration('0:00');
-    };
-  }, [primaryTime, runningTimer]); // Run effect whenever runningTimer changes
+  }, [dispatch, id]);
+
+  useEffect(() => {
+    void loadLifecycleEvents();
+  }, [loadLifecycleEvents]);
+
+  const canReopenWorkOrder = Boolean(
+    workOrder?.status === 'COMPLETE' &&
+      user.role?.roleType === 'ROLE_CLIENT' &&
+      user.superAccountRelations?.length === 0 &&
+      user.role?.editOtherPermissions?.includes(
+        PermissionEntity.REOPEN_WORK_ORDERS
+      )
+  );
+
+  const submitReopenWorkOrder = async () => {
+    if (reopeningRef.current) return;
+    const reason = reopenReason.trim();
+    if (!reason) {
+      showSnackBar(t('work_order_reopen_reason_required'), 'error');
+      return;
+    }
+    reopeningRef.current = true;
+    setReopening(true);
+    try {
+      await dispatch(reopenWorkOrder(id, reason));
+      setOpenReopenDialog(false);
+      setReopenReason('');
+      showSnackBar(t('work_order_reopen_success'), 'success');
+      await loadLifecycleEvents();
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      reopeningRef.current = false;
+      setReopening(false);
+    }
+  };
 
   const actualDownload = async (uri: string): Promise<void> => {
     const rawFileName = workOrder?.title ?? `work-order-${id}`;
     const fileName = `${rawFileName.replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
     await downloadFile(uri, fileName);
-  };
-  const getRunningTimerDuration = (labor: Labor) => {
-    return durationToHours(
-      labor.duration +
-        (new Date().getTime() - new Date(labor.startedAt).getTime()) / 1000
-    );
   };
   const onDeleteSuccess = () => {
     showSnackBar(t('wo_delete_success'), 'success');
@@ -367,92 +460,176 @@ export default function WODetailsScreen({
   const onDeleteFailure = (err) =>
     showSnackBar(t('wo_delete_failure'), 'error');
 
-  const handleDelete = () => {
-    dispatch(deleteWorkOrder(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async () => {
+    if (deletingRef.current) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    try {
+      await dispatch(deleteWorkOrder(id));
+      setOpenDelete(false);
+      onDeleteSuccess();
+    } catch (err) {
+      onDeleteFailure(err);
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
   };
-  const onArchive = () => {
-    dispatch(editWorkOrder(id, { ...workOrder, archived: true }))
-      .then(onArchiveSuccess)
-      .catch(onArchiveFailure);
+  const onArchive = async () => {
+    if (archivingRef.current || !workOrder) return;
+    archivingRef.current = true;
+    setArchiving(true);
+    try {
+      await dispatch(editWorkOrder(id, { ...workOrder, archived: true }));
+      setOpenArchive(false);
+      onArchiveSuccess();
+    } catch (err) {
+      onArchiveFailure(err);
+    } finally {
+      archivingRef.current = false;
+      setArchiving(false);
+    }
   };
-  const onGenerateReport = () => {
+  const onGenerateReport = async () => {
+    if (reportDownloadInProgress.current) return;
+    reportDownloadInProgress.current = true;
     setLoading(true);
-    dispatch(getPDFReport(id))
-      .then(async (uri: string) => {
-        if (Platform.OS === 'ios') {
-          await actualDownload(uri);
-        } else {
-          if (Platform.OS === 'android' && Platform.Version >= 29)
+    try {
+      const uri: string = await dispatch(getPDFReport(id));
+      let reportOpened = false;
+      if (Platform.OS === 'ios') {
+        await actualDownload(uri);
+        reportOpened = true;
+      } else if (Platform.OS === 'android' && Platform.Version < 29) {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+          );
+          if (granted === 'granted') {
             await actualDownload(uri);
-          else {
-            try {
-              const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-              );
-              if (granted === 'granted') {
-                await actualDownload(uri);
-              } else {
-                Alert.alert(
-                  t('error'),
-                  t('storage_permission_needed_description')
-                );
-              }
-            } catch (err) {
-              console.error(err);
-            }
+            reportOpened = true;
+          } else {
+            Alert.alert(t('error'), t('storage_permission_needed_description'));
           }
+        } catch (err) {
+          showSnackBar(getErrorMessage(err), 'error');
         }
-      })
-      .catch((err: Error) => console.error(err.message))
-      .finally(() => setLoading(false));
+      } else {
+        await actualDownload(uri);
+        reportOpened = true;
+      }
+      if (reportOpened) {
+        showSnackBar(t('wo_report_download_success'), 'success');
+      }
+    } catch (err) {
+      showSnackBar(getErrorMessage(err), 'error');
+    } finally {
+      reportDownloadInProgress.current = false;
+      setLoading(false);
+    }
   };
   const canComplete = (): boolean => {
-    let error;
+    const loadIssues = getWorkOrderCompletionLoadIssues(
+      workOrderConfiguration.workOrderFieldConfigurations,
+      {
+        workOrder: workOrderLoadError
+          ? 'error'
+          : loadingWorkOrder
+          ? 'loading'
+          : workOrder
+          ? 'success'
+          : 'idle',
+        comments: commentLoadStatusByWorkOrder[id],
+        tasks: taskLoadStatus,
+        labor: laborLoadStatus,
+        parts: partQuantityLoadStatusByWorkOrder[id],
+        costs: costLoadStatusByWorkOrder[id]
+      }
+    );
+    if (loadIssues.length > 0) {
+      const hasLoadError = loadIssues.some((issue) => issue.status === 'error');
+      showSnackBar(
+        t(
+          hasLoadError
+            ? 'work_order_completion_data_load_error'
+            : 'work_order_completion_data_loading'
+        ),
+        'error'
+      );
+      return false;
+    }
+
     const fieldsToTest = [
       {
-        name: 'completeFiles',
-        condition:
+        fieldName: 'completeFiles',
+        isMissing:
           (workOrder?.files.length || 0) +
             comments.filter((comment) => comment.files.length).length ===
           0,
         message: 'required_files_on_completion'
       },
       {
-        name: 'completeTasks',
-        condition: tasks.some((task) => !task.value),
+        fieldName: 'completeTasks',
+        isMissing: tasks.some((task) => !isTaskComplete(task)),
         message: 'required_tasks_on_completion'
       },
       {
-        name: 'completeTime',
-        condition: labors.filter((labor) => labor.duration > 0).length === 0,
+        fieldName: 'completeTime',
+        isMissing: labors.filter((labor) => labor.duration > 0).length === 0,
         message: 'required_labor_on_completion'
       },
       {
-        name: 'completeParts',
-        condition: !partQuantities.length,
+        fieldName: 'completeParts',
+        isMissing: !partQuantities.length,
         message: 'required_part_on_completion'
       },
       {
-        name: 'completeCost',
-        condition: !additionalCosts.length,
+        fieldName: 'completeCost',
+        isMissing: !additionalCosts.length,
         message: 'required_cost_on_completion'
       }
     ];
-    fieldsToTest.every((field) => {
-      const fieldConfig =
-        workOrderConfiguration.workOrderFieldConfigurations.find(
-          (woFC) => woFC.fieldName === field.name
-        );
-      if (fieldConfig.fieldType === 'REQUIRED' && field.condition) {
-        showSnackBar(t(field.message), 'error');
-        error = true;
-        return false;
-      }
-      return true;
-    });
+    const blockers = getWorkOrderCompletionBlockers(
+      workOrderConfiguration.workOrderFieldConfigurations,
+      fieldsToTest
+    );
+    if (blockers.length > 0) {
+      showSnackBar(blockers.map((message) => t(message)).join('\n'), 'error');
+      return false;
+    }
+    return true;
+  };
+  const retryFailedCompletionData = () => {
+    const failedSources = new Set(
+      getWorkOrderCompletionLoadIssues(
+        workOrderConfiguration.workOrderFieldConfigurations,
+        {
+          workOrder: workOrderLoadError
+            ? 'error'
+            : loadingWorkOrder
+            ? 'loading'
+            : workOrder
+            ? 'success'
+            : 'idle',
+          comments: commentLoadStatusByWorkOrder[id],
+          tasks: taskLoadStatus,
+          labor: laborLoadStatus,
+          parts: partQuantityLoadStatusByWorkOrder[id],
+          costs: costLoadStatusByWorkOrder[id]
+        }
+      )
+        .filter((issue) => issue.status === 'error')
+        .map((issue) => issue.source)
+    );
 
-    return !error;
+    if (failedSources.has('workOrder')) void loadWorkOrder();
+    if (failedSources.has('comments'))
+      void dispatch(getCommentsByWorkOrder(id)).catch(() => undefined);
+    if (failedSources.has('tasks')) void dispatch(getTasks(id));
+    if (failedSources.has('labor')) void dispatch(getLabors(id));
+    if (failedSources.has('parts'))
+      void dispatch(getPartQuantitiesByWorkOrder(id));
+    if (failedSources.has('costs')) void dispatch(getAdditionalCosts(id));
   };
   const onScroll = ({ nativeEvent }) => {
     const currentScrollPosition =
@@ -460,53 +637,181 @@ export default function WODetailsScreen({
 
     setIsExtended(currentScrollPosition <= 0);
   };
-  const onCompleteWO = (
+  const submitWorkOrderStatus = useCallback(
+    async (
+      status: string,
+      extra?: { feedback?: string | null; signature?: string }
+    ) => {
+      if (statusChangeInProgress.current) return false;
+
+      statusChangeInProgress.current = true;
+      setUpdatingStatus(true);
+      try {
+        await dispatch(
+          changeWorkOrderStatus(id, {
+            status,
+            ...(extra ?? {})
+          })
+        );
+        return true;
+      } finally {
+        statusChangeInProgress.current = false;
+        setUpdatingStatus(false);
+      }
+    },
+    [dispatch, id]
+  );
+
+  const onCompleteWO = async (
     signature: string | undefined,
     feedback: string | undefined
-  ): Promise<any> => {
-    return dispatch(
-      changeWorkOrderStatus(id, {
-        status: 'COMPLETE',
-        feedback: feedback ?? null,
-        signature
-      })
-    ).then(() => navigation.navigate('Root'));
+  ): Promise<boolean> => {
+    const completed = await submitWorkOrderStatus('COMPLETE', {
+      feedback: feedback ?? null,
+      signature
+    });
+    if (completed) {
+      showSnackBar(t('wo_complete_success'), 'success');
+      navigation.navigate('Root');
+    }
+    return completed;
   };
   const onStatusChange = (status: string) => {
     if (status === 'COMPLETE') {
-      if (canComplete()) {
-        if (
-          generalPreferences.askFeedBackOnWOClosed ||
-          workOrder?.requiredSignature
-        ) {
-          let error: string;
-          if (workOrder?.requiredSignature) {
-            if (!hasFeature(PlanFeature.SIGNATURE)) {
-              error =
-                'Signature on Work Order completion is not available in your current subscription plan.';
-            }
+      if (!canComplete()) return;
+      const completionStep = getWorkOrderCompletionNextStep({
+        feedbackRequired: generalPreferences.askFeedBackOnWOClosed,
+        signatureRequired: Boolean(workOrder?.requiredSignature),
+        signatureFeatureEnabled: hasFeature(PlanFeature.SIGNATURE)
+      });
+      if (completionStep === 'blocked') {
+        showSnackBar(t('signature_required_feature_unavailable'), 'error');
+        return;
+      }
+      if (completionStep === 'collect-details') {
+        navigation.navigate('CompleteWorkOrder', {
+          onComplete: onCompleteWO,
+          fieldsConfig: {
+            feedback: generalPreferences.askFeedBackOnWOClosed,
+            signature: workOrder?.requiredSignature
           }
-          if (error) {
-            showSnackBar(t(error), 'error');
-          } else {
-            navigation.navigate('CompleteWorkOrder', {
-              onComplete: onCompleteWO,
-              fieldsConfig: {
-                feedback: generalPreferences.askFeedBackOnWOClosed,
-                signature: workOrder?.requiredSignature
-              }
-            });
-            return;
-          }
-        }
-      } else return;
+        });
+        return;
+      }
+      setOpenCompleteConfirmation(true);
+      return;
     }
-    setLoading(true);
-    dispatch(
-      changeWorkOrderStatus(id, {
-        status
-      })
-    ).finally(() => setLoading(false));
+    void submitWorkOrderStatus(status).catch((err) =>
+      showSnackBar(getErrorMessage(err), 'error')
+    );
+  };
+  const confirmCompleteWorkOrder = async () => {
+    try {
+      const completed = await submitWorkOrderStatus('COMPLETE');
+      if (completed) {
+        setOpenCompleteConfirmation(false);
+        showSnackBar(t('wo_complete_success'), 'success');
+      }
+    } catch (err) {
+      showSnackBar(getErrorMessage(err), 'error');
+    }
+  };
+  const renderReopenDialog = () => (
+    <Portal>
+      <Dialog
+        visible={openReopenDialog}
+        onDismiss={() => {
+          if (!reopening) setOpenReopenDialog(false);
+        }}
+      >
+        <Dialog.Title>{t('work_order_reopen_title')}</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
+            {t('work_order_reopen_description')}
+          </Text>
+          <TextInput
+            mode="outlined"
+            label={t('work_order_reopen_reason')}
+            value={reopenReason}
+            onChangeText={setReopenReason}
+            multiline
+            maxLength={1000}
+            disabled={reopening}
+            accessibilityLabel={t('work_order_reopen_reason')}
+          />
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button
+            disabled={reopening}
+            onPress={() => setOpenReopenDialog(false)}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            mode="contained"
+            loading={reopening}
+            disabled={reopening || !reopenReason.trim()}
+            accessibilityState={{
+              disabled: reopening || !reopenReason.trim(),
+              busy: reopening
+            }}
+            onPress={() => void submitReopenWorkOrder()}
+          >
+            {t('work_order_reopen_action')}
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+
+  const renderLifecycleEvents = () => {
+    if (
+      !lifecycleEventsLoading &&
+      !lifecycleEventsError &&
+      lifecycleEvents.length === 0
+    ) {
+      return null;
+    }
+    return (
+      <View style={[surfaceCardStyle, { marginTop: 16 }]}>
+        <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+          {t('work_order_lifecycle_history')}
+        </Text>
+        {lifecycleEventsError ? (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('work_order_lifecycle_history_error')}
+            onRetry={() => void loadLifecycleEvents()}
+          />
+        ) : lifecycleEventsLoading ? (
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        ) : (
+          lifecycleEvents.map((event) => (
+            <List.Item
+              key={event.id}
+              title={t('work_order_lifecycle_transition', {
+                from: t(event.previousStatus),
+                to: t(event.newStatus)
+              })}
+              description={`${getFormattedDate(event.occurredAt)} · ${
+                event.actorName
+              }${event.reason ? `\n${event.reason}` : ''}`}
+              descriptionNumberOfLines={4}
+              left={(props) => (
+                <List.Icon
+                  {...props}
+                  icon={
+                    event.newStatus === 'OPEN'
+                      ? 'lock-open'
+                      : 'check-circle-outline'
+                  }
+                />
+              )}
+            />
+          ))
+        )}
+      </View>
+    );
   };
   const groupRelations = (
     relations: Relation[]
@@ -591,7 +896,11 @@ export default function WODetailsScreen({
   }));
 
   const handleCommentSubmit = async () => {
-    if (!commentContent.trim()) return;
+    const content = commentContent.trim();
+    if (!content || submittingCommentRef.current) return;
+
+    submittingCommentRef.current = true;
+    setSubmittingComment(true);
     try {
       let fileIds: { id: number }[] = [];
       if (commentFiles.length > 0) {
@@ -601,14 +910,18 @@ export default function WODetailsScreen({
       await dispatch(
         createComment({
           workOrder: { id },
-          content: commentContent.trim(),
+          content,
           files: fileIds
         })
       );
       setCommentContent('');
       setCommentFiles([]);
+      showSnackBar(t('comment_posted'), 'success');
     } catch (error) {
-      console.error('Failed to create comment:', error);
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      submittingCommentRef.current = false;
+      setSubmittingComment(false);
     }
   };
 
@@ -624,7 +937,7 @@ export default function WODetailsScreen({
         setCommentFiles([...commentFiles, ...newFiles]);
       }
     } catch (error) {
-      console.error('Error picking document:', error);
+      showSnackBar(getErrorMessage(error), 'error');
     }
   };
 
@@ -652,7 +965,7 @@ export default function WODetailsScreen({
           const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
 
           Linking.openURL(googleMapsUrl).catch((err) => {
-            console.error('Erro ao abrir o mapa:', err);
+            showSnackBar(getErrorMessage(err), 'error');
           });
         }
       };
@@ -663,6 +976,8 @@ export default function WODetailsScreen({
         <TouchableOpacity
           // @ts-ignore
           disabled={!hasViewPermission(permissionEntity)}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: ${value}`}
           onPress={() => {
             // @ts-ignore
             navigation.navigate(link.route, { id: link.id });
@@ -694,6 +1009,7 @@ export default function WODetailsScreen({
                 icon="directions"
                 size={24}
                 iconColor={theme.colors.primary}
+                accessibilityLabel={t('open_in_maps')}
                 onPress={(e) => {
                   e.stopPropagation();
                   openMaps();
@@ -734,7 +1050,11 @@ export default function WODetailsScreen({
           {label}
         </Text>
         {isLink ? (
-          <TouchableOpacity onPress={handlePress}>
+          <TouchableOpacity
+            onPress={handlePress}
+            accessibilityRole="link"
+            accessibilityLabel={`${label}: ${value}`}
+          >
             <Text
               variant="titleMedium"
               style={{ fontWeight: 'bold', color: theme.colors.primary }}
@@ -754,7 +1074,12 @@ export default function WODetailsScreen({
   const renderConfirmArchive = () => {
     return (
       <Portal>
-        <Dialog visible={openArchive} onDismiss={() => setOpenArchive(false)}>
+        <Dialog
+          visible={openArchive}
+          onDismiss={() => {
+            if (!archiving) setOpenArchive(false);
+          }}
+        >
           <Dialog.Title>{t('confirmation')}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
@@ -762,24 +1087,86 @@ export default function WODetailsScreen({
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpenArchive(false)}>{t('cancel')}</Button>
-            <Button onPress={onArchive}>{t('archive')}</Button>
+            <Button disabled={archiving} onPress={() => setOpenArchive(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              loading={archiving}
+              disabled={archiving}
+              accessibilityState={{ disabled: archiving, busy: archiving }}
+              onPress={onArchive}
+            >
+              {t('archive')}
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
     );
   };
+  const renderConfirmComplete = () => (
+    <Portal>
+      <Dialog
+        visible={openCompleteConfirmation}
+        onDismiss={() => {
+          if (!updatingStatus) setOpenCompleteConfirmation(false);
+        }}
+      >
+        <Dialog.Title>{t('confirmation')}</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium">
+            {t('complete_work_order_confirm', { title: workOrder.title })}
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button
+            disabled={updatingStatus}
+            onPress={() => setOpenCompleteConfirmation(false)}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            mode="contained"
+            loading={updatingStatus}
+            disabled={updatingStatus}
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.onPrimary}
+            accessibilityState={{
+              disabled: updatingStatus,
+              busy: updatingStatus
+            }}
+            onPress={() => void confirmCompleteWorkOrder()}
+          >
+            {t('complete_work_order')}
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
   const renderConfirmDelete = () => {
     return (
       <Portal>
-        <Dialog visible={openDelete} onDismiss={() => setOpenDelete(false)}>
+        <Dialog
+          visible={openDelete}
+          onDismiss={() => {
+            if (!deleting) setOpenDelete(false);
+          }}
+        >
           <Dialog.Title>{t('confirmation')}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">{t('confirm_delete_wo')}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpenDelete(false)}>{t('cancel')}</Button>
-            <Button onPress={handleDelete}>{t('to_delete')}</Button>
+            <Button disabled={deleting} onPress={() => setOpenDelete(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              loading={deleting}
+              disabled={deleting}
+              accessibilityState={{ disabled: deleting, busy: deleting }}
+              onPress={handleDelete}
+            >
+              {t('to_delete')}
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -788,12 +1175,24 @@ export default function WODetailsScreen({
   const statusColor = workOrder
     ? getStatusColor(workOrder.status, theme)
     : null;
+  const surfaceCardStyle = [
+    styles.shadowedCard,
+    {
+      backgroundColor: theme.colors.surface,
+      borderColor: theme.colors.outlineVariant,
+      shadowColor: theme.colors.shadow
+    }
+  ];
   if (workOrder)
     return (
-      <View style={styles.container}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <Provider theme={theme}>
           {renderConfirmDelete()}
           {renderConfirmArchive()}
+          {renderConfirmComplete()}
+          {renderReopenDialog()}
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
@@ -812,51 +1211,96 @@ export default function WODetailsScreen({
               }}
               refreshControl={
                 <RefreshControl
-                  refreshing={loading || loadingDetails}
-                  onRefresh={getInfos}
+                  refreshing={loading || loadingDetails || loadingWorkOrder}
+                  onRefresh={() => getInfos(true)}
                 />
               }
             >
-              <Text style={{ marginTop: 5 }} variant="displaySmall">
-                {workOrder.title}
-              </Text>
-              <View style={styles.row}>
-                <Text
-                  variant="titleMedium"
-                  style={{ marginRight: 10, color: 'grey' }}
-                >{`#${workOrder.customId}`}</Text>
-                {workOrder.priority !== 'NONE' && (
-                  <Tag
-                    text={t('priority_label', {
-                      priority: t(workOrder.priority)
-                    })}
-                    color={getPriorityColor(workOrder.priority, theme)}
-                    backgroundColor={'transparent'}
-                  />
+              {taskLoadStatus === 'error' && (
+                <AsyncStateFeedback
+                  mode="banner"
+                  message={t('work_order_tasks_load_error')}
+                  onRetry={() => dispatch(getTasks(id))}
+                />
+              )}
+              {workOrderLoadError && (
+                <AsyncStateFeedback
+                  mode="banner"
+                  message={t('work_order_details_load_error')}
+                  onRetry={() => void loadWorkOrder()}
+                />
+              )}
+              <View
+                style={[
+                  styles.identityCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text style={styles.workOrderTitle} variant="headlineSmall">
+                  {workOrder.title}
+                </Text>
+                <View style={styles.identityMeta}>
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      marginRight: 10,
+                      color: theme.colors.onSurfaceVariant
+                    }}
+                  >{`#${workOrder.customId || workOrder.id}`}</Text>
+                  {workOrder.priority !== 'NONE' && (
+                    <Tag
+                      text={t('priority_label', {
+                        priority: t(workOrder.priority)
+                      })}
+                      color={getPriorityColor(workOrder.priority, theme)}
+                      backgroundColor={'transparent'}
+                    />
+                  )}
+                </View>
+                {workOrder.image && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('view_work_order_image')}
+                    onPress={() => setIsImageViewerOpen(true)}
+                  >
+                    <Image
+                      style={{ height: 200, marginTop: 20 }}
+                      source={{ uri: workOrder.image.url }}
+                    />
+                  </TouchableOpacity>
                 )}
               </View>
-              {workOrder.image && (
-                <TouchableOpacity onPress={() => setIsImageViewerOpen(true)}>
-                  <Image
-                    style={{ height: 200, marginTop: 20 }}
-                    source={{ uri: workOrder.image.url }}
-                  />
-                </TouchableOpacity>
-              )}
               <View style={{ marginTop: 20 }}>
                 <TouchableOpacity
                   disabled={
+                    updatingStatus ||
+                    workOrder.status === 'COMPLETE' ||
                     !hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder)
                   }
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 12,
-                    borderWidth: 1,
-                    borderColor: statusColor,
-                    borderRadius: 4
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled:
+                      updatingStatus ||
+                      workOrder.status === 'COMPLETE' ||
+                      !hasEditPermission(
+                        PermissionEntity.WORK_ORDERS,
+                        workOrder
+                      ),
+                    busy: updatingStatus
                   }}
+                  accessibilityLabel={`${t('status')}: ${
+                    statuses.find((s) => s.value === workOrder.status)?.label
+                  }`}
+                  style={[
+                    styles.statusSelector,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: statusColor
+                    }
+                  ]}
                   onPress={() =>
                     SheetManager.show('dropdown-sheet', {
                       payload: {
@@ -872,18 +1316,63 @@ export default function WODetailsScreen({
                   <Text style={{ color: statusColor }}>
                     {statuses.find((s) => s.value === workOrder.status)?.label}
                   </Text>
-                  <IconButton
-                    iconColor={statusColor}
-                    icon="menu-down"
-                    size={24}
-                    style={{ margin: -5 }}
-                  />
+                  {updatingStatus ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={statusColor}
+                      style={{ marginHorizontal: 8 }}
+                    />
+                  ) : (
+                    <View
+                      accessible={false}
+                      importantForAccessibility="no"
+                      style={{ marginHorizontal: 8 }}
+                    >
+                      <Icon source="menu-down" size={24} color={statusColor} />
+                    </View>
+                  )}
                 </TouchableOpacity>
-                {workOrder.audioDescription && (
-                  <View
-                    style={{ backgroundColor: 'white', paddingVertical: 20 }}
+                {canReopenWorkOrder && (
+                  <Button
+                    mode="outlined"
+                    icon="lock-open-variant"
+                    style={{ marginTop: 10 }}
+                    disabled={reopening}
+                    accessibilityState={{ disabled: reopening }}
+                    onPress={() => setOpenReopenDialog(true)}
                   >
-                    <Text>{t('audio_description')}</Text>
+                    {t('work_order_reopen_action')}
+                  </Button>
+                )}
+                {renderLifecycleEvents()}
+                {getWorkOrderCompletionLoadIssues(
+                  workOrderConfiguration.workOrderFieldConfigurations,
+                  {
+                    workOrder: workOrderLoadError
+                      ? 'error'
+                      : loadingWorkOrder
+                      ? 'loading'
+                      : workOrder
+                      ? 'success'
+                      : 'idle',
+                    comments: commentLoadStatusByWorkOrder[id],
+                    tasks: taskLoadStatus,
+                    labor: laborLoadStatus,
+                    parts: partQuantityLoadStatusByWorkOrder[id],
+                    costs: costLoadStatusByWorkOrder[id]
+                  }
+                ).some((issue) => issue.status === 'error') && (
+                  <AsyncStateFeedback
+                    mode="banner"
+                    message={t('work_order_completion_data_load_error')}
+                    onRetry={retryFailedCompletionData}
+                  />
+                )}
+                {workOrder.audioDescription && (
+                  <View style={[surfaceCardStyle, styles.audioCard]}>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                      {t('audio_description')}
+                    </Text>
                     <AudioPlayer url={workOrder.audioDescription.url} />
                   </View>
                 )}
@@ -1006,7 +1495,7 @@ export default function WODetailsScreen({
                 )}
                 {!generalPreferences.simplifiedWorkOrder && (
                   <View>
-                    <View style={styles.shadowedCard}>
+                    <View style={surfaceCardStyle}>
                       <Text
                         style={{
                           marginBottom: 10,
@@ -1015,18 +1504,41 @@ export default function WODetailsScreen({
                       >
                         {t('parts')}
                       </Text>
-                      <PartQuantities
-                        partQuantities={partQuantities}
-                        isPO={false}
-                        navigation={navigation}
-                        rootId={id}
-                        disabled={
-                          !hasEditPermission(
-                            PermissionEntity.WORK_ORDERS,
-                            workOrder
-                          )
-                        }
-                      />
+                      {partQuantityLoadStatusByWorkOrder[id] === 'error' ? (
+                        <AsyncStateFeedback
+                          mode="banner"
+                          message={t('parts_load_error')}
+                          onRetry={() =>
+                            void dispatch(getPartQuantitiesByWorkOrder(id))
+                          }
+                        />
+                      ) : loadingPartQuantities[id] ? (
+                        <View
+                          style={{ alignItems: 'center', paddingVertical: 16 }}
+                          accessibilityRole="progressbar"
+                          accessibilityLabel={t('loading')}
+                        >
+                          <ActivityIndicator color={theme.colors.primary} />
+                          <Text
+                            style={{ color: theme.colors.onSurfaceVariant }}
+                          >
+                            {t('loading')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <PartQuantities
+                          partQuantities={partQuantities}
+                          isPO={false}
+                          navigation={navigation}
+                          rootId={id}
+                          disabled={
+                            !hasEditPermission(
+                              PermissionEntity.WORK_ORDERS,
+                              workOrder
+                            )
+                          }
+                        />
+                      )}
                       {hasEditPermission(
                         PermissionEntity.WORK_ORDERS,
                         workOrder
@@ -1034,6 +1546,11 @@ export default function WODetailsScreen({
                         <Fragment>
                           <Divider style={{ marginTop: 5 }} />
                           <Button
+                            disabled={
+                              loadingPartQuantities[id] ||
+                              partQuantityLoadStatusByWorkOrder[id] !==
+                                'success'
+                            }
                             onPress={() =>
                               navigation.navigate('SelectParts', {
                                 onChange: (selectedParts) => {
@@ -1066,11 +1583,14 @@ export default function WODetailsScreen({
                       hasFeature={hasFeature}
                       getFormattedCurrency={getFormattedCurrency}
                       navigation={navigation}
+                      loading={Boolean(loadingCosts[id])}
+                      loadError={costLoadStatusByWorkOrder[id] === 'error'}
+                      onRetry={() => void dispatch(getAdditionalCosts(id))}
                     />
                   </View>
                 )}
                 {!!tasks.length && (
-                  <View style={styles.shadowedCard}>
+                  <View style={surfaceCardStyle}>
                     <Text
                       style={{
                         marginBottom: 10,
@@ -1080,6 +1600,15 @@ export default function WODetailsScreen({
                       {t('tasks')}
                     </Text>
                     <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('remaining_tasks', {
+                        count: remainingTasksLength
+                      })}, ${t('complete_tasks_percent', {
+                        percent: (
+                          ((tasks.length - remainingTasksLength) * 100) /
+                          tasks.length
+                        ).toFixed(0)
+                      })}`}
                       onPress={() =>
                         navigation.navigate('Tasks', {
                           workOrderId: id,
@@ -1113,7 +1642,7 @@ export default function WODetailsScreen({
                 {!generalPreferences.simplifiedWorkOrder && (
                   <View>
                     {!!workOrder.files.length && (
-                      <View style={styles.shadowedCard}>
+                      <View style={surfaceCardStyle}>
                         <Text
                           style={{
                             marginBottom: 10,
@@ -1135,7 +1664,7 @@ export default function WODetailsScreen({
                       </View>
                     )}
                     {!!currentWorkOrderRelations.length && (
-                      <View style={styles.shadowedCard}>
+                      <View style={surfaceCardStyle}>
                         <Text
                           style={{
                             marginBottom: 10,
@@ -1171,12 +1700,37 @@ export default function WODetailsScreen({
                         )}
                       </View>
                     )}
-                    <AdditionalTimesCard
-                      labors={labors}
-                      workOrder={workOrder}
-                      navigation={navigation}
-                    />
-                    <View style={styles.shadowedCard}>
+                    {laborLoadStatus === 'error' ? (
+                      <AsyncStateFeedback
+                        mode="banner"
+                        message={t('labor_load_error')}
+                        onRetry={() => dispatch(getLabors(id))}
+                      />
+                    ) : laborLoadStatus === 'success' ? (
+                      <AdditionalTimesCard
+                        labors={labors}
+                        workOrder={workOrder}
+                        navigation={navigation}
+                      />
+                    ) : (
+                      <View
+                        style={{ paddingVertical: 20 }}
+                        accessibilityRole="progressbar"
+                        accessibilityLabel={t('loading')}
+                      >
+                        <ActivityIndicator color={theme.colors.primary} />
+                        <Text
+                          style={{
+                            textAlign: 'center',
+                            marginTop: 8,
+                            color: theme.colors.onSurfaceVariant
+                          }}
+                        >
+                          {t('loading')}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={surfaceCardStyle}>
                       <Text
                         style={{
                           marginBottom: 10,
@@ -1185,7 +1739,17 @@ export default function WODetailsScreen({
                       >
                         {t('comments')}
                       </Text>
-                      {loadingComments ? (
+                      {commentLoadStatusByWorkOrder[id] === 'error' ? (
+                        <AsyncStateFeedback
+                          mode="banner"
+                          message={t('comments_load_error')}
+                          onRetry={() =>
+                            void dispatch(getCommentsByWorkOrder(id)).catch(
+                              () => undefined
+                            )
+                          }
+                        />
+                      ) : commentLoadStatusByWorkOrder[id] === 'loading' ? (
                         <ActivityIndicator
                           size="small"
                           color={theme.colors.primary}
@@ -1234,10 +1798,12 @@ export default function WODetailsScreen({
                               {mentionKeyword && filteredUsers.length > 0 && (
                                 <View
                                   style={{
-                                    backgroundColor: '#fff',
+                                    backgroundColor: theme.colors.surface,
+                                    borderColor: theme.colors.outlineVariant,
+                                    borderWidth: 1,
                                     borderRadius: 8,
                                     elevation: 5,
-                                    shadowColor: '#000',
+                                    shadowColor: theme.colors.shadow,
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.2,
                                     marginBottom: 8,
@@ -1257,7 +1823,8 @@ export default function WODetailsScreen({
                                       style={{
                                         padding: 12,
                                         borderBottomWidth: 1,
-                                        borderBottomColor: '#eee'
+                                        borderBottomColor:
+                                          theme.colors.outlineVariant
                                       }}
                                     >
                                       <Text>{item.name}</Text>
@@ -1278,11 +1845,14 @@ export default function WODetailsScreen({
                                 placeholder={t('add_comment_placeholder')}
                                 style={{ flex: 1 }}
                                 {...textInputProps}
+                                editable={!submittingComment}
                               />
                             </View>
                             <IconButton
                               icon="paperclip"
+                              accessibilityLabel={t('add_file')}
                               onPress={pickCommentFile}
+                              disabled={submittingComment}
                               style={{ marginBottom: 8 }}
                             />
                           </View>
@@ -1293,19 +1863,26 @@ export default function WODetailsScreen({
                                   key={index}
                                   style={{
                                     flexDirection: 'row',
-                                    alignItems: 'center',
+                                    alignItems: 'flex-start',
                                     backgroundColor: theme.colors.background,
                                     borderRadius: 4,
                                     paddingHorizontal: 8,
                                     marginBottom: 4
                                   }}
                                 >
-                                  <Text style={{ flex: 1 }} numberOfLines={1}>
+                                  <Text
+                                    style={{ flex: 1, minWidth: 0 }}
+                                    numberOfLines={2}
+                                  >
                                     {file.name}
                                   </Text>
                                   <IconButton
                                     icon="close-circle"
                                     size={16}
+                                    accessibilityLabel={`${t(
+                                      'remove_attachment'
+                                    )}: ${file.name}`}
+                                    disabled={submittingComment}
                                     onPress={() => removeCommentFile(index)}
                                   />
                                 </View>
@@ -1315,8 +1892,12 @@ export default function WODetailsScreen({
                           <Button
                             mode="contained"
                             onPress={handleCommentSubmit}
-                            disabled={!commentContent.trim() || loadingCreate}
-                            loading={loadingCreate}
+                            disabled={
+                              !commentContent.trim() ||
+                              loadingCreate ||
+                              submittingComment
+                            }
+                            loading={loadingCreate || submittingComment}
                           >
                             {t('post_comment')}
                           </Button>
@@ -1328,29 +1909,16 @@ export default function WODetailsScreen({
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
-          {!generalPreferences.simplifiedWorkOrder &&
-            hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
-              <FAB
-                icon={runningTimer ? 'stop' : 'play'}
-                label={
-                  runningTimer
-                    ? runningTimerDuration
-                    : durationToHours(primaryTime?.duration)
-                }
-                disabled={controllingTime}
-                theme={theme}
-                variant={runningTimer ? 'primary' : 'secondary'}
-                color="white"
-                onPress={() => {
-                  setControllingTime(true);
-                  dispatch(controlTimer(!runningTimer, id))
-                    .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
-                    .finally(() => setControllingTime(false));
-                }}
-                visible={true}
-                style={[styles.fabStyle]}
-              />
-            )}
+          {!generalPreferences.simplifiedWorkOrder && canUseTimer && (
+            <WorkOrderTimerFab
+              labor={primaryTime}
+              workOrderId={id}
+              isExtended={isExtended}
+              canControl={laborLoadStatus === 'success'}
+              isLoading={!laborLoadStatus || laborLoadStatus === 'loading'}
+              onTimerStarted={refreshWorkOrderAfterTimerStart}
+            />
+          )}
           {workOrder.image && (
             <ImageView
               images={[{ uri: workOrder.image.url }]}
@@ -1362,7 +1930,16 @@ export default function WODetailsScreen({
         </Provider>
       </View>
     );
-  else return <LoadingDialog visible={true} />;
+  else if (loadingWorkOrder)
+    return <AsyncStateFeedback mode="loading" message={t('please_wait')} />;
+  else
+    return (
+      <AsyncStateFeedback
+        mode="error"
+        message={t('work_order_details_load_error')}
+        onRetry={() => void loadWorkOrder()}
+      />
+    );
 }
 
 const styles = StyleSheet.create({
@@ -1374,22 +1951,41 @@ const styles = StyleSheet.create({
     height: 1,
     width: '80%'
   },
-  startButton: { position: 'absolute', bottom: 20, right: '10%' },
   row: { display: 'flex', flexDirection: 'row', alignItems: 'center' },
+  identityCard: {
+    marginTop: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
+  },
+  workOrderTitle: { fontWeight: '700', lineHeight: 32 },
+  identityMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 7
+  },
+  statusSelector: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    paddingRight: 8,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.control
+  },
   shadowedCard: {
-    borderRadius: 10,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    shadowColor: '#000',
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.08,
     marginVertical: 10,
     marginHorizontal: 5,
-    elevation: 5
+    elevation: 1
   },
-  fabStyle: {
-    bottom: 16,
-    right: 16,
-    position: 'absolute'
-  }
+  audioCard: { marginTop: 14 },
+  sectionTitle: { fontWeight: '700', marginBottom: 8 }
 });

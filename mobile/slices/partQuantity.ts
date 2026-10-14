@@ -12,12 +12,16 @@ interface PartQuantityState {
   partQuantitiesByWorkOrder: { [id: number]: PartQuantity[] };
   partQuantitiesByPurchaseOrder: { [id: number]: PartQuantity[] };
   loadingPartQuantities: { [id: number]: boolean };
+  loadStatusByWorkOrder: {
+    [id: number]: 'loading' | 'success' | 'error';
+  };
 }
 
 const initialState: PartQuantityState = {
   partQuantitiesByWorkOrder: {},
   partQuantitiesByPurchaseOrder: {},
-  loadingPartQuantities: {}
+  loadingPartQuantities: {},
+  loadStatusByWorkOrder: {}
 };
 
 const slice = createSlice({
@@ -31,6 +35,7 @@ const slice = createSlice({
     ) {
       const { partQuantities, id } = action.payload;
       state.partQuantitiesByWorkOrder[id] = partQuantities;
+      state.loadStatusByWorkOrder[id] = 'success';
     },
     getPartQuantitiesByPurchaseOrder(
       state: PartQuantityState,
@@ -98,6 +103,13 @@ const slice = createSlice({
         ...state.loadingPartQuantities,
         [id]: loading
       };
+      if (loading) state.loadStatusByWorkOrder[id] = 'loading';
+    },
+    failGetPartQuantitiesByWorkOrder(
+      state: PartQuantityState,
+      action: PayloadAction<{ id: number }>
+    ) {
+      state.loadStatusByWorkOrder[action.payload.id] = 'error';
     }
   }
 });
@@ -116,6 +128,7 @@ export const getPartQuantitiesByWorkOrder =
         slice.actions.getPartQuantitiesByWorkOrder({ id, partQuantities })
       );
     } catch {
+      dispatch(slice.actions.failGetPartQuantitiesByWorkOrder({ id }));
     } finally {
       dispatch(slice.actions.setLoadingByWorkOrder({ id, loading: false }));
     }

@@ -1,6 +1,7 @@
-import { Fragment, useContext } from 'react';
+import { Fragment, useContext, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import {
+  ActivityIndicator,
   Button,
   Divider,
   IconButton,
@@ -22,6 +23,7 @@ import type Labor from '../../../models/labor';
 import type WorkOrder from '../../../models/workOrder';
 import useAuth from '../../../hooks/useAuth';
 import { View } from '../../../components/Themed';
+import { qpmLayoutTokens } from '../../../custom-theme';
 
 interface AdditionalTimesCardProps {
   labors: Labor[];
@@ -39,6 +41,23 @@ export default function AdditionalTimesCard({
   const dispatch = useDispatch();
   const { hasEditPermission, hasFeature } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
+  const deletingIdsRef = useRef(new Set<number>());
+
+  const handleDelete = async (laborId: number) => {
+    if (deletingIdsRef.current.has(laborId)) return;
+    deletingIdsRef.current.add(laborId);
+    setDeletingIds([...deletingIdsRef.current]);
+    try {
+      await dispatch(deleteLabor(workOrder.id, laborId));
+      showSnackBar(t('operation_success'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error) || t('an_error_occured'), 'error');
+    } finally {
+      deletingIdsRef.current.delete(laborId);
+      setDeletingIds([...deletingIdsRef.current]);
+    }
+  };
 
   const canAddTime =
     hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) &&
@@ -46,7 +65,16 @@ export default function AdditionalTimesCard({
   const unloggedLabors = labors.filter((labor) => !labor.logged);
 
   return (
-    <View style={styles.shadowedCard}>
+    <View
+      style={[
+        styles.shadowedCard,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.outlineVariant,
+          shadowColor: theme.colors.shadow
+        }
+      ]}
+    >
       <Text
         style={{
           marginBottom: 10,
@@ -77,6 +105,8 @@ export default function AdditionalTimesCard({
                 <IconButton
                   icon="pencil"
                   size={20}
+                  accessibilityLabel={t('edit_additional_time')}
+                  disabled={deletingIds.includes(labor.id)}
                   onPress={() =>
                     navigation.navigate('EditAdditionalTime', {
                       workOrderId: workOrder.id,
@@ -84,24 +114,35 @@ export default function AdditionalTimesCard({
                     })
                   }
                 />
-                <IconButton
-                  icon="delete"
-                  size={20}
-                  onPress={() =>
-                    Alert.alert(t('confirmation'), t('confirm_delete_additional_time'), [
-                      { text: t('cancel'), style: 'cancel' },
-                      {
-                        text: t('to_delete'),
-                        style: 'destructive',
-                        onPress: () => {
-                          dispatch(deleteLabor(workOrder.id, labor.id))
-                            .then(() => showSnackBar(t('operation_success'), 'success'))
-                            .catch((err) => showSnackBar(getErrorMessage(err), 'error'));
-                        }
-                      }
-                    ])
-                  }
-                />
+                {deletingIds.includes(labor.id) ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.primary}
+                    accessibilityRole="progressbar"
+                    accessibilityLabel={t('loading')}
+                    style={{ marginHorizontal: 12 }}
+                  />
+                ) : (
+                  <IconButton
+                    icon="delete"
+                    size={20}
+                    accessibilityLabel={t('delete_additional_time')}
+                    onPress={() =>
+                      Alert.alert(
+                        t('confirmation'),
+                        t('confirm_delete_additional_time'),
+                        [
+                          { text: t('cancel'), style: 'cancel' },
+                          {
+                            text: t('to_delete'),
+                            style: 'destructive',
+                            onPress: () => void handleDelete(labor.id)
+                          }
+                        ]
+                      )
+                    }
+                  />
+                )}
               </View>
             )}
           </View>
@@ -111,6 +152,11 @@ export default function AdditionalTimesCard({
         <Fragment>
           <Divider style={{ marginTop: 5 }} />
           <Button
+            mode="contained"
+            icon="clock-plus-outline"
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.onPrimary}
+            style={{ marginTop: 8 }}
             onPress={() =>
               navigation.navigate('AddAdditionalTime', {
                 workOrderId: workOrder.id
@@ -127,15 +173,15 @@ export default function AdditionalTimesCard({
 
 const styles = StyleSheet.create({
   shadowedCard: {
-    borderRadius: 10,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    shadowColor: '#000',
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.08,
     marginVertical: 10,
     marginHorizontal: 5,
-    elevation: 5
+    elevation: 1
   },
   laborRow: {
     flexDirection: 'row',

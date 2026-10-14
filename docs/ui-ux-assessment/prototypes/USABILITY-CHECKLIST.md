@@ -72,3 +72,5 @@ Noter : réussite sans aide / avec aide / échec; temps; erreurs; confiance per�
 - [ ] Repérer les champs obligatoires et distinguer le contenu de démonstration d’une validation réelle.
 - [ ] Sur Web, vérifier l’aperçu; sur mobile, compléter le formulaire au clavier sans perdre les actions.
 - [ ] Confirmer que le feedback de soumission ne prétend pas persister dans QPM.
+- [ ] Depuis `MOB-030`, lancer « Créer un ordre » et vérifier que CV-04 est prérempli sur `MOB-005`.
+- [ ] Vérifier que la barre basse conserve les mêmes cinq destinations entre l’accueil, la fiche équipement et les PM.

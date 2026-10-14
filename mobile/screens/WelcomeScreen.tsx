@@ -11,13 +11,12 @@ export default function WelcomeScreen({
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/images/icon.png')} style={styles.logo} />
-      <Text style={styles.title}>QPM</Text>
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
+      <Image
+        source={require('../assets/images/icon.png')}
+        style={styles.logo}
       />
+      <Text style={styles.title}>QPM</Text>
+      <View style={styles.separator} />
       <Button mode="contained" onPress={() => navigation.navigate('Register')}>
         {t('register')}
       </Button>

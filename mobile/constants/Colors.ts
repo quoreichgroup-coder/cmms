@@ -1,19 +1,18 @@
-const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
+import { qpmDesignTokens } from '../theme/tokens';
 
 export default {
   light: {
-    text: '#000',
-    background: '#fff',
-    tint: tintColorLight,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorLight
+    text: qpmDesignTokens.light.textPrimary,
+    background: qpmDesignTokens.light.canvas,
+    tint: qpmDesignTokens.light.brandPrimary,
+    tabIconDefault: qpmDesignTokens.light.textSecondary,
+    tabIconSelected: qpmDesignTokens.light.brandPrimary
   },
   dark: {
-    text: '#fff',
-    background: '#000',
-    tint: tintColorDark,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorDark
+    text: qpmDesignTokens.dark.textPrimary,
+    background: qpmDesignTokens.dark.canvas,
+    tint: qpmDesignTokens.dark.brandPrimary,
+    tabIconDefault: qpmDesignTokens.dark.textSecondary,
+    tabIconSelected: qpmDesignTokens.dark.brandPrimary
   }
 };

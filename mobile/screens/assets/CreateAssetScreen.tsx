@@ -1,8 +1,7 @@
 import { RootStackScreenProps } from '../../types';
-import { View } from '../../components/Themed';
 import Form from '../../components/form';
 import * as Yup from 'yup';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useContext, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
@@ -37,7 +36,7 @@ export default function CreateAssetScreen({
   const { customFields } = useSelector((state) => state.customFields);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
-  useUnsavedChanges(navigation, isFormDirty);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const onCreationSuccess = (createdAsset: AssetMiniDTO) => {
     showSnackBar(t('asset_create_success'), 'success');
@@ -91,7 +90,6 @@ export default function CreateAssetScreen({
         }}
         onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
-          setIsFormDirty(false);
           let formattedValues = formatAssetValues(values);
           formattedValues = formatCustomFields(formattedValues);
           try {
@@ -105,14 +103,11 @@ export default function CreateAssetScreen({
               image: imageAndFiles.image,
               files: imageAndFiles.files
             };
-            try {
-              const createdAsset = await dispatch(addAsset(formattedValues));
-              await onCreationSuccess(createdAsset);
-              await dispatch(getAssetChildren(0, []));
-            } catch (err) {
-              onCreationFailure(err);
-              throw err;
-            }
+            const createdAsset = await dispatch(addAsset(formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
+            await onCreationSuccess(createdAsset);
+            await dispatch(getAssetChildren(0, []));
           } catch (err) {
             onCreationFailure(err);
             throw err;

@@ -7,12 +7,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
 
 public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, JpaSpecificationExecutor<WorkOrder> {
     boolean existsBySite_Id(Long siteId);
@@ -46,6 +48,11 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, Jpa
 
 
     Optional<WorkOrder> findByIdAndCompany_Id(Long id, Long companyId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT wo FROM WorkOrder wo WHERE wo.id = :id AND wo.company.id = :companyId")
+    Optional<WorkOrder> findByIdAndCompany_IdForUpdate(@Param("id") Long id,
+                                                        @Param("companyId") Long companyId);
 
     Collection<WorkOrder> findByCreatedByAndCreatedAtBetween(Long id, Date date1, Date date2);
 

@@ -1,41 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TextInput } from 'react-native-paper';
 import { isNumeric } from '../utils/validators';
+import { normalizeFormNumberInput } from '../utils/numericInput';
 
 export default function NumberInput(props: {
   style: any;
   mode: 'flat' | 'outlined';
   error: boolean;
   label: string;
-  defaultValue: string;
+  defaultValue: string | number | null | undefined;
   placeholder: string;
   onBlur: (e) => void;
   onChangeText: (value: string) => void;
   disabled: boolean;
   multiline: boolean;
 }) {
+  const { defaultValue, ...inputProps } = props;
   const [numberInputValue, setNumberInputValue] = useState<string>(
-    isNumeric(props.defaultValue) ? props.defaultValue?.toString() || '' : ''
+    isNumeric(defaultValue) ? defaultValue?.toString() || '' : ''
   );
+
+  useEffect(() => {
+    setNumberInputValue(
+      isNumeric(defaultValue)
+        ? defaultValue?.toString() || ''
+        : defaultValue == null
+        ? ''
+        : String(defaultValue)
+    );
+  }, [defaultValue]);
 
   return (
     <TextInput
-      {...props}
+      {...inputProps}
       value={numberInputValue}
       keyboardType="decimal-pad"
       onChangeText={(newValue) => {
-        // allow digits and a single decimal point
-        let formatted = newValue.replace(/[^0-9.]/g, '');
-        const firstDot = formatted.indexOf('.');
-        if (firstDot !== -1) {
-          formatted =
-            formatted.slice(0, firstDot + 1) +
-            formatted.slice(firstDot + 1).replace(/\./g, '');
-        }
+        const formatted = normalizeFormNumberInput(newValue);
         setNumberInputValue(formatted);
-        props.onChangeText(
-          formatted === '' || formatted === '.' ? '0' : formatted
-        );
+        props.onChangeText(formatted);
       }}
     />
   );

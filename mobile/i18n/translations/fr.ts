@@ -1,7 +1,28 @@
 const frJSON = {
-  'company_license': 'Licence de l’entreprise',
+  more_options: 'Plus d’options',
+  remove_attachment: 'Retirer la pièce jointe',
+  open_in_maps: 'Ouvrir dans Plans',
+  screen_not_found: 'Cet écran est indisponible.',
+  return_to_home: 'Revenir à l’écran d’accueil',
+  company_license: 'Licence de l’entreprise',
+  appearance: 'Apparence',
+  appearance_description: 'Choisissez le thème de QPM.',
+  appearance_system: 'Système',
+  appearance_light: 'Clair',
+  appearance_dark: 'Sombre',
+  appearance_reset: 'Rétablir le réglage système',
+  appearance_save_failure:
+    'L’apparence a changé, mais le choix n’a pas pu être enregistré. Réessayez.',
+  appearance_preview: 'Aperçu en direct',
+  appearance_preview_caption:
+    'Cet exemple suit l’apparence que vous avez choisie.',
+  appearance_preview_work_order_id: 'OT · QPM-2048',
+  appearance_preview_work_order: 'Inspecter la pompe de refroidissement P-204',
+  appearance_preview_action: 'Ouvrir le bon de travail',
+  remove_selected_value: 'Retirer {{value}}',
   company_profile: 'Profil de l’entreprise',
-  company_profile_mobile_description: 'Identité, informations légales et sites. Gérez ces réglages depuis l’application web.',
+  company_profile_mobile_description:
+    'Identité, informations légales et sites. Gérez ces réglages depuis l’application web.',
   company_legal_information: 'Informations légales',
   company_sites: 'Sites',
   company_sites_empty: 'Aucun site n’est encore configuré.',
@@ -10,24 +31,94 @@ const frJSON = {
   business_registration_number: 'Numéro d’immatriculation',
   tax_identification_number: 'Identifiant fiscal',
   registered_address: 'Adresse enregistrée',
-  'license_active': 'Licence active',
-  'license_invalid': 'Licence expirée ou invalide',
-  'license_none': 'Aucune licence activée',
-  'license_plan': 'Édition',
-  'license_company': 'Entreprise',
-  'license_full_seats': 'Utilisateurs complets',
-  'license_light_seats': 'Utilisateurs légers',
-  'license_expiration': 'Expiration',
-  'never_expires': 'Sans expiration',
-  'license_read_only': 'Cette installation est actuellement en lecture seule.',
-  'retry': 'Réessayer',
-  'license_activated': 'Licence activée. Vos droits ont été mis à jour.',
-  'license_not_available': 'L’activation n’est pas disponible sur ce serveur. Contactez son administrateur.',
-  'license_activation_description': 'Saisissez la clé reçue pour activer ou renouveler cette installation QPM.',
-  'license_key': 'Clé de licence',
-  'license_activate': 'Activer la licence',
-  'license_owner_only': 'Le propriétaire de l’entreprise peut activer ou renouveler la licence.',
-  'license_conflict': 'Cette licence est déjà utilisée sur une autre installation.',
+  license_active: 'Licence active',
+  license_invalid: 'Licence expirée ou invalide',
+  license_none: 'Aucune licence activée',
+  license_plan: 'Édition',
+  license_company: 'Entreprise',
+  auth_brand_caption: 'GESTION DE LA MAINTENANCE',
+  auth_hero_kicker: 'QUOREICH · QPM',
+  auth_back: 'Retour à l’écran précédent',
+  auth_language_hint: 'Choisir la langue de l’application',
+  auth_welcome_hero_title: 'La maintenance,\nen maîtrise.',
+  auth_welcome_hero_subtitle:
+    'Votre espace de travail pour des opérations fiables, partout sur le terrain.',
+  auth_signin_hero_title: 'Vos opérations\nvous attendent.',
+  auth_signin_hero_subtitle: 'Connectez-vous à votre espace de maintenance.',
+  auth_signup_hero_title: 'Votre organisation\nprête à avancer.',
+  auth_signup_hero_subtitle: 'Créez votre accès QPM pour démarrer.',
+  auth_verify_hero_title: 'Vérifiez votre\nboîte e-mail.',
+  auth_verify_hero_subtitle: 'Une dernière étape pour activer votre accès QPM.',
+  auth_verify_title: 'Vérifiez votre adresse e-mail',
+  auth_verify_signin_hint:
+    'Après la confirmation, connectez-vous avec vos identifiants.',
+  auth_welcome_eyebrow: 'BIENVENUE DANS QPM',
+  auth_welcome_title_line1: 'Tout votre atelier.',
+  auth_welcome_title_line2: 'Au même endroit.',
+  auth_welcome_description:
+    'Retrouvez vos interventions, vos équipements et vos équipes dans un espace pensé pour le quotidien industriel.',
+  auth_feature_work_orders_title: 'Interventions suivies',
+  auth_feature_work_orders_subtitle: 'Du signalement à la clôture',
+  auth_feature_assets_title: 'Équipements visibles',
+  auth_feature_assets_subtitle: 'Historique et état opérationnel',
+  auth_signin_eyebrow: 'ESPACE DE TRAVAIL',
+  auth_signup_eyebrow: 'ACCÈS ORGANISATION',
+  auth_signin_title: 'Ravi de vous\nretrouver.',
+  auth_signup_title: 'Créer votre\nespace QPM.',
+  auth_signin_description: 'Connectez-vous pour reprendre vos opérations.',
+  auth_signup_required_hint: 'Les champs marqués d’un astérisque sont requis.',
+  auth_first_name: 'Prénom',
+  auth_last_name: 'Nom',
+  auth_username: 'Identifiant',
+  auth_show_password: 'Afficher le mot de passe',
+  auth_hide_password: 'Masquer le mot de passe',
+  auth_signup_availability:
+    'La disponibilité de l’inscription dépend de la configuration du serveur. Une vérification e-mail peut suivre.',
+  auth_signin_action: 'Se connecter',
+  auth_signup_action: 'Créer mon compte',
+  auth_create_company_account: 'Créer un compte entreprise',
+  auth_configure_server: 'Configurer le serveur CMMS',
+  auth_custom_server: 'Serveur CMMS personnalisé',
+  auth_no_account_prompt: 'Pas encore de compte ?',
+  auth_has_account_prompt: 'Vous avez déjà un accès ?',
+  auth_create_account_link: 'Créer un compte',
+  auth_required_field: 'Ce champ est obligatoire.',
+  auth_invalid_email: 'Saisissez une adresse e-mail valide.',
+  auth_invalid_phone: 'Saisissez un numéro de téléphone valide.',
+  auth_password_min_length:
+    'Le mot de passe doit contenir au moins {{min}} caractères.',
+  auth_password_max_length:
+    'Le mot de passe dépasse la limite de {{max}} caractères.',
+  auth_text_max_length: '{{max}} caractères maximum.',
+  auth_server_unreachable:
+    'Le serveur CMMS est injoignable. Vérifiez l’adresse du serveur et votre connexion.',
+  auth_signin_failure: 'Connexion impossible. Vérifiez vos identifiants.',
+  auth_signup_failure:
+    'Inscription impossible. Vérifiez les informations saisies.',
+  license_full_seats: 'Utilisateurs complets',
+  license_light_seats: 'Utilisateurs légers',
+  license_expiration: 'Expiration',
+  never_expires: 'Sans expiration',
+  license_read_only: 'Cette installation est actuellement en lecture seule.',
+  retry: 'Réessayer',
+  license_activated: 'Licence activée. Vos droits ont été mis à jour.',
+  you_need_a_license:
+    'Une licence est nécessaire pour utiliser cette fonctionnalité.',
+  file_upload_unavailable:
+    'Votre rôle ou votre formule ne permet pas l’ajout de fichiers.',
+  file_pick_error: 'Impossible de sélectionner le fichier. Veuillez réessayer.',
+  file_size_unknown:
+    'Impossible de sélectionner ce fichier, car sa taille est inconnue.',
+  license_not_available:
+    'L’activation n’est pas disponible sur ce serveur. Contactez son administrateur.',
+  license_activation_description:
+    'Saisissez la clé reçue pour activer ou renouveler cette installation QPM.',
+  license_key: 'Clé de licence',
+  license_activate: 'Activer la licence',
+  license_owner_only:
+    'Le propriétaire de l’entreprise peut activer ou renouveler la licence.',
+  license_conflict:
+    'Cette licence est déjà utilisée sur une autre installation.',
   Blueprints: 'Plans',
   'Extended Sidebar': 'Barre latérale étendue',
   'Accent Sidebar': "Barre latérale d'accentuation",
@@ -115,8 +206,7 @@ const frJSON = {
   'Sign out': 'Déconnexion',
   'Change Theme': 'Change le thème',
   'View all notifications': 'Afficher toutes les notifications',
-  'Tokyo NextJS Typescript Admin Dashboard':
-    'Tableau de bord QPM',
+  'Tokyo NextJS Typescript Admin Dashboard': 'Tableau de bord QPM',
   'High performance React template built with lots of powerful Material-UI components across multiple product niches for fast & perfect apps development processes':
     "Modèle React haute performance construit avec de nombreux composants Material-UI puissants dans plusieurs niches de produits pour des processus de développement d'applications rapides et parfaits",
   'Browse Live Preview': "Parcourir l'aperçu en direct",
@@ -169,7 +259,16 @@ const frJSON = {
   asset_management: "Gestion d'équipements",
   preventive_maintenance: 'Maintenance Préventive',
   pm_details: 'Détails de la maintenance préventive',
-  pm_mobile_read_only_description: 'Consultez ici les plans et les appels générés. La création et la modification restent disponibles sur le web.',
+  pm_open_details_hint: 'Ouvre les détails du plan et son historique.',
+  pm_open_related_work_order_hint: 'Ouvre cet ordre de travail.',
+  related_work_order_open_hint: 'Ouvre la fiche de cet ordre de travail.',
+  related_asset_open_hint: 'Ouvre la fiche de cet équipement.',
+  view_children_for_asset: 'Voir les équipements enfants de {{asset}}',
+  view_child_assets_hint: 'Ouvre la liste des équipements enfants.',
+  pm_calls_loading: 'Chargement des appels de maintenance.',
+  pm_work_orders_loading: 'Chargement des ordres de travail associés.',
+  pm_mobile_read_only_description:
+    'Consultez ici les plans et les appels générés. La création et la modification restent disponibles sur le web.',
   pm_next_threshold: 'Prochain seuil compteur',
   pm_no_next_meter_threshold: 'Aucun prochain seuil compteur',
   pm_next_occurrence: 'Prochaine occurrence',
@@ -190,12 +289,19 @@ const frJSON = {
   pm_triggered_cycles: 'Cycles déclencheurs',
   pm_every_base_cycles_mobile: 'Tous les {{count}} cycles de base',
   pm_multi_counter_rule_label: 'Règle multi-compteurs',
+  pm_all_meter_cycles_due: 'Attendre que chaque seuil compteur soit atteint',
+  pm_any_meter_cycle_due: 'Générer dès qu’un seuil compteur est atteint',
   pm_call_status_completed: 'Terminé',
   pm_call_status_ignored: 'Ignoré',
   pm_call_reschedule_audit: 'Du {{from}} au {{to}} par {{actor}} : {{reason}}',
   pm_empty_calls: 'Aucun appel de maintenance pour le moment.',
-  pm_work_order_history_load_error: 'Impossible de charger les ordres de maintenance préventive.',
-  no_access_preventive_maintenance: 'Vous n’avez pas accès à la maintenance préventive.',
+  pm_work_order_history_load_error:
+    'Impossible de charger les ordres de maintenance préventive.',
+  no_access_preventive_maintenance:
+    'Vous n’avez pas accès à la maintenance préventive.',
+  asset_maintenance: 'Maintenance',
+  upgrade_preventive_maintenance:
+    'La maintenance préventive n’est pas disponible dans votre offre actuelle.',
   load_more: 'Afficher plus',
   parts_inventory: 'Inventaire des pièces',
   custom_dashboards: 'Tableaux de bord personnalisés',
@@ -386,6 +492,8 @@ const frJSON = {
   minutes: 'Minutes',
   required_hours: 'Le champ Heures est requis',
   required_minutes: 'Le champ des minutes est obligatoire',
+  whole_non_negative_number:
+    'Saisissez un nombre entier supérieur ou égal à zéro.',
   add_time: 'Ajouter du temps',
   add_time_description:
     'Remplissez les champs ci-dessous pour créer et ajouter du temps',
@@ -398,13 +506,38 @@ const frJSON = {
   close: 'Fermer',
   task_update_success: 'Tâche mise à jour avec succès',
   task_update_failure: "La tâche n'a pas pu être mise à jour",
+  saving_task: 'Enregistrement…',
+  task_saved: 'Enregistrée',
+  toggle_numeric_sign: 'Ajouter ou retirer le signe négatif',
   notes_save_success: 'Notes enregistrées avec succès',
+  notes_save_failure: "Les notes n'ont pas pu être enregistrées. Réessayez.",
   images_add_task_success: 'Les images ont été ajoutées à la tâche',
   images_add_task_failure: "Quelque chose s'est mal passé",
   images: 'Images',
   required_images: 'Veuillez téléverser au moins une image',
   add_images: 'Ajouter des images',
   tasks: 'Tâches',
+  task_completion_progress: 'Progression des tâches',
+  work_order_tasks_loading:
+    'Veuillez attendre le chargement des tâches du bon de travail.',
+  work_order_tasks_load_error:
+    'Impossible de charger les tâches. Réessayez avant de clôturer ce bon de travail.',
+  labor_load_error:
+    'Impossible de charger les temps de travail. Réessayez avant d’utiliser le chronomètre.',
+  additional_costs_load_error:
+    'Impossible de charger les coûts supplémentaires. Vérifiez votre connexion et réessayez.',
+  comments_load_error:
+    'Impossible de charger les commentaires du bon de travail. Vérifiez votre connexion et réessayez.',
+  work_order_completion_data_loading:
+    'Les informations obligatoires du bon de travail sont en cours de chargement. Attendez puis réessayez.',
+  work_order_completion_data_load_error:
+    'Impossible de charger les informations obligatoires du bon de travail. Relancez les sections concernées avant de le clôturer.',
+  no_tasks_for_work_order:
+    "Aucune tâche n'a été ajoutée à cet ordre de travail.",
+  close_image_preview: "Fermer l'aperçu de l'image",
+  previous_image: 'Image précédente',
+  next_image: 'Image suivante',
+  image_count: '{{current}} sur {{total}}',
   wo_archive_success: 'Le bon de travail a été archivé',
   wo_archive_failure: "Le bon de travail n'a pas pu être archivé",
   wo_archive_confirm: 'Êtes-vous sûr de vouloir archiver ce bon de travail ',
@@ -415,6 +548,8 @@ const frJSON = {
   id: 'ID',
   due_date: "Date d'échéance",
   location: 'Emplacement',
+  location_details_load_error:
+    'Impossible de charger cet emplacement. Vérifiez votre connexion puis réessayez.',
   asset: 'Équipement',
   team: 'Équipe',
   created_at: 'Date créée',
@@ -423,11 +558,29 @@ const frJSON = {
   column_view: 'Vue colonnes',
   wo_create_success: 'Le bon de travail a été créé avec succès',
   wo_create_failure: "Le bon de travail n'a pas pu être créé",
+  wo_created_tasks_save_error:
+    'L’ordre de travail a été créé, mais ses tâches n’ont pas pu être enregistrées. Vérifiez les tâches dans la fiche avant de continuer.',
   discard_changes: 'Annuler les modifications',
-  discard_changes_question: 'Annuler les modifications non enregistrées ?\nSi vous partez maintenant, vous perdrez les modifications non enregistrées',
+  discard_changes_question:
+    'Annuler les modifications non enregistrées ?\nSi vous partez maintenant, vous perdrez les modifications non enregistrées',
   changes_saved_success: 'Les changements ont été enregistrés',
   wo_update_failure: "Le bon de travail n'a pas pu être modifié",
   wo_delete_success: 'Le bon de travail a été supprimé avec succès',
+  wo_complete_success: 'Le bon de travail a été clôturé avec succès',
+  work_order_reopen_title: 'Rouvrir le bon de travail terminé',
+  work_order_reopen_description:
+    'La réouverture remet le bon de travail à l’état Ouvert. Saisissez un motif; la clôture précédente reste dans son historique.',
+  work_order_reopen_reason: 'Motif de réouverture',
+  work_order_reopen_reason_required:
+    'Saisissez un motif avant de rouvrir ce bon de travail.',
+  work_order_reopen_action: 'Rouvrir pour correction',
+  work_order_reopen_success: 'Le bon de travail a été rouvert pour correction.',
+  work_order_lifecycle_history: 'Historique des clôtures',
+  work_order_lifecycle_history_error:
+    'Impossible de charger l’historique des clôtures.',
+  work_order_lifecycle_transition: '{{from}} → {{to}}',
+  wo_report_download_success:
+    'Le rapport du bon de travail est prêt à être consulté',
   wo_delete_failure: "Le bon de travail n'a pas pu être supprimé",
   status: 'Statut',
   title: 'Titre',
@@ -443,6 +596,10 @@ const frJSON = {
   completed_on: 'Terminé le',
   updated_at: 'Modifié le',
   work_order: 'Ordre de travail',
+  start_work_order_timer: 'Démarrer le chronomètre de l’ordre de travail',
+  stop_work_order_timer: 'Arrêter le chronomètre de l’ordre de travail',
+  work_order_timer_duration: 'Temps enregistré : {{duration}}',
+  filters_selected_count: '{{count}} sélectionné(s)',
   timer_running: "Minuterie en cours d'exécution",
   run_timer: 'Démarrer la minuterie',
   approved_by: 'Approuvé par',
@@ -551,10 +708,12 @@ const frJSON = {
   vendors: 'Fournisseurs',
   categories: 'Catégories',
   settings: 'Paramètres',
+  notifications: 'Notifications',
   //request
   cancelled: 'Annulé',
   reject: 'Rejeter',
   approve: 'Approuver',
+  approving_request: 'Création d’un ordre de travail depuis cette demande.',
   request_create_success: 'Bon de travail demandé avec succès',
   request_create_failure: "La demande de travail n'a pas pu être créée",
   request_edit_failure: "La demande n'a pas pu être modifiée",
@@ -577,6 +736,10 @@ const frJSON = {
   confirm_delete_request: 'Voulez-vous vraiment supprimer cette demande ?',
   request: 'Demande',
   request_details: 'Détails sur la demande',
+  request_open_work_order_hint:
+    'Ouvre l’ordre de travail créé depuis cette demande.',
+  request_open_details_hint: 'Ouvre les détails de la demande.',
+  requests_page_loading: 'Chargement des demandes suivantes.',
   none_priority: 'Aucune',
   low_priority: 'Basse',
   medium_priority: 'Moyenne',
@@ -585,6 +748,7 @@ const frJSON = {
   downtimes: "Temps d'arrêt",
   confirm_delete_file_asset:
     'Voulez-vous vraiment supprimer ce fichier de cet équipement?',
+  no_files_available: 'Aucun fichier ni image n’est encore associé.',
   actions: 'Actions',
   show: 'Montrer',
   model: 'Modèle',
@@ -596,6 +760,18 @@ const frJSON = {
   placed_in_service: 'Mis en service',
   warranty_expiration: 'Expiration de la garantie',
   asset_information: "Informations sur l'équipement",
+  asset_details_load_error:
+    'Impossible de charger cet équipement. Vérifiez votre connexion puis réessayez.',
+  asset_list_load_error:
+    'Impossible de charger les équipements. Vérifiez votre connexion puis réessayez.',
+  meter_details_load_error:
+    'Impossible de charger ce compteur. Vérifiez votre connexion puis réessayez.',
+  meter_readings_load_error:
+    'Impossible de charger les relevés. Vérifiez votre connexion puis réessayez.',
+  meter_triggers_load_error:
+    'Impossible de charger les déclencheurs de bons de travail. Vérifiez votre connexion puis réessayez.',
+  meter_list_load_error:
+    'Impossible de charger les compteurs. Vérifiez votre connexion puis réessayez.',
   more_informations: "Plus d'informations",
   confirm_delete_asset_downtime:
     "Voulez-vous vraiment supprimer ce temps d'arrêt ?",
@@ -606,6 +782,8 @@ const frJSON = {
   required_startsOn: 'La date de début est obligatoire',
   reading_create_success: 'Le relevé a été ajouté avec succès',
   reading_create_failure: "Le relevé n'a pas pu être ajouté",
+  reading_update_success: 'Le relevé a été modifié avec succès',
+  reading_update_failure: "Le relevé n'a pas pu être modifié",
   reading: 'Relevé',
   added_by: 'Ajouté par',
   enter_meter_value: 'Entrez la valeur du compteur',
@@ -613,6 +791,8 @@ const frJSON = {
   select_meter: 'Sélectionnez le compteur',
   confirm_delete_part_asset:
     'Voulez-vous vraiment supprimer cette pièce de cet équipement ?',
+  remove_part_from_asset: 'Retirer {{name}} de cet équipement',
+  view_work_order_image: "Afficher l'image du bon de travail",
   no_due_date: "Pas de date d'échéance",
   due_at_date: 'Dû le {{date}}',
   no_primary_worker: 'Aucun assigné',
@@ -628,8 +808,24 @@ const frJSON = {
   inServiceDate_description: 'Date de mise en service',
   warranty_expiration_date: "Date d'expiration de la garantie",
   additional_information: 'Informations supplémentaires',
+  custom_fields: 'Champs personnalisés',
   structure: 'Structure',
   parent_asset: 'Équipement parent',
+  asset_inspections: 'Inspections',
+  asset_inspections_description:
+    'Ouvrez un ordre de travail lié pour consulter les contrôles enregistrés.',
+  show_inspection_results: 'Voir les contrôles',
+  hide_inspection_results: 'Masquer les contrôles',
+  inspection_results_load_error:
+    'Impossible de charger les contrôles. Vérifiez la connexion et réessayez.',
+  no_inspection_tasks_for_work_order:
+    'Cet ordre de travail ne contient aucun contrôle d’inspection.',
+  inspection_result_not_recorded: 'Aucun résultat enregistré',
+  task_value_not_recorded: 'Aucune valeur enregistrée',
+  downtime_ongoing: 'En cours',
+  child_assets: 'Équipements enfants',
+  asset_children_load_error:
+    'Impossible de charger les équipements enfants. Réessayez.',
   asset_create_success: "L'équipement a été créé avec succès",
   asset_create_failure: "L'équipement n'a pas pu être créé",
   additional_workers_description:
@@ -652,6 +848,7 @@ const frJSON = {
   no_assets_available: 'Aucun équipement disponible',
   no_result_criteria: 'Aucun résultat pour vos critères de recherche',
   loading_assets: 'Chargement des équipements enfants de {{name}} #{{id}}',
+  assets_load_error: 'Impossible de charger les équipements associés.',
   //location
   map_view: 'Vue carte',
   location_create_success: "L'emplacement a été créé avec succès",
@@ -796,6 +993,7 @@ const frJSON = {
   po_date: 'Date du bon de commande',
   notes: 'Remarques',
   add_notes: 'Ajouter des remarques',
+  hide_notes: 'Masquer les remarques',
   requisitioner: 'Demandeur',
   terms: 'Termes',
   shipping_method: 'Mode de livraison',
@@ -846,6 +1044,7 @@ const frJSON = {
   next_reading_due: 'Prochain relevé',
   unit_of_measurement: 'Unité de mesure',
   last_reading: 'Dernier relevé',
+  meter_no_readings: 'Aucun relevé pour le moment',
   enter_meter_name: 'Entrez le nom du compteur',
   unit: 'Unité',
   update_frequency: 'Fréquence de mise à jour',
@@ -866,6 +1065,8 @@ const frJSON = {
   history: 'Historique',
   reading_frequency: 'Fréquence de relevés',
   required_reading_value: 'La valeur du relevé est requise',
+  invalid_reading_value: 'Saisissez un relevé numérique valide.',
+  invalid_number_value: 'Saisissez un nombre complet.',
   wo_triggers: "Déclencheurs d'ordre de travail",
   add_trigger: 'Ajouter un déclencheur',
   meter_details: 'Détails du compteur',
@@ -1226,7 +1427,8 @@ const frJSON = {
   account_deleted: 'Compte supprimé avec succès',
   account_delete_error: 'Erreur lors de la suppression du compte',
   confirm_delete_account: 'Supprimer le compte',
-  delete_account_email_confirmation: 'Veuillez vérifier vos e-mails pour confirmer la suppression du compte',
+  delete_account_email_confirmation:
+    'Veuillez vérifier vos e-mails pour confirmer la suppression du compte',
   notification_settings: 'Paramètres de notifications',
   notification_settings_description:
     'Gérer les détails liés à vos notifications',
@@ -1260,8 +1462,7 @@ const frJSON = {
   your_payment_secure: 'Vos données de paiement sont cryptées et sécurisées.',
   plan: 'Plan',
   current_plan: 'Plan actuel',
-  number_users_who_will_use_grash:
-    "Nombre d'utilisateurs qui utiliseront QPM",
+  number_users_who_will_use_grash: "Nombre d'utilisateurs qui utiliseront QPM",
   admin_role: 'Administrateur',
   technical_role: 'Technique',
   limited_technical_role: 'Technique limitée',
@@ -1348,6 +1549,8 @@ const frJSON = {
   previous_day: 'Jour précédant',
   today: "Aujourd'hui",
   to_filter: 'Filtrer',
+  filters_applied: 'Filtres appliqués',
+  work_order_main_filters: 'Filtres principaux',
   'noRows.asset.message':
     'Les équipements sont des ressources sur lesquelles votre entreprise peut intervenir',
   'noRows.asset.action':
@@ -1356,6 +1559,13 @@ const frJSON = {
   toggle_menu: 'Commuter le menu',
   no_results: 'Aucun résultat trouvé',
   an_error_occured: "Une erreur s'est produite.",
+  user_settings_load_error:
+    'Impossible de charger vos préférences de notification. Vérifiez votre connexion et réessayez.',
+  profile_image_permission_denied:
+    'Autorisez l’accès à la photothèque pour changer votre photo de profil.',
+  profile_image_update_success: 'Photo de profil mise à jour.',
+  profile_image_update_failure:
+    'Impossible de mettre à jour votre photo de profil.',
   density: 'Densité',
   compact: 'Compact',
   standard: 'Standard',
@@ -1499,6 +1709,7 @@ const frJSON = {
   downgrade_description_no_owner:
     "Votre entreprise vient de diminuer le nombre d'utilisateurs dans son plan d'abonnement. Le propriétaire de l'entreprise doit désactiver certains utilisateurs avant que vous puissiez continuer",
   past_due: 'En retard',
+  due_soon: 'Échéance imminente',
   already_read: 'Relevé',
   due_date_delay: "Jours avant l'échéance",
   due_date_delay_description: 'Nombre de jours',
@@ -1532,6 +1743,7 @@ const frJSON = {
     'Mettez à jour votre plan pour importer depuis des fichiers CSV ou Excel',
   register_here: 'Inscrivez-vous ici',
   home: 'Accueil',
+  good_day: 'Bonjour',
   user: 'Utilisateur',
   start_work_order: 'Démarrer le travail',
   priority_label: '{{priority}} priorité',
@@ -1546,6 +1758,9 @@ const frJSON = {
   required_cost_on_completion:
     'Aucune information de coût fournie dans ce bon de travail',
   complete_work_order: "Clôturer l'ordre de travail",
+  complete_work_order_confirm: 'Confirmer la clôture de « {{title}} » ?',
+  signature_required_feature_unavailable:
+    "Cet ordre de travail exige une signature, mais cette fonction n'est pas disponible dans votre offre actuelle.",
   no_parts: 'Aucune pièce',
   edit_quantity: 'Modifier la quantité',
   remaining_tasks: '{{count}} tâches restantes',
@@ -1573,8 +1788,36 @@ const frJSON = {
   LATE_WO: 'En retard',
   TODAY_WO: "Pour aujourd'hui",
   HIGH_WO: 'Priorité élevée',
+  work_orders_load_error:
+    'Impossible de charger les ordres de travail. Vérifiez votre connexion et réessayez.',
+  dashboard_settings_load_error:
+    'Impossible de charger les préférences du tableau de bord. Vérifiez votre connexion et réessayez.',
+  work_order_details_load_error:
+    'Impossible de charger cet ordre de travail. Vérifiez votre connexion et réessayez.',
+  requests_load_error:
+    'Impossible de charger les demandes. Vérifiez votre connexion et réessayez.',
+  parts_load_error:
+    'Impossible de charger les pièces. Vérifiez votre connexion et réessayez.',
+  parts_page_loading: 'Chargement des pièces suivantes.',
+  part_below_minimum_stock: 'Sous le niveau de stock minimum',
+  part_open_details_hint: 'Ouvre les détails de la pièce.',
+  request_details_load_error:
+    'Impossible de charger cette demande. Vérifiez votre connexion et réessayez.',
+  directory_load_error:
+    'Impossible de charger cet annuaire. Vérifiez votre connexion et réessayez.',
+  people_page_loading: 'Chargement des personnes suivantes.',
+  teams_page_loading: 'Chargement des équipes suivantes.',
+  vendors_page_loading: 'Chargement des fournisseurs suivants.',
+  customers_page_loading: 'Chargement des clients suivants.',
+  roles_load_error:
+    'Impossible de charger les rôles disponibles. Vérifiez votre connexion et réessayez.',
+  no_roles_available: 'Aucun rôle ne peut être attribué.',
   no_element_match_criteria:
     'Aucun élément trouvé pour ces critères de recherche',
+  no_work_orders_available:
+    "Aucun ordre de travail n'est disponible dans cette vue.",
+  no_requests_available: "Aucune demande n'est disponible dans cette vue.",
+  clear_search_and_filters: 'Effacer la recherche et les filtres',
   required_part_name: 'Le nom de la pièce est requis',
   only_assigned_to_me: 'Uniquement assignés à moi',
   complete_work_orders: 'Bons de travail clôturés',
@@ -1586,6 +1829,10 @@ const frJSON = {
   no_notification_message:
     "Des mises à jour importantes s'afficheront ici pour vous aider a suivre l'évolution de votre travail",
   no_notification: 'Aucune notification',
+  notification_status_read: 'Lue',
+  notification_status_unread: 'Non lue',
+  notification_open_related_hint: "Ouvre l'élément associé.",
+  notification_mark_read_hint: 'Marque cette notification comme lue.',
   view_children: 'Voir les enfants',
   loading: 'Chargement',
   please_wait: 'Veuillez patienter...',
@@ -1631,6 +1878,8 @@ const frJSON = {
   no_notification_permission_description:
     'Veuillez activer les permissions de notification dans les paramètres',
   allow: 'Autoriser',
+  push_notification_requires_device:
+    'Les notifications push nécessitent un appareil physique.',
   failed_push_notification:
     "Impossible d'obtenir le jeton push pour la notification push!",
   no_internet_connection: 'Pas de connexion internet',
@@ -1643,6 +1892,12 @@ const frJSON = {
   power: 'Puissance',
   library: 'Bibliothèque photo',
   camera: 'Caméra',
+  camera_permission_error:
+    'Impossible de demander l’autorisation d’utiliser la caméra.',
+  camera_settings_error: 'Impossible d’ouvrir les paramètres de la caméra.',
+  camera_capture_error: 'La photo n’a pas pu être prise. Veuillez réessayer.',
+  switch_camera: 'Changer de caméra',
+  take_photo: 'Prendre une photo',
   media_library: 'Photothèque',
   permission_required_title: 'Permission requise',
   permission_required_message:
@@ -1660,8 +1915,16 @@ const frJSON = {
   mark_all_as_seen: 'Tout marquer comme lues',
   estimated_start_date: 'Date de début prévue',
   audio_description: 'Description audio',
+  play_audio: 'Lire la description audio',
+  pause_audio: 'Mettre en pause la description audio',
+  stop_audio: 'Arrêter la description audio',
+  audio_playback_error: 'La lecture audio a échoué. Veuillez réessayer.',
+  audio_recording_error: "L'enregistrement audio a échoué. Veuillez réessayer.",
+  microphone: 'Microphone',
   start_recording: "Démarrer l'enregistrement",
   stop_recording: "Arrêter l'enregistrement",
+  stop_recording_before_saving:
+    "Arrêtez l'enregistrement audio avant d'enregistrer.",
   OPERATIONAL: 'Opérationnel',
   DOWN: 'Hors service',
   MODERNIZATION: 'Modernisation',
@@ -1677,6 +1940,17 @@ const frJSON = {
     'Configurez une URL de serveur API personnalisée. Modifiez ce paramètre uniquement si vous utilisez votre propre serveur.',
   server_url: 'URL du serveur',
   required_url: "L'URL du serveur est requise",
+  server_unreachable: 'Le serveur CMMS est inaccessible. Vérifiez son adresse.',
+  no_cmms_server_configured:
+    'Aucun serveur CMMS configuré. Choisissez votre serveur.',
+  invalid_server_url_scheme:
+    'Saisissez une URL valide commençant par http:// ou https://.',
+  invalid_server_url_without_credentials:
+    'Utilisez une URL http:// ou https:// sans identifiants ni paramètres.',
+  https_required_for_server:
+    'Utilisez HTTPS pour protéger le mot de passe de votre entreprise.',
+  invalid_cmms_server_address:
+    'Cette adresse ne correspond pas à un serveur CMMS.',
   server_url_saved: "L'URL du serveur a été enregistrée avec succès",
   error_saving_url:
     "Une erreur est survenue lors de l'enregistrement de l'URL du serveur",
@@ -1687,12 +1961,28 @@ const frJSON = {
   back_to: 'Retour à',
   top_level: 'Niveau supérieur',
   no_results_found: 'Aucun résultat trouvé',
+  no_users_available: 'Aucun utilisateur disponible',
+  no_teams_available: 'Aucune équipe disponible',
+  no_vendors_available: 'Aucun fournisseur disponible',
+  no_customers_available: 'Aucun client disponible',
+  no_checklists_available: 'Aucune liste de contrôle disponible',
+  no_meters_available: 'Aucun compteur disponible',
+  no_locations_available: 'Aucun emplacement disponible',
+  category_create_failed:
+    'Impossible de créer la catégorie. Votre saisie est conservée ; réessayez.',
   no_sub_assets: 'Aucun sous-équipement',
   asset_not_found: 'Équipement non trouvé',
+  looking_up_asset: 'Recherche de l’équipement…',
   comments: 'Commentaires',
   no_comments:
     'Aucun commentaire pour le moment. Soyez le premier à commenter !',
+  task_image_accessibility_label: 'Afficher la photo de la tâche : {{name}}',
+  task_image_accessibility_hint: 'Ouvre la photo en plein écran.',
   post_comment: 'Publier un commentaire',
+  comment_posted: 'Commentaire publié',
+  comment_update_success: 'Commentaire mis à jour.',
+  comment_delete_success: 'Commentaire supprimé.',
+  view_image: 'Afficher l’image',
   confirm_delete_comment: 'Êtes-vous sûr de vouloir supprimer ce commentaire ?',
   add_comment_placeholder: 'Ajouter un commentaire...',
   create_category: 'Create Category',
@@ -1704,17 +1994,22 @@ const frJSON = {
     "Nous sommes désolés d'apprendre cela. Vos commentaires nous aident à améliorer QPM.",
   feedback_placeholder:
     "Dites-nous ce qui n'a pas fonctionné ou comment nous pouvons nous améliorer…",
+  feedback_sent: 'Votre commentaire a été envoyé.',
   send: 'Envoyer',
   edit_additional_cost: 'Modifier le coût',
   delete_additional_cost: 'Supprimer le coût',
-  confirm_delete_additional_cost: 'Êtes-vous sûr de vouloir supprimer ce coût ?',
+  confirm_delete_additional_cost:
+    'Êtes-vous sûr de vouloir supprimer ce coût ?',
   edit_additional_time: 'Modifier le temps',
   delete_additional_time: 'Supprimer le temps',
-  confirm_delete_additional_time: 'Êtes-vous sûr de vouloir supprimer ce temps ?',
+  confirm_delete_additional_time:
+    'Êtes-vous sûr de vouloir supprimer ce temps ?',
   reset: 'Réinitialiser',
   operation_success: "L'opération a réussi",
   edit_reading: 'Modifier la lecture',
-  are_you_sure_delete_reading: 'Êtes-vous sûr de vouloir supprimer cette lecture ?',
-  conflict_retry: "La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes."
+  are_you_sure_delete_reading:
+    'Êtes-vous sûr de vouloir supprimer cette lecture ?',
+  conflict_retry:
+    'La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes.'
 };
 export default frJSON;

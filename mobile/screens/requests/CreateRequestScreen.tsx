@@ -1,6 +1,6 @@
 import { RootStackScreenProps } from '../../types';
-import { View } from '../../components/Themed';
 import Form from '../../components/form';
+import { View } from '../../components/Themed';
 import * as Yup from 'yup';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,8 @@ import {
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { getErrorMessage } from '../../utils/api';
+import { groupRequestFormFields } from '../../utils/requestFormLayout';
 
 export default function CreateRequestScreen({
   navigation,
@@ -34,14 +36,14 @@ export default function CreateRequestScreen({
   const dispatch = useDispatch();
   const { customFields } = useSelector((state) => state.customFields);
   const [isFormDirty, setIsFormDirty] = useState(false);
-  useUnsavedChanges(navigation, isFormDirty);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const onCreationSuccess = () => {
     showSnackBar(t('request_create_success'), 'success');
     navigation.goBack();
   };
   const onCreationFailure = (err) =>
-    showSnackBar(t('request_create_failure'), 'error');
+    showSnackBar(getErrorMessage(err, t('request_create_failure')), 'error');
 
   const getFieldsAndShapes = (): [Array<IField>, { [key: string]: any }] => {
     const baseShape = getRequestFieldsAndShapes()[1];
@@ -59,18 +61,18 @@ export default function CreateRequestScreen({
       { ...baseShape, ...customShape }
     ];
   };
+  const [fields, validationShape] = getFieldsAndShapes();
 
   return (
     <View style={styles.container}>
       <Form
-        fields={getFieldsAndShapes()[0]}
-        validation={Yup.object().shape(getFieldsAndShapes()[1])}
+        fields={groupRequestFormFields(fields, t)}
+        validation={Yup.object().shape(validationShape)}
         navigation={navigation}
         submitText={t('save')}
         values={{ dueDate: null }}
         onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
-          setIsFormDirty(false);
           try {
             let formattedValues = formatRequestValues(values);
             formattedValues = formatCustomFields(formattedValues);
@@ -93,6 +95,8 @@ export default function CreateRequestScreen({
               files: imageAndFiles.files
             };
             await dispatch(addRequest(formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
             onCreationSuccess();
           } catch (err) {
             onCreationFailure(err);

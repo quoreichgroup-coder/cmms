@@ -7,14 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { TabBar, TabView } from 'react-native-tab-view';
 import People from './People';
 import Teams from './Teams';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
 
 export default function PeopleTeams(
   props: RootStackScreenProps<'PeopleTeams'>
 ) {
   const [tabIndex, setTabIndex] = useState(0);
   const { t } = useTranslation();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const layout = useWindowDimensions();
   const [tabs] = useState([
     { key: 'people', title: t('people') },
@@ -31,7 +31,7 @@ export default function PeopleTeams(
   const renderTabBar = (props) => (
     <TabBar
       {...props}
-      indicatorStyle={{ backgroundColor: 'white' }}
+      indicatorStyle={{ backgroundColor: theme.colors.onPrimary }}
       style={{ backgroundColor: theme.colors.primary }}
     />
   );

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>QPM — Maintenance préventive mobile</title>
+  <link rel="stylesheet" href="assets/prototype.css">
+  <link rel="stylesheet" href="assets/replication.css">
+</head>
+<body class="mobile-prototype-body">
+  <div class="mobile-prototype-wrap">
+    <div class="mobile-demo-heading"><a href="mobile-technician.html">← Retour au poste</a><span class="demo-label">Prototype · données de démonstration</span></div>
+    <div class="prototype-controls" aria-label="Outils de démonstration">
+      <label for="pm-demo-state">État simulé</label>
+      <select id="pm-demo-state" data-state-switch>
+        <option value="live">Parcours normal</option><option value="loading">Chargement</option><option value="empty">Vide</option><option value="error">Erreur</option><option value="denied">Accès refusé</option><option value="success">Succès</option>
+      </select><span class="screen-id" data-mobile-screen-id>MOB-015</span>
+    </div>
+    <div class="phone-frame">
+      <header class="phone-status"><span>09:41</span><span>●●● ◖ ▰</span></header>
+      <div class="phone-app">
+        <header class="phone-header"><div><p class="eyebrow">MAINTENANCE PRÉVENTIVE</p><h1 data-mobile-title>Plans de maintenance</h1></div><button class="icon-button" aria-label="Rechercher un plan" data-toast="Recherche de démonstration">⌕</button></header>
+        <section data-live-data>
+          <div class="mobile-panel active" data-mobile-panel="plans">
+            <p class="mobile-intro">Plans en lecture seule sur mobile. Ouvrez un plan pour consulter ses prochaines échéances et son historique d’appels.</p>
+            <div class="mobile-section-heading"><h2>Plans actifs</h2><span class="screen-id">2 plans · exemples</span></div>
+            <button class="mobile-plan-card" data-mobile-tab="pmDetail" data-open-pm="meter"><div class="mobile-plan-top"><span class="pm-type meter-type">Compteur</span><span class="status-badge pending">Actif</span></div><b>Hours On Going</b><span class="asset-line">Z-Type Conveyor · Main Warehouse</span><div class="pm-next-threshold"><span>Prochain seuil planifié</span><strong>100 <small>H</small></strong></div><div class="mobile-plan-foot"><span>Lecture réelle : aucune</span><span>3 seuils prévus</span></div></button>
+            <button class="mobile-plan-card" data-mobile-tab="pmDetail" data-open-pm="calendar"><div class="mobile-plan-top"><span class="pm-type calendar-type">Calendrier</span><span class="status-badge pending">Actif</span></div><b>PM01 CalBAse</b><span class="asset-line">Primary Crusher · Main Warehouse</span><div class="pm-next-threshold"><span>Prochaine occurrence</span><strong>12 <small>oct.</small></strong></div><div class="mobile-plan-foot"><span>Chaque lundi</span><span>WO000014 en cours</span></div></button>
+            <div class="inline-note">Prévision d’échéance et ordre de travail généré sont affichés comme des informations distinctes.</div>
+          </div>
+          <div class="mobile-panel" data-mobile-panel="pmDetail">
+            <button class="back-link" data-mobile-tab="plans">← Tous les plans</button>
+            <article class="pm-detail-card" data-pm-record="meter" hidden>
+              <div class="mobile-plan-top"><span class="pm-type meter-type">Déclencheur compteur</span><span class="status-badge pending">Plan actif</span></div>
+              <h2>Hours On Going</h2><p class="pm-description">Maintenance préventive du convoyeur selon ses heures de fonctionnement.</p>
+              <div class="pm-info-grid"><div><small>Équipement</small><b>Z-Type Conveyor</b></div><div><small>Emplacement</small><b>Main Warehouse</b></div><div><small>Unité</small><b>Hours On Going · H</b></div><div><small>Cycle</small><b>Tous les 100 H</b></div></div>
+              <section class="actual-reading-card"><span>DERNIER RELEVÉ RÉEL</span><b>Aucun relevé enregistré</b><small>La prévision reste basée sur les seuils configurés.</small></section>
+              <h3>Seuils compteur prévus</h3>
+              <div class="threshold-row"><span><b>100 H</b><small>Prochain seuil</small></span><span class="status-badge pending">Upcoming</span></div><div class="threshold-row"><span><b>200 H</b><small>Seuil suivant</small></span><span class="status-badge pending">Upcoming</span></div><div class="threshold-row"><span><b>300 H</b><small>Seuil suivant</small></span><span class="status-badge pending">Upcoming</span></div>
+              <div class="inline-note">Un relevé atteignant un seuil peut déclencher le WO selon la configuration du plan. Cette maquette ne crée aucun ordre.</div>
+              <h3>Ordres de travail récents</h3><div class="mobile-empty-state compact"><b>Aucun ordre de travail récent</b><p>Aucun WO n’est associé à ce plan dans cet exemple.</p></div>
+            </article>
+            <article class="pm-detail-card" data-pm-record="calendar" hidden>
+              <div class="mobile-plan-top"><span class="pm-type calendar-type">Déclencheur calendaire</span><span class="status-badge pending">Plan actif</span></div>
+              <h2>PM01 CalBAse</h2><p class="pm-description">WEEKLY INSPETION PM · CARRY OUT WEEKLY INSPETION PM</p>
+              <div class="pm-info-grid"><div><small>Équipement</small><b>Primary Crusher</b></div><div><small>Emplacement</small><b>Main Warehouse</b></div><div><small>Récurrence</small><b>Chaque lundi</b></div><div><small>Prochaine occurrence</small><b>12 oct. 2026 · 13:29</b></div></div>
+              <h3>Registre d’appels</h3><div class="threshold-row"><span><b>12 oct. · 13:29</b><small>Occurrence planifiée</small></span><span class="status-badge pending">Upcoming</span></div><div class="threshold-row"><span><b>19 oct. · 13:29</b><small>Occurrence planifiée</small></span><span class="status-badge pending">Upcoming</span></div>
+              <h3>Ordres de travail récents</h3><button class="mobile-work-card" data-toast="Détail WO000014 simulé"><div class="work-card-top"><span class="status-badge in-progress">En cours</span><span>WO000014</span></div><strong>WEEKLY INSPETION PM</strong><span class="asset-line">Créé le 06 oct. 2026 · échéance 10 oct. 2026</span></button>
+            </article>
+          </div>
+        </section>
+        <div class="state-stage" data-state-slot hidden></div>
+        <nav class="bottom-tabs" aria-label="Navigation mobile">
+          <a class="bottom-tab" href="mobile-technician.html"><span>⌂</span>Accueil</a><a class="bottom-tab" href="mobile-technician.html#orders"><span>▤</span>Mes ordres</a><a class="bottom-tab create-tab" href="mobile-technician.html#create"><span>＋</span>Créer</a><a class="bottom-tab active" data-mobile-tab="plans" href="mobile-maintenance.html"><span>◷</span>Plans PM</a><a class="bottom-tab" href="mobile-technician.html#more"><span>···</span>Plus</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <div class="toast" role="status" aria-live="polite" data-toast-area></div>
+  <script src="assets/prototype.js"></script>
+  <script>
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-open-pm]');
+      if (!button) return;
+      document.querySelectorAll('[data-pm-record]').forEach((record) => { record.hidden = record.dataset.pmRecord !== button.dataset.openPm; });
+      const screenId = document.querySelector('[data-mobile-screen-id]');
+      if (screenId) screenId.textContent = 'MOB-016';
+      const title = document.querySelector('[data-mobile-title]');
+      if (title) title.textContent = button.dataset.openPm === 'meter' ? 'Hours On Going' : 'PM01 CalBAse';
+    });
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-mobile-tab="plans"]')) return;
+      document.querySelectorAll('[data-pm-record]').forEach((record) => { record.hidden = true; });
+      const screenId = document.querySelector('[data-mobile-screen-id]');
+      if (screenId) screenId.textContent = 'MOB-015';
+      const title = document.querySelector('[data-mobile-title]');
+      if (title) title.textContent = 'Plans de maintenance';
+    });
+  </script>
+</body>
+</html>

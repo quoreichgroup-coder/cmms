@@ -39,6 +39,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -197,7 +199,7 @@ class MeterControllerTest extends AbstractControllerTest {
         @Test
         void getByAsset_permitAll_noAuthRequired() throws Exception {
             mockCurrentUser(clientUser);
-            when(assetService.findById(1L)).thenReturn(java.util.Optional.of(asset));
+            when(assetService.checkAccessToAssetId(1L, clientUser)).thenReturn(asset);
             when(meterService.findByAsset(1L)).thenReturn(Collections.singletonList(meter));
             mockShowMapping();
 
@@ -324,23 +326,45 @@ class MeterControllerTest extends AbstractControllerTest {
         @Test
         void getByAsset_notFound_returns404() throws Exception {
             mockCurrentUser(clientUser);
-            when(assetService.findById(99L)).thenReturn(java.util.Optional.empty());
+            doThrow(new CustomException("Not found", HttpStatus.NOT_FOUND))
+                    .when(assetService).checkAccessToAssetId(99L, clientUser);
 
             mockMvc.perform(get("/meters/asset/99"))
                     .andExpect(status().isNotFound());
+
+            verify(meterService, never()).findByAsset(99L);
         }
 
         @Test
         void getByAsset_accessDenied_returns403() throws Exception {
             mockCurrentUser(restrictedUser);
-            Asset otherAsset = new Asset();
-            otherAsset.setId(2L);
-            otherAsset.setName("Other");
-            otherAsset.setCreatedBy(99L);
-            when(assetService.findById(2L)).thenReturn(java.util.Optional.of(otherAsset));
+            doThrow(new CustomException("Access denied", HttpStatus.FORBIDDEN))
+                    .when(assetService).checkAccessToAssetId(2L, restrictedUser);
 
             mockMvc.perform(get("/meters/asset/2"))
                     .andExpect(status().isForbidden());
+
+            verify(meterService, never()).findByAsset(2L);
+        }
+
+        @Test
+        void getByAsset_withoutMeterPermission_returns403BeforeReadingMeters() throws Exception {
+            User assetsOnlyUser = new User();
+            assetsOnlyUser.setId(4L);
+            assetsOnlyUser.setCompany(company);
+            assetsOnlyUser.setRole(Role.builder()
+                    .id(4L)
+                    .roleType(RoleType.ROLE_CLIENT)
+                    .name("Assets only")
+                    .viewPermissions(new HashSet<>(Collections.singletonList(PermissionEntity.ASSETS)))
+                    .build());
+            mockCurrentUser(assetsOnlyUser);
+
+            mockMvc.perform(get("/meters/asset/1"))
+                    .andExpect(status().isForbidden());
+
+            verify(assetService, never()).checkAccessToAssetId(1L, assetsOnlyUser);
+            verify(meterService, never()).findByAsset(1L);
         }
     }
 
@@ -414,7 +438,7 @@ class MeterControllerTest extends AbstractControllerTest {
         @Test
         void getByAsset_returnsCollection() throws Exception {
             mockCurrentUser(clientUser);
-            when(assetService.findById(1L)).thenReturn(java.util.Optional.of(asset));
+            when(assetService.checkAccessToAssetId(1L, clientUser)).thenReturn(asset);
             when(meterService.findByAsset(1L)).thenReturn(Collections.singletonList(meter));
             mockShowMapping();
 

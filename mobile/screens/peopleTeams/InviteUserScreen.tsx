@@ -11,7 +11,7 @@ import {
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { emailRegExp } from '../../utils/validators';
 import { useDispatch, useSelector } from '../../store';
 import { getRoles } from '../../slices/role';
@@ -19,6 +19,9 @@ import { Role, RoleCode } from '../../models/role';
 import { inviteUsers } from '../../slices/user';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { RootStackScreenProps } from '../../types';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { qpmLayoutTokens } from '../../custom-theme';
 
 export default function InviteUserScreen({
   navigation
@@ -31,10 +34,29 @@ export default function InviteUserScreen({
   const [selectedRole, setSelectedRole] = useState<number>();
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isInviteSubmitting, setIsInviteSubmitting] = useState<boolean>(false);
+  const isInviteSubmittingRef = useRef(false);
+  const [rolesLoadError, setRolesLoadError] = useState(false);
+  const [hasLoadedRoles, setHasLoadedRoles] = useState(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const markFormClean = useUnsavedChanges(
+    navigation,
+    email.trim().length > 0 || selectedRole !== undefined
+  );
+
+  const loadRoles = useCallback(async () => {
+    setRolesLoadError(false);
+    try {
+      await dispatch(getRoles());
+    } catch (_error) {
+      setRolesLoadError(true);
+    } finally {
+      setHasLoadedRoles(true);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
-    dispatch(getRoles());
-  }, []);
+    void loadRoles();
+  }, [loadRoles]);
   const defaultRoles: Partial<
     Record<RoleCode, { name: string; description: string }>
   > = {
@@ -65,30 +87,38 @@ export default function InviteUserScreen({
   };
   const getOrderedRoles = (): Role[] => {
     if (roles.length) {
-      const defaultRolesOnly: Role[] = Object.keys(defaultRoles).map((code) => {
-        return roles.find((role) => role.code === code);
-      });
+      const defaultRolesOnly: Role[] = Object.keys(defaultRoles).flatMap(
+        (code) => roles.filter((role) => role.code === code)
+      );
       const customRoles = roles.filter((role) => role.code === 'USER_CREATED');
       return [...defaultRolesOnly, ...customRoles];
     } else return [];
   };
-  const onInvite = () => {
+  const onInvite = async () => {
+    if (isInviteSubmittingRef.current) return;
     setHasSubmitted(true);
-    const invite = (emails: string[]) => {
-      setIsInviteSubmitting(true);
-      dispatch(inviteUsers(selectedRole, emails))
-        .then(() => {
-          navigation.goBack();
-          showSnackBar(t('user_invite_success'), 'success');
-        })
-        .catch((err) => showSnackBar(t('user_invite_failure'), 'error'))
-        .finally(() => setIsInviteSubmitting(false));
-    };
-    if (selectedRole) {
-      if (emailRegExp.test(email)) {
-        invite([email]);
-      } else showSnackBar(t('invalid_email'), 'error');
-    } else showSnackBar(t('please_select_role'), 'error');
+    if (selectedRole == null) {
+      showSnackBar(t('please_select_role'), 'error');
+      return;
+    }
+    if (!emailRegExp.test(email)) {
+      showSnackBar(t('invalid_email'), 'error');
+      return;
+    }
+
+    isInviteSubmittingRef.current = true;
+    setIsInviteSubmitting(true);
+    try {
+      await dispatch(inviteUsers(selectedRole, [email]));
+      markFormClean();
+      navigation.goBack();
+      showSnackBar(t('user_invite_success'), 'success');
+    } catch (_error) {
+      showSnackBar(t('user_invite_failure'), 'error');
+    } finally {
+      isInviteSubmittingRef.current = false;
+      setIsInviteSubmitting(false);
+    }
   };
   return (
     <ScrollView
@@ -96,7 +126,7 @@ export default function InviteUserScreen({
       refreshControl={
         <RefreshControl
           refreshing={loadingGet}
-          onRefresh={() => dispatch(getRoles())}
+          onRefresh={loadRoles}
           colors={[theme.colors.primary]}
         />
       }
@@ -112,20 +142,51 @@ export default function InviteUserScreen({
         {!emailRegExp.test(email) && hasSubmitted && (
           <HelperText type="error">{t('invalid_email')}</HelperText>
         )}
-        {getOrderedRoles().map((role, index) => (
-          <View>
+        {rolesLoadError && (
+          <AsyncStateFeedback
+            mode={roles.length ? 'banner' : 'error'}
+            message={t('roles_load_error')}
+            onRetry={() => void loadRoles()}
+          />
+        )}
+        {(loadingGet || !hasLoadedRoles) && !roles.length ? (
+          <AsyncStateFeedback mode="loading" message={t('loading')} />
+        ) : rolesLoadError && !roles.length ? null : !getOrderedRoles()
+            .length ? (
+          <HelperText type="info" visible>
+            {t('no_roles_available')}
+          </HelperText>
+        ) : (
+          getOrderedRoles().map((role) => (
             <List.Item
+              key={role.id}
+              style={[
+                styles.roleOption,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor:
+                    selectedRole === role.id
+                      ? theme.colors.primary
+                      : theme.colors.outlineVariant
+                }
+              ]}
               title={
                 role.code === 'USER_CREATED'
                   ? role.name
-                  : t(defaultRoles[role.code].name)
+                  : defaultRoles[role.code]
+                  ? t(defaultRoles[role.code].name)
+                  : role.name
               }
               description={
                 role.code === 'USER_CREATED'
                   ? role.description
-                  : t(defaultRoles[role.code].description)
+                  : defaultRoles[role.code]
+                  ? t(defaultRoles[role.code].description)
+                  : role.description
               }
               descriptionNumberOfLines={10}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selectedRole === role.id }}
               onPress={() => setSelectedRole(role.id)}
               left={(props) => (
                 <RadioButton
@@ -135,10 +196,15 @@ export default function InviteUserScreen({
                 />
               )}
             />
-          </View>
-        ))}
+          ))
+        )}
         <Button
-          disabled={isInviteSubmitting}
+          disabled={
+            isInviteSubmitting ||
+            loadingGet ||
+            !!rolesLoadError ||
+            !getOrderedRoles().length
+          }
           loading={isInviteSubmitting}
           onPress={onInvite}
           style={{ marginTop: 20 }}
@@ -154,5 +220,10 @@ export default function InviteUserScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  roleOption: {
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

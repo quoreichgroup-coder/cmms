@@ -9,14 +9,18 @@ import { editLabor } from '../../slices/labor';
 import { RootStackScreenProps } from '../../types';
 import { useDispatch } from '../../store';
 import { getErrorMessage } from '../../utils/api';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { createManualLaborDurationFields } from '../../utils/manualLaborDuration';
 
 export default function EditAdditionalTime({
   navigation,
   route
 }: RootStackScreenProps<'EditAdditionalTime'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const { workOrderId, labor } = route.params;
@@ -77,8 +81,7 @@ export default function EditAdditionalTime({
     }
   ];
   const shape = {
-    hours: Yup.number().required(t('required_hours')),
-    minutes: Yup.number().required(t('required_minutes')),
+    ...createManualLaborDurationFields(t),
     startedAt: Yup.date().required(t('required_field'))
   };
   return (
@@ -107,7 +110,7 @@ export default function EditAdditionalTime({
           hours: hours.toString(),
           minutes: minutes.toString()
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           const formattedValues = { ...values };
           formattedValues.assignedTo = formatSelect(formattedValues.assignedTo);
@@ -115,11 +118,15 @@ export default function EditAdditionalTime({
             formattedValues.timeCategory
           );
           formattedValues.duration = values.hours * 3600 + values.minutes * 60;
-          return dispatch(
-            editLabor(labor.id, workOrderId, formattedValues)
-          )
-            .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
-            .finally(() => navigation.goBack());
+          try {
+            await dispatch(editLabor(labor.id, workOrderId, formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
+            navigation.goBack();
+          } catch (err) {
+            showSnackBar(getErrorMessage(err), 'error');
+            throw err;
+          }
         }}
       />
     </View>

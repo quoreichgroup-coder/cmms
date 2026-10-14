@@ -10,14 +10,18 @@ import { RootStackScreenProps } from '../../types';
 import { useDispatch } from '../../store';
 import { createLabor } from '../../slices/labor';
 import { getErrorMessage } from '../../utils/api';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { createManualLaborDurationFields } from '../../utils/manualLaborDuration';
 
 export default function CreateAdditionalTime({
   navigation,
   route
-}: RootStackScreenProps<'AddAdditionalCost'>) {
+}: RootStackScreenProps<'AddAdditionalTime'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const fields: Array<IField> = [
@@ -73,8 +77,7 @@ export default function CreateAdditionalTime({
     }
   ];
   const shape = {
-    hours: Yup.number().required(t('required_hours')),
-    minutes: Yup.number().required(t('required_minutes')),
+    ...createManualLaborDurationFields(t),
     startedAt: Yup.date().required(t('required_field'))
   };
   return (
@@ -85,7 +88,7 @@ export default function CreateAdditionalTime({
         validation={Yup.object().shape(shape)}
         submitText={t('add')}
         values={{ includeToTotalTime: true }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           const formattedValues = { ...values };
           formattedValues.assignedTo = formatSelect(formattedValues.assignedTo);
@@ -93,11 +96,17 @@ export default function CreateAdditionalTime({
             formattedValues.timeCategory
           );
           formattedValues.duration = values.hours * 3600 + values.minutes * 60;
-          return dispatch(
-            createLabor(route.params.workOrderId, formattedValues)
-          )
-            .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
-            .finally(() => navigation.goBack());
+          try {
+            await dispatch(
+              createLabor(route.params.workOrderId, formattedValues)
+            );
+            markFormClean();
+            setIsFormDirty(false);
+            navigation.goBack();
+          } catch (err) {
+            showSnackBar(getErrorMessage(err), 'error');
+            throw err;
+          }
         }}
       />
     </View>

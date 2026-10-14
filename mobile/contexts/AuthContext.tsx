@@ -34,8 +34,6 @@ import WorkOrder from '../models/workOrder';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useTranslation } from 'react-i18next';
-import analytics from '@react-native-firebase/analytics';
-import { getApps } from '@react-native-firebase/app';
 import { getLicenseValidity } from '../slices/license';
 import { useDispatch } from '../store';
 import { revertAll } from '../utils/redux';
@@ -59,6 +57,7 @@ import {
 import Part from '../models/part';
 import Request from '../models/request';
 import { getPreferredLanguage } from '../utils/preferredLanguage';
+import { qpmDesignTokens } from '../theme/tokens';
 
 interface AuthState {
   isInitialized: boolean;
@@ -84,7 +83,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string, ldap?: boolean) => Promise<void>;
   logout: () => void;
   reviewEligible: boolean;
-  register: (values: any) => Promise<void>;
+  register: (values: any) => Promise<boolean>;
   getInfos: () => void;
   deleteAccount: () => Promise<void>;
   switchAccount: (id: number) => Promise<void>;
@@ -505,7 +504,7 @@ const AuthContext = createContext<AuthContextValue>({
   login: (email?: string, password?: string, ldap?: boolean) =>
     Promise.resolve(),
   logout: () => Promise.resolve(),
-  register: () => Promise.resolve(),
+  register: () => Promise.resolve(false),
   getInfos: () => Promise.resolve(),
   deleteAccount: () => Promise.resolve(),
   patchUserSettings: () => Promise.resolve(null),
@@ -639,7 +638,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
 
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } else {
-      Alert.alert('Must use physical device for Push Notifications');
+        Alert.alert(t('push_notification_requires_device'));
     }
 
     if (Platform.OS === 'android') {
@@ -647,7 +646,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#5569ff'
+        lightColor: qpmDesignTokens.light.brandPrimary
       });
     }
 
@@ -864,7 +863,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     await api.post<{ success: boolean }>('auth/delete-account-request', {});
   };
 
-  const register = async (values): Promise<void> => {
+  const register = async (values): Promise<boolean> => {
     const response = await api.post<{
       message: string;
       success: boolean;
@@ -880,18 +879,12 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     );
     const { message, success, refreshToken } = response;
     if (message.startsWith('Successful')) {
-      return;
+      return true;
     } else {
       await setSession(message, refreshToken);
       const user = await updateUserInfos();
       const company = await api.get<Company>(`companies/${user.companyId}`);
       await setupUser(user, company.companySettings);
-      if (getApps().length > 0) await analytics().logEvent('sign_up', {
-        email: values.email,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        employeesCount: values.employeesCount
-      });
       dispatch({
         type: 'REGISTER',
         payload: {
@@ -900,6 +893,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           company
         }
       });
+      return false;
     }
   };
 

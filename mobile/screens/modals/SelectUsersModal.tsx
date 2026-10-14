@@ -11,42 +11,36 @@ import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
-import { UserMiniDTO } from '../../models/user';
 import { getUsersMini } from '../../slices/user';
 import {
   Avatar,
+  ActivityIndicator,
   Button,
-  Checkbox,
   Divider,
   Searchbar,
-  Text,
-  useTheme
+  Text
 } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
 import { getUserInitials } from '../../utils/displayers';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 export default function SelectUsersModal({
   navigation,
   route
 }: RootStackScreenProps<'SelectUsers'>) {
   const { onChange, selected, multiple } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { usersMini, loadingGet } = useSelector((state) => state.users);
-  const [selectedUsers, setSelectedUsers] = useState<UserMiniDTO[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  useEffect(() => {
-    if (usersMini.length) {
-      const newSelectedUsers = selectedIds
-        .map((id) => {
-          return usersMini.find((user) => user.id == id);
-        })
-        .filter((user) => !!user);
-      setSelectedUsers(newSelectedUsers);
-    }
-  }, [selectedIds, usersMini]);
+  const selectedUsers = React.useMemo(
+    () =>
+      selectedIds.flatMap((id) => usersMini.filter((user) => user.id === id)),
+    [selectedIds, usersMini]
+  );
 
   useEffect(() => {
     if (!selectedIds.length) setSelectedIds(selected);
@@ -58,6 +52,9 @@ export default function SelectUsersModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedUsers.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedUsers.length})`}
+            accessibilityState={{ disabled: !selectedUsers.length }}
             onPress={() => {
               onChange(selectedUsers);
               navigation.goBack();
@@ -67,30 +64,32 @@ export default function SelectUsersModal({
           </Pressable>
         )
       });
-  }, [selectedUsers]);
+  }, [selectedUsers, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getUsersMini());
   }, []);
 
-  const onSelect = (ids: number[]) => {
-    setSelectedIds(Array.from(new Set([...selectedIds, ...ids])));
-    if (!multiple) {
-      onChange([usersMini.find((user) => user.id === ids[0])]);
-      navigation.goBack();
-    }
-  };
-  const onUnSelect = (ids: number[]) => {
-    const newSelectedIds = selectedIds.filter((id) => !ids.includes(id));
-    setSelectedIds(newSelectedIds);
-  };
   const toggle = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onUnSelect([id]);
-    } else {
-      onSelect([id]);
+    if (multiple) {
+      setSelectedIds((previous) =>
+        previous.includes(id)
+          ? previous.filter((selectedId) => selectedId !== id)
+          : [...previous, id]
+      );
+      return;
     }
+    const user = usersMini.find((item) => item.id === id);
+    if (user) onChange([user]);
+    navigation.goBack();
   };
+
+  const normalizedSearch = searchQuery.toLowerCase().trim();
+  const filteredUsers = usersMini.filter(
+    (user) =>
+      user.firstName.toLowerCase().includes(normalizedSearch) ||
+      user.lastName.toLowerCase().includes(normalizedSearch)
+  );
 
   return (
     <View
@@ -114,24 +113,30 @@ export default function SelectUsersModal({
           backgroundColor: theme.colors.background
         }}
       >
-        {usersMini
-          .filter(
-            (user) =>
-              user.firstName
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase().trim()) ||
-              user.lastName
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase().trim())
-          )
-          .map((user) => (
+        {loadingGet && !usersMini.length ? (
+          <ActivityIndicator
+            animating
+            accessibilityLabel={t('loading')}
+            style={{ marginTop: 24 }}
+          />
+        ) : (
+          filteredUsers.map((user) => (
             <TouchableOpacity
               onPress={() => {
                 toggle(user.id);
               }}
+              accessibilityRole={multiple ? 'checkbox' : 'button'}
+              accessibilityLabel={`${user.firstName} ${user.lastName}`}
+              accessibilityState={
+                multiple
+                  ? { checked: selectedIds.includes(user.id) }
+                  : undefined
+              }
               key={user.id}
             >
-              <View style={styles.card}>
+              <View
+                style={[styles.card, { backgroundColor: theme.colors.surface }]}
+              >
                 <View style={styles.cardRow}>
                   {user.image ? (
                     <Avatar.Image size={50} source={{ uri: user.image.url }} />
@@ -150,19 +155,14 @@ export default function SelectUsersModal({
                         </Text>
                         <Text
                           variant={'bodySmall'}
-                          style={{ color: 'grey' }}
+                          style={{ color: theme.colors.onSurfaceVariant }}
                         >{`#${user.id}`}</Text>
                       </View>
                       {multiple && (
-                        <Checkbox
-                          status={
-                            selectedIds.includes(user.id)
-                              ? 'checked'
-                              : 'unchecked'
-                          }
-                          onPress={() => {
-                            toggle(user.id);
-                          }}
+                        <SelectionIndicator
+                          checked={selectedIds.includes(user.id)}
+                          color={theme.colors.primary}
+                          uncheckedColor={theme.colors.controlOutline}
                         />
                       )}
                     </View>
@@ -170,12 +170,26 @@ export default function SelectUsersModal({
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+          ))
+        )}
+        {!loadingGet && filteredUsers.length === 0 && (
+          <Text
+            accessibilityRole="alert"
+            style={{
+              textAlign: 'center',
+              marginTop: 24,
+              color: theme.colors.onSurfaceVariant
+            }}
+          >
+            {usersMini.length ? t('no_results_found') : t('no_users_available')}
+          </Text>
+        )}
         <Divider />
         <Button
           icon={'plus-circle'}
           style={{ margin: 20 }}
           mode={'contained'}
+          accessibilityLabel={t('invite_users')}
           onPress={() => {
             navigation.navigate('AddUser', { openedFromSelector: true });
           }}
@@ -192,7 +206,6 @@ const styles = StyleSheet.create({
     flex: 1
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10
   },

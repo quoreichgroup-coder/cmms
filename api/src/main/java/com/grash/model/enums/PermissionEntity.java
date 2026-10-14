@@ -15,5 +15,6 @@ public enum PermissionEntity {
     LOCATIONS,
     SETTINGS,
     REQUESTS,
-    ANALYTICS
+    ANALYTICS,
+    REOPEN_WORK_ORDERS
 }

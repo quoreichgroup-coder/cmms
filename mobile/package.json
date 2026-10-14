@@ -1,6 +1,6 @@
 {
   "name": "atlas-cmms",
-  "version": "1.0.55",
+  "version": "1.0.58",
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
@@ -15,19 +15,21 @@
     "eas-build-on-success": "sentry-eas-build-on-success",
     "eas-build-on-error": "sentry-eas-build-on-error",
     "build:apk": "node scripts/build-apk.mjs",
-    "test:mobile-regression": "node --test scripts/request-pilot.test.cjs scripts/mobile-regression.test.cjs"
+    "build:dev-apk": "node scripts/build-dev-apk.mjs",
+    "test:mobile-regression": "node --test scripts/request-pilot.test.cjs scripts/mobile-regression.test.cjs scripts/request-form-layout.test.cjs scripts/task-input.test.cjs scripts/file-upload-access.test.cjs scripts/dashboard-dates.test.cjs scripts/appearance.test.cjs scripts/related-load.test.cjs scripts/async-action-lock.test.cjs scripts/form-audio-recording.test.cjs scripts/work-order-creation.test.cjs scripts/work-order-completion-load.test.cjs scripts/manual-labor-duration.test.cjs scripts/unsaved-changes.test.cjs",
+    "start:lan": "expo start --dev-client --lan",
+    "start:tunnel": "expo start --dev-client --tunnel"
   },
   "jest": {
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.5",
     "@expo/vector-icons": "^14.0.3",
     "@microsoft/react-native-clarity": "^4.7.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-community/netinfo": "11.4.1",
-    "@react-native-firebase/analytics": "^24.0.0",
-    "@react-native-firebase/app": "^24.0.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
@@ -94,6 +96,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",
+    "@expo/ngrok": "^4.1.0",
     "@react-native-community/cli": "latest",
     "@types/lodash": "^4.17.24",
     "@types/mime": "^3.0.1",

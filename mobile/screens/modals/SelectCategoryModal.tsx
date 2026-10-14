@@ -10,43 +10,33 @@ import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
-import Category from '../../models/category';
 import { getCategories, addCategory } from '../../slices/category';
-import {
-  Avatar,
-  Button,
-  Checkbox,
-  Divider,
-  Text,
-  TextInput,
-  useTheme
-} from 'react-native-paper';
+import { Avatar, Button, Divider, Text, TextInput } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 export default function SelectCategoriesModal({
   navigation,
   route
 }: RootStackScreenProps<'SelectCategories'>) {
   const { onChange, selected, multiple, type } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { categories } = useSelector((state) => state.categories);
-  const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [newCategoryName, setNewCategoryName] = useState<string>('');
   const [showCreateInput, setShowCreateInput] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [createError, setCreateError] = useState(false);
   const currentCategories = categories[type] ?? [];
-  useEffect(() => {
-    if (currentCategories.length) {
-      const newSelectedCategories = selectedIds
-        .map((id) => {
-          return currentCategories.find((category) => category.id == id);
-        })
-        .filter((category) => !!category);
-      setSelectedCategories(newSelectedCategories);
-    }
-  }, [selectedIds, currentCategories]);
+  const selectedCategories = React.useMemo(
+    () =>
+      selectedIds.flatMap((id) =>
+        currentCategories.filter((category) => category.id === id)
+      ),
+    [selectedIds, currentCategories]
+  );
 
   useEffect(() => {
     if (!selectedIds.length) setSelectedIds(selected);
@@ -58,6 +48,9 @@ export default function SelectCategoriesModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedCategories.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedCategories.length})`}
+            accessibilityState={{ disabled: !selectedCategories.length }}
             onPress={() => {
               onChange(selectedCategories);
               navigation.goBack();
@@ -67,29 +60,24 @@ export default function SelectCategoriesModal({
           </Pressable>
         )
       });
-  }, [selectedCategories]);
+  }, [selectedCategories, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getCategories(type));
   }, []);
 
-  const onSelect = (ids: number[]) => {
-    setSelectedIds(Array.from(new Set([...selectedIds, ...ids])));
-    if (!multiple) {
-      onChange([currentCategories.find((category) => category.id === ids[0])]);
-      navigation.goBack();
-    }
-  };
-  const onUnSelect = (ids: number[]) => {
-    const newSelectedIds = selectedIds.filter((id) => !ids.includes(id));
-    setSelectedIds(newSelectedIds);
-  };
   const toggle = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onUnSelect([id]);
-    } else {
-      onSelect([id]);
+    if (multiple) {
+      setSelectedIds((previous) =>
+        previous.includes(id)
+          ? previous.filter((selectedId) => selectedId !== id)
+          : [...previous, id]
+      );
+      return;
     }
+    const category = currentCategories.find((item) => item.id === id);
+    if (category) onChange([category]);
+    navigation.goBack();
   };
 
   const handleCreateCategory = async () => {
@@ -105,11 +93,11 @@ export default function SelectCategoriesModal({
         navigation.goBack();
       }
       setNewCategoryName('');
+      setCreateError(false);
       setShowCreateInput(false);
     } catch (err) {
       console.error('Error creating category:', err);
-      setNewCategoryName('');
-      setShowCreateInput(false);
+      setCreateError(true);
     } finally {
       setIsCreating(false);
     }
@@ -130,9 +118,18 @@ export default function SelectCategoriesModal({
             onPress={() => {
               toggle(category.id);
             }}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityLabel={category.name}
+            accessibilityState={
+              multiple
+                ? { checked: selectedIds.includes(category.id) }
+                : undefined
+            }
             key={category.id}
           >
-            <View style={styles.card}>
+            <View
+              style={[styles.card, { backgroundColor: theme.colors.surface }]}
+            >
               <View style={styles.cardRow}>
                 <Avatar.Icon
                   size={50}
@@ -147,19 +144,14 @@ export default function SelectCategoriesModal({
                       </Text>
                       <Text
                         variant={'bodySmall'}
-                        style={{ color: 'grey' }}
+                        style={{ color: theme.colors.onSurfaceVariant }}
                       >{`#${category.id}`}</Text>
                     </View>
                     {multiple && (
-                      <Checkbox
-                        status={
-                          selectedIds.includes(category.id)
-                            ? 'checked'
-                            : 'unchecked'
-                        }
-                        onPress={() => {
-                          toggle(category.id);
-                        }}
+                      <SelectionIndicator
+                        checked={selectedIds.includes(category.id)}
+                        color={theme.colors.primary}
+                        uncheckedColor={theme.colors.controlOutline}
                       />
                     )}
                   </View>
@@ -175,16 +167,29 @@ export default function SelectCategoriesModal({
               mode="outlined"
               placeholder={t('name')}
               value={newCategoryName}
-              onChangeText={setNewCategoryName}
+              onChangeText={(value) => {
+                setNewCategoryName(value);
+                setCreateError(false);
+              }}
               style={styles.createInput}
               disabled={isCreating}
+              error={createError}
               autoFocus
             />
+            {createError && (
+              <Text
+                accessibilityRole="alert"
+                style={{ color: theme.colors.error, marginBottom: 12 }}
+              >
+                {t('category_create_failed')}
+              </Text>
+            )}
             <View style={styles.createActions}>
               <Button
                 mode="text"
                 onPress={() => {
                   setNewCategoryName('');
+                  setCreateError(false);
                   setShowCreateInput(false);
                 }}
                 disabled={isCreating}
@@ -221,7 +226,6 @@ const styles = StyleSheet.create({
     flex: 1
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10
   },

@@ -1,26 +1,27 @@
 import {
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
-import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import { getMoreTeams, getTeams } from '../../slices/team';
 import { FilterField, SearchCriteria } from '../../models/page';
-import { Avatar, Searchbar, Text } from 'react-native-paper';
+import { Button, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Team from '../../models/team';
 import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { useAppTheme } from '../../custom-theme';
-import { IconWithLabel } from '../../components/IconWithLabel';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import DirectoryCard from '../../components/DirectoryCard';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import DirectoryPaginationFooter from '../../components/DirectoryPaginationFooter';
 
 export default function Teams({
   navigation
@@ -33,10 +34,14 @@ export default function Teams({
   const theme = useAppTheme();
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
-  const { getFormattedDate, getUserNameById } = useContext(
-    CompanySettingsContext
-  );
+  const [refreshing, setRefreshing] = useState(false);
   const { hasViewPermission } = useAuth();
+  const canView = hasViewPermission(PermissionEntity.PEOPLE_AND_TEAMS);
+  const [hasLoadedList, setHasLoadedList] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -60,17 +65,70 @@ export default function Teams({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  useEffect(() => {
-    if (hasViewPermission(PermissionEntity.PEOPLE_AND_TEAMS)) {
-      dispatch(
+  const loadTeams = useCallback(async () => {
+    if (!canView) return;
+    setLoadError(false);
+    setLoadMoreError(false);
+    try {
+      await dispatch(
         getTeams({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+    } catch (error) {
+      console.warn('Could not load teams:', error);
+      setLoadError(true);
+    } finally {
+      setHasLoadedList(true);
     }
-  }, [criteria]);
+  }, [canView, criteria, dispatch]);
 
-  const onRefresh = () => {
-    setCriteria(getCriteriaFromFilterFields([]));
+  useEffect(() => {
+    loadTeams();
+  }, [loadTeams]);
+
+  const onRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadTeams();
+    } finally {
+      setRefreshing(false);
+    }
   };
+
+  const loadMoreTeams = useCallback(
+    async (retry = false) => {
+      if (
+        !canView ||
+        loadingMoreRef.current ||
+        loadingGet ||
+        lastPage ||
+        (loadMoreError && !retry)
+      )
+        return;
+
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setLoadMoreError(false);
+      try {
+        await dispatch(getMoreTeams(criteria, currentPageNum + 1));
+      } catch (error) {
+        console.warn('Could not load more teams:', error);
+        setLoadMoreError(true);
+      } finally {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    },
+    [
+      canView,
+      criteria,
+      currentPageNum,
+      dispatch,
+      lastPage,
+      loadMoreError,
+      loadingGet
+    ]
+  );
 
   const onQueryChange = (query) => {
     onSearchQueryChange<Team>(query, criteria, setCriteria, setSearchQuery, [
@@ -89,80 +147,124 @@ export default function Teams({
     <View
       style={{ ...styles.container, backgroundColor: theme.colors.background }}
     >
-      <Searchbar
-        placeholder={t('search')}
-        onFocus={() => setStartedSearch(true)}
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={{ backgroundColor: theme.colors.background }}
-      />
+      {canView && (
+        <Searchbar
+          placeholder={t('search')}
+          accessibilityLabel={t('search')}
+          onFocus={() => setStartedSearch(true)}
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={[styles.search, { backgroundColor: theme.colors.surface }]}
+        />
+      )}
       <ScrollView
         style={styles.scrollView}
         onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) {
-            if (!loadingGet && !lastPage)
-              dispatch(getMoreTeams(criteria, currentPageNum + 1));
-          }
+          if (isCloseToBottom(nativeEvent)) void loadMoreTeams();
         }}
         refreshControl={
-          <RefreshControl
-            refreshing={loadingGet}
-            onRefresh={onRefresh}
-            colors={[theme.colors.primary]}
-          />
+          canView ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          ) : undefined
         }
         scrollEventThrottle={400}
       >
-        {!!teams.content.length ? (
+        {loadError && teams.content.length > 0 && (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('directory_load_error')}
+            onRetry={loadTeams}
+          />
+        )}
+        {canView && teams.content.length > 0 ? (
           teams.content.map((team) => (
-            <TouchableOpacity
+            <DirectoryCard
               key={team.id}
+              title={team.name}
+              icon="account-group-outline"
+              accessibilityLabel={`${team.name}, ${t('team_members_count', {
+                count: team.users.length
+              })}`}
+              details={[
+                {
+                  label: t('team_members_count', {
+                    count: team.users.length
+                  }),
+                  icon: 'account-multiple-outline'
+                }
+              ]}
               onPress={() =>
                 navigation.push('TeamDetails', { id: team.id, teamProp: team })
               }
-            >
-              <View style={styles.card}>
-                <View
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    gap: 10
-                  }}
-                >
-                  <Avatar.Icon
-                    size={40}
-                    icon="account-group-outline"
-                    style={{ backgroundColor: theme.colors.background }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {team.name}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardBody}>
-                      <IconWithLabel
-                        label={t('team_members_count', {
-                          count: team.users.length
-                        })}
-                        icon="account-multiple-outline"
-                        color={theme.colors.grey}
-                      />
-                    </View>
-                    <View style={styles.cardFooter} />
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+            />
           ))
-        ) : loadingGet ? null : (
+        ) : canView && (loadingGet || !hasLoadedList) ? (
           <View
-            style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}
+            style={styles.loadingState}
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('loading')}
           >
-            <Text variant={'titleLarge'}>{t('no_element_match_criteria')}</Text>
+            <ActivityIndicator color={theme.colors.primary} size="large" />
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+              {t('loading')}
+            </Text>
           </View>
+        ) : !canView ? (
+          <View
+            style={[
+              styles.emptyState,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
+          >
+            <Text style={{ color: theme.colors.onSurface }}>
+              {t('no_access_people_team')}
+            </Text>
+          </View>
+        ) : loadError ? (
+          <View style={styles.emptyState} accessibilityRole="alert">
+            <Text
+              variant="titleMedium"
+              style={{ color: theme.colors.onSurface }}
+            >
+              {t('directory_load_error')}
+            </Text>
+            <Button onPress={loadTeams}>{t('retry')}</Button>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.emptyState,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
+          >
+            <Text
+              variant="titleMedium"
+              style={{ color: theme.colors.onSurface }}
+            >
+              {searchQuery.trim()
+                ? t('no_element_match_criteria')
+                : t('no_teams_available')}
+            </Text>
+          </View>
+        )}
+        {canView && !!teams.content.length && !lastPage && (
+          <DirectoryPaginationFooter
+            loading={loadingMore}
+            error={loadMoreError}
+            loadingMessage={t('teams_page_loading')}
+            onRetry={() => void loadMoreTeams(true)}
+          />
         )}
       </ScrollView>
     </View>
@@ -181,36 +283,24 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
-    height: '100%'
+    flex: 1
   },
-  row: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  card: {
-    backgroundColor: 'white',
-    marginBottom: 1,
-    padding: 10
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    flexShrink: 1
-  },
-  cardBody: {
-    gap: 10
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingState: {
+    minHeight: 180,
     alignItems: 'center',
-    marginTop: 10
+    justifyContent: 'center',
+    gap: 12
+  },
+  search: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: qpmLayoutTokens.radius.control
+  },
+  emptyState: {
+    margin: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

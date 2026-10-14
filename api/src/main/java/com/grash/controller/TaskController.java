@@ -61,12 +61,10 @@ public class TaskController {
     @PreAuthorize("permitAll()")
     public Collection<TaskShowDTO> getByWorkOrder(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<WorkOrder> optionalWorkOrder = workOrderService.findById(id);
-        if (optionalWorkOrder.isPresent()) {
-            if (!optionalWorkOrder.get().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return taskService.findByWorkOrder(id).stream().map(taskMapper::toShowDto).collect(Collectors.toList());
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        workOrderService.checkAccessToWorkOrderId(id, user);
+        return taskService.findByWorkOrder(id).stream()
+                .map(taskMapper::toShowDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/preventive-maintenance/{id}")

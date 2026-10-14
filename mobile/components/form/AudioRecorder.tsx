@@ -1,7 +1,15 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef, useContext } from 'react';
+import {
+  View,
+  Text as NativeText,
+  TouchableOpacity,
+  Alert,
+  Linking,
+  StyleSheet
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IFile } from '../../models/file';
-import { IconButton, useTheme } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import {
   AudioQuality,
@@ -13,21 +21,30 @@ import {
   useAudioRecorder,
   type RecordingOptions
 } from 'expo-audio';
+import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 
 export default function AudioRecorder({
   title,
-  onChange
+  onChange,
+  onRecordingChange,
+  disabled = false
 }: {
   title: string;
   onChange: (audio: IFile) => void;
+  onRecordingChange?: (recording: boolean) => void;
+  disabled?: boolean;
 }) {
   const [recordingURI, setRecordingURI] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [playbackStatus, setPlaybackStatus] = useState<
     'idle' | 'playing' | 'paused'
   >('idle');
-  const theme = useTheme();
+  const [recordingActionBusy, setRecordingActionBusy] = useState(false);
+  const recordingActionBusyRef = useRef(false);
+  const theme = useAppTheme();
   const { t } = useTranslation();
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const recordingOptions = useMemo<RecordingOptions>(
     () => ({
       extension: '.m4a',
@@ -67,7 +84,7 @@ export default function AudioRecorder({
       player.pause();
       player
         .seekTo(0)
-        .catch((error) => console.error('Failed to reset playback', error));
+        .catch(() => showSnackBar(t('audio_playback_error'), 'error'));
       setPlaybackStatus('idle');
       return;
     }
@@ -79,16 +96,33 @@ export default function AudioRecorder({
     } else {
       setPlaybackStatus('idle');
     }
-  }, [player, playerStatus]);
+  }, [player, playerStatus, showSnackBar, t]);
 
   const startRecording = async () => {
+    if (recordingActionBusyRef.current || isRecording) return;
+    recordingActionBusyRef.current = true;
+    setRecordingActionBusy(true);
     try {
       const permissionResponse = await requestRecordingPermissionsAsync();
 
       if (permissionResponse.status !== 'granted') {
+        const actions = permissionResponse.canAskAgain
+          ? [{ text: t('ok') }]
+          : [
+              { text: t('cancel'), style: 'cancel' as const },
+              {
+                text: t('open_settings'),
+                onPress: () => {
+                  void Linking.openSettings().catch(() =>
+                    showSnackBar(t('an_error_occured'), 'error')
+                  );
+                }
+              }
+            ];
         Alert.alert(
-          'Permission Required',
-          'Permission to access microphone is required!'
+          t('permission_denied_title'),
+          t('permission_denied_message', { permission: t('microphone') }),
+          actions
         );
         return;
       }
@@ -107,15 +141,23 @@ export default function AudioRecorder({
       await recorder.prepareToRecordAsync(recordingOptions);
       recorder.record();
       setIsRecording(true);
-    } catch (error) {
-      console.error('Failed to start recording', error);
+      onRecordingChange?.(true);
+    } catch (_error) {
+      showSnackBar(t('audio_recording_error'), 'error');
+    } finally {
+      recordingActionBusyRef.current = false;
+      setRecordingActionBusy(false);
     }
   };
 
   const stopRecording = async () => {
+    if (recordingActionBusyRef.current || !isRecording) return;
+    recordingActionBusyRef.current = true;
+    setRecordingActionBusy(true);
     try {
-      setIsRecording(false);
       await recorder.stop();
+      setIsRecording(false);
+      onRecordingChange?.(false);
       const uri = recorder.uri;
       if (uri) {
         setRecordingURI(uri);
@@ -128,8 +170,11 @@ export default function AudioRecorder({
           type: 'audio/m4a'
         });
       }
-    } catch (error) {
-      console.error('Failed to stop recording', error);
+    } catch (_error) {
+      showSnackBar(t('audio_recording_error'), 'error');
+    } finally {
+      recordingActionBusyRef.current = false;
+      setRecordingActionBusy(false);
     }
   };
 
@@ -138,16 +183,16 @@ export default function AudioRecorder({
       if (!recordingURI) return;
 
       player.play();
-    } catch (error) {
-      console.error('Failed to play recording', error);
+    } catch (_error) {
+      showSnackBar(t('audio_playback_error'), 'error');
     }
   };
 
   const pausePlayback = async () => {
     try {
       player.pause();
-    } catch (error) {
-      console.error('Failed to pause playback', error);
+    } catch (_error) {
+      showSnackBar(t('audio_playback_error'), 'error');
     }
   };
 
@@ -155,24 +200,58 @@ export default function AudioRecorder({
     try {
       player.pause();
       await player.seekTo(0);
-    } catch (error) {
-      console.error('Failed to stop playback', error);
+    } catch (_error) {
+      showSnackBar(t('audio_playback_error'), 'error');
     }
   };
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>{title}</Text>
+      <Text
+        variant="titleSmall"
+        style={{ color: theme.colors.onSurfaceVariant }}
+        accessibilityRole="header"
+      >
+        {title}
+      </Text>
       <TouchableOpacity
         onPress={isRecording ? stopRecording : startRecording}
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        disabled={disabled || recordingActionBusy}
+        activeOpacity={0.78}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isRecording ? t('stop_recording') : t('start_recording')
+        }
+        accessibilityState={{
+          busy: recordingActionBusy,
+          disabled: disabled || recordingActionBusy
+        }}
+        accessibilityHint={
+          disabled ? t('form_submission_in_progress') : undefined
+        }
+        style={[
+          styles.recordButton,
+          disabled && styles.disabledRecordButton,
+          {
+            backgroundColor: isRecording
+              ? theme.colors.errorContainer
+              : theme.colors.primaryContainer
+          }
+        ]}
       >
-        <IconButton
-          iconColor={isRecording ? theme.colors.error : theme.colors.primary}
-          style={{ height: 40, width: 40 }}
-          icon={'microphone'}
+        <MaterialCommunityIcons
+          name="microphone"
+          color={isRecording ? theme.colors.error : theme.colors.primary}
+          size={28}
+          accessible={false}
         />
-        <Text>{isRecording ? t('stop_recording') : t('start_recording')}</Text>
+        <NativeText
+          style={{ color: theme.colors.onSurface }}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {isRecording ? t('stop_recording') : t('start_recording')}
+        </NativeText>
       </TouchableOpacity>
 
       {recordingURI && (
@@ -187,16 +266,22 @@ export default function AudioRecorder({
             <IconButton
               icon="play"
               iconColor={theme.colors.primary}
+              accessibilityLabel={t('play_audio')}
               onPress={playRecording}
             />
           )}
           {playbackStatus === 'playing' && (
-            <IconButton icon="pause" onPress={pausePlayback} />
+            <IconButton
+              icon="pause"
+              accessibilityLabel={t('pause_audio')}
+              onPress={pausePlayback}
+            />
           )}
           {(playbackStatus === 'playing' || playbackStatus === 'paused') && (
             <IconButton
               icon="stop"
               iconColor={theme.colors.error}
+              accessibilityLabel={t('stop_audio')}
               onPress={stopPlayback}
             />
           )}
@@ -205,3 +290,16 @@ export default function AudioRecorder({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  recordButton: {
+    minWidth: 64,
+    minHeight: 64,
+    padding: qpmLayoutTokens.space.sm,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: qpmLayoutTokens.space.xs
+  },
+  disabledRecordButton: { opacity: 0.55 }
+});

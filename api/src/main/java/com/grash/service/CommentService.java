@@ -54,6 +54,7 @@ public class CommentService {
         Comment comment = commentMapper.fromPostDto(commentReq);
         comment.setContent(Sanitizer.cleanText(comment.getContent()));
         WorkOrder workOrder = workOrderService.checkAccessToWorkOrderId(commentReq.getWorkOrder().getId(), user);
+        ensureWorkOrderAllowsCommentMutation(workOrder);
 
         comment.setUser(user);
         Comment savedComment = commentRepository.saveAndFlush(comment);
@@ -96,6 +97,8 @@ public class CommentService {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
 
         WorkOrder workOrder = savedComment.getWorkOrder();
+        workOrderService.checkAccessToWorkOrderId(workOrder.getId(), user);
+        ensureWorkOrderAllowsCommentMutation(workOrder);
 
         Comment updatedComment = commentMapper.updateComment(savedComment, commentPatchDTO);
         updatedComment.setContent(Sanitizer.cleanText(updatedComment.getContent()));
@@ -199,5 +202,15 @@ public class CommentService {
     public long countByWorkOrderIdWithFiles(Long workOrderId, User user) {
         workOrderService.checkAccessToWorkOrderId(workOrderId, user);
         return commentRepository.countByWorkOrderIdWithFiles(workOrderId);
+    }
+
+    public long countByWorkOrderIdWithFiles(Long workOrderId) {
+        return commentRepository.countByWorkOrderIdWithFiles(workOrderId);
+    }
+
+    public void ensureWorkOrderAllowsCommentMutation(WorkOrder workOrder) {
+        if (com.grash.model.enums.Status.COMPLETE.equals(workOrder.getStatus())) {
+            throw new CustomException("Completed work order comments cannot be modified", HttpStatus.CONFLICT);
+        }
     }
 }

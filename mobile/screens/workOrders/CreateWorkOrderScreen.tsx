@@ -1,8 +1,7 @@
 import { RootStackScreenProps } from '../../types';
-import { View } from '../../components/Themed';
 import Form from '../../components/form';
 import * as Yup from 'yup';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   getCustomFieldsIFields,
@@ -22,6 +21,7 @@ import { useAppTheme } from '../../custom-theme';
 import { getErrorMessage } from '../../utils/api';
 import { CustomFieldEntityType } from '../../models/customField';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { isWorkOrderTasksCreationError } from '../../utils/workOrderCreation';
 
 export default function CreateWorkOrderScreen({
   navigation,
@@ -37,7 +37,7 @@ export default function CreateWorkOrderScreen({
   const dispatch = useDispatch();
   const { customFields } = useSelector((state) => state.customFields);
 
-  useUnsavedChanges(navigation, isFormDirty);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const defaultShape: { [key: string]: any } = {
     title: Yup.string().required(t('required_wo_title')),
@@ -61,24 +61,107 @@ export default function CreateWorkOrderScreen({
     ];
     return getWOFieldsAndShapes(fields, defaultShape);
   };
-  return (
-    <View style={styles.container}>
-      <Form
-        fields={[
-          ...getFieldsAndShapes()[0],
+  const [configuredFields, validationShape] = getFieldsAndShapes();
+  const assetStatusField: IField = {
+    name: 'assetStatus',
+    type: 'select',
+    label: t('asset_status'),
+    placeholder: t('select_asset_status'),
+    items: assetStatuses.map((assetStatus) => ({
+      label: t(assetStatus.status),
+      value: assetStatus.status,
+      color: assetStatus.color(theme)
+    }))
+  };
+  const fieldsByName = new Map([
+    ...configuredFields.map((field) => [field.name, field] as const),
+    [assetStatusField.name, assetStatusField] as const
+  ]);
+  const knownFields = new Set([
+    'title',
+    'description',
+    'priority',
+    'category',
+    'tasks',
+    'image',
+    'location',
+    'asset',
+    'assetStatus',
+    'dueDate',
+    'estimatedStartDate',
+    'estimatedDuration',
+    'primaryUser',
+    'assignedTo',
+    'team',
+    'customers',
+    'files',
+    'requiredSignature'
+  ]);
+  const section = (
+    name: string,
+    label: string,
+    fieldNames: string[]
+  ): IField[] => {
+    const sectionFields = fieldNames
+      .map((fieldName) => fieldsByName.get(fieldName))
+      .filter((field): field is IField => Boolean(field));
+    return sectionFields.length
+      ? [
+          { name, type: 'titleGroupField' as const, label: t(label) },
+          ...sectionFields
+        ]
+      : [];
+  };
+  const extraFields = configuredFields.filter(
+    (field) => !knownFields.has(field.name)
+  );
+  const formFields: IField[] = [
+    ...section('workDetailsSection', 'work_order', [
+      'title',
+      'description',
+      'priority',
+      'category',
+      'tasks',
+      'image'
+    ]),
+    ...section('assetSection', 'asset_information', [
+      'location',
+      'asset',
+      'assetStatus'
+    ]),
+    ...section('planningSection', 'dates', [
+      'dueDate',
+      'estimatedStartDate',
+      'estimatedDuration'
+    ]),
+    ...section('peopleSection', 'people', [
+      'primaryUser',
+      'assignedTo',
+      'team',
+      'customers'
+    ]),
+    ...section('additionalSection', 'additional_information', [
+      'files',
+      'requiredSignature'
+    ]),
+    ...(extraFields.length
+      ? [
           {
-            name: 'assetStatus',
-            type: 'select',
-            label: t('asset_status'),
-            placeholder: t('select_asset_status'),
-            items: assetStatuses.map((assetStatus) => ({
-              label: t(assetStatus.status),
-              value: assetStatus.status,
-              color: assetStatus.color(theme)
-            }))
-          }
-        ]}
-        validation={Yup.object().shape(getFieldsAndShapes()[1])}
+            name: 'customFieldsSection',
+            type: 'titleGroupField' as const,
+            label: t('custom_fields')
+          },
+          ...extraFields
+        ]
+      : [])
+  ];
+  return (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Form
+        fields={formFields}
+        validation={Yup.object().shape(validationShape)}
         navigation={navigation}
         submitText={t('save')}
         values={{
@@ -100,7 +183,6 @@ export default function CreateWorkOrderScreen({
         }}
         onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
-          setIsFormDirty(false);
           let formattedValues = formatWorkOrderValues(values);
           formattedValues = formatCustomFields(formattedValues);
           try {
@@ -115,8 +197,17 @@ export default function CreateWorkOrderScreen({
               files: imageAndFiles.files
             };
             await dispatch(addWorkOrder(formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
             onCreationSuccess();
           } catch (err) {
+            if (isWorkOrderTasksCreationError(err)) {
+              markFormClean();
+              setIsFormDirty(false);
+              showSnackBar(t('wo_created_tasks_save_error'), 'error');
+              navigation.replace('WODetails', { id: err.workOrderId });
+              return;
+            }
             onCreationFailure(err);
             throw err;
           }

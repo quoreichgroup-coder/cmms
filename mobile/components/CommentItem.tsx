@@ -1,16 +1,21 @@
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useRef, useState, useEffect, ReactNode } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   ScrollView,
   Pressable,
   TextInput as RNTextInput
 } from 'react-native';
-import { Avatar, IconButton, useTheme, Button } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Avatar,
+  IconButton,
+  useTheme,
+  Button
+} from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../store';
 import { deleteComment, updateComment } from '../slices/comment';
@@ -20,10 +25,12 @@ import { CompanySettingsContext } from '../contexts/CompanySettingsContext';
 import useAuth from '../hooks/useAuth';
 import { useNavigation } from '@react-navigation/native';
 import Comment from '../models/comment';
-import ImageView from 'react-native-image-viewing';
+import ImageView from './ImageViewer';
 import { downloadFile } from '../utils/fileDownload';
 import { useMentions } from 'react-native-controlled-mentions';
 import { TriggersConfig } from 'react-native-controlled-mentions/dist/types/types';
+import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
+import { getErrorMessage } from '../utils/api';
 
 interface CommentItemProps {
   comment: Comment;
@@ -32,11 +39,11 @@ interface CommentItemProps {
   users?: { id: string; name: string }[];
 }
 
-const triggersConfig: TriggersConfig<'mention'> = {
+const createTriggersConfig = (primary: string): TriggersConfig<'mention'> => ({
   mention: {
     trigger: '@',
     pattern: /(@\[[^\]]+\]\(user:[^)]+\))/g,
-    textStyle: { fontWeight: 'bold', color: 'blue' },
+    textStyle: { fontWeight: 'bold', color: primary },
     getTriggerData: (match: string) => {
       const result = match.match(/@\[(.*?)\]\(user:(.*?)\)/);
       return {
@@ -49,7 +56,7 @@ const triggersConfig: TriggersConfig<'mention'> = {
     getTriggerValue: (suggestion) =>
       `@[${suggestion.name}](user:${suggestion.id})`
   }
-};
+});
 
 const isImage = (file: File) => mime.getType(file.name)?.startsWith('image/');
 
@@ -64,14 +71,19 @@ export default function CommentItem({
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { getFormattedDate } = React.useContext(CompanySettingsContext);
+  const { showSnackBar } = React.useContext(CustomSnackBarContext);
   const { user } = useAuth();
-  const { loadingDelete, loadingUpdate } = useSelector(
-    (state) => state.comments
+  const { loadingUpdate } = useSelector((state) => state.comments);
+  const triggersConfig = React.useMemo(
+    () => createTriggersConfig(theme.colors.primary),
+    [theme.colors.primary]
   );
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   const isOwner = comment.user?.id === user?.id;
   const isSystem = comment.system;
@@ -91,21 +103,38 @@ export default function CommentItem({
       )
     : users;
 
+  const confirmDelete = async () => {
+    if (deletingRef.current) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    try {
+      await dispatch(deleteComment(comment.id, workOrderId));
+      showSnackBar(t('comment_delete_success'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error) || t('an_error_occured'), 'error');
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
+  };
+
   const handleDelete = () => {
+    if (deletingRef.current) return;
     Alert.alert(t('confirmation'), t('confirm_delete_comment'), [
       { text: t('cancel'), style: 'cancel' },
       {
         text: t('to_delete'),
         style: 'destructive',
-        onPress: () => dispatch(deleteComment(comment.id, workOrderId))
+        onPress: () => void confirmDelete()
       }
     ]);
   };
 
-  const handleUpdate = () => {
-    if (editContent && editContent.trim()) {
-      setSaving(true);
-      dispatch(
+  const handleUpdate = async () => {
+    if (!editContent?.trim() || saving) return;
+    setSaving(true);
+    try {
+      await dispatch(
         updateComment(
           comment.id,
           {
@@ -114,12 +143,13 @@ export default function CommentItem({
           },
           workOrderId
         )
-      )
-        .then(() => {
-          setIsEditing(false);
-          setSaving(false);
-        })
-        .catch(() => setSaving(false));
+      );
+      setIsEditing(false);
+      showSnackBar(t('comment_update_success'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error) || t('an_error_occured'), 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -135,7 +165,9 @@ export default function CommentItem({
 
     while ((match = mentionRegex.exec(content)) !== null) {
       if (match.index > lastIndex) {
-        parts.push(<Text key={key++}>{content.slice(lastIndex, match.index)}</Text>);
+        parts.push(
+          <Text key={key++}>{content.slice(lastIndex, match.index)}</Text>
+        );
       }
       const [, displayName, userId] = match;
       parts.push(
@@ -164,9 +196,11 @@ export default function CommentItem({
       style={{
         padding: 12,
         borderRadius: 8,
-        backgroundColor: highlighted ? theme.colors.surface : 'white',
+        backgroundColor: theme.colors.surface,
         borderWidth: highlighted ? 2 : 1,
-        borderColor: highlighted ? theme.colors.primary : theme.colors.outline,
+        borderColor: highlighted
+          ? theme.colors.primary
+          : theme.colors.outlineVariant,
         marginBottom: 8
       }}
     >
@@ -188,21 +222,21 @@ export default function CommentItem({
             />
           )}
         </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 12 }}>
+        <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
           <View
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'flex-start'
             }}
           >
-            <View style={{ flex: 1, marginRight: 8 }}>
+            <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('UserDetails', { id: comment.user?.id })
                 }
               >
-                <Text style={{ fontWeight: 'bold' }} numberOfLines={1}>
+                <Text style={{ fontWeight: 'bold' }} numberOfLines={2}>
                   {`${comment.user?.firstName || ''} ${
                     comment.user?.lastName || ''
                   }`}
@@ -217,12 +251,29 @@ export default function CommentItem({
             </View>
             {!isSystem && isOwner && !isEditing && (
               <View style={{ flexDirection: 'row' }}>
-                <IconButton
-                  icon="pencil"
-                  size={20}
-                  onPress={() => setIsEditing(true)}
-                />
-                <IconButton icon="delete" size={20} onPress={handleDelete} />
+                {deleting ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.primary}
+                    accessibilityLabel={t('loading')}
+                    style={{ marginHorizontal: 12 }}
+                  />
+                ) : (
+                  <>
+                    <IconButton
+                      icon="pencil"
+                      size={20}
+                      accessibilityLabel={`${t('edit')} ${t('comments')}`}
+                      onPress={() => setIsEditing(true)}
+                    />
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      accessibilityLabel={`${t('to_delete')} ${t('comments')}`}
+                      onPress={handleDelete}
+                    />
+                  </>
+                )}
               </View>
             )}
           </View>
@@ -234,10 +285,10 @@ export default function CommentItem({
                   {mentionKeyword && filteredUsers.length > 0 && (
                     <View
                       style={{
-                        backgroundColor: '#fff',
+                        backgroundColor: theme.colors.surface,
                         borderRadius: 8,
                         elevation: 5,
-                        shadowColor: '#000',
+                        shadowColor: theme.colors.shadow,
                         shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.2,
                         marginBottom: 8,
@@ -257,7 +308,7 @@ export default function CommentItem({
                           style={{
                             padding: 12,
                             borderBottomWidth: 1,
-                            borderBottomColor: '#eee'
+                            borderBottomColor: theme.colors.outlineVariant
                           }}
                         >
                           <Text>{item.name}</Text>
@@ -270,8 +321,10 @@ export default function CommentItem({
                     numberOfLines={2}
                     style={{
                       borderWidth: 1,
-                      borderColor: '#ccc',
-                      borderRadius: 4
+                      borderColor: theme.colors.outline,
+                      borderRadius: 4,
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.onSurface
                     }}
                     {...textInputProps}
                   />
@@ -282,17 +335,15 @@ export default function CommentItem({
                   mode="contained"
                   onPress={handleUpdate}
                   disabled={!editContent?.trim() || saving}
+                  loading={saving}
                   style={{ maxWidth: '40%' }}
                 >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    t('save')
-                  )}
+                  {t('save')}
                 </Button>
                 <Button
                   style={{ maxWidth: '40%' }}
                   mode="outlined"
+                  disabled={saving}
                   onPress={() => setIsEditing(false)}
                 >
                   {t('cancel')}
@@ -322,6 +373,8 @@ export default function CommentItem({
                   {imageFiles.map((file, index) => (
                     <TouchableOpacity
                       key={file.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('view_image')} ${file.name}`}
                       onPress={() => {
                         setSelectedImageIndex(index);
                         setImageViewerOpen(true);
@@ -343,9 +396,11 @@ export default function CommentItem({
               {otherFiles.map((file) => (
                 <TouchableOpacity
                   key={file.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={file.name}
                   style={{
                     flexDirection: 'row',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     padding: 2,
                     backgroundColor: theme.colors.background,
                     borderRadius: 4,
@@ -354,7 +409,7 @@ export default function CommentItem({
                   onPress={() => downloadFile(file.url, file.name)}
                 >
                   <IconButton icon="file" size={20} />
-                  <Text style={{ flex: 1 }} numberOfLines={1}>
+                  <Text style={{ flex: 1, minWidth: 0 }} numberOfLines={2}>
                     {file.name}
                   </Text>
                 </TouchableOpacity>

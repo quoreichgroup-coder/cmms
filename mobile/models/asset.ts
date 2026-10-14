@@ -59,17 +59,43 @@ export interface AssetDTO extends Audit {
 export const assetStatuses: {
   status: AssetStatus;
   color: (theme: typeof customTheme) => string;
+  foregroundColor: (theme: typeof customTheme) => string;
 }[] = [
-  { status: 'OPERATIONAL', color: (theme) => theme.colors.success },
-  { status: 'MODERNIZATION', color: (theme) => '#CBC3E3' },
-  { status: 'DOWN', color: (theme) => theme.colors.error },
-  { status: 'STANDBY', color: (theme) => theme.colors.primary },
+  {
+    status: 'OPERATIONAL',
+    color: (theme) => theme.colors.success,
+    foregroundColor: (theme) => theme.colors.onSuccess
+  },
+  {
+    status: 'MODERNIZATION',
+    color: (theme) => theme.colors.assetModernization,
+    foregroundColor: (theme) => theme.colors.onAssetModernization
+  },
+  {
+    status: 'DOWN',
+    color: (theme) => theme.colors.error,
+    foregroundColor: (theme) => theme.colors.onError
+  },
+  {
+    status: 'STANDBY',
+    color: (theme) => theme.colors.primary,
+    foregroundColor: (theme) => theme.colors.onPrimary
+  },
   {
     status: 'INSPECTION_SCHEDULED',
-    color: (theme) => theme.colors.warning
+    color: (theme) => theme.colors.warning,
+    foregroundColor: (theme) => theme.colors.onWarning
   },
-  { status: 'COMMISSIONING', color: (theme) => 'grey' },
-  { status: 'EMERGENCY_SHUTDOWN', color: (theme) => theme.colors.error }
+  {
+    status: 'COMMISSIONING',
+    color: (theme) => theme.colors.assetCommissioning,
+    foregroundColor: (theme) => theme.colors.onAssetCommissioning
+  },
+  {
+    status: 'EMERGENCY_SHUTDOWN',
+    color: (theme) => theme.colors.error,
+    foregroundColor: (theme) => theme.colors.onError
+  },
 ] as const;
 
 export interface AssetRow extends AssetDTO {
@@ -88,6 +114,7 @@ export const getAssetStatusConfig = (
 ): {
   status: AssetStatus;
   color: (theme: typeof customTheme) => string;
+  foregroundColor: (theme: typeof customTheme) => string;
 } => {
   const statusConfig = assetStatuses.find((s) => s.status === status);
   if (statusConfig) {
@@ -95,6 +122,7 @@ export const getAssetStatusConfig = (
   }
   return {
     status: 'OPERATIONAL',
-    color: (theme) => theme.colors.success
+    color: (theme) => theme.colors.success,
+    foregroundColor: (theme) => theme.colors.onSuccess
   };
 };

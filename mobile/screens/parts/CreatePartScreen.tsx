@@ -1,8 +1,7 @@
 import { RootStackScreenProps } from '../../types';
-import { View } from '../../components/Themed';
 import Form from '../../components/form';
 import * as Yup from 'yup';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useContext, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
@@ -36,7 +35,7 @@ export default function CreatePartScreen({
   const { customFields } = useSelector((state) => state.customFields);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
-  useUnsavedChanges(navigation, isFormDirty);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const onCreationSuccess = (createdPart) => {
     showSnackBar(t('part_create_success'), 'success');
@@ -69,7 +68,6 @@ export default function CreatePartScreen({
         values={{}}
         onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
-          setIsFormDirty(false);
           let formattedValues = formatPartValues(values);
           formattedValues = formatCustomFields(formattedValues);
           try {
@@ -84,6 +82,8 @@ export default function CreatePartScreen({
               files: imageAndFiles.files
             };
             const createdPart = await dispatch(addPart(formattedValues));
+            markFormClean();
+            setIsFormDirty(false);
             onCreationSuccess(createdPart);
           } catch (err) {
             onCreationFailure(err);

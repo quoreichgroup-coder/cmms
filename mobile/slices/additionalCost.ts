@@ -10,11 +10,15 @@ const basePath = 'additional-costs';
 interface AdditionalCostState {
   costsByWorkOrder: { [id: number]: AdditionalCost[] };
   loadingCosts: { [id: number]: boolean };
+  loadStatusByWorkOrder: {
+    [id: number]: 'loading' | 'success' | 'error';
+  };
 }
 
 const initialState: AdditionalCostState = {
   costsByWorkOrder: {},
-  loadingCosts: {}
+  loadingCosts: {},
+  loadStatusByWorkOrder: {}
 };
 
 const slice = createSlice({
@@ -28,6 +32,7 @@ const slice = createSlice({
     ) {
       const { additionalCosts, id } = action.payload;
       state.costsByWorkOrder[id] = additionalCosts;
+      state.loadStatusByWorkOrder[id] = 'success';
     },
     createAdditionalCost(
       state: AdditionalCostState,
@@ -72,6 +77,13 @@ const slice = createSlice({
     ) {
       const { loading, id } = action.payload;
       state.loadingCosts = { ...state.loadingCosts, [id]: loading };
+      if (loading) state.loadStatusByWorkOrder[id] = 'loading';
+    },
+    failGetAdditionalCosts(
+      state: AdditionalCostState,
+      action: PayloadAction<{ id: number }>
+    ) {
+      state.loadStatusByWorkOrder[action.payload.id] = 'error';
     }
   }
 });
@@ -88,6 +100,7 @@ export const getAdditionalCosts =
       );
       dispatch(slice.actions.getAdditionalCosts({ id, additionalCosts }));
     } catch {
+      dispatch(slice.actions.failGetAdditionalCosts({ id }));
     } finally {
       dispatch(slice.actions.setLoadingByWorkOrder({ id, loading: false }));
     }

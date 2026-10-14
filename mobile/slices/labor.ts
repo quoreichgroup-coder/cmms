@@ -10,11 +10,17 @@ const basePath = 'labors';
 interface LaborState {
   timesByWorkOrder: { [id: number]: Labor[] };
   loadingLabors: { [id: number]: boolean };
+  laborLoadStatusByWorkOrder: {
+    [id: number]: 'loading' | 'success' | 'error';
+  };
+  latestLoadRequestIdByWorkOrder: { [id: number]: number };
 }
 
 const initialState: LaborState = {
   timesByWorkOrder: {},
-  loadingLabors: {}
+  loadingLabors: {},
+  laborLoadStatusByWorkOrder: {},
+  latestLoadRequestIdByWorkOrder: {}
 };
 
 const slice = createSlice({
@@ -24,10 +30,28 @@ const slice = createSlice({
   reducers: {
     getLabors(
       state: LaborState,
-      action: PayloadAction<{ id: number; labors: Labor[] }>
+      action: PayloadAction<{ id: number; labors: Labor[]; requestId?: number }>
     ) {
-      const { labors, id } = action.payload;
+      const { labors, id, requestId } = action.payload;
+      if (
+        requestId !== undefined &&
+        requestId !== state.latestLoadRequestIdByWorkOrder[id]
+      )
+        return;
       state.timesByWorkOrder[id] = labors;
+      state.laborLoadStatusByWorkOrder[id] = 'success';
+    },
+    failGetLabors(
+      state: LaborState,
+      action: PayloadAction<{ id: number; requestId?: number }>
+    ) {
+      const { id, requestId } = action.payload;
+      if (
+        requestId !== undefined &&
+        requestId !== state.latestLoadRequestIdByWorkOrder[id]
+      )
+        return;
+      state.laborLoadStatusByWorkOrder[action.payload.id] = 'error';
     },
     createLabor(
       state: LaborState,
@@ -87,26 +111,48 @@ const slice = createSlice({
     },
     setLoadingByWorkOrder(
       state: LaborState,
-      action: PayloadAction<{ loading: boolean; id: number }>
+      action: PayloadAction<{
+        loading: boolean;
+        id: number;
+        requestId?: number;
+      }>
     ) {
-      const { loading, id } = action.payload;
+      const { loading, id, requestId } = action.payload;
+      if (
+        requestId !== undefined &&
+        !loading &&
+        requestId !== state.latestLoadRequestIdByWorkOrder[id]
+      )
+        return;
+      if (requestId !== undefined && loading) {
+        state.latestLoadRequestIdByWorkOrder[id] = requestId;
+      }
       state.loadingLabors = { ...state.loadingLabors, [id]: loading };
+      if (loading) state.laborLoadStatusByWorkOrder[id] = 'loading';
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let laborLoadRequestSequence = 0;
+
 export const getLabors =
   (id: number): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setLoadingByWorkOrder({ id, loading: true }));
+    const requestId = ++laborLoadRequestSequence;
+    dispatch(
+      slice.actions.setLoadingByWorkOrder({ id, loading: true, requestId })
+    );
     try {
       const labors = await api.get<Labor[]>(`${basePath}/work-order/${id}`);
-      dispatch(slice.actions.getLabors({ id, labors }));
+      dispatch(slice.actions.getLabors({ id, labors, requestId }));
     } catch {
+      dispatch(slice.actions.failGetLabors({ id, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingByWorkOrder({ id, loading: false }));
+      dispatch(
+        slice.actions.setLoadingByWorkOrder({ id, loading: false, requestId })
+      );
     }
   };
 

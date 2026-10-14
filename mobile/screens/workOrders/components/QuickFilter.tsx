@@ -1,8 +1,9 @@
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { FilterField } from '../../../models/page';
 import { useTranslation } from 'react-i18next';
 import { TouchableOpacity } from 'react-native';
 import * as React from 'react';
+import { useAppTheme } from '../../../custom-theme';
 
 interface OwnProps {
   filterFields: FilterField[];
@@ -16,14 +17,14 @@ export default function QuickFilter({
   activeFilterField
 }: OwnProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const isSelected: boolean = filterFields.some(
     (filterField) => filterField.field === activeFilterField.field
   );
   return (
     <TouchableOpacity
       onPress={() => {
-        let newFilterFields = filterFields;
+        let newFilterFields = [...filterFields];
         if (isSelected) {
           newFilterFields = newFilterFields.filter(
             (filterField) => filterField.field !== activeFilterField.field
@@ -33,6 +34,9 @@ export default function QuickFilter({
         }
         onChange(newFilterFields);
       }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
+      accessibilityLabel={t(activeFilterField.field)}
       style={{
         backgroundColor: isSelected
           ? theme.colors.primary
@@ -41,13 +45,17 @@ export default function QuickFilter({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        minHeight: 44,
         borderRadius: 20,
         paddingHorizontal: 15,
         margin: 5
       }}
     >
       <Text
-        style={{ color: isSelected ? 'white' : 'black', fontWeight: 'bold' }}
+        style={{
+          color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface,
+          fontWeight: 'bold'
+        }}
       >
         {t(activeFilterField.field)}
       </Text>

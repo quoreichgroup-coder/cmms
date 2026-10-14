@@ -10,11 +10,15 @@ const basePath = 'tasks';
 interface TaskState {
   tasksByWorkOrder: { [id: number]: Task[] };
   loadingTasks: { [id: number]: boolean };
+  taskLoadStatusByWorkOrder: {
+    [id: number]: 'loading' | 'success' | 'error';
+  };
 }
 
 const initialState: TaskState = {
   tasksByWorkOrder: {},
-  loadingTasks: {}
+  loadingTasks: {},
+  taskLoadStatusByWorkOrder: {}
 };
 
 const slice = createSlice({
@@ -28,6 +32,10 @@ const slice = createSlice({
     ) {
       const { tasks, id } = action.payload;
       state.tasksByWorkOrder[id] = tasks;
+      state.taskLoadStatusByWorkOrder[id] = 'success';
+    },
+    failGetTasks(state: TaskState, action: PayloadAction<{ id: number }>) {
+      state.taskLoadStatusByWorkOrder[action.payload.id] = 'error';
     },
     patchTasks(
       state: TaskState,
@@ -38,6 +46,7 @@ const slice = createSlice({
     ) {
       const { tasks, workOrderId } = action.payload;
       state.tasksByWorkOrder[workOrderId] = tasks;
+      state.taskLoadStatusByWorkOrder[workOrderId] = 'success';
     },
     patchTask(
       state: TaskState,
@@ -55,6 +64,7 @@ const slice = createSlice({
         }
         return t;
       });
+      state.taskLoadStatusByWorkOrder[workOrderId] = 'success';
     },
     deleteTask(
       state: TaskState,
@@ -74,6 +84,7 @@ const slice = createSlice({
     ) {
       const { loading, id } = action.payload;
       state.loadingTasks = { ...state.loadingTasks, [id]: loading };
+      if (loading) state.taskLoadStatusByWorkOrder[id] = 'loading';
     }
   }
 });
@@ -87,6 +98,7 @@ export const getTasks =
       const tasks = await api.get<Task[]>(`${basePath}/work-order/${id}`);
       dispatch(slice.actions.getTasks({ id, tasks }));
     } catch {
+      dispatch(slice.actions.failGetTasks({ id }));
     } finally {
       dispatch(slice.actions.setLoadingByTask({ id, loading: false }));
     }

@@ -8,8 +8,8 @@ import com.grash.dto.MeterShowDTO;
 import com.grash.dto.SuccessResponse;
 import com.grash.exception.CustomException;
 import com.grash.mapper.MeterMapper;
-import com.grash.model.Asset;
 import com.grash.model.User;
+import com.grash.model.enums.PermissionEntity;
 import com.grash.security.CurrentUser;
 import com.grash.service.AssetService;
 import com.grash.service.MeterService;
@@ -82,12 +82,15 @@ public class MeterController {
     @PreAuthorize("permitAll()")
     public Collection<MeterShowDTO> getByAsset(@Parameter(description = "Asset ID") @PathVariable("id") Long id,
                                                @Parameter(hidden = true) @CurrentUser User user) {
-        Optional<Asset> optionalAsset = assetService.findById(id);
-        if (optionalAsset.isPresent()) {
-            if (!optionalAsset.get().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return meterService.findByAsset(id).stream().map(meter -> meterMapper.toShowDto(meter, readingService)).collect(Collectors.toList());
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        if (user == null || user.getRole() == null || user.getRole().getViewPermissions() == null
+                || !user.getRole().getViewPermissions().contains(PermissionEntity.METERS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        assetService.checkAccessToAssetId(id, user);
+        return meterService.findByAsset(id).stream()
+                .filter(meter -> meter.canBeViewedBy(user))
+                .map(meter -> meterMapper.toShowDto(meter, readingService))
+                .collect(Collectors.toList());
     }
 
     @DeleteMapping("/{id}")

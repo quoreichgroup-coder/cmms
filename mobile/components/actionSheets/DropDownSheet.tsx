@@ -5,6 +5,7 @@ import ActionSheet, {
   SheetProps
 } from 'react-native-actions-sheet';
 import { Text, useTheme } from 'react-native-paper';
+import { createQpmActionSheetContainerStyle } from '../../theme/actionSheet';
 
 interface DropDownItem {
   label: string;
@@ -27,7 +28,10 @@ const DropDownSheet = (
   };
 
   return (
-    <ActionSheet id={props.sheetId}>
+    <ActionSheet
+      id={props.sheetId}
+      containerStyle={createQpmActionSheetContainerStyle(theme.colors.surface)}
+    >
       <View style={{ padding: 20 }}>
         {items.map((item) => (
           <TouchableOpacity

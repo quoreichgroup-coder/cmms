@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistGate } from 'redux-persist/integration/react';
 import useCachedResources from './hooks/useCachedResources';
-import useColorScheme from './hooks/useColorScheme';
 import Navigation from './navigation';
 import { Provider } from 'react-redux';
 import store, { persistor } from './store';
@@ -28,11 +28,6 @@ Sentry.init({
   tracesSampleRate: 0.1
 });
 
-import {
-  MD3LightTheme as DefaultTheme,
-  Provider as PaperProvider,
-  useTheme
-} from 'react-native-paper';
 import { useEffect } from 'react';
 import { Alert, Linking, LogBox } from 'react-native';
 import { SheetProvider } from 'react-native-actions-sheet';
@@ -41,9 +36,12 @@ import * as Notifications from 'expo-notifications';
 import { navigate } from './navigation/RootNavigation';
 import subscriptionPlan from './slices/subscriptionPlan';
 import { isNumeric } from './utils/validators';
-import { customTheme } from './custom-theme';
 import { RootLayout } from './components/RootLayout';
 import { ReviewModal } from './components/ReviewModal';
+import {
+  AppearanceProvider,
+  useAppearance
+} from './contexts/AppearanceContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -55,9 +53,27 @@ Notifications.setNotificationHandler({
   })
 });
 
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
 export default Sentry.wrap(function App() {
+  return (
+    <AppearanceProvider>
+      <AppContent />
+    </AppearanceProvider>
+  );
+});
+
+function AppContent() {
   const isLoadingComplete = useCachedResources();
-  const colorScheme = useColorScheme();
+  const { isReady: isAppearanceReady } = useAppearance();
+
+  useEffect(() => {
+    if (isLoadingComplete && isAppearanceReady) {
+      // Keep the native splash visible until both fonts and the saved theme are ready.
+      void SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [isAppearanceReady, isLoadingComplete]);
+
   useEffect(() => {
     LogBox.ignoreLogs([
       'Warning: Async Storage has been extracted from react-native core'
@@ -106,35 +122,36 @@ export default Sentry.wrap(function App() {
     };
   }, []);
 
-  if (!isLoadingComplete) {
-    return null;
-  } else {
-    return (
-      <SafeAreaProvider>
-        <Provider store={store}>
-          <PersistGate loading={null} persistor={persistor}>
-            <AuthProvider>
-              <CompanySettingsProvider>
-                <PaperProvider theme={customTheme}>
-                  <CustomSnackbarProvider>
-                    <SheetProvider>
-                      <RootLayout>
-                        <FlashMessage
-                          position="top"
-                          statusBarHeight={Constants.statusBarHeight}
-                        />
-                        <Navigation colorScheme={colorScheme} />
-                        <ReviewModal />
-                      </RootLayout>
-                      <StatusBar />
-                    </SheetProvider>
-                  </CustomSnackbarProvider>
-                </PaperProvider>
-              </CompanySettingsProvider>
-            </AuthProvider>
-          </PersistGate>
-        </Provider>
-      </SafeAreaProvider>
-    );
-  }
-});
+  if (!isLoadingComplete || !isAppearanceReady) return null;
+
+  return (
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <AuthProvider>
+            <CompanySettingsProvider>
+              <CustomSnackbarProvider>
+                <SheetProvider>
+                  <RootLayout>
+                    <FlashMessage
+                      position="top"
+                      statusBarHeight={Constants.statusBarHeight}
+                    />
+                    <Navigation />
+                    <ReviewModal />
+                  </RootLayout>
+                  <ThemedStatusBar />
+                </SheetProvider>
+              </CustomSnackbarProvider>
+            </CompanySettingsProvider>
+          </AuthProvider>
+        </PersistGate>
+      </Provider>
+    </SafeAreaProvider>
+  );
+}
+
+function ThemedStatusBar() {
+  const { colorScheme } = useAppearance();
+  return <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />;
+}

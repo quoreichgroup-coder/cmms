@@ -9,14 +9,17 @@ import { editAdditionalCost } from '../../slices/additionalCost';
 import { RootStackScreenProps } from '../../types';
 import { useDispatch } from '../../store';
 import { getErrorMessage } from '../../utils/api';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function EditAdditionalCost({
   navigation,
   route
 }: RootStackScreenProps<'EditAdditionalCost'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const { workOrderId, additionalCost } = route.params;
@@ -90,16 +93,26 @@ export default function EditAdditionalCost({
           date: additionalCost.date ? new Date(additionalCost.date) : null,
           cost: additionalCost.cost?.toString()
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           const formattedValues = { ...values };
           formattedValues.assignedTo = formatSelect(formattedValues.assignedTo);
           formattedValues.category = formatSelect(formattedValues.category);
-          return dispatch(
-            editAdditionalCost(workOrderId, additionalCost.id, formattedValues)
-          )
-            .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
-            .finally(() => navigation.goBack());
+          try {
+            await dispatch(
+              editAdditionalCost(
+                workOrderId,
+                additionalCost.id,
+                formattedValues
+              )
+            );
+            markFormClean();
+            setIsFormDirty(false);
+            navigation.goBack();
+          } catch (err) {
+            showSnackBar(getErrorMessage(err), 'error');
+            throw err;
+          }
         }}
       />
     </View>

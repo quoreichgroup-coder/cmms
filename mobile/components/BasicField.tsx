@@ -1,7 +1,9 @@
+import { StyleSheet } from 'react-native';
 import { View } from './Themed';
-import { Divider, Text, TouchableRipple } from 'react-native-paper';
+import { Divider, Text, TouchableRipple, useTheme } from 'react-native-paper';
 import * as React from 'react';
 import { Linking } from 'react-native';
+import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function BasicField({
   label,
@@ -9,10 +11,11 @@ export default function BasicField({
   isLink
 }: {
   label: string;
-  value: string | number;
+  value: string | number | null | undefined;
   isLink?: boolean;
 }) {
-  if (!value) return null;
+  const theme = useTheme();
+  if (value === null || value === undefined || value === '') return null;
 
   const handlePress = () => {
     if (isLink) {
@@ -27,28 +30,49 @@ export default function BasicField({
 
   return (
     <View>
-      <View
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          padding: 20
-        }}
-      >
-        <Text style={{ marginRight: 5 }}>{label}</Text>
+      <View style={styles.row}>
+        <Text style={styles.label}>{label}</Text>
         {isLink ? (
-          <TouchableRipple onPress={handlePress}>
-            <Text
-              style={{ fontWeight: 'bold', flexShrink: 1, color: '#1976d2' }}
-            >
+          <TouchableRipple
+            onPress={handlePress}
+            accessibilityRole="link"
+            accessibilityLabel={`${label}: ${value}`}
+            style={styles.link}
+          >
+            <Text style={[styles.value, { color: theme.colors.primary }]}>
               {value}
             </Text>
           </TouchableRipple>
         ) : (
-          <Text style={{ fontWeight: 'bold', flexShrink: 1 }}>{value}</Text>
+          <Text style={styles.value}>{value}</Text>
         )}
       </View>
       <Divider />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: qpmLayoutTokens.space.lg,
+    paddingVertical: qpmLayoutTokens.space.md
+  },
+  label: {
+    flex: 1,
+    marginRight: qpmLayoutTokens.space.md
+  },
+  value: {
+    flex: 1,
+    flexShrink: 1,
+    fontWeight: 'bold',
+    textAlign: 'right'
+  },
+  link: {
+    flex: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minHeight: 44
+  }
+});

@@ -3,14 +3,19 @@
  * https://reactnavigation.org/docs/getting-started
  *
  */
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps
+} from '@react-navigation/bottom-tabs';
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
 import * as Notifications from 'expo-notifications';
 import {
-  ColorSchemeName,
-  GestureResponderEvent,
   Image,
   Platform,
   Pressable,
@@ -20,8 +25,7 @@ import {
 import ModalScreen from '../screens/ModalScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 import HomeScreen from '../screens/HomeScreen';
-import RegisterScreen from '../screens/auth/RegisterScreen';
-import LoginScreen from '../screens/auth/LoginScreen';
+import AuthenticationScreen from '../screens/auth/AuthenticationScreen';
 import VerifyScreen from '../screens/auth/VerifyScreen';
 import LoadingScreen from '../screens/auth/LoadingScreen';
 import WODetailsScreen from '../screens/workOrders/WODetailsScreen';
@@ -114,15 +118,28 @@ import SwitchAccountScreen from '../screens/superUser/SwitchAccountScreen';
 import { FontAwesome, Ionicons, Feather } from '@expo/vector-icons';
 import { Fragment, ReactElement, ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppearance } from '../contexts/AppearanceContext';
 
-export default function Navigation({
-  colorScheme
-}: {
-  colorScheme: ColorSchemeName;
-}) {
+export default function Navigation() {
+  const { colorScheme, theme } = useAppearance();
   const { isAuthenticated, isInitialized, user } = useAuth();
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   const [navigationReady, setNavigationReady] = React.useState(false);
+  const navigationTheme = React.useMemo(() => {
+    const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...baseTheme,
+      colors: {
+        ...baseTheme.colors,
+        primary: theme.colors.primary,
+        background: theme.colors.background,
+        card: theme.colors.surface,
+        text: theme.colors.onSurface,
+        border: theme.colors.outlineVariant,
+        notification: theme.colors.error
+      }
+    };
+  }, [colorScheme, theme]);
 
   React.useEffect(() => {
     if (
@@ -154,7 +171,7 @@ export default function Navigation({
       ref={navigationRef}
       onReady={() => setNavigationReady(true)}
       linking={LinkingConfiguration}
-      theme={DefaultTheme}
+      theme={navigationTheme}
     >
       {isInitialized ? (
         isAuthenticated ? (
@@ -401,8 +418,16 @@ function RootNavigator() {
         component={NotificationsScreen}
         options={{ title: t('Notifications') }}
       />
-      <Stack.Screen name="License" component={LicenseScreen} options={{ title: t('company_license') }} />
-      <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} options={{ title: t('company_profile') }} />
+      <Stack.Screen
+        name="License"
+        component={LicenseScreen}
+        options={{ title: t('company_license') }}
+      />
+      <Stack.Screen
+        name="CompanyProfile"
+        component={CompanyProfileScreen}
+        options={{ title: t('company_profile') }}
+      />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}
@@ -536,21 +561,16 @@ const SuperUserStack = createNativeStackNavigator<SuperUserStackParamList>();
 function AuthNavigator() {
   const { t } = useTranslation();
   return (
-    <AuthStack.Navigator>
+    <AuthStack.Navigator initialRouteName="AuthFlow">
       <AuthStack.Screen
-        name="Login"
-        component={LoginScreen}
-        options={{ title: t('login') }}
-      />
-      <AuthStack.Screen
-        name="Register"
-        component={RegisterScreen}
-        options={{ title: t('register') }}
+        name="AuthFlow"
+        component={AuthenticationScreen}
+        options={{ headerShown: false }}
       />
       <AuthStack.Screen
         name="Verify"
         component={VerifyScreen}
-        options={{ title: t('verify_email_title') }}
+        options={{ headerShown: false }}
       />
       <AuthStack.Screen
         name="CustomServer"
@@ -582,29 +602,42 @@ function SuperUserNavigator() {
  */
 const BottomTab = createBottomTabNavigator<RootTabParamList>();
 
-function CreateTabBarButton(props: {
-  onPress: (
-    e: React.MouseEvent<HTMLAnchorElement, MouseEvent> | GestureResponderEvent
-  ) => void;
-  children: React.ReactNode;
-}): ReactElement {
+function CreateTabBarButton({
+  onPress,
+  children,
+  accessibilityHint,
+  accessibilityLabel,
+  accessibilityRole,
+  accessibilityState,
+  disabled,
+  onLongPress,
+  testID
+}: BottomTabBarButtonProps): ReactElement {
   const theme = useTheme();
 
   return (
     <TouchableOpacity
+      accessible
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={accessibilityRole ?? 'button'}
+      accessibilityState={accessibilityState}
+      disabled={disabled}
       style={{
         top: -25,
         justifyContent: 'center',
         alignItems: 'center'
       }}
-      onPress={props.onPress}
+      testID={testID}
+      onLongPress={onLongPress}
+      onPress={onPress}
     >
       <View
         style={{
           width: 20
         }}
       >
-        {props.children}
+        {children}
       </View>
     </TouchableOpacity>
   );
@@ -650,7 +683,7 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
           paddingTop: 6,
           paddingBottom: Platform.OS === 'ios' ? 18 : 10,
           borderTopWidth: 0,
-          shadowColor: '#000',
+          shadowColor: theme.colors.shadow,
           shadowOpacity: 0.15,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: -2 }
@@ -686,13 +719,11 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
               />
             ),
             headerRight: () => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate('Settings');
-                }}
-              >
-                <IconButton icon="cog-outline" />
-              </Pressable>
+              <IconButton
+                icon="cog-outline"
+                accessibilityLabel={t('settings')}
+                onPress={() => navigation.navigate('Settings')}
+              />
             )
           })}
         />
@@ -728,6 +759,7 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
           }}
           options={{
             title: showBigCreateButton ? '' : t('create'),
+            tabBarAccessibilityLabel: t('create'),
             tabBarIcon: ({ focused }) => (
               <IconButton
                 icon={'plus-circle'}

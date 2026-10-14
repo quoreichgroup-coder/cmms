@@ -56,9 +56,12 @@ export const reducer = slice.reducer;
 
 export const getRoles = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.setLoadingGet({ loading: true }));
-  const roles = await api.get<Role[]>('roles');
-  dispatch(slice.actions.getRoles({ roles }));
-  dispatch(slice.actions.setLoadingGet({ loading: false }));
+  try {
+    const roles = await api.get<Role[]>('roles');
+    dispatch(slice.actions.getRoles({ roles }));
+  } finally {
+    dispatch(slice.actions.setLoadingGet({ loading: false }));
+  }
 };
 
 export const addRole =

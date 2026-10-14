@@ -16,7 +16,6 @@ import { getAssetsMini } from '../../slices/asset';
 import {
   Avatar,
   Button,
-  Checkbox,
   Divider,
   IconButton,
   Searchbar,
@@ -24,7 +23,7 @@ import {
   Text
 } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
-import { boolean, number } from 'yup';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 interface AssetHierarchyNode extends AssetMiniDTO {
   hasChildren: boolean;
@@ -39,6 +38,7 @@ const AssetItem = React.memo(
     isSelected,
     multiple,
     showChevron,
+    viewChildrenLabel,
     onToggle,
     onNavigateDown,
     hierarchy
@@ -47,6 +47,7 @@ const AssetItem = React.memo(
     isSelected: boolean;
     multiple: boolean;
     showChevron: boolean;
+    viewChildrenLabel: string;
     onToggle: (id: number) => void;
     onNavigateDown: (asset: AssetHierarchyNode) => void;
     hierarchy?: boolean;
@@ -57,25 +58,29 @@ const AssetItem = React.memo(
       [asset.id, onToggle]
     );
     const handleNavigateDown = useCallback(
-      (e: any) => {
-        e.stopPropagation();
-        onNavigateDown(asset);
-      },
+      () => onNavigateDown(asset),
       [asset, onNavigateDown]
     );
 
     return (
-      <Pressable onPress={handleToggle}>
-        <View
-          style={[
-            styles.card,
-            hierarchy ? { height: HIERARCHY_ITEM_HEIGHT } : {}
-          ]}
-        >
-          <View style={styles.cardRow}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.colors.surface },
+          hierarchy ? { height: HIERARCHY_ITEM_HEIGHT } : {}
+        ]}
+      >
+        <View style={styles.cardRow}>
+          <Pressable
+            onPress={handleToggle}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityLabel={`${asset.name}, ${asset.customId}`}
+            accessibilityState={multiple ? { checked: isSelected } : undefined}
+            style={styles.selectionTarget}
+          >
             <Avatar.Icon
-              style={{ backgroundColor: theme.colors.background }}
-              color={'white'}
+              style={{ backgroundColor: theme.colors.primaryContainer }}
+              color={theme.colors.primary}
               icon={'package-variant-closed'}
               size={50}
             />
@@ -91,31 +96,30 @@ const AssetItem = React.memo(
                   </Text>
                   <Text
                     variant={'bodySmall'}
-                    style={{ color: 'grey' }}
+                    style={{ color: theme.colors.onSurfaceVariant }}
                   >{`#${asset.customId}`}</Text>
                 </View>
                 {multiple && (
-                  <Checkbox
-                    status={isSelected ? 'checked' : 'unchecked'}
-                    onPress={handleToggle}
+                  <SelectionIndicator
+                    checked={isSelected}
+                    color={theme.colors.primary}
+                    uncheckedColor={theme.colors.controlOutline}
                   />
                 )}
               </View>
-              {showChevron && (
-                <View style={styles.cardFooter}>
-                  <View style={{ flex: 1 }} />
-                  <IconButton
-                    icon="chevron-right"
-                    size={24}
-                    style={{ margin: 0 }}
-                    onPress={handleNavigateDown}
-                  />
-                </View>
-              )}
             </View>
-          </View>
+          </Pressable>
+          {showChevron && (
+            <IconButton
+              icon="chevron-right"
+              size={24}
+              accessibilityLabel={viewChildrenLabel}
+              style={styles.hierarchyButton}
+              onPress={handleNavigateDown}
+            />
+          )}
         </View>
-      </Pressable>
+      </View>
     );
   }
 );
@@ -189,6 +193,7 @@ export default function SelectAssetsModal({
           <IconButton
             icon="barcode-scan"
             size={24}
+            accessibilityLabel={t('to_scan')}
             onPress={() =>
               navigation.replace('ScanAsset', {
                 onChange: (asset) => {
@@ -201,6 +206,11 @@ export default function SelectAssetsModal({
           {multiple && (
             <Pressable
               disabled={!currentlySelectedAssets.length}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('add')} (${
+                currentlySelectedAssets.length
+              })`}
+              accessibilityState={{ disabled: !currentlySelectedAssets.length }}
               onPress={() => {
                 onChange(currentlySelectedAssets);
                 navigation.goBack();
@@ -291,12 +301,13 @@ export default function SelectAssetsModal({
         isSelected={selectedSet.has(item.id)}
         multiple={multiple}
         showChevron={view === 'hierarchy' && item.hasChildren}
+        viewChildrenLabel={t('view_children')}
         onToggle={toggle}
         onNavigateDown={navigateHierarchyDown}
         hierarchy={hierarchy}
       />
     ),
-    [selectedSet, multiple, view, toggle, navigateHierarchyDown]
+    [selectedSet, multiple, view, t, toggle, navigateHierarchyDown]
   );
 
   const keyExtractor = useCallback(
@@ -310,9 +321,24 @@ export default function SelectAssetsModal({
     }
     if (view === 'hierarchy') return null;
     if (searchQuery) {
-      return <Text style={styles.noResultsText}>{t('no_results_found')}</Text>;
+      return (
+        <Text
+          style={[
+            styles.noResultsText,
+            { color: theme.colors.onSurfaceVariant }
+          ]}
+        >
+          {t('no_results_found')}
+        </Text>
+      );
     }
-    return <Text style={styles.noResultsText}>{t('no_assets_available')}</Text>;
+    return (
+      <Text
+        style={[styles.noResultsText, { color: theme.colors.onSurfaceVariant }]}
+      >
+        {t('no_assets_available')}
+      </Text>
+    );
   }, [loadingGet, view, searchQuery, t]);
 
   const ListFooterComponent = useCallback(
@@ -429,15 +455,24 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10,
     height: ITEM_HEIGHT
   },
   cardRow: {
-    display: 'flex',
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6
+  },
+  selectionTarget: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  hierarchyButton: {
+    margin: 0
   },
   cardHeader: {
     flexDirection: 'row',
@@ -449,12 +484,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     flexShrink: 1
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginTop: 5
-  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -464,7 +493,6 @@ const styles = StyleSheet.create({
   noResultsText: {
     textAlign: 'center',
     marginTop: 20,
-    fontSize: 16,
-    color: 'grey'
+    fontSize: 16
   }
 });

@@ -1,10 +1,14 @@
 const locale = {
   open_source_notices: 'About and open-source notices',
-  open_source_modified: 'This QPM edition is modified and maintained by QUOREICH GROUP.',
-  open_source_license: 'The application is distributed under the GNU Affero General Public License, version 3 (AGPL-3.0).',
-  open_source_no_warranty: 'This software is provided without warranty, as permitted by the license.',
+  open_source_modified:
+    'This QPM edition is modified and maintained by QUOREICH GROUP.',
+  open_source_license:
+    'The application is distributed under the GNU Affero General Public License, version 3 (AGPL-3.0).',
+  open_source_no_warranty:
+    'This software is provided without warranty, as permitted by the license.',
   open_source_source: 'View the corresponding source code',
-  open_source_upstream: 'This edition is derived from Atlas CMMS. The upstream project and its contributors retain their applicable copyright notices.',
+  open_source_upstream:
+    'This edition is derived from Atlas CMMS. The upstream project and its contributors retain their applicable copyright notices.',
   plan_catalog: 'Plan catalog',
   plan_catalog_description:
     'Choose which modules are available in each plan. Changes apply to every company using that plan.',
@@ -80,6 +84,7 @@ const locale = {
     'Some of the features that make {{shortBrandName}} one of the best CMMS available today',
   contribute: 'Contribute',
   work_orders: 'Work Orders',
+  reopen_work_orders_permission: 'Reopen completed work orders',
   request_system: 'Work Request System',
   mobile_app: 'Mobile App',
   asset_management: 'Asset Management',
@@ -439,7 +444,8 @@ const locale = {
   pending: 'Pending',
   required_request_name: 'Request title is required',
   required_field: 'This field is required',
-  form_validation_error_summary: 'Cannot save yet: correct the highlighted fields in the form.',
+  form_validation_error_summary:
+    'Cannot save yet: correct the highlighted fields in the form.',
   add_request: 'Add Request',
   add_request_description:
     'Fill in the fields below to create and add a new Request',
@@ -954,19 +960,23 @@ const locale = {
   business_type_construction_management: 'Construction',
   general_asset_management: 'General asset management',
   physical_asset_management: 'Physical asset management',
-  checklist_create_success: 'List “{{name}}” was saved with {{taskCount}} task(s). They are in the PM form; save the PM to keep the assignment.',
+  checklist_create_success:
+    'List “{{name}}” was saved with {{taskCount}} task(s). They are in the PM form; save the PM to keep the assignment.',
   checklist_delete_success: 'The Checklist has been deleted successfully',
   checklist_delete_failure: "The Checklist couldn't be deleted",
   create_checklist: 'Create Checklist',
   view_task_list_library: 'Browse task lists',
-  task_list_library_help: 'Reusable task list library. Select a row to review its operations; use Edit to change a list.',
+  task_list_library_help:
+    'Reusable task list library. Select a row to review its operations; use Edit to change a list.',
   view_task_list: 'View task list',
   edit_task_list: 'Edit task list',
   task_count: '{{count}} task(s)',
   task_list_empty: 'This task list has no operations.',
-  task_list_header_help: 'List header: name, description, and category. The tasks below are its operations; they are numbered in steps of 10 and can be reordered.',
+  task_list_header_help:
+    'List header: name, description, and category. The tasks below are its operations; they are numbered in steps of 10 and can be reordered.',
   add_task_list_operation: 'Add operation',
-  task_list_requires_operation: 'Add at least one operation to this list before saving.',
+  task_list_requires_operation:
+    'Add at least one operation to this list before saving.',
   operation_number: 'Operation {{number}}',
   operations: 'Operations',
   general_task_list: 'Reusable general task list',
@@ -993,27 +1003,34 @@ const locale = {
   preview: 'Preview',
   pm_schedule_forecast: 'Planned maintenance forecast',
   pm_plan_configuration: 'Maintenance strategy and cycle set',
-  pm_plan_configuration_help: 'Choose a standard recurrence, task packages at different intervals, or a combined plan driven by multiple meters.',
+  pm_plan_configuration_help:
+    'Choose a standard recurrence, task packages at different intervals, or a combined plan driven by multiple meters.',
   pm_plan_mode: 'Plan type',
   task_without_name: 'Unnamed task',
   pm_plan_mode_single: 'Standard plan',
   pm_plan_mode_strategy: 'Strategy with task packages',
   pm_plan_mode_multi_counter: 'Multi-counter plan',
-  pm_plan_single_help: 'The plan creates work orders using the recurrence and task list configured above.',
-  pm_strategy_editor_help: 'Each package is due on a multiple of the base interval above. Select the tasks to include in orders for that package.',
+  pm_plan_single_help:
+    'The plan creates work orders using the recurrence and task list configured above.',
+  pm_strategy_editor_help:
+    'Each package is due on a multiple of the base interval above. Select the tasks to include in orders for that package.',
   pm_package_default_name: 'Maintenance package',
   pm_strategy_package_number: 'Package {{number}}',
   pm_every_base_cycles: 'Every {{count}} base cycle(s)',
   pm_package_tasks: 'Tasks included in this package',
-  pm_select_tasks_before_packages: 'Add task templates to the task list above first.',
+  pm_select_tasks_before_packages:
+    'Add task templates to the task list above first.',
   pm_package_requires_task: 'Select at least one task for this package.',
   pm_add_package: 'Add package',
-  pm_multi_counter_editor_help: 'Multi-counter plans currently combine meters attached to the selected asset. Choose a rule and assign tasks to each meter cycle.',
+  pm_multi_counter_editor_help:
+    'Multi-counter plans currently combine meters attached to the selected asset. Choose a rule and assign tasks to each meter cycle.',
   pm_combination_rule: 'When should the combined work order be created?',
   pm_combination_or: 'OR — create an order when any cycle is due',
   pm_combination_and: 'AND — wait until every cycle is due',
-  pm_combination_or_help: 'Each due meter cycle creates its own work order with its assigned tasks.',
-  pm_combination_and_help: 'Cycles stay pending until every configured meter cycle is due. One order then includes all selected tasks.',
+  pm_combination_or_help:
+    'Each due meter cycle creates its own work order with its assigned tasks.',
+  pm_combination_and_help:
+    'Cycles stay pending until every configured meter cycle is due. One order then includes all selected tasks.',
   pm_counter_cycle_number: 'Meter cycle {{number}}',
   pm_cycle_default_name: 'Meter cycle {{number}}',
   pm_cycle_meter: 'Meter on the selected asset',
@@ -1024,24 +1041,36 @@ const locale = {
   pm_cycle_interval: 'Interval',
   pm_meter_end_optional: 'Stop at reading (optional)',
   pm_cycle_tasks: 'Tasks for this meter cycle',
-  pm_select_tasks_before_cycles: 'Add task templates to the task list above first.',
+  pm_select_tasks_before_cycles:
+    'Add task templates to the task list above first.',
   pm_cycle_requires_task: 'Select at least one task for this cycle.',
   pm_add_counter_cycle: 'Add meter cycle',
-  pm_multi_counter_date_limit: 'The preview shows meter thresholds, not calendar dates. Calendar and meter cycles cannot yet be combined in one multi-counter plan.',
-  pm_plan_configuration_invalid_json: 'The advanced plan configuration is invalid. Review the selected plan and try again.',
+  pm_multi_counter_date_limit:
+    'The preview shows meter thresholds, not calendar dates. Calendar and meter cycles cannot yet be combined in one multi-counter plan.',
+  pm_plan_configuration_invalid_json:
+    'The advanced plan configuration is invalid. Review the selected plan and try again.',
   pm_validation_add_package: 'Add at least one strategy package.',
   pm_validation_unique_codes: 'Package and cycle names must be unique.',
-  pm_validation_code_format: 'Use letters, numbers, spaces, dashes or underscores in names.',
-  pm_validation_package_interval: 'Package intervals must be whole numbers of one or more base cycles.',
-  pm_validation_package_tasks: 'Assign at least one selected task to every package.',
+  pm_validation_code_format:
+    'Use letters, numbers, spaces, dashes or underscores in names.',
+  pm_validation_package_interval:
+    'Package intervals must be whole numbers of one or more base cycles.',
+  pm_validation_package_tasks:
+    'Assign at least one selected task to every package.',
   pm_validation_combination: 'Choose OR or AND for the multi-counter rule.',
   pm_validation_two_cycles: 'Add at least two meter cycles.',
-  pm_validation_cycle_meter: 'Choose a meter attached to the selected asset for every cycle.',
-  pm_validation_cycle_interval: 'Every meter interval must be greater than zero.',
-  pm_validation_cycle_reference: 'Every reference reading must be zero or greater.',
-  pm_validation_cycle_end: 'A stop reading must be greater than the reference reading.',
-  pm_validation_cycle_tasks: 'Assign at least one selected task to every meter cycle.',
-  pm_multi_counter_forecast_note: 'Meter thresholds are shown without calendar dates. {combination} generates the combined work order when its configured cycles are due.',
+  pm_validation_cycle_meter:
+    'Choose a meter attached to the selected asset for every cycle.',
+  pm_validation_cycle_interval:
+    'Every meter interval must be greater than zero.',
+  pm_validation_cycle_reference:
+    'Every reference reading must be zero or greater.',
+  pm_validation_cycle_end:
+    'A stop reading must be greater than the reference reading.',
+  pm_validation_cycle_tasks:
+    'Assign at least one selected task to every meter cycle.',
+  pm_multi_counter_forecast_note:
+    'Meter thresholds are shown without calendar dates. {combination} generates the combined work order when its configured cycles are due.',
   pm_triggered_cycles: 'Triggered cycles',
   pm_strategy_packages: 'Strategy packages',
   pm_every_base_cycles_one: 'Every base cycle',
@@ -1055,7 +1084,8 @@ const locale = {
     'Select one or more weekdays to preview weekly occurrences.',
   pm_schedule_forecast_no_dates:
     'No future occurrences match these dates and recurrence settings.',
-  pm_schedule_forecast_no_packages: 'No strategy package is due in the current forecast window.',
+  pm_schedule_forecast_no_packages:
+    'No strategy package is due in the current forecast window.',
   pm_trigger_type: 'Plan trigger',
   pm_calendar_based: 'Calendar-based',
   pm_meter_based: 'Meter-based',
@@ -1063,15 +1093,21 @@ const locale = {
   pm_meter_cycle_interval: 'Cycle interval',
   pm_meter_reference_value: 'Reference reading',
   pm_meter_end_value: 'Stop at reading (optional)',
-  pm_meter_numeric_hint: 'Enter the number only; the meter unit is shown separately.',
-  pm_meter_forecast_description: 'Projected meter thresholds. A work order is created when a new reading reaches the next threshold.',
+  pm_meter_numeric_hint:
+    'Enter the number only; the meter unit is shown separately.',
+  pm_meter_forecast_description:
+    'Projected meter thresholds. A work order is created when a new reading reaches the next threshold.',
   pm_meter_current_reading: 'Latest actual reading',
   pm_meter_no_reading: 'No readings yet',
-  pm_meter_reference_auto_hint: 'Reference reading is initialized from the latest meter reading (or 0 if there are no readings); adjust it if needed.',
+  pm_meter_reference_auto_hint:
+    'Reference reading is initialized from the latest meter reading (or 0 if there are no readings); adjust it if needed.',
   pm_meter_next_targets: 'Upcoming meter thresholds',
-  pm_meter_estimated_date_from_usage: 'Estimated date: {{date}} (based on recent readings)',
-  pm_meter_complete_cycle_settings: 'Select a meter and enter a valid interval and reference reading to preview thresholds.',
-  pm_meter_end_must_exceed_reference: 'The end reading must be greater than the reference reading.',
+  pm_meter_estimated_date_from_usage:
+    'Estimated date: {{date}} (based on recent readings)',
+  pm_meter_complete_cycle_settings:
+    'Select a meter and enter a valid interval and reference reading to preview thresholds.',
+  pm_meter_end_must_exceed_reference:
+    'The end reading must be greater than the reference reading.',
   pm_meter_must_match_asset: 'Choose a meter installed on the selected asset.',
   edit_checklist: 'Edit Checklist',
   add_tasks: 'Add Tasks',
@@ -1080,10 +1116,13 @@ const locale = {
   save_checklist: 'Save Checklist',
   create_reusable_task_list: 'Create reusable task list…',
   save_tasks_as_checklist_title: 'Create a reusable task list',
-  save_tasks_as_checklist_help: 'This step opens the list details but does not save it yet. Enter a name, review the tasks, then click “Save list and use tasks” at the bottom. The list will be created in company settings and its tasks added to the PM form.',
-  checklist_task_format_help: 'Each row is one task. Choose its format from the menu: subtask, text, number, inspection, multiple choice, or meter reading. Task names are required; multiple-choice tasks need at least two completed options.',
+  save_tasks_as_checklist_help:
+    'This step opens the list details but does not save it yet. Enter a name, review the tasks, then click “Save list and use tasks” at the bottom. The list will be created in company settings and its tasks added to the PM form.',
+  checklist_task_format_help:
+    'Each row is one task. Choose its format from the menu: subtask, text, number, inspection, multiple choice, or meter reading. Task names are required; multiple-choice tasks need at least two completed options.',
   save_checklist_and_add_tasks: 'Save list and use tasks',
-  multiple_task_requires_two_options: 'A multiple-choice task must contain at least two completed choices.',
+  multiple_task_requires_two_options:
+    'A multiple-choice task must contain at least two completed choices.',
   assign_tasks_description: 'Assign Custom Tasks for technicians to fill out',
   select_date: 'Select date',
   task: 'Task',
@@ -1648,8 +1687,10 @@ const locale = {
   pm_call_reschedule_title: 'Reschedule preventive maintenance call',
   pm_call_reschedule_date: 'New date',
   pm_call_reschedule_reason: 'Reason',
-  pm_call_reschedule_error: 'Could not reschedule this call. Check the date and try again.',
-  pm_call_reschedule_future_date: 'Choose a date after today. The original call time must still be in the future.',
+  pm_call_reschedule_error:
+    'Could not reschedule this call. Check the date and try again.',
+  pm_call_reschedule_future_date:
+    'Choose a date after today. The original call time must still be in the future.',
   pm_call_reschedule_audit: '{{from}} moved to {{to}} by {{actor}}: {{reason}}',
   pm_meter_due_at: 'Planned threshold:',
   pm_call_status_planned: 'Upcoming',
@@ -1659,7 +1700,8 @@ const locale = {
   pm_call_status_completed: 'Completed',
   pm_call_status_ignored: 'Ignored',
   pm_call_history_load_error: 'Could not load maintenance call history.',
-  pm_work_order_history_load_error: 'Could not load preventive maintenance work-order history.',
+  pm_work_order_history_load_error:
+    'Could not load preventive maintenance work-order history.',
   no_pm_calls: 'No maintenance calls yet',
   retry: 'Retry',
   recent_work_orders: 'Recent work orders',
@@ -2162,10 +2204,12 @@ const locale = {
   conflict_retry:
     'The resource was modified by another request. Please retry in 5 seconds.',
   company_legal_information: 'Legal information',
-  company_legal_information_description: 'Legal identity used on official company documents.',
+  company_legal_information_description:
+    'Legal identity used on official company documents.',
   legal_company_name: 'Legal company name',
   registration_country: 'Country of registration (ISO code)',
-  registration_country_hint: 'Enter the two-letter country code, for example BF or FR.',
+  registration_country_hint:
+    'Enter the two-letter country code, for example BF or FR.',
   business_registration_number: 'Business registration number',
   tax_identification_number: 'Tax identification number',
   registered_address: 'Registered address',
@@ -2175,12 +2219,14 @@ const locale = {
   preview_print: 'Preview / print',
   issue_archive_document: 'Issue and archive',
   issued_documents: 'Issued documents',
-  issued_documents_empty: 'No official document has been issued for this work order.',
+  issued_documents_empty:
+    'No official document has been issued for this work order.',
   issued_documents_load_error: 'Could not load issued documents.',
   issued_document_issue_error: 'Could not issue and archive this document.',
   issued_document_saved: 'Official document issued and archived.',
   company_sites: 'Sites',
-  company_sites_description: 'Manage operational sites and their document preferences.',
+  company_sites_description:
+    'Manage operational sites and their document preferences.',
   company_sites_empty: 'No operational sites have been configured.',
   add_site: 'Add site',
   edit_site: 'Edit site',
@@ -2203,8 +2249,10 @@ const locale = {
   company_logo_upload_error: 'Could not update the company logo.',
   configuration_history: 'Change history',
   configuration_audit_title: 'Company settings history',
-  configuration_audit_description: 'Recent changes to company identity, legal information, and sites.',
-  configuration_audit_empty: 'No company setting changes have been recorded yet.',
+  configuration_audit_description:
+    'Recent changes to company identity, legal information, and sites.',
+  configuration_audit_empty:
+    'No company setting changes have been recorded yet.',
   configuration_audit_load_error: 'Could not load company setting history.',
   configuration_audit_fields_unavailable: 'Changed fields unavailable',
   configuration_audit_actor: 'User {{id}}',
@@ -2212,7 +2260,8 @@ const locale = {
   'configuration_entity.COMPANY_LEGAL_PROFILE': 'Legal profile',
   'configuration_entity.SITE': 'Site',
   'configuration_entity.GENERAL_PREFERENCES': 'Company settings',
-  settings_read_only: 'You can view these settings, but your role does not allow changes.',
+  settings_read_only:
+    'You can view these settings, but your role does not allow changes.',
   'configuration_action.CREATED': 'created',
   'configuration_action.UPDATED': 'updated',
   'configuration_action.DELETED': 'deleted',
@@ -2227,7 +2276,8 @@ const locale = {
   'configuration_field.logo': 'logo',
   'configuration_field.legalName': 'legal name',
   'configuration_field.registrationCountry': 'registration country',
-  'configuration_field.businessRegistrationNumber': 'business registration number',
+  'configuration_field.businessRegistrationNumber':
+    'business registration number',
   'configuration_field.taxIdentificationNumber': 'tax identification number',
   'configuration_field.registeredAddress': 'registered address',
   'configuration_field.code': 'code',
@@ -2241,12 +2291,14 @@ const locale = {
   'configuration_field.color': 'brand color',
   'configuration_field.autoAssignWorkOrders': 'automatic work order assignment',
   'configuration_field.autoAssignRequests': 'automatic request assignment',
-  'configuration_field.disableClosedWorkOrdersNotif': 'closed work order notifications',
+  'configuration_field.disableClosedWorkOrdersNotif':
+    'closed work order notifications',
   'configuration_field.askFeedBackOnWOClosed': 'work order completion feedback',
   'configuration_field.laborCostInTotalCost': 'labor cost calculation',
   'configuration_field.woUpdateForRequesters': 'requester work order updates',
   'configuration_field.simplifiedWorkOrder': 'simplified work order mode',
-  'configuration_field.daysBeforePrevMaintNotification': 'preventive maintenance reminder days',
+  'configuration_field.daysBeforePrevMaintNotification':
+    'preventive maintenance reminder days',
   'configuration_field.autoGenerateAssetBarcode': 'automatic asset barcode',
   'configuration_field.csvSeparator': 'CSV separator',
   'configuration_field.profile': 'profile'

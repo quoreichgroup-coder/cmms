@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>QPM — Équipement mobile</title>
+  <link rel="stylesheet" href="assets/prototype.css">
+  <link rel="stylesheet" href="assets/replication.css">
+</head>
+<body class="mobile-prototype-body">
+  <div class="mobile-prototype-wrap">
+    <div class="mobile-demo-heading"><a href="mobile-technician.html">← Retour au poste</a><span class="demo-label">Prototype · données fictives</span></div>
+    <div class="prototype-controls" aria-label="Outils de démonstration">
+      <label for="asset-demo-state">État simulé</label>
+      <select id="asset-demo-state" data-state-switch>
+        <option value="live">Parcours normal</option><option value="loading">Chargement</option><option value="empty">Vide</option><option value="error">Erreur</option><option value="denied">Accès refusé</option><option value="success">Succès</option>
+      </select><span class="screen-id">MOB-030</span>
+    </div>
+    <div class="phone-frame">
+      <header class="phone-status"><span>09:41</span><span>●●● ◖ ▰</span></header>
+      <div class="phone-app">
+        <header class="phone-header">
+          <div><p class="eyebrow">ÉQUIPEMENT · MAIN WAREHOUSE</p><h1 data-mobile-title>Z-Type Conveyor</h1></div>
+          <button class="icon-button" aria-label="Actions sur l’équipement" data-modal-open="asset-actions">···</button>
+        </header>
+        <section data-live-data>
+          <div class="mobile-panel active" data-mobile-panel="asset">
+            <div class="asset-mobile-identity">
+              <div class="asset-symbol">⬡</div>
+              <div><span class="asset-mobile-code">CV-04-220 · CONVOYEUR</span><h2>Z-Type Conveyor</h2><span class="status-badge in-progress">En service</span></div>
+            </div>
+            <div class="asset-mobile-path"><small>EMPLACEMENT FONCTIONNEL</small><b>Main Warehouse <span>›</span> Crushing Plant</b></div>
+            <button class="button primary full" data-prefill-asset="CV-04 · Z-Type Conveyor">＋ Créer un ordre</button>
+            <div class="mobile-kpi-row" aria-label="Résumé opérationnel">
+              <div><small>WO ouverts</small><b>2</b></div><div><small>PM suivant</small><b>100 H</b></div><div><small>Dernier relevé</small><b>—</b></div>
+            </div>
+            <nav class="asset-mobile-tabs" aria-label="Sections de l’équipement">
+              <button class="selected" aria-selected="true" data-asset-tab="overview">Aperçu</button>
+              <button aria-selected="false" data-asset-tab="workorders">Ordres</button>
+              <button aria-selected="false" data-asset-tab="parts">Pièces</button>
+              <button aria-selected="false" data-asset-tab="files">Documents</button>
+            </nav>
+            <section class="asset-tab-panel active" data-asset-panel="overview">
+              <h2>Informations équipement</h2>
+              <dl class="mobile-asset-facts"><dt>Catégorie</dt><dd>Convoyeur</dd><dt>Modèle</dt><dd>Z-Type 220</dd><dt>Numéro de série</dt><dd>ZTC-220-BF</dd><dt>Criticité</dt><dd><span class="priority high"><i></i> Haute</span></dd><dt>Responsable</dt><dd>Florent Ilboudo</dd></dl>
+              <section class="mobile-meter-card"><div class="mobile-card-heading"><span class="mobile-menu-icon">◷</span><div><b>Hours On Going</b><small>Compteur associé à la maintenance</small></div><span class="status-badge pending">Aucun relevé</span></div><div class="mobile-meter-reading"><span>Dernier relevé réel</span><strong>— <small>H</small></strong></div><p>Le prochain seuil prévu est <b>100 H</b>. Enregistrez un relevé pour suivre la progression.</p><a href="mobile-maintenance.html" class="text-button">Voir le plan associé →</a></section>
+              <h2 class="mobile-subheading">Ordres récents</h2>
+              <button class="mobile-work-card" data-toast="Détail WO-240871 simulé"><div class="work-card-top"><span class="status-badge in-progress">En cours</span><span class="priority high"><i></i> Haute</span></div><strong>Inspection et graissage</strong><span class="asset-line">WO-240871 · Florent Ilboudo</span><div class="work-card-footer"><span>Créé aujourd’hui</span><span>2 / 5 tâches</span></div></button>
+            </section>
+            <section class="asset-tab-panel" data-asset-panel="workorders"><h2>Ordres liés</h2><button class="mobile-work-card" data-toast="Détail WO-240871 simulé"><span class="status-badge in-progress">En cours</span><strong>Inspection et graissage</strong><span class="asset-line">WO-240871 · Priorité haute · 2 / 5 tâches</span></button><button class="mobile-work-card" data-toast="Détail WO-240821 simulé"><span class="status-badge completed">Terminé</span><strong>Inspection périodique</strong><span class="asset-line">WO-240821 · 08 oct. 2026</span></button></section>
+            <section class="asset-tab-panel" data-asset-panel="parts"><h2>Pièces associées</h2><article class="mobile-related-row"><b>BRG-6205</b><span>Roulement étanche · 2 unités</span><button class="text-button" data-toast="Détails de pièce simulés">Voir</button></article><div class="inline-note">Quantités et disponibilité illustratives.</div></section>
+            <section class="asset-tab-panel" data-asset-panel="files"><h2>Documents liés</h2><div class="mobile-empty-state"><span>▧</span><b>Aucun document affiché</b><p>Les fichiers de démonstration ne sont pas chargés depuis QPM.</p></div></section>
+          </div>
+        </section>
+        <div class="state-stage" data-state-slot hidden></div>
+        <nav class="bottom-tabs" aria-label="Navigation mobile">
+          <a class="bottom-tab" href="mobile-technician.html"><span>⌂</span>Accueil</a><a class="bottom-tab" href="mobile-technician.html#orders"><span>▤</span>Mes ordres</a><a class="bottom-tab create-tab" href="mobile-technician.html#create"><span>＋</span>Créer</a><a class="bottom-tab" href="mobile-maintenance.html"><span>◷</span>Plans PM</a><a class="bottom-tab active" href="mobile-technician.html#more"><span>···</span>Plus</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop mobile-sheet-backdrop" data-modal="asset-actions" hidden><section class="modal mobile-action-sheet" role="dialog" aria-modal="true" aria-labelledby="asset-sheet-title"><div class="sheet-handle"></div><div class="modal-header"><h2 id="asset-sheet-title">Z-Type Conveyor</h2><button class="icon-button" data-modal-close aria-label="Fermer">×</button></div><button class="sheet-action" data-toast="Édition équipement simulée">Modifier l’équipement</button><button class="sheet-action" data-prefill-asset="CV-04 · Z-Type Conveyor">Créer un ordre de travail</button><button class="sheet-action" data-toast="Création d’un sous-équipement simulée">Ajouter un sous-équipement</button><button class="sheet-action destructive" data-toast="Suppression simulée — confirmation requise dans QPM">Supprimer l’équipement</button></section></div>
+  <div class="toast" role="status" aria-live="polite" data-toast-area></div>
+  <script src="assets/prototype.js"></script>
+</body>
+</html>

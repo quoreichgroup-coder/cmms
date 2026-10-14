@@ -1,7 +1,6 @@
 import {
   Linking,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions
 } from 'react-native';
 
@@ -10,7 +9,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
-import { Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
 import { CameraView } from 'expo-camera';
 import { ensureScannerCameraPermission } from '../../utils/mediaPermissions';
 
@@ -20,6 +19,7 @@ export default function SelectBarcodeModal({
 }: RootStackScreenProps<'SelectBarcode'>) {
   const { onChange } = route.params;
   const { t } = useTranslation();
+  const theme = useTheme();
   const [scanned, setScanned] = useState<boolean>(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const layout = useWindowDimensions();
@@ -28,7 +28,9 @@ export default function SelectBarcodeModal({
     let mounted = true;
 
     const requestPermission = async () => {
-      console.warn('[SelectBarcodeModal] Tap/screen open -> request camera permission');
+      console.warn(
+        '[SelectBarcodeModal] Tap/screen open -> request camera permission'
+      );
       const granted = await ensureScannerCameraPermission('SelectBarcodeModal');
       if (mounted) {
         setHasPermission(granted);
@@ -50,39 +52,74 @@ export default function SelectBarcodeModal({
     data: string;
   }) => {
     if (!scanned) {
-      console.warn('[SelectBarcodeModal] Barcode scanned', JSON.stringify({ type }));
+      console.warn(
+        '[SelectBarcodeModal] Barcode scanned',
+        JSON.stringify({ type })
+      );
       setScanned(true);
       navigation.goBack();
       onChange(data);
     }
   };
 
-  if (!hasPermission) {
+  if (hasPermission === null) {
+    return (
+      <View
+        style={[
+          styles.permissionState,
+          {
+            backgroundColor: theme.colors.background,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }
+        ]}
+        accessibilityRole="progressbar"
+        accessibilityLabel={t('loading')}
+      >
+        <ActivityIndicator color={theme.colors.primary} />
+        <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
+          {t('loading')}
+        </Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
     return (
       <View
         style={{
-          backgroundColor: 'white',
+          flex: 1,
+          backgroundColor: theme.colors.surface,
           padding: 20,
-          borderRadius: 10
+          borderRadius: 10,
+          borderColor: theme.colors.outlineVariant,
+          borderWidth: 1
         }}
       >
-        <Text variant={'titleLarge'}>{t('no_access_to_camera')}</Text>
-        <TouchableOpacity
+        <Text
+          variant={'titleLarge'}
+          style={{ color: theme.colors.onSurface }}
+        >
+          {t('no_access_to_camera')}
+        </Text>
+        <Button
+          mode="contained-tonal"
           onPress={async () => {
             console.warn('[SelectBarcodeModal] Retry permission');
-            const granted = await ensureScannerCameraPermission('SelectBarcodeModal');
+            const granted = await ensureScannerCameraPermission(
+              'SelectBarcodeModal'
+            );
             setHasPermission(granted);
           }}
-          style={styles.permissionButton}
         >
-          <Text variant="titleMedium">{t('camera')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+          {t('camera')}
+        </Button>
+        <Button
+          mode="text"
           onPress={() => Linking.openSettings()}
-          style={styles.permissionButton}
         >
-          <Text variant="titleMedium">{t('open_settings')}</Text>
-        </TouchableOpacity>
+          {t('open_settings')}
+        </Button>
       </View>
     );
   }
@@ -101,8 +138,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1
   },
-  permissionButton: {
-    alignSelf: 'flex-start',
-    marginTop: 16
+  permissionState: {
+    flex: 1,
+    padding: 20
   }
 });

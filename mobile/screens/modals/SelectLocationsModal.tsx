@@ -10,12 +10,13 @@ import { getLocationsMini } from '../../slices/location';
 import {
   Avatar,
   Button,
-  Checkbox,
+  ActivityIndicator,
   Divider,
   Searchbar,
   Text
 } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 const ITEM_HEIGHT = 80;
 
@@ -38,12 +39,17 @@ const LocationItem = React.memo(
     );
 
     return (
-      <Pressable onPress={handleToggle}>
-        <View style={styles.card}>
+      <Pressable
+        onPress={handleToggle}
+        accessibilityRole={multiple ? 'checkbox' : 'button'}
+        accessibilityLabel={`${location.name}, ${location.customId}`}
+        accessibilityState={multiple ? { checked: isSelected } : undefined}
+      >
+        <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.cardRow}>
             <Avatar.Icon
-              style={{ backgroundColor: theme.colors.background }}
-              color={'white'}
+              style={{ backgroundColor: theme.colors.primaryContainer }}
+              color={theme.colors.primary}
               icon={'map-marker-outline'}
               size={50}
             />
@@ -59,13 +65,14 @@ const LocationItem = React.memo(
                   </Text>
                   <Text
                     variant={'bodySmall'}
-                    style={{ color: 'grey' }}
+                    style={{ color: theme.colors.onSurfaceVariant }}
                   >{`#${location.customId}`}</Text>
                 </View>
                 {multiple && (
-                  <Checkbox
-                    status={isSelected ? 'checked' : 'unchecked'}
-                    onPress={handleToggle}
+                  <SelectionIndicator
+                    checked={isSelected}
+                    color={theme.colors.primary}
+                    uncheckedColor={theme.colors.controlOutline}
                   />
                 )}
               </View>
@@ -88,6 +95,16 @@ export default function SelectLocationsModal({
   const { locationsMini, loadingGet } = useSelector((state) => state.locations);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loadError, setLoadError] = useState(false);
+
+  const loadLocations = useCallback(async () => {
+    setLoadError(false);
+    try {
+      await dispatch(getLocationsMini());
+    } catch (_error) {
+      setLoadError(true);
+    }
+  }, [dispatch]);
 
   const selectedLocations = useMemo(() => {
     if (!locationsMini.length) return [];
@@ -108,6 +125,9 @@ export default function SelectLocationsModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedLocations.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedLocations.length})`}
+            accessibilityState={{ disabled: !selectedLocations.length }}
             onPress={() => {
               onChange(selectedLocations);
               navigation.goBack();
@@ -117,11 +137,11 @@ export default function SelectLocationsModal({
           </Pressable>
         )
       });
-  }, [selectedLocations]);
+  }, [selectedLocations, navigation, onChange, t]);
 
   useEffect(() => {
-    dispatch(getLocationsMini());
-  }, []);
+    void loadLocations();
+  }, [loadLocations]);
 
   const toggle = useCallback(
     (id: number) => {
@@ -166,6 +186,55 @@ export default function SelectLocationsModal({
     (item: LocationMiniDTO) => String(item.id),
     []
   );
+
+  const ListEmptyComponent = useCallback(() => {
+    if (loadingGet) {
+      return (
+        <ActivityIndicator
+          animating
+          accessibilityLabel={t('loading')}
+          style={{ marginTop: 24 }}
+        />
+      );
+    }
+    if (loadError) {
+      return (
+        <View style={styles.messageContainer}>
+          <Text
+            accessibilityRole="alert"
+            style={{ color: theme.colors.error, textAlign: 'center' }}
+          >
+            {t('an_error_occured')}
+          </Text>
+          <Button mode="text" onPress={loadLocations}>
+            {t('retry')}
+          </Button>
+        </View>
+      );
+    }
+    return (
+      <Text
+        accessibilityRole="alert"
+        style={{
+          textAlign: 'center',
+          marginTop: 24,
+          color: theme.colors.onSurfaceVariant
+        }}
+      >
+        {locationsMini.length
+          ? t('no_results_found')
+          : t('no_locations_available')}
+      </Text>
+    );
+  }, [
+    loadingGet,
+    loadError,
+    loadLocations,
+    locationsMini.length,
+    t,
+    theme.colors.error,
+    theme.colors.onSurfaceVariant
+  ]);
 
   const ListFooterComponent = useCallback(
     () => (
@@ -215,7 +284,8 @@ export default function SelectLocationsModal({
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         refreshing={loadingGet}
-        onRefresh={() => dispatch(getLocationsMini())}
+        onRefresh={loadLocations}
+        ListEmptyComponent={ListEmptyComponent}
         ListFooterComponent={ListFooterComponent}
         initialNumToRender={20}
         maxToRenderPerBatch={20}
@@ -234,7 +304,6 @@ export default function SelectLocationsModal({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10,
     height: ITEM_HEIGHT
@@ -253,5 +322,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
     flexShrink: 1
+  },
+  messageContainer: {
+    alignItems: 'center',
+    padding: 20
   }
 });

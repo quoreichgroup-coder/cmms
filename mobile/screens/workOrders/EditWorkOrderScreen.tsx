@@ -10,7 +10,7 @@ import {
   getCustomFieldsRequiredShape,
   getCustomFieldsValues
 } from '../../models/form';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { getImageAndFiles, handleFileUpload } from '../../utils/overall';
 import { useDispatch, useSelector } from '../../store';
@@ -22,12 +22,15 @@ import { getWOBaseValues } from '../../utils/woBase';
 import { patchTasks } from '../../slices/task';
 import { getCustomFields } from '../../slices/customField';
 import { CustomFieldEntityType } from '../../models/customField';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function EditWorkOrderScreen({
   navigation,
   route
 }: RootStackScreenProps<'EditWorkOrder'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { workOrder, tasks } = route.params;
   const { uploadFiles, getWOFieldsAndShapes } = useContext(
     CompanySettingsContext
@@ -46,6 +49,8 @@ export default function EditWorkOrderScreen({
   };
 
   const onEditSuccess = () => {
+    markFormClean();
+    setIsFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
     navigation.goBack();
   };
@@ -70,7 +75,7 @@ export default function EditWorkOrderScreen({
           ...getWOBaseValues(t, workOrder),
           ...getCustomFieldsValues(workOrder)
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           let formattedValues = formatWorkOrderValues(values);
           formattedValues = formatCustomFields(formattedValues);

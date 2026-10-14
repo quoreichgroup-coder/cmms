@@ -1,25 +1,20 @@
 import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
   View,
   StyleSheet
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import { getAssetChildren, getAssets, getMoreAssets } from '../../slices/asset';
 import { FilterField, SearchCriteria } from '../../models/page';
-import {
-  Avatar,
-  Button,
-  Card,
-  Searchbar,
-  Text,
-  useTheme
-} from 'react-native-paper';
+import { Avatar, Button, Searchbar, Text, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import {
   AssetDTO,
@@ -32,8 +27,8 @@ import { RootStackScreenProps } from '../../types';
 import Tag from '../../components/Tag';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { IconWithLabel } from '../../components/IconWithLabel';
-import { Asset } from 'expo-asset';
-import { useAppTheme } from '../../custom-theme';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 const AssetCard = ({
   asset,
@@ -48,77 +43,112 @@ const AssetCard = ({
 }) => {
   const { t } = useTranslation();
   const theme = useAppTheme();
+  const accessibilityLabel = [
+    asset.name,
+    asset.customId ? `#${asset.customId}` : null,
+    asset.location?.name,
+    asset.status ? t(asset.status) : null
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const assetIdentityLabel = [
+    asset.customId ? `#${asset.customId}` : null,
+    asset.name
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <TouchableOpacity
-      onPress={() =>
-        navigation.push('AssetDetails', {
-          id: asset.id,
-          assetProp: asset
-        })
-      }
-      key={asset.id}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.outlineVariant
+        }
+      ]}
     >
-      <View style={styles.card}>
-        <View
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 6
-          }}
-        >
-          {asset.image ? (
-            <Avatar.Image size={50} source={{ uri: asset.image.url }} />
-          ) : (
-            <Avatar.Icon
-              style={{
-                backgroundColor: theme.colors.background
-              }}
-              color={'white'}
-              icon={'package-variant-closed'}
-              size={50}
+      <Pressable
+        onPress={() =>
+          navigation.push('AssetDetails', {
+            id: asset.id,
+            assetProp: asset
+          })
+        }
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={t('related_asset_open_hint')}
+        style={({ pressed }) => [
+          styles.cardMain,
+          { opacity: pressed ? 0.72 : 1 }
+        ]}
+      >
+        {asset.image ? (
+          <Avatar.Image size={48} source={{ uri: asset.image.url }} />
+        ) : (
+          <Avatar.Icon
+            style={{ backgroundColor: theme.colors.primaryContainer }}
+            color={theme.colors.onPrimaryContainer}
+            icon="package-variant-closed"
+            size={48}
+          />
+        )}
+        <View style={styles.cardDetails}>
+          <View style={styles.cardHeader}>
+            <View style={styles.assetIdentity}>
+              <Text
+                variant="titleMedium"
+                style={styles.cardTitle}
+                numberOfLines={2}
+              >
+                {asset.name}
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {`#${asset.customId}`}
+              </Text>
+            </View>
+            <Tag
+              text={t(asset?.status)}
+              backgroundColor={getAssetStatusConfig(asset?.status).color(theme)}
+              color={getAssetStatusConfig(asset?.status).foregroundColor(theme)}
             />
-          )}
-          <View style={{ flex: 1 }}>
-            <View style={styles.cardHeader}>
-              <View style={{ flex: 1 }}>
-                <Text variant="titleMedium" style={styles.cardTitle}>
-                  {asset.name}
-                </Text>
-                <Text
-                  variant={'bodySmall'}
-                  style={{ color: 'grey' }}
-                >{`#${asset.customId}`}</Text>
-              </View>
-              <Tag
-                text={t(asset?.status)}
-                backgroundColor={getAssetStatusConfig(asset?.status).color(
-                  theme
-                )}
-                color="white"
+          </View>
+          {asset.location && (
+            <View style={styles.cardBody}>
+              <IconWithLabel
+                label={asset.location.name}
+                icon="map-marker-outline"
+                color={theme.colors.onSurfaceVariant}
               />
             </View>
-            <View style={styles.cardBody}>
-              {asset.location && (
-                <IconWithLabel
-                  label={asset.location.name}
-                  icon="map-marker-outline"
-                  color={theme.colors.grey}
-                />
-              )}
-            </View>
-            {showChildrenButton && asset.hasChildren && (
-              <View style={styles.cardFooter}>
-                <View style={{ flex: 1 }} />
-                <Button compact onPress={onViewChildren}>
-                  {t('view_children')}
-                </Button>
-              </View>
-            )}
-          </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+      {showChildrenButton && asset.hasChildren && (
+        <View
+          style={[
+            styles.cardFooter,
+            { borderTopColor: theme.colors.outlineVariant }
+          ]}
+        >
+          <View style={{ flex: 1 }} />
+          <Button
+            compact
+            onPress={onViewChildren}
+            accessibilityRole="button"
+            accessibilityLabel={t('view_children_for_asset', {
+              asset: assetIdentityLabel
+            })}
+            accessibilityHint={t('view_child_assets_hint')}
+          >
+            {t('view_children')}
+          </Button>
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -142,6 +172,12 @@ export default function AssetsScreen({
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const { hasViewPermission } = useAuth();
+  const canView = hasViewPermission(PermissionEntity.ASSETS);
+  const [hasLoadedList, setHasLoadedList] = useState(false);
+  const [listLoadError, setListLoadError] = useState(false);
+  const [hierarchyLoadError, setHierarchyLoadError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const listPageRequestInProgress = useRef(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -165,13 +201,71 @@ export default function AssetsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  useEffect(() => {
-    if (hasViewPermission(PermissionEntity.ASSETS) && view === 'list') {
-      dispatch(
+  const loadAssets = useCallback(async () => {
+    if (!canView) return;
+    setListLoadError(false);
+    setLoadMoreError(false);
+    try {
+      await dispatch(
         getAssets({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+    } catch (error) {
+      console.warn('Could not load assets:', error);
+      setListLoadError(true);
+    } finally {
+      setHasLoadedList(true);
     }
-  }, [criteria]);
+  }, [canView, criteria, dispatch]);
+
+  const loadNextAssetPage = useCallback(
+    async (retry = false) => {
+      if (
+        listPageRequestInProgress.current ||
+        loadingGet ||
+        lastPage ||
+        (loadMoreError && !retry)
+      )
+        return;
+
+      listPageRequestInProgress.current = true;
+      setLoadMoreError(false);
+      try {
+        await dispatch(getMoreAssets(criteria, currentPageNum + 1));
+      } catch (error) {
+        console.warn('Could not load more assets:', error);
+        setLoadMoreError(true);
+      } finally {
+        listPageRequestInProgress.current = false;
+      }
+    },
+    [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
+  );
+
+  const loadAssetChildren = useCallback(
+    async (pageNum = 0) => {
+      if (!canView) return;
+      setHierarchyLoadError(false);
+      setLoadMoreError(false);
+      try {
+        await dispatch(
+          getAssetChildren(
+            route.params?.id ?? 0,
+            route.params?.hierarchy ?? [],
+            pageNum
+          )
+        );
+      } catch (error) {
+        console.warn('Could not load asset hierarchy:', error);
+        if (pageNum === 0) setHierarchyLoadError(true);
+        else setLoadMoreError(true);
+      }
+    },
+    [canView, dispatch, route.params?.hierarchy, route.params?.id]
+  );
+
+  useEffect(() => {
+    if (view === 'list') loadAssets();
+  }, [criteria, loadAssets, view]);
   const [currentAssets, setCurrentAssets] = useState<AssetRow[]>([]);
   useEffect(() => {
     if (
@@ -184,13 +278,15 @@ export default function AssetsScreen({
     ) {
       return;
     }
-    dispatch(
-      getAssetChildren(route.params?.id ?? 0, route.params?.hierarchy ?? [])
-    );
-  }, [route]);
+    loadAssetChildren(0);
+  }, [loadAssetChildren, route]);
 
   const onRefresh = () => {
-    setCriteria(getCriteriaFromFilterFields([]));
+    if (view === 'list') {
+      void loadAssets();
+    } else {
+      void loadAssetChildren(0);
+    }
   };
 
   const onQueryChange = (query) => {
@@ -213,7 +309,7 @@ export default function AssetsScreen({
         'customFieldValues.value'
       ]
     );
-    setView('list');
+    setView(query ? 'list' : 'hierarchy');
   };
   useDebouncedEffect(
     () => {
@@ -253,17 +349,21 @@ export default function AssetsScreen({
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
-        style={{ backgroundColor: theme.colors.background }}
+        style={[styles.search, { backgroundColor: theme.colors.surface }]}
       />
       {view === 'list' ? (
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
-          onScroll={({ nativeEvent }) => {
-            if (isCloseToBottom(nativeEvent)) {
-              if (!loadingGet && !lastPage)
-                dispatch(getMoreAssets(criteria, currentPageNum + 1));
-            }
-          }}
+          contentContainerStyle={styles.listContent}
+          data={canView ? assets.content : []}
+          keyExtractor={(asset) => String(asset.id)}
+          renderItem={({ item }) => (
+            <AssetCard asset={item} navigation={navigation} />
+          )}
+          onEndReached={() => void loadNextAssetPage()}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={8}
+          windowSize={7}
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
@@ -271,26 +371,87 @@ export default function AssetsScreen({
               colors={[theme.colors.primary]}
             />
           }
-          scrollEventThrottle={400}
-        >
-          {!!assets.content.length ? (
-            assets.content.map((asset) => (
-              <AssetCard key={asset.id} asset={asset} navigation={navigation} />
-            ))
-          ) : loadingGet ? null : (
-            <View
-              style={{
-                backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
-              }}
-            >
-              <Text variant={'titleLarge'}>
-                {t('no_element_match_criteria')}
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+          ListHeaderComponent={
+            listLoadError && assets.content.length > 0 ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={loadAssets}
+              />
+            ) : null
+          }
+          ListEmptyComponent={
+            !canView ? (
+              <AsyncStateFeedback
+                mode="permissionDenied"
+                message={t('permission_denied_message', {
+                  permission: t('assets')
+                })}
+              />
+            ) : loadingGet || !hasLoadedList ? (
+              <View
+                style={styles.loadingState}
+                accessibilityRole="progressbar"
+                accessibilityLabel={t('loading')}
+              >
+                <ActivityIndicator color={theme.colors.primary} size="large" />
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('loading')}
+                </Text>
+              </View>
+            ) : listLoadError ? (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+                accessibilityRole="alert"
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('asset_list_load_error')}
+                </Text>
+                <Button onPress={loadAssets}>{t('retry')}</Button>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('no_element_match_criteria')}
+                </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            loadMoreError ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={() => void loadNextAssetPage(true)}
+              />
+            ) : loadingGet && assets.content.length > 0 ? (
+              <ActivityIndicator
+                color={theme.colors.primary}
+                style={styles.loadingFooter}
+              />
+            ) : null
+          }
+        />
       ) : (
         <ScrollView
           style={styles.scrollView}
@@ -300,12 +461,8 @@ export default function AssetsScreen({
                 !loadingGet &&
                 !assetChildrenLastPage[route.params?.id ?? 0]
               ) {
-                dispatch(
-                  getAssetChildren(
-                    route.params?.id ?? 0,
-                    route.params?.hierarchy ?? [],
-                    (assetChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
-                  )
+                loadAssetChildren(
+                  (assetChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
                 );
               }
             }
@@ -314,11 +471,59 @@ export default function AssetsScreen({
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
+              onRefresh={() => loadAssetChildren(0)}
               colors={[theme.colors.primary]}
             />
           }
         >
-          {!!currentAssets.length &&
+          {!canView && (
+            <AsyncStateFeedback
+              mode="permissionDenied"
+              message={t('permission_denied_message', {
+                permission: t('assets')
+              })}
+            />
+          )}
+          {canView && hierarchyLoadError && currentAssets.length > 0 && (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('asset_list_load_error')}
+              onRetry={() => loadAssetChildren(0)}
+            />
+          )}
+          {canView && loadMoreError && view === 'hierarchy' && (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('asset_list_load_error')}
+              onRetry={() =>
+                loadAssetChildren(
+                  (assetChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
+                )
+              }
+            />
+          )}
+          {canView && hierarchyLoadError && currentAssets.length === 0 && (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+              accessibilityRole="alert"
+            >
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {t('asset_list_load_error')}
+              </Text>
+              <Button onPress={() => loadAssetChildren(0)}>{t('retry')}</Button>
+            </View>
+          )}
+          {canView &&
+            !!currentAssets.length &&
             currentAssets.map((asset) => (
               <AssetCard
                 key={asset.id}
@@ -328,6 +533,42 @@ export default function AssetsScreen({
                 onViewChildren={() => handleViewChildren(asset)}
               />
             ))}
+          {canView &&
+            !currentAssets.length &&
+            loadingGet &&
+            !hierarchyLoadError && (
+              <View
+                style={styles.loadingState}
+                accessibilityRole="progressbar"
+                accessibilityLabel={t('loading')}
+              >
+                <ActivityIndicator color={theme.colors.primary} size="large" />
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('loading')}
+                </Text>
+              </View>
+            )}
+          {canView &&
+            !currentAssets.length &&
+            !loadingGet &&
+            !hierarchyLoadError && (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('no_assets_available')}
+                </Text>
+              </View>
+            )}
         </ScrollView>
       )}
     </View>
@@ -346,18 +587,37 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
-    height: '100%'
+    flex: 1
   },
+  listContent: { paddingBottom: 24, flexGrow: 1 },
+  loadingFooter: { paddingVertical: 18 },
+  loadingState: {
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12
+  },
+  search: { marginHorizontal: 16, marginTop: 12, marginBottom: 8 },
   row: {
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center'
   },
   card: {
-    backgroundColor: 'white',
-    marginBottom: 1,
-    padding: 10
+    marginHorizontal: 16,
+    marginVertical: 5,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   },
+  cardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 58
+  },
+  cardDetails: { flex: 1, minWidth: 0 },
+  assetIdentity: { flex: 1, minWidth: 0, paddingRight: 8 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -376,6 +636,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10
+    marginTop: 10,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth
+  },
+  emptyState: {
+    margin: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

@@ -9,22 +9,25 @@ Order is gated by operational readiness and measured evidence. It is not authori
 | 2. Research and compare | P1 | Research >=5 relevant references from >=2 sources; compare 3 UI patterns per major area; document rationale and citations. | No cloning; no visual implementation. | `docs/design.md` §4.3/§36 deliverables completed. |
 | 3. Prototype pilot | P1 | Work request→WO→execution + asset 360; desktop/tablet/phone; error/empty/loading/permission/offline states. | Visual + interaction proposal; no backend changes. | Task test with target users; baseline and acceptance thresholds agreed. |
 | 4. Shared shell/design foundation | P2 | Semantic color/type/spacing, sidebar/mobile navigation, buttons, forms, status, async state recipes. | UI-only unless interaction delta separately approved. | Accessibility, responsive screenshots, regression evidence, no permission bypass. |
-| 5. Operational web modules | P2 | WO/Requests, Assets/Locations, PM/Meters, in that order; tables and details. | Preserve existing API and business behavior. | Per-role module acceptance; measured interaction improvements. |
-| 6. Native field modules | P2 | Home/WO list/detail, execution, capture/upload, request and asset lookup. | Separate React Native patterns; offline behavior only if separately approved. | Android/iOS device validation, weak-network scenarios, accessibility. |
+| 5. Native field modules | P2 | Home/WO list/detail, execution, capture/upload, request and asset lookup. | Start with the approved mobile prototype; use React Native/Paper patterns and preserve existing API/business behavior. Offline behavior requires separate approval. | Android/iOS device validation, weak-network scenarios, accessibility; user review of the mobile pilot before expanding. |
+| 6. Operational web modules | P2 | Adapt validated mobile information/status patterns to WO/Requests, Assets/Locations, PM/Meters; retain desktop planning density. | Preserve existing API and business behavior; keep responsive Web as its own layout. | Per-role module acceptance; measured interaction improvements and no regression to supervisor workflows. |
 | 7. Management modules | P3 | Inventory/procurement, People/Admin, analytics, company/document settings. | Preserve metric definitions, entitlements, immutable documents. | Real data verification and permission matrix. |
 | 8. Brand and release | P3 | Approved QPM identity, localized branding, release notes, signed APK/IPA channels. | No brand decisions presumed. | Product/brand approval, install/update test and rollback plan. |
 
 ## Pilot recommendation
 
-Pilot one coherent maintenance lifecycle across platforms:
+**Mobile-first design order:** start with the technician application and validate its core field workflow before adapting the approved patterns to Web. Mobile is the design anchor for task hierarchy, touch targets, concise status presentation, and field feedback; it does not replace responsive Web or desktop supervisor workflows. Build native React Native/Expo screens only after the isolated prototype is reviewed.
 
-1. Requester submits a conveyor fault from mobile/web.
-2. Supervisor qualifies it and creates/assigns a WO to an existing asset/location.
-3. Technician finds the WO, performs tasks, records time/reading/part and adds photo evidence.
-4. Supervisor reviews and completes it; asset history reflects the intervention.
-5. Planner creates a separate weekly PM and checks forecast/call register without confusing forecast with generated WO.
+Begin the pilot on mobile with a coherent technician lifecycle:
 
-This hits the highest frequency and risk surfaces, tests route navigation and shared patterns, and respects the mining pilot. Do not include new approval rules, multi-company behavior or AI.
+1. Technician opens the day view and finds the highest-priority assigned WO.
+2. Technician reviews the asset/location, performs tasks, records supported readings/time/parts, and adds evidence.
+3. Technician completes the existing workflow and sees clear confirmation or actionable failure feedback.
+4. Validate the same journey on a small phone, large phone, tablet, and Android/iOS devices.
+5. Adapt shared information and status patterns to the Web supervisor view; then validate the connected requester → supervisor → technician lifecycle across platforms.
+6. Test the separate PM forecast/call-register workflow after the technician journey, preserving the distinction between a planned occurrence and a generated WO.
+
+This prioritizes frequent, time-sensitive field work while retaining the complete operational lifecycle and the mining pilot. Do not include new approval rules, multi-company behavior or AI.
 
 ## Changes requiring separate authorization
 

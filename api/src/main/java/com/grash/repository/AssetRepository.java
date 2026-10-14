@@ -27,10 +27,31 @@ public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecific
     })
     Page<Asset> findByCompany_IdAndParentAssetIsNull(Long id, Pageable pageable);
 
+    @Query("SELECT DISTINCT a FROM Asset a LEFT JOIN a.assignedTo assigned " +
+            "LEFT JOIN a.teams team LEFT JOIN team.users teamUser " +
+            "WHERE a.company.id = :companyId AND a.parentAsset IS NULL " +
+            "AND (a.createdBy = :userId OR assigned.id = :userId " +
+            "OR a.primaryUser.id = :userId OR teamUser.id = :userId)")
+    Page<Asset> findVisibleRootAssets(@Param("companyId") Long companyId,
+                                      @Param("userId") Long userId,
+                                      Pageable pageable);
+
     @EntityGraph(attributePaths = {
             "parentAsset", "location", "category", "primaryUser", "image", "deprecation"
     })
     Page<Asset> findByParentAsset_Id(Long id, Pageable pageable);
+
+    Page<Asset> findByParentAsset_IdAndCompany_Id(Long parentId, Long companyId, Pageable pageable);
+
+    @Query("SELECT DISTINCT a FROM Asset a LEFT JOIN a.assignedTo assigned " +
+            "LEFT JOIN a.teams team LEFT JOIN team.users teamUser " +
+            "WHERE a.company.id = :companyId AND a.parentAsset.id = :parentId " +
+            "AND (a.createdBy = :userId OR assigned.id = :userId " +
+            "OR a.primaryUser.id = :userId OR teamUser.id = :userId)")
+    Page<Asset> findVisibleChildren(@Param("parentId") Long parentId,
+                                    @Param("companyId") Long companyId,
+                                    @Param("userId") Long userId,
+                                    Pageable pageable);
 
     Integer countByParentAsset_Id(Long id);
 

@@ -11,32 +11,29 @@ import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
-import { VendorMiniDTO } from '../../models/vendor';
 import { getVendorsMini } from '../../slices/vendor';
-import { Avatar, Checkbox, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 export default function SelectVendorsModal({
   navigation,
   route
 }: RootStackScreenProps<'SelectVendors'>) {
   const { onChange, selected, multiple } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { vendorsMini, loadingGet } = useSelector((state) => state.vendors);
-  const [selectedVendors, setSelectedVendors] = useState<VendorMiniDTO[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  useEffect(() => {
-    if (vendorsMini.length) {
-      const newSelectedVendors = selectedIds
-        .map((id) => {
-          return vendorsMini.find((vendor) => vendor.id == id);
-        })
-        .filter((vendor) => !!vendor);
-      setSelectedVendors(newSelectedVendors);
-    }
-  }, [selectedIds, vendorsMini]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const selectedVendors = React.useMemo(
+    () =>
+      selectedIds.flatMap((id) =>
+        vendorsMini.filter((vendor) => vendor.id === id)
+      ),
+    [selectedIds, vendorsMini]
+  );
 
   useEffect(() => {
     if (!selectedIds.length) setSelectedIds(selected);
@@ -48,6 +45,9 @@ export default function SelectVendorsModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedVendors.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedVendors.length})`}
+            accessibilityState={{ disabled: !selectedVendors.length }}
             onPress={() => {
               onChange(selectedVendors);
               navigation.goBack();
@@ -57,33 +57,41 @@ export default function SelectVendorsModal({
           </Pressable>
         )
       });
-  }, [selectedVendors]);
+  }, [selectedVendors, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getVendorsMini());
   }, []);
 
-  const onSelect = (ids: number[]) => {
-    setSelectedIds(Array.from(new Set([...selectedIds, ...ids])));
-    if (!multiple) {
-      onChange([vendorsMini.find((vendor) => vendor.id === ids[0])]);
-      navigation.goBack();
-    }
-  };
-  const onUnSelect = (ids: number[]) => {
-    const newSelectedIds = selectedIds.filter((id) => !ids.includes(id));
-    setSelectedIds(newSelectedIds);
-  };
   const toggle = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onUnSelect([id]);
-    } else {
-      onSelect([id]);
+    if (multiple) {
+      setSelectedIds((previous) =>
+        previous.includes(id)
+          ? previous.filter((selectedId) => selectedId !== id)
+          : [...previous, id]
+      );
+      return;
     }
+    const vendor = vendorsMini.find((item) => item.id === id);
+    if (vendor) onChange([vendor]);
+    navigation.goBack();
   };
 
+  const normalizedSearch = searchQuery.toLowerCase().trim();
+  const filteredVendors = vendorsMini.filter((vendor) =>
+    vendor.companyName.toLowerCase().includes(normalizedSearch)
+  );
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Searchbar
+        placeholder={t('search')}
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={{ backgroundColor: theme.colors.background }}
+      />
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -96,49 +104,75 @@ export default function SelectVendorsModal({
           backgroundColor: theme.colors.background
         }}
       >
-        {vendorsMini.map((vendor) => (
-          <TouchableOpacity
-            onPress={() => {
-              toggle(vendor.id);
-            }}
-            key={vendor.id}
-          >
-            <View style={styles.card}>
-              <View style={styles.cardRow}>
-                <Avatar.Icon
-                  size={50}
-                  icon="truck-outline"
-                  style={{ backgroundColor: theme.colors.primaryContainer }}
-                />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="titleMedium" style={styles.cardTitle}>
-                        {vendor.companyName}
-                      </Text>
-                      <Text
-                        variant={'bodySmall'}
-                        style={{ color: 'grey' }}
-                      >{`#${vendor.id}`}</Text>
+        {loadingGet && !vendorsMini.length ? (
+          <ActivityIndicator
+            animating
+            accessibilityLabel={t('loading')}
+            style={{ marginTop: 24 }}
+          />
+        ) : (
+          filteredVendors.map((vendor) => (
+            <TouchableOpacity
+              onPress={() => {
+                toggle(vendor.id);
+              }}
+              accessibilityRole={multiple ? 'checkbox' : 'button'}
+              accessibilityLabel={vendor.companyName}
+              accessibilityState={
+                multiple
+                  ? { checked: selectedIds.includes(vendor.id) }
+                  : undefined
+              }
+              key={vendor.id}
+            >
+              <View
+                style={[styles.card, { backgroundColor: theme.colors.surface }]}
+              >
+                <View style={styles.cardRow}>
+                  <Avatar.Icon
+                    size={50}
+                    icon="truck-outline"
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="titleMedium" style={styles.cardTitle}>
+                          {vendor.companyName}
+                        </Text>
+                        <Text
+                          variant={'bodySmall'}
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >{`#${vendor.id}`}</Text>
+                      </View>
+                      {multiple && (
+                        <SelectionIndicator
+                          checked={selectedIds.includes(vendor.id)}
+                          color={theme.colors.primary}
+                          uncheckedColor={theme.colors.controlOutline}
+                        />
+                      )}
                     </View>
-                    {multiple && (
-                      <Checkbox
-                        status={
-                          selectedIds.includes(vendor.id)
-                            ? 'checked'
-                            : 'unchecked'
-                        }
-                        onPress={() => {
-                          toggle(vendor.id);
-                        }}
-                      />
-                    )}
                   </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
+        {!loadingGet && filteredVendors.length === 0 && (
+          <Text
+            accessibilityRole="alert"
+            style={{
+              textAlign: 'center',
+              marginTop: 24,
+              color: theme.colors.onSurfaceVariant
+            }}
+          >
+            {vendorsMini.length
+              ? t('no_results_found')
+              : t('no_vendors_available')}
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -149,7 +183,6 @@ const styles = StyleSheet.create({
     flex: 1
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10
   },

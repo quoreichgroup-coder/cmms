@@ -1,0 +1,64 @@
+.review-bar > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.review-bar nav {
+  flex-shrink: 0;
+}
+.auth-shell {
+  height: calc(100dvh - 40px);
+}
+.screen#signup {
+  overflow: hidden;
+}
+.screen#signup .form-content {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.screen#signup .actions {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-top: 0;
+  padding-top: 10px;
+  padding-bottom: calc(12px + var(--safe-bottom));
+  box-shadow: 0 -7px 18px rgba(32, 41, 67, 0.045);
+}
+.button-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 480px) {
+  .review-bar > span > span {
+    display: none;
+  }
+  .review-bar {
+    padding-left: 9px;
+    padding-right: 8px;
+  }
+  .review-bar nav {
+    gap: 3px;
+  }
+  .review-bar nav button {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+@media (min-width: 700px) {
+  .auth-shell {
+    height: min(860px, calc(100dvh - 100px));
+  }
+}

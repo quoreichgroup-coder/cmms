@@ -1,53 +1,92 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import { useDispatch } from '../../../store';
 import { useTranslation } from 'react-i18next';
 import { AssetDTO } from '../../../models/asset';
 import { editAsset } from '../../../slices/asset';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View as RNView
+} from 'react-native';
 import {
   Button,
   Dialog,
   Divider,
+  ActivityIndicator,
   IconButton,
   Portal,
   Text,
   useTheme
 } from 'react-native-paper';
 import { View } from '../../../components/Themed';
+import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
+import { getErrorMessage } from '../../../utils/api';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
 
 export default function AssetParts({
-                                     asset,
-                                     navigation
-                                   }: {
+  asset,
+  navigation
+}: {
   asset: AssetDTO;
   navigation: any;
 }) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const theme = useTheme();
+  const { hasEditPermission } = useAuth();
+  const canEditAsset = hasEditPermission(PermissionEntity.ASSETS, asset);
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
-  const [currentFileId, setCurrentFileId] = useState<number>();
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
+  const [currentPartId, setCurrentPartId] = useState<number>();
 
-  const handleDelete = (id: number) => {
-    dispatch(
-      editAsset(asset.id, {
-        ...asset,
-        parts: asset.parts.filter((part) => part.id !== id)
-      })
-    ).finally(() => setOpenDelete(false));
+  const handleDelete = async () => {
+    if (deletingRef.current || currentPartId === undefined) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    try {
+      await dispatch(
+        editAsset(asset.id, {
+          ...asset,
+          parts: asset.parts.filter((part) => part.id !== currentPartId)
+        })
+      );
+      setOpenDelete(false);
+      showSnackBar(t('operation_success'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error) || t('an_error_occured'), 'error');
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
   };
   const renderConfirmDialog = () => {
     return (
       <Portal>
-        <Dialog visible={openDelete} onDismiss={() => setOpenDelete(false)}>
+        <Dialog
+          visible={openDelete}
+          onDismiss={() => {
+            if (!deleting) setOpenDelete(false);
+          }}
+        >
           <Dialog.Title>{t('confirmation')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant='bodyMedium'>{t('confirm_delete_part_asset')}</Text>
+            <Text variant="bodyMedium">{t('confirm_delete_part_asset')}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpenDelete(false)}>{t('cancel')}</Button>
-            <Button onPress={() => handleDelete(currentFileId)}>
+            <Button disabled={deleting} onPress={() => setOpenDelete(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              loading={deleting}
+              disabled={deleting}
+              accessibilityState={{ disabled: deleting, busy: deleting }}
+              onPress={handleDelete}
+            >
               {t('to_delete')}
             </Button>
           </Dialog.Actions>
@@ -61,34 +100,37 @@ export default function AssetParts({
     >
       {renderConfirmDialog()}
       {asset.parts.map((part) => (
-        <TouchableOpacity
-          key={part.id}
-          onPress={() => navigation.push('PartDetails', { id: part.id })}
-        >
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              padding: 20,
-              alignItems: 'center'
-            }}
-          >
-            <View>
-              <Text style={{ fontWeight: 'bold', flexShrink: 1, marginRight: 10 }}>{part.name}</Text>
-              <Text style={{ flexShrink: 1 }}>{part.description}</Text>
-            </View>
-            <IconButton
-              icon={'delete-outline'}
-              iconColor={theme.colors.error}
-              onPress={() => {
-                setCurrentFileId(part.id);
-                setOpenDelete(true);
-              }}
-            />
-          </View>
+        <RNView key={part.id}>
+          <RNView style={styles.partRow}>
+            <TouchableOpacity
+              style={styles.partLink}
+              accessibilityRole="button"
+              accessibilityLabel={`${part.name}, ${part.description ?? ''}`}
+              onPress={() => navigation.push('PartDetails', { id: part.id })}
+            >
+              <View style={styles.partText}>
+                <Text style={styles.partName}>{part.name}</Text>
+                {!!part.description && (
+                  <Text style={styles.partDescription}>{part.description}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+            {canEditAsset && (
+              <IconButton
+                icon="delete-outline"
+                iconColor={theme.colors.error}
+                accessibilityLabel={t('remove_part_from_asset', {
+                  name: part.name
+                })}
+                onPress={() => {
+                  setCurrentPartId(part.id);
+                  setOpenDelete(true);
+                }}
+              />
+            )}
+          </RNView>
           <Divider />
-        </TouchableOpacity>
+        </RNView>
       ))}
     </ScrollView>
   );
@@ -96,5 +138,25 @@ export default function AssetParts({
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  partRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20
+  },
+  partLink: {
+    flex: 1,
+    paddingVertical: 16
+  },
+  partText: {
+    flex: 1
+  },
+  partName: {
+    fontWeight: 'bold',
+    flexShrink: 1,
+    marginRight: 10
+  },
+  partDescription: {
+    flexShrink: 1
   }
 });

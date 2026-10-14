@@ -5,7 +5,7 @@ import { RootStackScreenProps } from '../../../types';
 import { useDispatch, useSelector } from '../../../store';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -16,35 +16,42 @@ import {
 } from 'react-native-paper';
 import { SheetManager } from 'react-native-actions-sheet';
 import { deleteLocation, getLocationDetails } from '../../../slices/location';
-import LoadingDialog from '../../../components/LoadingDialog';
 import LocationDetails from './LocationDetails';
 import { TabBar, TabView } from 'react-native-tab-view';
 import LocationWorkOrders from './LocationWorkOrders';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import LocationAssets from './LocationAssets';
 import LocationFiles from './LocationFiles';
+import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
 
 export default function LocationDetailsHome({
-                                              navigation,
-                                              route
-                                            }: RootStackScreenProps<'LocationDetails'>) {
+  navigation,
+  route
+}: RootStackScreenProps<'LocationDetails'>) {
   const { id, locationProp } = route.params;
 
-  const { t } = useTranslation();
-  const { locationInfos, loadingGet } = useSelector((state) => state.locations);
+  const { t, i18n } = useTranslation();
+  const { locationInfos } = useSelector((state) => state.locations);
   const location = locationInfos[id]?.location ?? locationProp;
   const dispatch = useDispatch();
   const theme = useTheme();
   const layout = useWindowDimensions();
   const [tabIndex, setTabIndex] = useState(0);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = React.useRef(false);
+  const [loadingLocation, setLoadingLocation] = useState(!location);
+  const [locationLoadError, setLocationLoadError] = useState(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const [tabs] = useState([
-    { key: 'details', title: t('details') },
-    { key: 'work-orders', title: t('work_orders') },
-    { key: 'files', title: t('files') },
-    { key: 'assets', title: t('assets') }
-  ]);
+  const tabs = React.useMemo(
+    () => [
+      { key: 'details', title: t('details') },
+      { key: 'work-orders', title: t('work_orders') },
+      { key: 'files', title: t('files') },
+      { key: 'assets', title: t('assets') }
+    ],
+    [i18n.language, t]
+  );
   const renderScene = ({ route, jumpTo }) => {
     switch (route.key) {
       case 'details':
@@ -63,20 +70,40 @@ export default function LocationDetailsHome({
     <TabBar
       {...props}
       scrollEnabled
-      indicatorStyle={{ backgroundColor: 'white' }}
-      style={{ backgroundColor: theme.colors.primary }}
+      activeColor={theme.colors.primary}
+      inactiveColor={theme.colors.onSurfaceVariant}
+      indicatorStyle={{ backgroundColor: theme.colors.primary, height: 3 }}
+      labelStyle={{ fontSize: 14, fontWeight: '600', textTransform: 'none' }}
+      pressColor={theme.colors.primaryContainer}
+      style={{ backgroundColor: theme.colors.surface, elevation: 0 }}
+      tabStyle={{ minWidth: 80, paddingHorizontal: 8 }}
     />
   );
 
+  const loadLocation = useCallback(async () => {
+    setLoadingLocation(true);
+    setLocationLoadError(false);
+    try {
+      await dispatch(getLocationDetails(id));
+    } catch (_error) {
+      setLocationLoadError(true);
+    } finally {
+      setLoadingLocation(false);
+    }
+  }, [dispatch, id]);
+
   useEffect(() => {
-    if (!locationProp)
-      dispatch(getLocationDetails(id));
-  }, [locationProp]);
+    if (!locationProp) void loadLocation();
+  }, [locationProp, loadLocation]);
   useEffect(() => {
     navigation.setOptions({
-      title: location?.name ?? t('loading'),
+      // Keep the compact location identifier in the app bar; the full name is
+      // shown in the location details panel.
+      title: location?.customId || t('location'),
       headerRight: () => (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('more_options')}
           onPress={() => {
             SheetManager.show('location-details-sheet', {
               payload: {
@@ -90,11 +117,11 @@ export default function LocationDetailsHome({
             });
           }}
         >
-          <IconButton icon='dots-vertical' />
+          <IconButton icon="dots-vertical" />
         </Pressable>
       )
     });
-  }, [location]);
+  }, [location, navigation, t]);
 
   const onDeleteSuccess = () => {
     showSnackBar(t('location_delete_success'), 'success');
@@ -103,23 +130,46 @@ export default function LocationDetailsHome({
   const onDeleteFailure = (err) =>
     showSnackBar(t('location_delete_failure'), 'error');
 
-  const handleDelete = () => {
-    dispatch(deleteLocation(location?.id))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async () => {
+    if (deletingRef.current || !location) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    try {
+      await dispatch(deleteLocation(location.id));
+      setOpenDelete(false);
+      onDeleteSuccess();
+    } catch (err) {
+      onDeleteFailure(err);
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
   };
   const renderConfirmDelete = () => {
     return (
       <Portal>
-        <Dialog visible={openDelete} onDismiss={() => setOpenDelete(false)}>
+        <Dialog
+          visible={openDelete}
+          onDismiss={() => {
+            if (!deleting) setOpenDelete(false);
+          }}
+        >
           <Dialog.Title>{t('confirmation')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant='bodyMedium'>{t('confirm_delete_location')}</Text>
+            <Text variant="bodyMedium">{t('confirm_delete_location')}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpenDelete(false)}>{t('cancel')}</Button>
-            <Button onPress={handleDelete}>{t('to_delete')}</Button>
+            <Button disabled={deleting} onPress={() => setOpenDelete(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              loading={deleting}
+              disabled={deleting}
+              accessibilityState={{ disabled: deleting, busy: deleting }}
+              onPress={handleDelete}
+            >
+              {t('to_delete')}
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -129,6 +179,13 @@ export default function LocationDetailsHome({
     return (
       <View style={styles.container}>
         {renderConfirmDelete()}
+        {locationLoadError && (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('location_details_load_error')}
+            onRetry={() => void loadLocation()}
+          />
+        )}
         <TabView
           renderTabBar={renderTabBar}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -138,7 +195,16 @@ export default function LocationDetailsHome({
         />
       </View>
     );
-  else return <LoadingDialog visible={true} />;
+  else if (loadingLocation)
+    return <AsyncStateFeedback mode="loading" message={t('please_wait')} />;
+  else
+    return (
+      <AsyncStateFeedback
+        mode="error"
+        message={t('location_details_load_error')}
+        onRetry={() => void loadLocation()}
+      />
+    );
 }
 
 const styles = StyleSheet.create({

@@ -768,6 +768,30 @@ class AssetServiceTest {
         }
 
         @Test
+        void getByNfcIdAndCompany_deniesAssetsOutsideRoleVisibility() {
+            Asset asset = buildAsset(1L);
+            user.setRole(restrictedRole());
+            when(licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE)).thenReturn(true);
+            when(assetRepository.findByNfcIdAndCompany_Id("NFC1", 1L)).thenReturn(Optional.of(asset));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.getByNfcIdAndCompany("NFC1", user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+        }
+
+        @Test
+        void getByNfcIdAndCompany_returnsNotFoundForUnknownTag() {
+            when(licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE)).thenReturn(true);
+            when(assetRepository.findByNfcIdAndCompany_Id("UNKNOWN", 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.getByNfcIdAndCompany("UNKNOWN", user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+        }
+
+        @Test
         void getByBarcodeAndCompany_withoutEntitlement_throwsForbidden() {
             when(licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE)).thenReturn(false);
 
@@ -787,6 +811,30 @@ class AssetServiceTest {
 
             assertSame(asset, result);
         }
+
+        @Test
+        void getByBarcodeAndCompany_deniesAssetsOutsideRoleVisibility() {
+            Asset asset = buildAsset(1L);
+            user.setRole(restrictedRole());
+            when(licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE)).thenReturn(true);
+            when(assetRepository.findByBarCodeAndCompany_Id("BAR", 1L)).thenReturn(Optional.of(asset));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.getByBarcodeAndCompany("BAR", user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+        }
+
+        @Test
+        void getByBarcodeAndCompany_returnsNotFoundForUnknownCode() {
+            when(licenseService.hasEntitlement(LicenseEntitlement.NFC_BARCODE)).thenReturn(true);
+            when(assetRepository.findByBarCodeAndCompany_Id("UNKNOWN", 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.getByBarcodeAndCompany("UNKNOWN", user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+        }
     }
 
     @Nested
@@ -794,7 +842,7 @@ class AssetServiceTest {
 
         @Test
         void checkAccessToAssetId_notFound_throwsNotFound() {
-            when(assetRepository.findById(1L)).thenReturn(Optional.empty());
+            when(assetRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> assetService.checkAccessToAssetId(1L, user));
@@ -805,7 +853,7 @@ class AssetServiceTest {
         @Test
         void checkAccessToAssetId_forbidden_throwsForbidden() {
             user.setRole(restrictedRole());
-            when(assetRepository.findById(1L)).thenReturn(Optional.of(buildAsset(1L)));
+            when(assetRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(buildAsset(1L)));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> assetService.checkAccessToAssetId(1L, user));
@@ -816,11 +864,21 @@ class AssetServiceTest {
         @Test
         void checkAccessToAssetId_returnsAsset() {
             Asset asset = buildAsset(1L);
-            when(assetRepository.findById(1L)).thenReturn(Optional.of(asset));
+            when(assetRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(asset));
 
             Asset result = assetService.checkAccessToAssetId(1L, user);
 
             assertSame(asset, result);
+        }
+
+        @Test
+        void checkAccessToAssetId_doesNotResolveAnotherCompanyAsset() {
+            when(assetRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.checkAccessToAssetId(1L, user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
         }
 
         @Test
@@ -920,7 +978,7 @@ class AssetServiceTest {
 
         @Test
         void assetNotFound_throwsNotFound() {
-            when(assetRepository.findById(5L)).thenReturn(Optional.empty());
+            when(assetRepository.findByIdAndCompany_Id(5L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> assetService.findChildren(5L, user, Pageable.unpaged()));
@@ -932,8 +990,8 @@ class AssetServiceTest {
         void returnsChildren() {
             Asset asset = buildAsset(5L);
             Asset child = buildAsset(6L);
-            when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
-            when(assetRepository.findByParentAsset_Id(5L, Pageable.unpaged()))
+            when(assetRepository.findByIdAndCompany_Id(5L, 1L)).thenReturn(Optional.of(asset));
+            when(assetRepository.findByParentAsset_IdAndCompany_Id(5L, 1L, Pageable.unpaged()))
                     .thenReturn(new PageImpl<>(Collections.singletonList(child)));
 
             List<Asset> result = assetService.findChildren(5L, user, Pageable.unpaged());
@@ -1565,6 +1623,50 @@ class AssetServiceTest {
             Page<Asset> result = assetService.findAssetChildren(1L, Pageable.unpaged());
 
             assertEquals(Collections.singletonList(child), result.getContent());
+        }
+
+        @Test
+        void parentFromAnotherCompany_isNotFound() {
+            when(assetRepository.findByIdAndCompany_Id(55L, 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.findChildrenPaginated(55L, user, Pageable.unpaged()));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+            verify(assetRepository, never()).findByParentAsset_IdAndCompany_Id(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        void roleWithoutViewOtherPermission_onlyLoadsOwnOrAssignedChildren() {
+            Set<PermissionEntity> view = new HashSet<>(Set.of(PermissionEntity.ASSETS));
+            user.setRole(buildRole(RoleType.ROLE_CLIENT, view, new HashSet<>(), new HashSet<>(),
+                    new HashSet<>(), new HashSet<>()));
+            Asset parent = buildAsset(5L);
+            Asset child = buildAsset(6L);
+            when(assetRepository.findByIdAndCompany_Id(5L, 1L)).thenReturn(Optional.of(parent));
+            when(assetRepository.findVisibleChildren(5L, 1L, 1L, Pageable.unpaged()))
+                    .thenReturn(new PageImpl<>(Collections.singletonList(child)));
+
+            Page<Asset> result = assetService.findChildrenPaginated(5L, user, Pageable.unpaged());
+
+            assertEquals(Collections.singletonList(child), result.getContent());
+            verify(assetRepository).findVisibleChildren(5L, 1L, 1L, Pageable.unpaged());
+        }
+
+        @Test
+        void parentOutsideUserVisibility_isForbidden() {
+            Set<PermissionEntity> view = new HashSet<>(Set.of(PermissionEntity.ASSETS));
+            user.setRole(buildRole(RoleType.ROLE_CLIENT, view, new HashSet<>(), new HashSet<>(),
+                    new HashSet<>(), new HashSet<>()));
+            Asset parent = buildAsset(5L);
+            parent.setCreatedBy(99L);
+            when(assetRepository.findByIdAndCompany_Id(5L, 1L)).thenReturn(Optional.of(parent));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> assetService.findChildrenPaginated(5L, user, Pageable.unpaged()));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+            verify(assetRepository, never()).findVisibleChildren(anyLong(), anyLong(), anyLong(), any());
         }
 
         @Test

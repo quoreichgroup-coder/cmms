@@ -11,32 +11,28 @@ import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
-import { TeamMiniDTO } from '../../models/team';
 import { getTeamsMini } from '../../slices/team';
-import { Avatar, Checkbox, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 export default function SelectTeamsModal({
   navigation,
   route
 }: RootStackScreenProps<'SelectTeams'>) {
   const { onChange, selected, multiple } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { teamsMini, loadingGet } = useSelector((state) => state.teams);
-  const [selectedTeams, setSelectedTeams] = useState<TeamMiniDTO[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    if (teamsMini.length) {
-      const newSelectedTeams = selectedIds
-        .map((id) => {
-          return teamsMini.find((team) => team.id == id);
-        })
-        .filter((team) => !!team);
-      setSelectedTeams(newSelectedTeams);
-    }
-  }, [selectedIds, teamsMini]);
+  const selectedTeams = React.useMemo(
+    () =>
+      selectedIds.flatMap((id) => teamsMini.filter((team) => team.id === id)),
+    [selectedIds, teamsMini]
+  );
 
   useEffect(() => {
     if (!selectedIds.length) setSelectedIds(selected);
@@ -48,6 +44,9 @@ export default function SelectTeamsModal({
         headerRight: () => (
           <Pressable
             disabled={!selectedTeams.length}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('add')} (${selectedTeams.length})`}
+            accessibilityState={{ disabled: !selectedTeams.length }}
             onPress={() => {
               onChange(selectedTeams);
               navigation.goBack();
@@ -57,33 +56,41 @@ export default function SelectTeamsModal({
           </Pressable>
         )
       });
-  }, [selectedTeams]);
+  }, [selectedTeams, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getTeamsMini());
   }, []);
 
-  const onSelect = (ids: number[]) => {
-    setSelectedIds(Array.from(new Set([...selectedIds, ...ids])));
-    if (!multiple) {
-      onChange([teamsMini.find((team) => team.id === ids[0])]);
-      navigation.goBack();
-    }
-  };
-  const onUnSelect = (ids: number[]) => {
-    const newSelectedIds = selectedIds.filter((id) => !ids.includes(id));
-    setSelectedIds(newSelectedIds);
-  };
   const toggle = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onUnSelect([id]);
-    } else {
-      onSelect([id]);
+    if (multiple) {
+      setSelectedIds((previous) =>
+        previous.includes(id)
+          ? previous.filter((selectedId) => selectedId !== id)
+          : [...previous, id]
+      );
+      return;
     }
+    const team = teamsMini.find((item) => item.id === id);
+    if (team) onChange([team]);
+    navigation.goBack();
   };
 
+  const normalizedSearch = searchQuery.toLowerCase().trim();
+  const filteredTeams = teamsMini.filter((team) =>
+    team.name.toLowerCase().includes(normalizedSearch)
+  );
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Searchbar
+        placeholder={t('search')}
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={{ backgroundColor: theme.colors.background }}
+      />
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -96,49 +103,73 @@ export default function SelectTeamsModal({
           backgroundColor: theme.colors.background
         }}
       >
-        {teamsMini.map((team) => (
-          <TouchableOpacity
-            onPress={() => {
-              toggle(team.id);
-            }}
-            key={team.id}
-          >
-            <View style={styles.card}>
-              <View style={styles.cardRow}>
-                <Avatar.Icon
-                  size={50}
-                  icon="account-group-outline"
-                  style={{ backgroundColor: theme.colors.primaryContainer }}
-                />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="titleMedium" style={styles.cardTitle}>
-                        {team.name}
-                      </Text>
-                      <Text
-                        variant={'bodySmall'}
-                        style={{ color: 'grey' }}
-                      >{`#${team.id}`}</Text>
+        {loadingGet && !teamsMini.length ? (
+          <ActivityIndicator
+            animating
+            accessibilityLabel={t('loading')}
+            style={{ marginTop: 24 }}
+          />
+        ) : (
+          filteredTeams.map((team) => (
+            <TouchableOpacity
+              onPress={() => {
+                toggle(team.id);
+              }}
+              accessibilityRole={multiple ? 'checkbox' : 'button'}
+              accessibilityLabel={team.name}
+              accessibilityState={
+                multiple
+                  ? { checked: selectedIds.includes(team.id) }
+                  : undefined
+              }
+              key={team.id}
+            >
+              <View
+                style={[styles.card, { backgroundColor: theme.colors.surface }]}
+              >
+                <View style={styles.cardRow}>
+                  <Avatar.Icon
+                    size={50}
+                    icon="account-group-outline"
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="titleMedium" style={styles.cardTitle}>
+                          {team.name}
+                        </Text>
+                        <Text
+                          variant={'bodySmall'}
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >{`#${team.id}`}</Text>
+                      </View>
+                      {multiple && (
+                        <SelectionIndicator
+                          checked={selectedIds.includes(team.id)}
+                          color={theme.colors.primary}
+                          uncheckedColor={theme.colors.controlOutline}
+                        />
+                      )}
                     </View>
-                    {multiple && (
-                      <Checkbox
-                        status={
-                          selectedIds.includes(team.id)
-                            ? 'checked'
-                            : 'unchecked'
-                        }
-                        onPress={() => {
-                          toggle(team.id);
-                        }}
-                      />
-                    )}
                   </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
+        {!loadingGet && filteredTeams.length === 0 && (
+          <Text
+            accessibilityRole="alert"
+            style={{
+              textAlign: 'center',
+              marginTop: 24,
+              color: theme.colors.onSurfaceVariant
+            }}
+          >
+            {teamsMini.length ? t('no_results_found') : t('no_teams_available')}
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -149,7 +180,6 @@ const styles = StyleSheet.create({
     flex: 1
   },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10
   },

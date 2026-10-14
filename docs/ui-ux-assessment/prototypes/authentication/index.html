@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#5569ff" />
+    <title>QPM — Prototype authentification</title>
+    <link rel="stylesheet" href="auth.css" />
+    <link rel="stylesheet" href="auth-overrides.css" />
+    <link rel="stylesheet" href="auth-responsive.css" />
+  </head>
+  <body>
+    <div class="review-bar">
+      <span
+        ><strong>Prototype isolé</strong
+        ><span>
+          · interactions simulées, aucune connexion au serveur</span
+        ></span
+      >
+      <nav aria-label="Écrans du prototype">
+        <button data-go="welcome" class="selected">Accueil</button>
+        <button data-go="signin">Connexion</button>
+        <button data-go="signup">Inscription</button>
+      </nav>
+    </div>
+    <main class="auth-shell">
+      <header class="hero">
+        <div class="contours" aria-hidden="true"></div>
+        <div class="hero-top">
+          <button class="back" data-back aria-label="Retour">‹</button>
+          <div class="wordmark">
+            <span class="mark">Q</span
+            ><span>QPM<small>MAINTENANCE OPERATIONS</small></span>
+          </div>
+          <span class="language">FR</span>
+        </div>
+        <div class="hero-copy">
+          <span class="hero-kicker">QUOREICH · QPM</span>
+          <h1 id="hero-title">La maintenance,<br />en maîtrise.</h1>
+          <p id="hero-subtitle">
+            Votre espace de travail pour des opérations fiables, partout sur le
+            terrain.
+          </p>
+        </div>
+        <svg
+          class="wave"
+          viewBox="0 0 430 72"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 39C64 71 141 72 216 48C296 22 361 16 430 34V72H0Z" />
+        </svg>
+      </header>
+
+      <section
+        class="screen active"
+        id="welcome"
+        aria-labelledby="welcome-title"
+      >
+        <div class="content welcome-content">
+          <span class="overline">BIENVENUE DANS QPM</span>
+          <h2 id="welcome-title">
+            Tout votre atelier.<br /><em>Au même endroit.</em>
+          </h2>
+          <p>
+            Retrouvez vos interventions, vos équipements et vos équipes dans un
+            espace pensé pour le quotidien industriel.
+          </p>
+          <div class="feature-list">
+            <div>
+              <span class="feature-icon">01</span
+              ><span
+                ><b>Interventions suivies</b
+                ><small>Du signalement à la clôture</small></span
+              >
+            </div>
+            <div>
+              <span class="feature-icon">02</span
+              ><span
+                ><b>Équipements visibles</b
+                ><small>Historique et état opérationnel</small></span
+              >
+            </div>
+          </div>
+        </div>
+        <footer class="actions">
+          <button class="primary" data-go="signin">
+            Se connecter <span aria-hidden="true">→</span>
+          </button>
+          <button class="text-link" data-go="signup">
+            Créer un compte entreprise
+          </button>
+          <button class="server-link" data-server>
+            Configurer le serveur CMMS
+          </button>
+        </footer>
+      </section>
+
+      <section class="screen" id="signin" aria-labelledby="signin-title" hidden>
+        <form class="content form-content" data-form="signin" novalidate>
+          <span class="overline">ESPACE DE TRAVAIL</span>
+          <h2 id="signin-title">Ravi de vous<br /><em>retrouver.</em></h2>
+          <p class="form-intro">
+            Connectez-vous pour reprendre vos opérations.
+          </p>
+          <label class="line-field"
+            ><span>Adresse e-mail</span
+            ><input
+              name="email"
+              type="email"
+              autocomplete="username"
+              placeholder="nom@entreprise.com"
+              required /><small class="field-error"></small
+          ></label>
+          <label class="line-field password-field"
+            ><span>Mot de passe</span
+            ><input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Votre mot de passe"
+              required /><button
+              type="button"
+              class="reveal"
+              aria-label="Afficher le mot de passe"
+            >
+              ◉</button
+            ><small class="field-error"></small
+          ></label>
+          <div class="form-meta">
+            <span>Accès géré par votre organisation</span>
+          </div>
+          <div class="form-status" role="status" aria-live="polite"></div>
+        </form>
+        <footer class="actions">
+          <button class="primary" data-submit="signin">
+            Se connecter <span aria-hidden="true">→</span>
+          </button>
+          <p>
+            Pas encore de compte ?
+            <button class="inline-link" data-go="signup">
+              Créer un compte
+            </button>
+          </p>
+          <button class="server-link" data-server>
+            Serveur CMMS personnalisé
+          </button>
+        </footer>
+      </section>
+
+      <section class="screen" id="signup" aria-labelledby="signup-title" hidden>
+        <form
+          class="content form-content signup-content"
+          data-form="signup"
+          novalidate
+        >
+          <span class="overline">ACCÈS ORGANISATION</span>
+          <h2 id="signup-title">Créer votre<br /><em>espace QPM.</em></h2>
+          <p class="form-intro">
+            Les champs marqués d’un astérisque sont requis.
+          </p>
+          <div class="field-pair">
+            <label class="line-field"
+              ><span>Prénom *</span
+              ><input
+                name="firstName"
+                autocomplete="given-name"
+                placeholder="Prénom"
+                required /><small class="field-error"></small
+            ></label>
+            <label class="line-field"
+              ><span>Nom *</span
+              ><input
+                name="lastName"
+                autocomplete="family-name"
+                placeholder="Nom"
+                required /><small class="field-error"></small
+            ></label>
+          </div>
+          <label class="line-field"
+            ><span>Adresse e-mail *</span
+            ><input
+              name="email"
+              type="email"
+              autocomplete="email"
+              placeholder="nom@entreprise.com"
+              required /><small class="field-error"></small
+          ></label>
+          <label class="line-field"
+            ><span>Téléphone</span
+            ><input
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              placeholder="+33 6 00 00 00 00" /><small
+              class="field-error"
+            ></small
+          ></label>
+          <label class="line-field password-field"
+            ><span>Mot de passe *</span
+            ><input
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              placeholder="12 caractères minimum"
+              required
+              minlength="12" /><button
+              type="button"
+              class="reveal"
+              aria-label="Afficher le mot de passe"
+            >
+              ◉</button
+            ><small class="field-error"></small
+          ></label>
+          <label class="line-field"
+            ><span>Nom de l’entreprise *</span
+            ><input
+              name="companyName"
+              autocomplete="organization"
+              placeholder="Votre entreprise"
+              required /><small class="field-error"></small
+          ></label>
+          <div class="account-note">
+            Une confirmation par e-mail peut être requise selon la configuration
+            de votre serveur.
+          </div>
+          <div class="form-status" role="status" aria-live="polite"></div>
+        </form>
+        <footer class="actions sticky-actions">
+          <button class="primary" data-submit="signup">
+            Créer mon compte <span aria-hidden="true">→</span>
+          </button>
+          <p>
+            Vous avez déjà un accès ?
+            <button class="inline-link" data-go="signin">Se connecter</button>
+          </p>
+        </footer>
+      </section>
+      <div class="toast" role="status" aria-live="polite"></div>
+    </main>
+    <script src="auth.js"></script>
+  </body>
+</html>

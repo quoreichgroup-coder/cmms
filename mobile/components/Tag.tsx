@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
 import * as React from 'react';
+import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function Tag({
   text,
@@ -15,9 +16,9 @@ export default function Tag({
     <View
       style={{
         backgroundColor,
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        borderRadius: 5,
+        paddingHorizontal: qpmLayoutTokens.space.sm,
+        paddingVertical: qpmLayoutTokens.space.xs,
+        borderRadius: qpmLayoutTokens.radius.pill,
         alignSelf: 'flex-start'
       }}
     >

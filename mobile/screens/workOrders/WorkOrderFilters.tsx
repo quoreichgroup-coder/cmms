@@ -41,6 +41,11 @@ export default function WorkOrderFilters({
     { accessor: 'teams', fieldName: 'team', type: 'array' },
     { accessor: 'primaryUsers', fieldName: 'primaryUser', type: 'array' },
     { accessor: 'locations', fieldName: 'location', type: 'array' },
+    {
+      accessor: 'requestedBy',
+      fieldName: 'parentRequest.createdBy',
+      type: 'array'
+    },
     { accessor: 'createdBy', fieldName: 'createdBy', type: 'array' },
     { accessor: 'completedBy', fieldName: 'completedBy', type: 'array' },
     {
@@ -66,6 +71,11 @@ export default function WorkOrderFilters({
     { accessor: 'dueDate', fieldName: 'dueDate', type: 'dateLessThan' }
   ];
   const fields: Array<IField> = [
+    {
+      name: 'mainFiltersGroup',
+      type: 'titleGroupField',
+      label: t('work_order_main_filters')
+    },
     {
       name: 'type',
       type: 'select',
@@ -120,18 +130,17 @@ export default function WorkOrderFilters({
       type2: 'user',
       multiple: true
     },
-    //TODO
-    // {
-    //   name: 'requestedBy',
-    //   type: 'select',
-    //   label: t('requested_by'),
-    //   type2: 'user',
-    //   multiple: true
-    // },
     {
       name: 'primaryUsers',
       type: 'select',
       label: t('primary_worker'),
+      type2: 'user',
+      multiple: true
+    },
+    {
+      name: 'requestedBy',
+      type: 'select',
+      label: t('requested_by'),
       type2: 'user',
       multiple: true
     },
@@ -217,9 +226,9 @@ export default function WorkOrderFilters({
     );
     return {
       type: typeValue ? getTypeLabelAndValue(typeValue.operation).value : 'ALL',
-      archived: filterFields.find(
-        (filterField) => filterField.field === 'archived'
-      ).value,
+      archived:
+        filterFields.find((filterField) => filterField.field === 'archived')
+          ?.value ?? false,
       assets: getLabelAndValue(filterFields, assetsMini, 'asset', 'name'),
       teams: getLabelAndValue(filterFields, teamsMini, 'team', 'name'),
       categories: getLabelAndValue(
@@ -232,6 +241,13 @@ export default function WorkOrderFilters({
         filterFields,
         usersMini,
         'primaryUser',
+        null,
+        (user: UserMiniDTO) => `${user.firstName} ${user.lastName}`
+      ),
+      requestedBy: getLabelAndValue(
+        filterFields,
+        usersMini,
+        'parentRequest.createdBy',
         null,
         (user: UserMiniDTO) => `${user.firstName} ${user.lastName}`
       ),

@@ -1,0 +1,54 @@
+.screen#welcome,
+.screen#signin {
+  overflow: hidden;
+}
+.screen#welcome .content,
+.screen#signin .form-content {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.screen#welcome .actions,
+.screen#signin .actions {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+@media (max-height: 600px) {
+  .hero {
+    flex-basis: 178px;
+  }
+  .hero-top {
+    height: 52px;
+  }
+  .hero-copy {
+    bottom: 26px;
+  }
+  .hero-copy h1 {
+    font-size: 24px;
+    margin: 6px 0 3px;
+  }
+  .hero-copy p {
+    font-size: 10px;
+  }
+  .wave {
+    height: 38px;
+  }
+  .screen#signin .form-content {
+    padding-top: 12px;
+  }
+  .screen#signin .content h2 {
+    font-size: 24px;
+    margin: 6px 0;
+  }
+  .screen#signin .form-intro {
+    margin-bottom: 8px !important;
+  }
+  .screen#signin .line-field {
+    margin-bottom: 7px;
+  }
+  .screen#signin .actions {
+    padding-top: 9px;
+    padding-bottom: calc(10px + var(--safe-bottom));
+  }
+}

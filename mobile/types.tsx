@@ -152,7 +152,7 @@ export type RootStackParamList = {
     onComplete: (
       signature: string | undefined,
       feedback: string | undefined
-    ) => Promise<any>;
+    ) => Promise<boolean>;
     fieldsConfig: { feedback: boolean; signature: boolean };
   };
   NotFound: undefined;
@@ -198,6 +198,7 @@ export type RootTabScreenProps<Screen extends keyof RootTabParamList> =
     NativeStackScreenProps<RootStackParamList>
   >;
 export type AuthStackParamList = {
+  AuthFlow: { initialMode?: 'welcome' | 'signin' } | undefined;
   Welcome: undefined;
   Register: undefined;
   Login: undefined;

@@ -2,9 +2,53 @@
 
 Application mobile React Native du CMMS QPM.
 
+## Prévisualiser l’interface sans reconstruire ni installer l’APK
+
+Pour vérifier rapidement les écrans et interactions dans un navigateur avec React Native Web :
+
+```sh
+cd mobile
+npm run web -- --localhost --port 8082
+```
+
+Expo démarre le bundle Web sur `http://localhost:8082` ; dans VS Code, transférez le port 8082 (onglet **Ports**) puis ouvrez l’adresse locale affichée. Utilisez l’émulation téléphone/tablette du navigateur pour contrôler les dimensions. Ce mode valide la présentation Web responsive, mais ne remplace pas un test sur le runtime natif Android/iOS.
+
+Pour le rechargement à chaud sur un téléphone dans le runtime natif, QPM utilise `expo-dev-client` et le lancement `npx expo start --dev-client`. Il faut disposer une première fois d’un build de développement QPM installé sur le téléphone ; ensuite, les modifications TypeScript/JavaScript et UI se chargent depuis Expo sans reconstruire l’APK à chaque changement. Le profil EAS `development` est déjà configuré dans `eas.json`.
+
+### Test natif avec Expo depuis le serveur de développement
+
+Une build de développement Android séparée peut être créée avec `npm run build:dev-apk` (package `com.atlas.cmms.dev`, ARM64). Le suffixe `.dev` permet de garder QPM de production à côté. Avec le téléphone branché et le débogage USB autorisé, construisez puis installez-la ainsi :
+
+```sh
+npm run build:dev-apk
+adb install -r dist/QPM-1.0.58-dev.apk
+```
+
+On peut aussi transférer le fichier sur le téléphone puis l’ouvrir pour l’installer. Après cette installation initiale, les changements TypeScript/JavaScript et UI se rechargent depuis Metro, sans reconstruire ni retélécharger d’APK.
+
+Pour démarrer Expo depuis un serveur distant ou un réseau où le téléphone ne peut pas joindre directement l’ordinateur, lancez `npm run start:tunnel` et scannez le QR code avec l’application QPM Dev. `@expo/ngrok` est une dépendance locale du projet : Expo ne doit pas tenter une installation globale nécessitant `sudo`. Sur un réseau local accessible au téléphone, utilisez `npm run start:lan` à la place. N’utilisez pas Expo Go pour ce projet natif.
+
+Sur Linux, Metro exclut déjà les sorties Gradle volumineuses pour éviter de consommer les watchers du système. Si le cache global `/tmp/metro-cache` donne une erreur `EACCES`, ou si vous voulez isoler le cache de développement du cache créé par `sudo`, utilisez un répertoire local ignoré par Git :
+
+```sh
+mkdir -p .build-tools/expo-tmp
+TMPDIR="$PWD/.build-tools/expo-tmp" npm run start:tunnel -- --port 8084 --clear
+```
+
+Sur un réseau local, remplacez `start:tunnel` par `start:lan`. Gardez le terminal Expo ouvert; après un redémarrage du tunnel, utilisez la nouvelle adresse affichée, pas un ancien lien `exp.direct`. Si `ENOSPC: System limit for number of file watchers reached` persiste malgré les exclusions Metro, augmentez temporairement la limite inotify de l’hôte puis redémarrez Expo :
+
+```sh
+sudo sysctl -w fs.inotify.max_user_watches=524288
+TMPDIR="$PWD/.build-tools/expo-tmp" npm run start:tunnel -- --port 8084 --clear
+```
+
+Le réglage `sysctl` s’applique à l’hôte Linux et revient à sa valeur précédente au prochain redémarrage.
+
+Expo Go n’est pas un substitut direct pour ce projet : QPM s’appuie sur des modules natifs tels que Firebase, Sentry, Clarity et NFC qui ne sont pas tous inclus dans Expo Go, et le projet utilise Expo SDK 53. N’utilisez donc pas `--go` pour valider ce build natif. Les API et règles métier restent les mêmes dans les deux modes.
+
 ## Installer sur Android
 
-Le dernier APK déjà construit et validé dans le dépôt est `dist/QPM-1.0.54.apk`. La version source 1.0.55 est prête, mais son APK doit encore être construit. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md).
+L’APK de production 1.0.58 est disponible dans `dist/QPM-1.0.58.apk`. Le build conserve `versionCode` 41 pour le test visuel de cette même version; il est signé avec le certificat QPM existant. Pour le rechargement UI continu, créez et installez une build Dev selon les étapes ci-dessus. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md), et le parcours de validation est dans [`../docs/GUIDE-TEST-VISUEL-MOBILE.md`](../docs/GUIDE-TEST-VISUEL-MOBILE.md).
 
 L’APK utilise par défaut `https://169-58-86-7.sslip.io/api/`. Le certificat HTTPS est émis et renouvelé automatiquement par Caddy. Si une ancienne adresse personnalisée est conservée après la mise à jour, ouvrez **Serveur personnalisé** depuis l’écran de connexion et choisissez **Réinitialiser**. Connectez-vous avec un compte utilisateur de l’entreprise ; le superadmin de plateforme est un compte technique et le parcours mobile client ne l’accepte pas. Les taps de notification ouvrent maintenant leur ressource après le démarrage et la restauration de session. La réception des push demande encore les credentials Firebase de l’entreprise. Au premier démarrage, le propriétaire de l’entreprise peut saisir la clé de licence depuis **Réglages → Licence de l’entreprise**.
 

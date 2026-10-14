@@ -27,6 +27,7 @@ import com.grash.model.enums.workflow.WFMainCondition;
 
 import com.grash.repository.FileRepository;
 import com.grash.repository.WorkOrderRepository;
+import com.grash.repository.WorkOrderLifecycleEventRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.MultipartFileImpl;
 import com.grash.utils.PdfReportUtils;
@@ -72,6 +73,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @Slf4j
 public class WorkOrderService {
     private final WorkOrderRepository workOrderRepository;
+    private final WorkOrderLifecycleEventRepository workOrderLifecycleEventRepository;
     private final LocationService locationService;
     private final CustomerService customerService;
     private final TeamService teamService;
@@ -274,6 +276,44 @@ public class WorkOrderService {
         } else throw new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND);
     }
 
+    @Transactional
+    public WorkOrder reopen(Long id, String reason, User user) {
+        if (user.getCompany() == null) throw new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND);
+        String sanitizedReason = Sanitizer.cleanText(reason == null ? "" : reason).trim();
+        if (sanitizedReason.isEmpty() || sanitizedReason.length() > 1000) {
+            throw new CustomException("A reopening reason of 1 to 1000 characters is required", HttpStatus.BAD_REQUEST);
+        }
+        WorkOrder workOrder = workOrderRepository.findByIdAndCompany_IdForUpdate(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND));
+        if (user.getRole() == null
+                || !user.getRole().getEditOtherPermissions().contains(PermissionEntity.REOPEN_WORK_ORDERS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        if (!Status.COMPLETE.equals(workOrder.getStatus())) {
+            throw new CustomException("Only a completed work order can be reopened", HttpStatus.CONFLICT);
+        }
+
+        Status previousStatus = workOrder.getStatus();
+        WorkOrder originalWorkOrder = new WorkOrder();
+        org.springframework.beans.BeanUtils.copyProperties(workOrder, originalWorkOrder);
+        originalWorkOrder.setCompany(workOrder.getCompany());
+        Date reopenedAt = new Date();
+        workOrder.setStatus(Status.OPEN);
+        workOrder.setCompletedOn(null);
+        workOrder.setCompletedBy(null);
+        WorkOrder reopenedWorkOrder = saveAndFlushWithWebhook(workOrder, user.getCompany(), originalWorkOrder);
+        workOrderLifecycleEventRepository.save(new WorkOrderLifecycleEvent(reopenedWorkOrder, previousStatus,
+                Status.OPEN, user, reopenedAt, sanitizedReason));
+        return reopenedWorkOrder;
+    }
+
+    public List<WorkOrderLifecycleEvent> getLifecycleEvents(Long id, User user) {
+        WorkOrder workOrder = checkAccessToWorkOrderId(id, user);
+        return workOrderLifecycleEventRepository
+                .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(workOrder.getId(),
+                        user.getCompany().getId());
+    }
+
     public Collection<WorkOrder> getAll() {
         return workOrderRepository.findAll();
     }
@@ -301,8 +341,10 @@ public class WorkOrderService {
     }
 
     public WorkOrder checkAccessToWorkOrderId(Long workOrderId, User user) {
-        WorkOrder workOrder = findById(workOrderId).orElseThrow(() -> new CustomException("Work Order not found",
-                HttpStatus.NOT_FOUND));
+        if (user.getCompany() == null)
+            throw new CustomException("Work Order not found", HttpStatus.NOT_FOUND);
+        WorkOrder workOrder = findByIdAndCompany(workOrderId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Work Order not found", HttpStatus.NOT_FOUND));
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return workOrder;
@@ -849,16 +891,25 @@ public class WorkOrderService {
 
     @Transactional
     public WorkOrder changeStatus(WorkOrderChangeStatusDTO dto, Long id, User user, String platform) {
+        if (user.getCompany() == null) throw new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND);
         Optional<WorkOrder> optionalWorkOrder = findById(id);
-        WorkOrder savedWorkOrder = optionalWorkOrder.get();
+        WorkOrder savedWorkOrder = optionalWorkOrder
+                .orElseThrow(() -> new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND));
         em.detach(savedWorkOrder); // detach FIRST
         WorkOrder originalWorkOrder = savedWorkOrder;
-        WorkOrder mutableWO = findById(id).get(); // fresh managed copy
+        WorkOrder mutableWO = workOrderRepository.findByIdAndCompany_IdForUpdate(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND));
 
         if (dto.getStatus() == null) throw new CustomException("Status can't be null", HttpStatus.NOT_ACCEPTABLE);
+        Status savedWorkOrderStatusBefore = mutableWO.getStatus();
+        if (Status.COMPLETE.equals(savedWorkOrderStatusBefore)) {
+            throw new CustomException("Completed work orders must be reopened before changing their status",
+                    HttpStatus.CONFLICT);
+        }
+        boolean canEditWorkOrder = mutableWO.canBeEditedBy(user);
+        if (!canEditWorkOrder) throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         if (mutableWO.getFirstTimeToReact() == null && !dto.getStatus().equals(Status.ON_HOLD))
             mutableWO.setFirstTimeToReact(new Date());
-        Status savedWorkOrderStatusBefore = mutableWO.getStatus();
         if (dto.getSignature() != null && !licenseService.hasEntitlement(LicenseEntitlement.SIGNATURE_CAPTURE))
             throw new CustomException("You need a license to add signature to work order",
                     HttpStatus.FORBIDDEN);
@@ -870,15 +921,16 @@ public class WorkOrderService {
                 && (dto.getSignature() == null || dto.getSignature().trim().isEmpty()))
             throw new CustomException("Signature is required to complete this work order",
                     HttpStatus.BAD_REQUEST);
-        mutableWO.setSignature(dto.getSignature());
+        if (dto.getStatus() == Status.COMPLETE) validateCompletionRequirements(mutableWO, user);
+        if (dto.getSignature() != null) mutableWO.setSignature(dto.getSignature());
         mutableWO.setStatus(dto.getStatus());
-        mutableWO.setFeedback(Sanitizer.cleanText(dto.getFeedback()));
+        if (dto.getFeedback() != null) mutableWO.setFeedback(Sanitizer.cleanText(dto.getFeedback()));
 
         if (dto.getStatus() != Status.COMPLETE) {
             mutableWO.setCompletedOn(null);
             mutableWO.setCompletedBy(null);
         }
-        if (mutableWO.canBeEditedBy(user) && (dto.getSignature() == null ||
+        if (canEditWorkOrder && (dto.getSignature() == null ||
                 user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.SIGNATURE))) {
             if (!dto.getStatus().equals(Status.IN_PROGRESS)) {
                 if (dto.getStatus().equals(Status.COMPLETE)) {
@@ -902,6 +954,8 @@ public class WorkOrderService {
                     originalWorkOrder);
 
             if (patchedWorkOrder.getStatus().equals(Status.COMPLETE) && !savedWorkOrderStatusBefore.equals(Status.COMPLETE)) {
+                workOrderLifecycleEventRepository.save(new WorkOrderLifecycleEvent(patchedWorkOrder,
+                        savedWorkOrderStatusBefore, Status.COMPLETE, user, patchedWorkOrder.getCompletedOn(), null));
                 List<User> admins =
                         userService.findWorkersByCompany(user.getCompany().getId()).stream().filter(ownUser -> ownUser.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) && ownUser.isEnabled() && ownUser.getUserSettings().shouldEmailUpdatesForWorkOrders()).collect(Collectors.toList());
                 notificationService.createMultiple(admins.stream().map(admin -> new Notification(messageSource.getMessage("complete_work_order_content", new String[]{patchedWorkOrder.getTitle(), user.getFullName()}, Helper.getLocale(admin)), admin,
@@ -952,6 +1006,56 @@ public class WorkOrderService {
             }
             return patchedWorkOrder;
         } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+    }
+
+    private void validateCompletionRequirements(WorkOrder workOrder, User user) {
+        Set<String> requiredFields = workOrder.getCompany().getCompanySettings().getWorkOrderConfiguration()
+                .getWorkOrderFieldConfigurations().stream()
+                .filter(field -> field.getFieldType() == FieldType.REQUIRED)
+                .map(FieldConfiguration::getFieldName)
+                .collect(Collectors.toSet());
+        List<String> missing = new ArrayList<>();
+
+        if (requiredFields.contains("completeFiles")
+                && (workOrder.getFiles() == null || workOrder.getFiles().isEmpty())
+                && commentService.countByWorkOrderIdWithFiles(workOrder.getId()) == 0) {
+            missing.add("completeFiles");
+        }
+        if (requiredFields.contains("completeTasks") && taskService.findByWorkOrder(workOrder.getId()).stream()
+                .anyMatch(task -> !isTaskComplete(task))) {
+            missing.add("completeTasks");
+        }
+        if (requiredFields.contains("completeTime") && laborService.findByWorkOrder(workOrder.getId()).stream()
+                .noneMatch(labor -> labor.getDuration() > 0)) {
+            missing.add("completeTime");
+        }
+        if (requiredFields.contains("completeParts") && partQuantityService.findByWorkOrder(workOrder.getId()).isEmpty()) {
+            missing.add("completeParts");
+        }
+        if (requiredFields.contains("completeCost") && additionalCostService.findByWorkOrder(workOrder.getId()).isEmpty()) {
+            missing.add("completeCost");
+        }
+        if (!missing.isEmpty()) {
+            throw new CustomException("Required work order completion data is missing: " + String.join(", ", missing),
+                    HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private boolean isTaskComplete(Task task) {
+        if (task.getValue() == null || task.getValue().trim().isEmpty() || task.getTaskBase() == null
+                || task.getTaskBase().getTaskType() == null) return false;
+        String value = task.getValue().trim();
+        return switch (task.getTaskBase().getTaskType()) {
+            case SUBTASK -> "COMPLETE".equals(value);
+            case NUMBER, METER -> {
+                try {
+                    yield Double.isFinite(Double.parseDouble(value));
+                } catch (NumberFormatException ignored) {
+                    yield false;
+                }
+            }
+            case TEXT, INSPECTION, MULTIPLE -> true;
+        };
     }
 
     public void generatePdfStream(Long id, User user, ReportConfig config, OutputStream outputStream) {
@@ -1091,6 +1195,10 @@ public class WorkOrderService {
         if (optionalWorkOrder.isPresent()) {
             WorkOrder savedWorkOrder = optionalWorkOrder.get();
             if (savedWorkOrder.canBeDeletedBy(user)) {
+                if (workOrderLifecycleEventRepository.existsByWorkOrder_Id(savedWorkOrder.getId())) {
+                    throw new CustomException("Work orders with lifecycle audit events cannot be deleted",
+                            HttpStatus.CONFLICT);
+                }
                 Map<String, Object> mailVariables = new HashMap<String, Object>() {{
                     put("workOrdersLink", frontendUrl + "/app/work-orders");
                     put("workOrderTitle", savedWorkOrder.getTitle());

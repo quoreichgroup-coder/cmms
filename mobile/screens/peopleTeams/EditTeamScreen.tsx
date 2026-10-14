@@ -4,18 +4,21 @@ import Form from '../../components/form';
 import * as Yup from 'yup';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useDispatch } from '../../store';
 import { editTeam } from '../../slices/team';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { getTeamFields } from '../../utils/fields';
 import { formatSelectMultiple } from '../../utils/formatters';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function EditTeamScreen({
   navigation,
   route
 }: RootStackScreenProps<'EditTeam'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { team } = route.params;
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
@@ -23,6 +26,8 @@ export default function EditTeamScreen({
     name: Yup.string().required('required_team_name')
   };
   const onEditSuccess = () => {
+    markFormClean();
+    setIsFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
     navigation.goBack();
   };
@@ -44,7 +49,7 @@ export default function EditTeamScreen({
             };
           })
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           const newValues = { ...values };
           newValues.users = formatSelectMultiple(newValues.users);

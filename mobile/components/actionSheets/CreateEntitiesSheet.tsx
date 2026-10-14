@@ -3,7 +3,7 @@ import ActionSheet, {
   SheetProps
 } from 'react-native-actions-sheet';
 import { View } from 'react-native';
-import { Divider, List, Text } from 'react-native-paper';
+import { Divider, List, Text, useTheme } from 'react-native-paper';
 import * as React from 'react';
 import { useContext, useRef } from 'react';
 import { RootStackParamList } from '../../types';
@@ -13,11 +13,13 @@ import { PermissionEntity } from '../../models/role';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
+import { createQpmActionSheetContainerStyle } from '../../theme/actionSheet';
 
 export default function CreateEntitiesSheet(
   props: SheetProps<{ navigation: any }>
 ) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { hasCreatePermission } = useAuth();
   const netInfo = useNetInfo();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -72,7 +74,10 @@ export default function CreateEntitiesSheet(
     }
   ];
   return (
-    <ActionSheet ref={actionSheetRef}>
+    <ActionSheet
+      ref={actionSheetRef}
+      containerStyle={createQpmActionSheetContainerStyle(theme.colors.surface)}
+    >
       <View style={{ paddingHorizontal: 5, paddingVertical: 15 }}>
         <Text style={{ paddingHorizontal: 15 }} variant="headlineSmall">
           {t('create')}

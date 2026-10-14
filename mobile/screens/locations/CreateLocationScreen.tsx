@@ -1,8 +1,7 @@
 import { RootStackScreenProps } from '../../types';
-import { View } from '../../components/Themed';
 import Form from '../../components/form';
 import * as Yup from 'yup';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useContext, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
@@ -37,7 +36,7 @@ export default function CreateLocationScreen({
   const { customFields } = useSelector((state) => state.customFields);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
-  useUnsavedChanges(navigation, isFormDirty);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   const onCreationSuccess = (createdLocation: Location) => {
     showSnackBar(t('location_create_success'), 'success');
@@ -74,7 +73,6 @@ export default function CreateLocationScreen({
         values={{}}
         onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
-          setIsFormDirty(false);
           let formattedValues = formatLocationValues(values);
           formattedValues = formatCustomFields(formattedValues);
           try {
@@ -91,6 +89,8 @@ export default function CreateLocationScreen({
             const createdLocation = await dispatch(
               addLocation(formattedValues)
             );
+            markFormClean();
+            setIsFormDirty(false);
             onCreationSuccess(createdLocation);
             dispatch(getLocationChildren(0, []));
           } catch (err) {

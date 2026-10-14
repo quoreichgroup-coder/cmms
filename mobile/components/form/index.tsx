@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useRef, useState } from 'react';
 import { IField, IHash } from '../../models/form';
 import * as Yup from 'yup';
 import { ObjectSchema } from 'yup';
@@ -35,6 +36,10 @@ import PriorityPicker from './PriorityPicker';
 import { isTask, Task } from '../../models/tasks';
 import { getTaskTypes } from '../../utils/displayers';
 import NumberInput from '../NumberInput';
+import {
+  getNumericFormErrors,
+  normalizeNumericFormValues
+} from '../../utils/numericInput';
 import DateRangePicker from './DateRangePicker';
 import AudioRecorder from './AudioRecorder';
 import SignaturePad from './SignaturePad';
@@ -43,6 +48,12 @@ import File, { IFile } from '../../models/file';
 import mime from 'mime';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createAsyncActionLock } from '../../utils/asyncActionLock';
+import {
+  hasActiveAudioRecording,
+  updateActiveAudioRecordingFields
+} from '../../utils/formAudioRecording';
+import { qpmLayoutTokens } from '../../theme/tokens';
 
 interface OwnProps {
   fields: Array<IField>;
@@ -57,10 +68,35 @@ interface OwnProps {
   navigation: any;
 }
 
+const getFieldLabel = (field: IField) =>
+  field.required ? `${field.label} *` : field.label;
+
+const getSelectedOptionLabel = (value: any): string | undefined => {
+  if (!value) return undefined;
+  if (isTask(value)) return value.taskBase?.label;
+  if (value.value && isTask(value.value))
+    return value.label || value.value.taskBase?.label;
+  return value?.label;
+};
+
 export default function Form(props: OwnProps) {
   const { t } = useTranslation();
   const shape: IHash<any> = {};
   const theme = useTheme();
+  const submitLock = useRef(createAsyncActionLock()).current;
+  const [activeAudioRecordings, setActiveAudioRecordings] = useState<
+    Record<string, boolean>
+  >({});
+  const activeAudioRecordingsRef = useRef<Record<string, boolean>>({});
+  const onAudioRecordingChange = (field: string, recording: boolean) => {
+    const next = updateActiveAudioRecordingFields(
+      activeAudioRecordingsRef.current,
+      field,
+      recording
+    );
+    activeAudioRecordingsRef.current = next;
+    setActiveAudioRecordings(next);
+  };
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   // Disable NFC-related form inputs on iOS (barcode only).
@@ -87,6 +123,7 @@ export default function Form(props: OwnProps) {
       | { label: string; value: any }
       | [string, string]
   ) => {
+    if (formik.isSubmitting) return;
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     props.onChange && props.onChange({ field, e });
     if (props.fields.length == 1) {
@@ -95,7 +132,19 @@ export default function Form(props: OwnProps) {
     formik.setFieldValue(field, e);
     return formik.handleChange(field);
   };
+  const handleDirectValueChange = (
+    formik: FormikProps<IHash<any>>,
+    field: string,
+    value: any
+  ) => {
+    if (formik.isSubmitting) return;
+    props.onChange && props.onChange({ field, e: value });
+    formik.setFieldValue(field, value);
+  };
   const validationSchema = Yup.object().shape(shape);
+  const numericFieldNames = props.fields
+    .filter((field) => field.type === 'number')
+    .map((field) => field.name);
 
   const renderSelect = (formik, field: IField) => {
     let values:
@@ -106,6 +155,16 @@ export default function Form(props: OwnProps) {
         )[]
       | { label: string; value: number } = formik.values[field.name];
     const excluded = field.excluded;
+    const selectedOptionLabels = (
+      Array.isArray(values) ? values : values ? [values] : []
+    )
+      .map(getSelectedOptionLabel)
+      .filter(Boolean);
+    const selectorAccessibilityLabel = `${getFieldLabel(field)}: ${
+      selectedOptionLabels.length
+        ? selectedOptionLabels.join(', ')
+        : field.placeholder ?? t('select')
+    }`;
     let screenPath: keyof RootStackParamList;
     let onChange: (
       values: (
@@ -131,6 +190,10 @@ export default function Form(props: OwnProps) {
       return (
         <TouchableOpacity
           disabled={formik.isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel={`${getFieldLabel(field)}: ${
+            selectedItem?.label ?? field.placeholder ?? t('select')
+          }`}
           onPress={() => {
             SheetManager.show('basic-select-sheet', {
               payload: {
@@ -154,7 +217,7 @@ export default function Form(props: OwnProps) {
               alignItems: 'center'
             }}
           >
-            <Text>{field.label}</Text>
+            <Text>{getFieldLabel(field)}</Text>
             <IconButton
               iconColor={theme.colors.primary}
               icon={selectedValue ? 'check-circle' : 'plus-circle'}
@@ -165,6 +228,14 @@ export default function Form(props: OwnProps) {
               {selectedItem ? selectedItem.label : selectedValue}
             </Text>
           )}
+          {!selectedValue && (
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {field.placeholder ?? t('select')}
+            </Text>
+          )}
         </TouchableOpacity>
       );
     }
@@ -173,9 +244,10 @@ export default function Form(props: OwnProps) {
       case 'priority':
         return (
           <View>
-            <Text>{field.label}</Text>
+            <Text>{getFieldLabel(field)}</Text>
             <PriorityPicker
               value={formik.values[field.name]}
+              disabled={formik.isSubmitting}
               onChange={(value) => handleChange(formik, field.name, value)}
             />
           </View>
@@ -328,6 +400,10 @@ export default function Form(props: OwnProps) {
             {value.label}
           </Text>
           <IconButton
+            disabled={formik.isSubmitting}
+            accessibilityLabel={t('remove_selected_value', {
+              value: value.label
+            })}
             onPress={() => {
               handleChange(
                 formik,
@@ -348,6 +424,8 @@ export default function Form(props: OwnProps) {
       return (
         <TouchableOpacity
           disabled={formik.isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel={selectorAccessibilityLabel}
           onPress={() =>
             props.navigation.navigate(screenPath, navigationOptions)
           }
@@ -364,21 +442,38 @@ export default function Form(props: OwnProps) {
               alignItems: 'center'
             }}
           >
-            <Text>{field.label}</Text>
-            {!values && (
+            <Text>{getFieldLabel(field)}</Text>
+            {(!values || (Array.isArray(values) && values.length === 0)) && (
               <IconButton
+                disabled={formik.isSubmitting}
                 iconColor={theme.colors.primary}
                 icon={'plus-circle'}
               />
             )}
           </View>
-          {field.multiple
-            ? Array.isArray(values) &&
-              !!values?.length &&
+          {field.multiple ? (
+            Array.isArray(values) && values.length > 0 ? (
               values.map((value: { label: string; value: number }) =>
                 renderValue(value)
               )
-            : values && renderValue(values as { label: string; value: number })}
+            ) : (
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {field.placeholder ?? t('select')}
+              </Text>
+            )
+          ) : values ? (
+            renderValue(values as { label: string; value: number })
+          ) : (
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {field.placeholder ?? t('select')}
+            </Text>
+          )}
         </TouchableOpacity>
       );
     } else if (field.type2 === 'task') {
@@ -387,6 +482,8 @@ export default function Form(props: OwnProps) {
       return (
         <TouchableOpacity
           disabled={formik.isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel={selectorAccessibilityLabel}
           onPress={() =>
             props.navigation.navigate(screenPath, navigationOptions)
           }
@@ -403,15 +500,24 @@ export default function Form(props: OwnProps) {
               alignItems: 'center'
             }}
           >
-            <Text>{field.label}</Text>
-            {!values && (
+            <Text>{getFieldLabel(field)}</Text>
+            {(!values || (Array.isArray(values) && values.length === 0)) && (
               <IconButton
+                disabled={formik.isSubmitting}
                 iconColor={theme.colors.primary}
                 icon={'plus-circle'}
               />
             )}
           </View>
           {/*@ts-ignore*/}
+          {Array.isArray(values) && values.length === 0 && (
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {field.placeholder ?? t('select')}
+            </Text>
+          )}
           {values &&
             Array.isArray(values) &&
             values.map((object: { label: string; value: Task } | Task) => (
@@ -443,6 +549,12 @@ export default function Form(props: OwnProps) {
                   </Text>
                 </View>
                 <IconButton
+                  disabled={formik.isSubmitting}
+                  accessibilityLabel={t('remove_selected_value', {
+                    value: isTask(object)
+                      ? object.taskBase.label
+                      : object.label || object.value.taskBase.label
+                  })}
                   onPress={() => {
                     if (Array.isArray(values))
                       handleChange(
@@ -484,25 +596,40 @@ export default function Form(props: OwnProps) {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 20 + insets.bottom }}
+        contentContainerStyle={[
+          styles.formContent,
+          { paddingBottom: 24 + insets.bottom }
+        ]}
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
         keyboardShouldPersistTaps="handled"
         style={{ flex: 1 }}
       >
         <Formik<IHash<any>>
           validationSchema={props.validation || validationSchema}
+          validate={(values) =>
+            getNumericFormErrors(
+              values,
+              numericFieldNames,
+              t('invalid_number_value')
+            )
+          }
           validateOnChange={true}
           validateOnBlur={true}
           initialValues={props.values || {}}
-          onSubmit={(
-            values,
-            { resetForm, setErrors, setStatus, setSubmitting }
-          ) => {
-            setSubmitting(true);
-            props.onSubmit(values).finally(() => {
-              // resetForm();
-              setStatus({ success: true });
-              setSubmitting(false);
+          onSubmit={(values, { setStatus }) => {
+            if (hasActiveAudioRecording(activeAudioRecordingsRef.current))
+              return;
+            return submitLock(async () => {
+              try {
+                await props.onSubmit?.(
+                  normalizeNumericFormValues(values, numericFieldNames)
+                );
+                setStatus({ success: true });
+              } catch (_error) {
+                // Screen-level handlers show the API error; keep the form usable
+                // so the user can correct the input or retry the submission.
+                setStatus({ success: false });
+              }
             });
           }}
         >
@@ -516,19 +643,22 @@ export default function Form(props: OwnProps) {
                 return (
                   <View
                     key={field.name}
-                    style={{
-                      width: '100%',
-                      backgroundColor: 'white',
-                      paddingHorizontal: 10,
-                      paddingVertical: 10
-                    }}
+                    style={[
+                      styles.fieldCard,
+                      field.type === 'titleGroupField'
+                        ? styles.sectionHeadingCard
+                        : {
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.outlineVariant
+                          }
+                    ]}
                   >
                     {field.type === 'text' ? (
                       <TextInput
                         style={{ width: '100%' }}
                         mode="outlined"
                         error={!!formik.errors[field.name] || field.error}
-                        label={field.label}
+                        label={getFieldLabel(field)}
                         placeholder={field.placeholder ?? field.label}
                         onBlur={formik.handleBlur(field.name)}
                         onChangeText={(text) =>
@@ -543,7 +673,7 @@ export default function Form(props: OwnProps) {
                         style={{ width: '100%' }}
                         mode="outlined"
                         error={!!formik.errors[field.name] || field.error}
-                        label={field.label}
+                        label={getFieldLabel(field)}
                         defaultValue={formik.values[field.name]}
                         placeholder={field.placeholder ?? field.label}
                         onBlur={formik.handleBlur(field.name)}
@@ -556,9 +686,10 @@ export default function Form(props: OwnProps) {
                     ) : field.type === 'file' ? (
                       <FileUpload
                         multiple={field.multiple}
-                        title={field.label}
+                        title={getFieldLabel(field)}
                         type={field.fileType || 'file'}
                         description={t('upload')}
+                        disabled={formik.isSubmitting}
                         files={
                           (Array.isArray(formik.values[field.name])
                             ? formik.values[field.name]
@@ -575,12 +706,13 @@ export default function Form(props: OwnProps) {
                           ) ?? []
                         }
                         onChange={(files) => {
-                          formik.setFieldValue(field.name, files);
+                          handleDirectValueChange(formik, field.name, files);
                         }}
                       />
                     ) : field.type === 'date' ? (
                       <CustomDateTimePicker
-                        label={field.label}
+                        label={getFieldLabel(field)}
+                        disabled={formik.isSubmitting}
                         onChange={(date) =>
                           handleChange(formik, field.name, date)
                         }
@@ -599,9 +731,16 @@ export default function Form(props: OwnProps) {
                           alignItems: 'center'
                         }}
                       >
-                        <Text>{field.label}</Text>
+                        <Text>{getFieldLabel(field)}</Text>
                         <Switch
                           value={formik.values[field.name]}
+                          disabled={formik.isSubmitting}
+                          accessibilityLabel={getFieldLabel(field)}
+                          accessibilityHint={field.helperText}
+                          accessibilityState={{
+                            checked: Boolean(formik.values[field.name]),
+                            disabled: formik.isSubmitting
+                          }}
                           onValueChange={(value) => {
                             handleChange(formik, field.name, value);
                           }}
@@ -609,17 +748,22 @@ export default function Form(props: OwnProps) {
                       </View>
                     ) : field.type === 'titleGroupField' ? (
                       <Text
-                        variant={'titleMedium'}
-                        style={{ color: theme.colors.primary }}
+                        accessibilityRole="header"
+                        variant="titleMedium"
+                        style={[
+                          styles.sectionHeading,
+                          { color: theme.colors.onSurface }
+                        ]}
                       >
                         {field.label}
                       </Text>
                     ) : field.type === 'dateRange' ? (
-                      <View>
+                      <View style={{ opacity: formik.isSubmitting ? 0.55 : 1 }}>
                         <Text style={{ fontWeight: 'bold' }}>
-                          {field.label}
+                          {getFieldLabel(field)}
                         </Text>
                         <DateRangePicker
+                          disabled={formik.isSubmitting}
                           value={formik.values[field.name] ?? [null, null]}
                           onChange={(newValue) => {
                             handleChange(formik, field.name, newValue);
@@ -627,8 +771,9 @@ export default function Form(props: OwnProps) {
                         />
                       </View>
                     ) : field.type === 'nfc' ? (
-                      <View>
+                      <View style={{ opacity: formik.isSubmitting ? 0.55 : 1 }}>
                         <TouchableOpacity
+                          disabled={formik.isSubmitting}
                           onPress={() =>
                             props.navigation.navigate('SelectNfc', {
                               onChange: (value) => {
@@ -638,15 +783,16 @@ export default function Form(props: OwnProps) {
                             })
                           }
                         >
-                          <Text>{field.label}</Text>
+                          <Text>{getFieldLabel(field)}</Text>
                         </TouchableOpacity>
                         <Text style={{ color: theme.colors.primary }}>
                           {formik.values[field.name]}
                         </Text>
                       </View>
                     ) : field.type === 'barcode' ? (
-                      <View>
+                      <View style={{ opacity: formik.isSubmitting ? 0.55 : 1 }}>
                         <TouchableOpacity
+                          disabled={formik.isSubmitting}
                           onPress={() =>
                             props.navigation.navigate('SelectBarcode', {
                               onChange: (value) => {
@@ -656,7 +802,7 @@ export default function Form(props: OwnProps) {
                             })
                           }
                         >
-                          <Text>{field.label}</Text>
+                          <Text>{getFieldLabel(field)}</Text>
                         </TouchableOpacity>
                         <Text style={{ color: theme.colors.primary }}>
                           {formik.values[field.name]}
@@ -664,39 +810,67 @@ export default function Form(props: OwnProps) {
                       </View>
                     ) : field.type === 'audio' ? (
                       <AudioRecorder
-                        title={field.label}
+                        title={getFieldLabel(field)}
+                        disabled={formik.isSubmitting}
+                        onRecordingChange={(recording) =>
+                          onAudioRecordingChange(field.name, recording)
+                        }
                         onChange={(audio) => {
-                          formik.setFieldValue(field.name, audio);
+                          handleDirectValueChange(formik, field.name, audio);
                         }}
                       />
                     ) : field.type === 'signature' ? (
                       <SignaturePad
-                        label={field.label}
+                        label={getFieldLabel(field)}
                         value={formik.values[field.name]}
+                        disabled={formik.isSubmitting}
                         onChange={(signature) => {
-                          formik.setFieldValue(field.name, signature);
+                          handleDirectValueChange(
+                            formik,
+                            field.name,
+                            signature
+                          );
                         }}
                       />
                     ) : (
                       renderSelect(formik, field)
                     )}
-                    {Boolean(formik.errors[field.name]) && (
-                      <HelperText type="error">
+                    {Boolean(formik.errors[field.name]) ? (
+                      <HelperText type="error" accessibilityLiveRegion="polite">
                         {t(formik.errors[field.name]?.toString())}
                       </HelperText>
-                    )}
+                    ) : field.helperText ? (
+                      <HelperText type="info">{field.helperText}</HelperText>
+                    ) : null}
                   </View>
                 );
               })}
               <Button
-                style={{ marginVertical: 20, zIndex: 10 }}
+                style={styles.submitButton}
                 onPress={() => formik.handleSubmit()}
                 mode="contained"
                 loading={formik.isSubmitting}
-                disabled={Boolean(formik.errors.submit) || formik.isSubmitting}
+                disabled={
+                  Boolean(formik.errors.submit) ||
+                  formik.isSubmitting ||
+                  hasActiveAudioRecording(activeAudioRecordings)
+                }
+                accessibilityRole="button"
+                accessibilityState={{
+                  disabled:
+                    Boolean(formik.errors.submit) ||
+                    formik.isSubmitting ||
+                    hasActiveAudioRecording(activeAudioRecordings),
+                  busy: formik.isSubmitting
+                }}
               >
                 {t(props.submitText)}
               </Button>
+              {hasActiveAudioRecording(activeAudioRecordings) && (
+                <HelperText type="info" accessibilityLiveRegion="polite">
+                  {t('stop_recording_before_saving')}
+                </HelperText>
+              )}
             </View>
           )}
         </Formik>
@@ -707,7 +881,33 @@ export default function Form(props: OwnProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    paddingHorizontal: 5
+    flex: 1
+  },
+  formContent: { paddingHorizontal: 12, paddingTop: 8 },
+  fieldCard: {
+    width: '100%',
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.card
+  },
+  sectionHeadingCard: {
+    marginTop: 18,
+    marginBottom: 0,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+    borderWidth: 0,
+    backgroundColor: 'transparent'
+  },
+  sectionHeading: { fontWeight: '700' },
+  submitButton: {
+    minHeight: 50,
+    justifyContent: 'center',
+    marginHorizontal: 2,
+    marginTop: 18,
+    marginBottom: 8,
+    borderRadius: qpmLayoutTokens.radius.control,
+    zIndex: 10
   }
 });

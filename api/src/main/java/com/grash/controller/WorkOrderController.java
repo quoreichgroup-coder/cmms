@@ -4,6 +4,8 @@ import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.*;
 import com.grash.dto.workOrder.WorkOrderPatchDTO;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
+import com.grash.dto.workOrder.WorkOrderReopenDTO;
+import com.grash.dto.workOrder.WorkOrderLifecycleEventShowDTO;
 import com.grash.dto.workOrder.WorkOrderSendReportDTO;
 import com.grash.dto.workOrder.WorkOrderShowDTO;
 import com.grash.exception.CustomException;
@@ -87,12 +89,13 @@ public class WorkOrderController {
     public Collection<WorkOrderShowDTO> getByAsset(@PathVariable("id") Long id,
                                                    HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<Asset> optionalAsset = assetService.findById(id);
-        if (optionalAsset.isPresent()) {
-            if (!optionalAsset.get().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return workOrderService.findByAsset(id).stream().map(workOrderMapper::toShowDto).collect(Collectors.toList());
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        assetService.checkAccessToAssetId(id, user);
+        return workOrderService.findByAsset(id).stream()
+                .filter(workOrder -> workOrder.getCompany() != null
+                        && workOrder.getCompany().getId().equals(user.getCompany().getId())
+                        && workOrder.canBeViewedBy(user))
+                .map(workOrderMapper::toShowDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/location/{id}")
@@ -156,6 +159,26 @@ public class WorkOrderController {
         User user = userService.whoami(req);
         WorkOrder patchedWorkOrder = workOrderService.changeStatus(workOrder, id, user, platform);
         return workOrderMapper.toShowDto(patchedWorkOrder);
+    }
+
+    @PostMapping("/{id}/reopen")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public WorkOrderShowDTO reopen(@PathVariable("id") Long id,
+                                   @Valid @RequestBody WorkOrderReopenDTO request,
+                                   HttpServletRequest req) {
+        User user = userService.whoami(req);
+        WorkOrder reopenedWorkOrder = workOrderService.reopen(id, request.getReason(), user);
+        return workOrderMapper.toShowDto(reopenedWorkOrder);
+    }
+
+    @GetMapping("/{id}/lifecycle-events")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public List<WorkOrderLifecycleEventShowDTO> getLifecycleEvents(@PathVariable("id") Long id,
+                                                                    HttpServletRequest req) {
+        User user = userService.whoami(req);
+        return workOrderService.getLifecycleEvents(id, user).stream()
+                .map(WorkOrderLifecycleEventShowDTO::new)
+                .collect(Collectors.toList());
     }
 
     @DeleteMapping("/{id}")

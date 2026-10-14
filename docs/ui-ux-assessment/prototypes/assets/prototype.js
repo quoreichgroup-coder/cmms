@@ -8,7 +8,7 @@
   let toastTimer;
   const stateContent = {
     loading: ['Chargement des données…', 'Les informations sont en cours de récupération. Cet état est une simulation visuelle.', 'loading'],
-    empty: ['Aucun élément à afficher', 'Aucun résultat ne correspond à cette vue. Ajustez les filtres ou créez un nouvel élément.', 'empty'],
+    empty: ['Aucun élément à afficher', 'Aucun résultat ne correspond à cette vue. Modifiez la recherche ou actualisez les données.', 'empty'],
     error: ['Impossible de charger les données', 'Une erreur de service a été simulée. Réessayez pour revenir aux exemples.', 'error'],
     denied: ['Accès non autorisé', 'État illustratif uniquement. Les droits réels sont définis par QPM et ne sont pas testés ici.', 'denied'],
     success: ['Action réalisée', 'Confirmation simulée localement. Aucune donnée n’a été envoyée ni persistée.', 'success']
@@ -33,20 +33,38 @@
     stateSlot.innerHTML = `<div class="state-card" data-kind="${kind}" role="status"><div class="state-icon" aria-hidden="true">${kind === 'error' ? '!' : kind === 'denied' ? '⊘' : kind === 'success' ? '✓' : '⌕'}</div><div><h3>${title}</h3><p>${message}</p>${kind === 'error' ? '<button class="button secondary small" data-retry>Réessayer</button>' : ''}</div></div>`;
   }
   if (stateSelect) { stateSelect.addEventListener('change', () => applyState(stateSelect.value)); applyState(stateSelect.value || 'live'); }
-  if (['#orders','#detail','#create'].includes(location.hash)) {
-    const initialPanel = location.hash === '#create' ? 'create' : 'workorders';
+  if (['#orders','#detail','#create','#more'].includes(location.hash)) {
+    const initialPanel = location.hash === '#create' ? 'create' : location.hash === '#more' ? 'more' : 'workorders';
     $$('[data-panel]').forEach(p=>p.classList.toggle('active',p.dataset.panel===initialPanel));
     $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===initialPanel));
+    const mobilePanel = initialPanel === 'workorders' ? 'mywork' : initialPanel;
+    $$('[data-mobile-panel]').forEach(p=>p.classList.toggle('active',p.dataset.mobilePanel===mobilePanel));
+    $$('[data-mobile-tab]').forEach(b=>b.classList.toggle('active',b.dataset.mobileTab===(mobilePanel==='detail'?'mywork':mobilePanel)));
+    const mobileTitle=$('[data-mobile-title]');
+    if(mobileTitle) mobileTitle.textContent=({mywork:'Mes ordres',create:'Nouvel ordre',more:'Accès rapide'})[mobilePanel]||mobileTitle.textContent;
+    const mobileScreenId=$('[data-mobile-screen-id]');
+    if(mobileScreenId) mobileScreenId.textContent=({mywork:'MOB-073',create:'MOB-005',more:'MOB-001'})[mobilePanel]||mobileScreenId.textContent;
     if(location.hash==='#detail') { const drawer=$('[data-wo-drawer]'); if(drawer) drawer.hidden=false; }
+  }
+  const prefilledAsset = (() => { try { return sessionStorage.getItem('qpm-prototype-prefill-asset'); } catch (_) { return null; } })();
+  const assetSelect = $('[data-asset-select]');
+  if (prefilledAsset && assetSelect) {
+    assetSelect.value = prefilledAsset;
+    try { sessionStorage.removeItem('qpm-prototype-prefill-asset'); } catch (_) { /* storage may be unavailable in private contexts */ }
+    toast(`Équipement prérempli : ${prefilledAsset} (simulation)`);
   }
 
   function openModal(name) { const modal = $(`[data-modal="${name}"]`); if (modal) { modal.hidden=false; const focus=$('input,select,textarea,button',modal); if(focus) focus.focus(); } }
   function closeModal(modal) { if(modal) modal.hidden=true; }
   function setMobileView(name) {
     $$('[data-mobile-panel]').forEach(p=>p.classList.toggle('active', p.dataset.mobilePanel===name));
-    $$('[data-mobile-tab]').forEach(b=>b.classList.toggle('active', b.dataset.mobileTab===name));
+    const activeTab = name === 'detail' ? 'mywork' : name === 'pmDetail' ? 'plans' : name;
+    $$('[data-mobile-tab]').forEach(b=>b.classList.toggle('active', b.dataset.mobileTab===activeTab));
     const title=$('[data-mobile-title]');
-    if(title) title.textContent=({home:'Mon poste',mywork:'Mes ordres',detail:'Détail WO',create:'Nouvel ordre',requests:'Demandes'})[name]||'QPM';
+    if(title) title.textContent=({home:'Mon poste',mywork:'Mes ordres',detail:'Détail WO',create:'Nouvel ordre',requests:'Demandes',more:'Accès rapide',plans:'Plans de maintenance',pmDetail:'Détail du plan'})[name]||'QPM';
+    const screenId=$('[data-mobile-screen-id]');
+    if(screenId) screenId.textContent=({home:'MOB-001',mywork:'MOB-073',detail:'MOB-002 / 003',create:'MOB-005',more:'MOB-001',plans:'MOB-015',pmDetail:'MOB-016'})[name]||'';
+    const app=$('.phone-app'); if(app) app.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
   }
   document.addEventListener('click', e => {
     const view=e.target.closest('[data-view]');
@@ -71,6 +89,11 @@
     if(drawerTab) { const drawer=drawerTab.closest('.wo-drawer'); $$('[data-drawer-tab]',drawer).forEach(b=>b.classList.toggle('selected',b===drawerTab)); $$('[data-drawer-panel]',drawer).forEach(p=>p.classList.toggle('active',p.dataset.drawerPanel===drawerTab.dataset.drawerTab)); }
     const open=e.target.closest('[data-modal-open]'); if(open) openModal(open.dataset.modalOpen);
     const close=e.target.closest('[data-modal-close]'); if(close) closeModal(close.closest('.modal-backdrop'));
+    const prefill=e.target.closest('[data-prefill-asset]');
+    if(prefill) {
+      try { sessionStorage.setItem('qpm-prototype-prefill-asset', prefill.dataset.prefillAsset); } catch (_) { /* navigation still works without storage */ }
+      location.href = `mobile-technician.html#create`;
+    }
     const toastButton=e.target.closest('[data-toast]'); if(toastButton) toast(toastButton.dataset.toast);
     const filter=e.target.closest('[data-filter]'); if(filter) {
       const group=filter.closest('.filter-group,.mobile-filter-strip');

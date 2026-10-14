@@ -1,13 +1,14 @@
 import {
+  Pressable,
+  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import {
@@ -17,23 +18,18 @@ import {
 } from '../../slices/location';
 import { FilterField, SearchCriteria } from '../../models/page';
 import {
+  ActivityIndicator,
   Avatar,
   Button,
-  Card,
-  IconButton,
-  List,
   Searchbar,
-  Text,
-  useTheme
+  Text
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Location from '../../models/location';
-import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
 import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import Tag from '../../components/Tag';
-import { useAppTheme } from '../../custom-theme';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
 
 export default function LocationsScreen({
@@ -56,6 +52,8 @@ export default function LocationsScreen({
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const { hasViewPermission } = useAuth();
+  const canView = hasViewPermission(PermissionEntity.LOCATIONS);
+  const [hasLoadedList, setHasLoadedList] = useState(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -79,8 +77,10 @@ export default function LocationsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const listPageRequestInProgress = useRef(false);
   useEffect(() => {
-    if (hasViewPermission(PermissionEntity.LOCATIONS) && view === 'list') {
+    if (canView && view === 'list') {
       dispatch(
         getLocations({
           ...criteria,
@@ -88,9 +88,12 @@ export default function LocationsScreen({
           pageNum: 0,
           direction: 'DESC'
         })
+      ).then(
+        () => setHasLoadedList(true),
+        () => setHasLoadedList(true)
       );
     }
-  }, [criteria]);
+  }, [canView, criteria, dispatch, view]);
   const [currentLocations, setCurrentLocations] = useState([]);
   useEffect(() => {
     if (
@@ -109,7 +112,50 @@ export default function LocationsScreen({
   }, [route]);
 
   const onRefresh = () => {
-    setCriteria(getCriteriaFromFilterFields([]));
+    if (view === 'list') {
+      dispatch(
+        getLocations({
+          ...criteria,
+          pageSize: 10,
+          pageNum: 0,
+          direction: 'DESC'
+        })
+      ).catch((error) => {
+        console.warn('Could not refresh locations:', error);
+      });
+    } else {
+      dispatch(
+        getLocationChildren(
+          route.params?.id ?? 0,
+          route.params?.hierarchy ?? [],
+          0
+        )
+      ).catch((error) => {
+        console.warn('Could not refresh location hierarchy:', error);
+      });
+    }
+  };
+
+  const loadNextLocationPage = (retry = false) => {
+    if (
+      listPageRequestInProgress.current ||
+      loadingGet ||
+      lastPage ||
+      (loadMoreError && !retry)
+    ) {
+      return;
+    }
+
+    listPageRequestInProgress.current = true;
+    setLoadMoreError(false);
+    dispatch(getMoreLocations(criteria, currentPageNum + 1))
+      .catch((error) => {
+        setLoadMoreError(true);
+        console.warn('Could not load more locations:', error);
+      })
+      .finally(() => {
+        listPageRequestInProgress.current = false;
+      });
   };
 
   const onQueryChange = (query) => {
@@ -120,7 +166,7 @@ export default function LocationsScreen({
       setSearchQuery,
       ['name', 'address', 'customId', 'customFieldValues.value']
     );
-    setView('list');
+    setView(query ? 'list' : 'hierarchy');
   };
   useDebouncedEffect(
     () => {
@@ -153,72 +199,83 @@ export default function LocationsScreen({
     location: any;
     showChildrenButton?: boolean;
   }) => (
-    <TouchableOpacity
-      onPress={() =>
-        navigation.push('LocationDetails', {
-          id: location.id,
-          locationProp: location
-        })
-      }
-      key={location.id}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.outlineVariant
+        }
+      ]}
     >
-      <View style={styles.card}>
-        <View
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 6
-          }}
-        >
-          <Avatar.Icon
-            style={{
-              backgroundColor: theme.colors.background
-            }}
-            color={'white'}
-            icon={'map-marker-outline'}
-            size={50}
-          />
-          <View style={{ flex: 1 }}>
-            <View style={styles.cardHeader}>
-              <View style={{ flex: 1 }}>
-                <Text variant="titleMedium" style={styles.cardTitle}>
-                  {location.name}
-                </Text>
-                <Text
-                  variant={'bodySmall'}
-                  style={{ color: 'grey' }}
-                >{`#${location.customId}`}</Text>
-              </View>
-            </View>
+      <Pressable
+        onPress={() =>
+          navigation.push('LocationDetails', {
+            id: location.id,
+            locationProp: location
+          })
+        }
+        accessibilityRole="button"
+        accessibilityLabel={`${location.name}, ${location.customId}`}
+        style={({ pressed }) => [
+          styles.cardMain,
+          { opacity: pressed ? 0.72 : 1 }
+        ]}
+      >
+        <Avatar.Icon
+          style={{ backgroundColor: theme.colors.primaryContainer }}
+          color={theme.colors.onPrimaryContainer}
+          icon="map-marker-outline"
+          size={48}
+        />
+        <View style={styles.cardDetails}>
+          <Text
+            variant="titleMedium"
+            style={styles.cardTitle}
+            numberOfLines={2}
+          >
+            {location.name}
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {`#${location.customId}`}
+          </Text>
+          {location.address && (
             <View style={styles.cardBody}>
-              {location.address && (
-                <IconWithLabel
-                  label={location.address}
-                  icon="map-legend"
-                  color={theme.colors.grey}
-                />
-              )}
+              <IconWithLabel
+                label={location.address}
+                icon="map-legend"
+                color={theme.colors.onSurfaceVariant}
+              />
             </View>
-            {showChildrenButton && location.hasChildren && (
-              <View style={styles.cardFooter}>
-                <View style={{ flex: 1 }} />
-                <Button
-                  compact
-                  onPress={() => {
-                    navigation.push('Locations', {
-                      id: location.id,
-                      hierarchy: location.hierarchy
-                    });
-                  }}
-                >
-                  {t('view_children')}
-                </Button>
-              </View>
-            )}
-          </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+      {showChildrenButton && location.hasChildren && (
+        <View
+          style={[
+            styles.cardFooter,
+            { borderTopColor: theme.colors.outlineVariant }
+          ]}
+        >
+          <View style={{ flex: 1 }} />
+          <Button
+            compact
+            onPress={() =>
+              navigation.push('Locations', {
+                id: location.id,
+                hierarchy: location.hierarchy
+              })
+            }
+            accessibilityRole="button"
+          >
+            {t('view_children')}
+          </Button>
+        </View>
+      )}
+    </View>
   );
 
   return (
@@ -230,17 +287,20 @@ export default function LocationsScreen({
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
-        style={{ backgroundColor: theme.colors.background }}
+        style={[styles.search, { backgroundColor: theme.colors.surface }]}
       />
       {view === 'list' ? (
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
-          onScroll={({ nativeEvent }) => {
-            if (isCloseToBottom(nativeEvent)) {
-              if (!loadingGet && !lastPage)
-                dispatch(getMoreLocations(criteria, currentPageNum + 1));
-            }
-          }}
+          data={locations.content}
+          keyExtractor={(location) => String(location.id)}
+          renderItem={({ item }) => <LocationCard location={item} />}
+          onEndReached={() => loadNextLocationPage()}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={8}
+          windowSize={7}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
@@ -248,26 +308,52 @@ export default function LocationsScreen({
               colors={[theme.colors.primary]}
             />
           }
-          scrollEventThrottle={400}
-        >
-          {!!locations.content.length ? (
-            locations.content.map((location) => (
-              <LocationCard key={location.id} location={location} />
-            ))
-          ) : loadingGet ? null : (
-            <View
-              style={{
-                backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
-              }}
-            >
-              <Text variant={'titleLarge'}>
-                {t('no_element_match_criteria')}
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+          ListEmptyComponent={
+            loadingGet || (canView && !hasLoadedList) ? (
+              <ActivityIndicator
+                style={styles.listLoading}
+                color={theme.colors.primary}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('no_element_match_criteria')}
+                </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            loadMoreError ? (
+              <View style={styles.paginationFeedback}>
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.error, textAlign: 'center' }}
+                >
+                  {t('error')}
+                </Text>
+                <Button onPress={() => loadNextLocationPage(true)}>
+                  {t('retry')}
+                </Button>
+              </View>
+            ) : loadingGet && locations.content.length > 0 ? (
+              <ActivityIndicator
+                style={styles.listLoading}
+                color={theme.colors.primary}
+              />
+            ) : null
+          }
+        />
       ) : (
         <ScrollView
           style={styles.scrollView}
@@ -291,6 +377,7 @@ export default function LocationsScreen({
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
+              onRefresh={onRefresh}
               colors={[theme.colors.primary]}
             />
           }
@@ -321,18 +408,35 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
-    height: '100%'
+    flex: 1
   },
+  listContent: { flexGrow: 1, paddingBottom: 16 },
+  listLoading: { paddingVertical: 16 },
+  paginationFeedback: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  search: { marginHorizontal: 16, marginTop: 12, marginBottom: 8 },
   row: {
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center'
   },
   card: {
-    backgroundColor: 'white',
-    marginBottom: 1,
-    padding: 10
+    marginHorizontal: 16,
+    marginVertical: 5,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   },
+  cardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 58
+  },
+  cardDetails: { flex: 1, minWidth: 0 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -351,6 +455,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10
+    marginTop: 10,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth
+  },
+  emptyState: {
+    margin: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

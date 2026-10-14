@@ -4,7 +4,7 @@ import Form from '../../components/form';
 import * as Yup from 'yup';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { useDispatch, useSelector } from '../../store';
 import { editMeter } from '../../slices/meter';
@@ -20,12 +20,15 @@ import {
   getCustomFieldsValues
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function EditMeterScreen({
   navigation,
   route
 }: RootStackScreenProps<'EditMeter'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { meter } = route.params;
   const { getFilteredFields } = useAuth();
   const { uploadFiles, getWOFieldsAndShapes } = useContext(
@@ -58,6 +61,8 @@ export default function EditMeterScreen({
   };
 
   const onEditSuccess = () => {
+    markFormClean();
+    setIsFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
     navigation.goBack();
   };
@@ -93,7 +98,7 @@ export default function EditMeterScreen({
             ? { label: meter.meterCategory.name, value: meter.meterCategory.id }
             : null
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           let formattedValues = formatMeterValues(values);
           formattedValues = formatCustomFields(formattedValues);

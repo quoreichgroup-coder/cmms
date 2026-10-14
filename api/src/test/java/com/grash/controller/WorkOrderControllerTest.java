@@ -240,9 +240,7 @@ class WorkOrderControllerTest extends AbstractControllerTest {
         void getByAsset_permitAll() throws Exception {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
-            Asset asset = new Asset();
-            asset.setId(1L);
-            when(assetService.findById(1L)).thenReturn(Optional.of(asset));
+            when(assetService.checkAccessToAssetId(1L, clientUser)).thenReturn(new Asset());
             when(workOrderService.findByAsset(1L)).thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/work-orders/asset/1"))
@@ -267,12 +265,60 @@ class WorkOrderControllerTest extends AbstractControllerTest {
             User restrictedUser = restrictedClient();
             setCurrentUser(restrictedUser);
             when(userService.whoami(any())).thenReturn(restrictedUser);
-            Asset asset = new Asset();
-            asset.setId(1L);
-            when(assetService.findById(1L)).thenReturn(Optional.of(asset));
+            when(assetService.checkAccessToAssetId(1L, restrictedUser))
+                    .thenThrow(new CustomException("Access denied", HttpStatus.FORBIDDEN));
 
             mockMvc.perform(get("/work-orders/asset/1"))
                     .andExpect(status().isForbidden());
+
+            verify(workOrderService, never()).findByAsset(1L);
+        }
+
+        @Test
+        void getByAsset_filtersWorkOrdersByCompanyAndExistingVisibilityRule() throws Exception {
+            Company company = new Company();
+            company.setId(1L);
+            Company otherCompany = new Company();
+            otherCompany.setId(2L);
+            Role role = Role.builder()
+                    .id(9L)
+                    .roleType(RoleType.ROLE_CLIENT)
+                    .viewPermissions(new HashSet<>(Arrays.asList(
+                            PermissionEntity.ASSETS, PermissionEntity.WORK_ORDERS)))
+                    .viewOtherPermissions(Collections.emptySet())
+                    .build();
+            User user = new User();
+            user.setId(9L);
+            user.setCompany(company);
+            user.setRole(role);
+            when(userService.whoami(any())).thenReturn(user);
+            when(assetService.checkAccessToAssetId(1L, user)).thenReturn(new Asset());
+
+            WorkOrder visible = new WorkOrder();
+            visible.setId(2L);
+            visible.setCompany(company);
+            visible.setCreatedBy(user.getId());
+            WorkOrder notAssigned = new WorkOrder();
+            notAssigned.setId(3L);
+            notAssigned.setCompany(company);
+            notAssigned.setCreatedBy(10L);
+            WorkOrder otherTenant = new WorkOrder();
+            otherTenant.setId(4L);
+            otherTenant.setCompany(otherCompany);
+            otherTenant.setCreatedBy(user.getId());
+            when(workOrderService.findByAsset(1L))
+                    .thenReturn(Arrays.asList(visible, notAssigned, otherTenant));
+            WorkOrderShowDTO visibleDto = new WorkOrderShowDTO();
+            visibleDto.setId(2L);
+            when(workOrderMapper.toShowDto(visible)).thenReturn(visibleDto);
+
+            mockMvc.perform(get("/work-orders/asset/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").value(2));
+
+            verify(workOrderMapper, never()).toShowDto(notAssigned);
+            verify(workOrderMapper, never()).toShowDto(otherTenant);
         }
 
         @Test
@@ -413,7 +459,8 @@ class WorkOrderControllerTest extends AbstractControllerTest {
         void getByAsset_notFound_returns404() throws Exception {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
-            when(assetService.findById(99L)).thenReturn(Optional.empty());
+            when(assetService.checkAccessToAssetId(99L, clientUser))
+                    .thenThrow(new CustomException("Not found", HttpStatus.NOT_FOUND));
 
             mockMvc.perform(get("/work-orders/asset/99"))
                     .andExpect(status().isNotFound());

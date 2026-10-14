@@ -1,17 +1,24 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { dispatchAfterDiscard } from '../utils/unsavedChanges';
 
 export default function useUnsavedChanges(
   navigation: NativeStackNavigationProp<any>,
   isFormDirty: boolean
 ) {
   const { t } = useTranslation();
+  const isDirtyRef = useRef(isFormDirty);
+  isDirtyRef.current = isFormDirty;
+
+  const markClean = useCallback(() => {
+    isDirtyRef.current = false;
+  }, []);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
-      if (!isFormDirty) {
+      if (!isDirtyRef.current) {
         return;
       }
       e.preventDefault();
@@ -20,9 +27,14 @@ export default function useUnsavedChanges(
         {
           text: t('discard_changes'),
           style: 'destructive',
-          onPress: () => navigation.dispatch(e.data.action)
+          onPress: () =>
+            dispatchAfterDiscard(isDirtyRef, () =>
+              navigation.dispatch(e.data.action)
+            )
         }
       ]);
     });
-  }, [navigation, isFormDirty]);
+  }, [navigation, t]);
+
+  return markClean;
 }

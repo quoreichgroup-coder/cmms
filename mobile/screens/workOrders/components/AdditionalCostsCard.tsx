@@ -1,6 +1,7 @@
-import { Fragment, useContext } from 'react';
+import { Fragment, useContext, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import {
+  ActivityIndicator,
   Button,
   Divider,
   IconButton,
@@ -19,6 +20,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type AdditionalCost from '../../../models/additionalCost';
 import type WorkOrder from '../../../models/workOrder';
 import { View } from '../../../components/Themed';
+import { qpmLayoutTokens } from '../../../custom-theme';
+import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
 
 interface AdditionalCostsCardProps {
   additionalCosts: AdditionalCost[];
@@ -28,6 +31,9 @@ interface AdditionalCostsCardProps {
   hasFeature: (feature: PlanFeature) => boolean;
   getFormattedCurrency: (amount: number) => string;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  loading: boolean;
+  loadError: boolean;
+  onRetry: () => void;
 }
 
 export default function AdditionalCostsCard({
@@ -37,18 +43,47 @@ export default function AdditionalCostsCard({
   hasEditPermission,
   hasFeature,
   getFormattedCurrency,
-  navigation
+  navigation,
+  loading,
+  loadError,
+  onRetry
 }: AdditionalCostsCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
+  const deletingIdsRef = useRef(new Set<number>());
+
+  const handleDelete = async (costId: number) => {
+    if (deletingIdsRef.current.has(costId)) return;
+    deletingIdsRef.current.add(costId);
+    setDeletingIds([...deletingIdsRef.current]);
+    try {
+      await dispatch(deleteAdditionalCost(workOrderId, costId));
+      showSnackBar(t('operation_success'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error) || t('an_error_occured'), 'error');
+    } finally {
+      deletingIdsRef.current.delete(costId);
+      setDeletingIds([...deletingIdsRef.current]);
+    }
+  };
 
   const canEdit = hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder);
   const canAdd = canEdit && hasFeature(PlanFeature.ADDITIONAL_COST);
 
   return (
-    <View style={styles.shadowedCard}>
+    <View
+      style={[
+        styles.shadowedCard,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.outlineVariant,
+          shadowColor: theme.colors.shadow
+        }
+      ]}
+    >
       <Text
         style={{
           marginBottom: 10,
@@ -57,7 +92,24 @@ export default function AdditionalCostsCard({
       >
         {t('additional_costs')}
       </Text>
-      {!additionalCosts.length ? (
+      {loadError ? (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('additional_costs_load_error')}
+          onRetry={onRetry}
+        />
+      ) : loading ? (
+        <View
+          style={{ alignItems: 'center', paddingVertical: 16 }}
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('loading')}
+        >
+          <ActivityIndicator color={theme.colors.primary} />
+          <Text style={{ color: theme.colors.onSurfaceVariant }}>
+            {t('loading')}
+          </Text>
+        </View>
+      ) : !additionalCosts.length ? (
         <Text style={{ fontWeight: 'bold' }}>{t('no_additional_cost')}</Text>
       ) : (
         <View>
@@ -79,6 +131,8 @@ export default function AdditionalCostsCard({
                   <IconButton
                     icon="pencil"
                     size={20}
+                    accessibilityLabel={t('edit_additional_cost')}
+                    disabled={deletingIds.includes(cost.id)}
                     onPress={() =>
                       navigation.navigate('EditAdditionalCost', {
                         workOrderId,
@@ -86,24 +140,35 @@ export default function AdditionalCostsCard({
                       })
                     }
                   />
-                  <IconButton
-                    icon="delete"
-                    size={20}
-                    onPress={() =>
-                      Alert.alert(t('confirmation'), t('confirm_delete_additional_cost'), [
-                        { text: t('cancel'), style: 'cancel' },
-                        {
-                          text: t('to_delete'),
-                          style: 'destructive',
-                          onPress: () => {
-                            dispatch(deleteAdditionalCost(workOrderId, cost.id))
-                              .then(() => showSnackBar(t('operation_success'), 'success'))
-                              .catch((err) => showSnackBar(getErrorMessage(err), 'error'));
-                          }
-                        }
-                      ])
-                    }
-                  />
+                  {deletingIds.includes(cost.id) ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.primary}
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={t('loading')}
+                      style={{ marginHorizontal: 12 }}
+                    />
+                  ) : (
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      accessibilityLabel={t('delete_additional_cost')}
+                      onPress={() =>
+                        Alert.alert(
+                          t('confirmation'),
+                          t('confirm_delete_additional_cost'),
+                          [
+                            { text: t('cancel'), style: 'cancel' },
+                            {
+                              text: t('to_delete'),
+                              style: 'destructive',
+                              onPress: () => void handleDelete(cost.id)
+                            }
+                          ]
+                        )
+                      }
+                    />
+                  )}
                 </View>
               )}
             </View>
@@ -144,15 +209,15 @@ export default function AdditionalCostsCard({
 
 const styles = StyleSheet.create({
   shadowedCard: {
-    borderRadius: 10,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    shadowColor: '#000',
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.08,
     marginVertical: 10,
     marginHorizontal: 5,
-    elevation: 5
+    elevation: 1
   },
   costRow: {
     display: 'flex',

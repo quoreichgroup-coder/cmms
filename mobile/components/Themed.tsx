@@ -6,20 +6,27 @@
 import { Text as DefaultText, View as DefaultView } from 'react-native';
 
 import Colors from '../constants/Colors';
-import useColorScheme from '../hooks/useColorScheme';
+import { useAppTheme } from '../custom-theme';
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark
 ) {
-  const theme = useColorScheme();
-  const colorFromProps = props[theme];
+  const theme = useAppTheme();
+  const colorScheme = theme.dark ? 'dark' : 'light';
+  const colorFromProps = props[colorScheme];
 
   if (colorFromProps) {
     return colorFromProps;
-  } else {
-    return Colors[theme][colorName];
   }
+  const themedColors = {
+    text: theme.colors.onSurface,
+    background: theme.colors.background,
+    tint: theme.colors.primary,
+    tabIconDefault: theme.colors.onSurfaceVariant,
+    tabIconSelected: theme.colors.primary
+  };
+  return themedColors[colorName] || Colors[colorScheme][colorName];
 }
 
 type ThemeProps = {
@@ -46,7 +53,7 @@ export function View(props: ViewProps) {
 
   return (
     <DefaultView
-      style={[{ backgroundColor: 'white' }, style]}
+      style={[{ backgroundColor }, style]}
       {...otherProps}
     />
   );

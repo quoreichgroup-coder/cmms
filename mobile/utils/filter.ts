@@ -2,6 +2,17 @@ import { FilterField, SearchOperator } from '../models/page';
 
 export type FilterFieldType = 'simple' | 'array' | 'date' | 'dateLessThan';
 
+export const getEnumFilterStatuses = (
+  filterFields: FilterField[],
+  fieldName: string,
+  options: string[]
+): boolean[] => {
+  const selectedValues =
+    filterFields.find((filterField) => filterField.field === fieldName)
+      ?.values ?? [];
+  return options.map((option) => selectedValues.includes(option));
+};
+
 export const getLabelAndValue = <T extends { id: number }>(
   filterFields: FilterField[],
   minis: T[],

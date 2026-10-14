@@ -1,13 +1,13 @@
 import {
+  ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
@@ -16,30 +16,23 @@ import { FilterField, SearchCriteria } from '../../models/page';
 import {
   Button,
   Card,
-  IconButton,
   Searchbar,
   Text,
   Avatar,
-  TouchableRipple
+  Chip
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Meter from '../../models/meter';
-import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
-import {
-  canAddReading,
-  isCloseToBottom,
-  onSearchQueryChange
-} from '../../utils/overall';
+import { canAddReading, onSearchQueryChange } from '../../utils/overall';
 import Tag from '../../components/Tag';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { IconWithLabel } from '../../components/IconWithLabel';
-import { useAppTheme } from '../../custom-theme';
-import _ from 'lodash';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function MetersScreen({
-  navigation,
-  route
+  navigation
 }: RootStackScreenProps<'Meters'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
@@ -49,10 +42,14 @@ export default function MetersScreen({
   const theme = useAppTheme();
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
-  const { getFormattedDate, getUserNameById } = useContext(
-    CompanySettingsContext
-  );
-  const { hasViewPermission, user } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [hasLoadedList, setHasLoadedList] = useState(false);
+  const nextPageRequestInProgress = useRef(false);
+  const { getFormattedDate } = useContext(CompanySettingsContext);
+  const { hasViewPermission } = useAuth();
+  const canView = hasViewPermission(PermissionEntity.METERS);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -76,16 +73,53 @@ export default function MetersScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  useEffect(() => {
-    if (hasViewPermission(PermissionEntity.METERS)) {
-      dispatch(
+  const loadMeters = useCallback(async () => {
+    if (!canView) return;
+    setLoadError(false);
+    setLoadMoreError(false);
+    try {
+      await dispatch(
         getMeters({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+    } catch (error) {
+      console.warn('Could not load meters:', error);
+      setLoadError(true);
+    } finally {
+      setHasLoadedList(true);
     }
-  }, [criteria]);
+  }, [canView, criteria, dispatch]);
 
-  const onRefresh = () => {
-    setCriteria(getCriteriaFromFilterFields([]));
+  useEffect(() => {
+    loadMeters();
+  }, [loadMeters]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadMeters();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const loadMore = async (retry = false) => {
+    if (
+      nextPageRequestInProgress.current ||
+      loadingGet ||
+      lastPage ||
+      (loadMoreError && !retry)
+    )
+      return;
+    nextPageRequestInProgress.current = true;
+    setLoadMoreError(false);
+    try {
+      await dispatch(getMoreMeters(criteria, currentPageNum + 1));
+    } catch (error) {
+      console.warn('Could not load more meters:', error);
+      setLoadMoreError(true);
+    } finally {
+      nextPageRequestInProgress.current = false;
+    }
   };
 
   const onQueryChange = (query) => {
@@ -112,153 +146,257 @@ export default function MetersScreen({
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
-        style={{ backgroundColor: theme.colors.background }}
+        style={[styles.search, { backgroundColor: theme.colors.surface }]}
       />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
-        style={styles.scrollView}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) {
-            if (!loadingGet && !lastPage)
-              dispatch(getMoreMeters(criteria, currentPageNum + 1));
-          }
+      <FlatList<Meter>
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        data={meters.content}
+        ListHeaderComponent={
+          loadError && meters.content.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('meter_list_load_error')}
+              onRetry={loadMeters}
+            />
+          ) : null
+        }
+        keyExtractor={(meter) => String(meter.id)}
+        renderItem={({ item: meter }) => (
+          <Card
+            mode="outlined"
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
+            onPress={() =>
+              navigation.push('MeterDetails', {
+                id: meter.id,
+                meterProp: meter,
+                onNewReading: () => {
+                  dispatch(getMeters(criteria));
+                }
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${meter.name}, ${meter.asset?.name ?? ''}`}
+          >
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.cardRow}>
+                {meter.image ? (
+                  <Avatar.Image size={50} source={{ uri: meter.image.url }} />
+                ) : (
+                  <Avatar.Icon
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                    color={theme.colors.onPrimaryContainer}
+                    icon="gauge"
+                    size={50}
+                  />
+                )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.cardHeader}>
+                    <Text
+                      variant="titleMedium"
+                      style={styles.cardTitle}
+                      numberOfLines={2}
+                    >
+                      {meter.name}
+                    </Text>
+                    <Chip
+                      compact
+                      style={[
+                        styles.unitChip,
+                        { backgroundColor: theme.colors.surfaceVariant }
+                      ]}
+                      textStyle={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {meter.unit || t('unit_of_measurement')}
+                    </Chip>
+                  </View>
+                  <View style={styles.assetLine}>
+                    {meter.asset && (
+                      <IconWithLabel
+                        label={meter.asset.name}
+                        icon="package-variant-closed"
+                        color={theme.colors.onSurfaceVariant}
+                      />
+                    )}
+                    {meter.location && (
+                      <IconWithLabel
+                        label={meter.location.name}
+                        icon="map-marker-outline"
+                        color={theme.colors.onSurfaceVariant}
+                      />
+                    )}
+                  </View>
+                  <View style={styles.dueRow}>
+                    <View style={styles.readingDates}>
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {t('last_reading')}:{' '}
+                        {meter.lastReading
+                          ? getFormattedDate(meter.lastReading)
+                          : '—'}
+                      </Text>
+                      {meter.nextReading ? (
+                        <Text
+                          variant="bodySmall"
+                          style={{
+                            color: canAddReading(meter)
+                              ? theme.colors.error
+                              : theme.colors.onSurfaceVariant
+                          }}
+                        >
+                          {t('next_reading_due')}:{' '}
+                          {getFormattedDate(meter.nextReading)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {!meter.lastReading ? (
+                      <Tag
+                        text={t('meter_no_readings')}
+                        color={theme.colors.onSurfaceVariant}
+                        backgroundColor={theme.colors.surfaceVariant}
+                      />
+                    ) : meter.nextReading && canAddReading(meter) ? (
+                      <Tag
+                        text={t('past_due')}
+                        color={theme.colors.onError}
+                        backgroundColor={theme.colors.error}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+        ListEmptyComponent={
+          loadError ? (
+            <View style={styles.emptyCard} accessibilityRole="alert">
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {t('meter_list_load_error')}
+              </Text>
+              <Button onPress={loadMeters}>{t('retry')}</Button>
+            </View>
+          ) : loadingGet || (canView && !hasLoadedList) ? (
+            <View
+              style={styles.loadingState}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('loading')}
+            >
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('loading')}
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text variant="titleLarge">{t('no_element_match_criteria')}</Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loadingGet && !refreshing && meters.content.length > 0 ? (
+            <ActivityIndicator
+              color={theme.colors.primary}
+              style={styles.loadingFooter}
+            />
+          ) : loadMoreError ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('meter_list_load_error')}
+              onRetry={() => loadMore(true)}
+            />
+          ) : null
+        }
+        onEndReached={() => {
+          loadMore();
         }}
+        onEndReachedThreshold={0.35}
+        initialNumToRender={8}
+        windowSize={7}
         refreshControl={
           <RefreshControl
-            refreshing={loadingGet}
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[theme.colors.primary]}
           />
         }
-        scrollEventThrottle={400}
-      >
-        {!!meters.content.length ? (
-          meters.content.map((meter) => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.push('MeterDetails', {
-                  id: meter.id,
-                  meterProp: meter,
-                  onNewReading: (readingValue) => {
-                    dispatch(getMeters(criteria));
-                  }
-                })
-              }
-              key={meter.id}
-            >
-              <View style={styles.card}>
-                <View
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    gap: 6
-                  }}
-                >
-                  {meter.image ? (
-                    <Avatar.Image
-                      size={50}
-                      source={{ uri: meter.image?.url }}
-                    />
-                  ) : (
-                    <Avatar.Icon
-                      style={{
-                        backgroundColor: theme.colors.background
-                      }}
-                      color={'white'}
-                      icon={'gauge'}
-                      size={50}
-                    />
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {meter.name}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardBody}>
-                      {meter.asset && (
-                        <IconWithLabel
-                          label={meter.asset.name}
-                          icon="package-variant-closed"
-                          color={theme.colors.grey}
-                        />
-                      )}
-                      {meter.location && (
-                        <IconWithLabel
-                          label={meter.location.name}
-                          icon="map-marker-outline"
-                          color={theme.colors.grey}
-                        />
-                      )}
-                      {canAddReading(meter) && (
-                        <Tag
-                          text={t('past_due')}
-                          color={'white'}
-                          backgroundColor={theme.colors.error}
-                        />
-                      )}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : loadingGet ? null : (
-          <View
-            style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}
-          >
-            <Text variant={'titleLarge'}>{t('no_element_match_criteria')}</Text>
-          </View>
-        )}
-      </ScrollView>
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // alignItems: 'center',
-    justifyContent: 'center'
+  container: { flex: 1 },
+  search: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: qpmLayoutTokens.radius.control
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold'
-  },
-  scrollView: {
+  list: {
     width: '100%',
-    height: '100%'
+    flex: 1
   },
-  row: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center'
+  listContent: { paddingBottom: 100, flexGrow: 1 },
+  loadingState: {
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12
   },
+  loadingFooter: { paddingVertical: 18 },
   card: {
-    backgroundColor: 'white',
-    marginBottom: 1,
-    padding: 10
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
+    elevation: 1
   },
+  cardContent: { paddingVertical: 12 },
+  cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6
   },
   cardTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    flexShrink: 1
+    fontWeight: '700',
+    flex: 1
   },
-  cardBody: {
-    gap: 10
-  },
-  cardFooter: {
+  unitChip: { height: 30 },
+  assetLine: { gap: 4 },
+  dueRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 9
+  },
+  readingDates: { flex: 1, gap: 3 },
+  emptyCard: {
+    margin: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

@@ -1,5 +1,5 @@
-import { createContext, FC, ReactNode, useEffect } from 'react';
-import { Snackbar, useTheme } from 'react-native-paper';
+import { createContext, FC, ReactNode, useCallback, useEffect } from 'react';
+import { useAppTheme } from '../custom-theme';
 import { useTranslation } from 'react-i18next';
 import { showMessage } from 'react-native-flash-message';
 import { getErrorMessage, setApiErrorHandler, setConflictErrorHandler } from '../utils/api';
@@ -20,34 +20,41 @@ export const CustomSnackBarContext = createContext<CustomSnackBarContext>(
 export const CustomSnackbarProvider: FC<{ children: ReactNode }> = ({
                                                                       children
                                                                     }) => {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t } = useTranslation();
-  const showSnackBar = (
-    text: string,
-    type?: 'error' | 'success' | 'info',
-    action?: { label: string; onPress: () => void }
-  ) => {
-    showMessage({
-      message: t(type),
-      description: text,
-      color: getColor(type),
-      textStyle: { color: 'white' },
-      titleStyle: { color: 'white' },
-      type: type === 'error' ? 'danger' : type,
-      onPress: action?.onPress
-    });
-  };
+  const showSnackBar = useCallback(
+    (
+      text: string,
+      type?: 'error' | 'success' | 'info',
+      action?: { label: string; onPress: () => void }
+    ) => {
+      showMessage({
+        message: t(type),
+        description: text,
+        backgroundColor: getBackgroundColor(type),
+        color: getForegroundColor(type),
+        type: type === 'error' ? 'danger' : type,
+        onPress: action?.onPress
+      });
+    },
+    [t, theme]
+  );
 
-  const getColor = (type: 'error' | 'success' | 'info') => {
+  const getBackgroundColor = (type: 'error' | 'success' | 'info') => {
     switch (type) {
       case 'info':
-        return 'black';
+        return theme.colors.info;
       case 'error':
         return theme.colors.error;
       case 'success':
-        // @ts-ignore
         return theme.colors.success;
     }
+  };
+
+  const getForegroundColor = (type: 'error' | 'success' | 'info') => {
+    if (type === 'info') return theme.colors.onInfo;
+    if (type === 'error') return theme.colors.onError;
+    return theme.colors.onSuccess;
   };
 
   useEffect(() => {
@@ -56,7 +63,7 @@ export const CustomSnackbarProvider: FC<{ children: ReactNode }> = ({
       showSnackBar(t('conflict_retry'), 'error');
     });
     return () => { removeApiHandler(); removeConflictHandler(); };
-  }, [t]);
+  }, [t, showSnackBar]);
 
   return (
     <CustomSnackBarContext.Provider value={{ showSnackBar }}>

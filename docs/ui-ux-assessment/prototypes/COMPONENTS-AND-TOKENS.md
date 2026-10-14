@@ -17,6 +17,9 @@ Les prototypes utilisent `assets/prototype.css` pour les tokens de base et `asse
 | `FormSection` / `OrderPreview` | `WEB-055`, `MOB-005` | Formulaire groupé et résumé de saisie. |
 | `StateCard` | Toutes les vues | États chargement, vide, erreur, refus et succès. |
 | `BottomTabs` | `MOB-001/073` | Navigation mobile persistante et actions primaires accessibles. |
+| `MobileMenuLink` | `MOB-029/030`, `MOB-015/016` | Accès depuis « Plus » aux actifs et aux plans déjà présents dans l’application mobile. |
+| `AssetMobileIdentity` / `MeterReadout` | `MOB-030`, `MOB-017` | Identité, emplacement, relevé réel et prochain seuil visibles sans confondre valeur absente et zéro. |
+| `PMPlanCard` / `PMThresholdRow` | `MOB-015/016` | Type de déclencheur, prochaine échéance et registre d’appels distincts des ordres générés. |
 
 ## Tokens
 
@@ -29,8 +32,8 @@ La source de tokens est `assets/prototype.css`; cette surcouche les réutilise.
 - Typographie compacte, titres sans-serif, poids renforcé pour actifs et numéros WO.
 - Rayons modérés (6–10 px) et élévation faible; tiroir/modal réservé aux actions contextuelles.
 - Focus clavier visible et contrasté; informations d’état toujours écrites en texte.
-- Cibles tactiles mobiles d’au moins 40–44 px, marges adaptées au pouce et au safe area bas.
+- Cibles tactiles du prototype mobile d’au moins 44–48 px, marges adaptées au pouce et au safe area bas; tailles à confirmer sur appareils natifs avant portage.
 
 ## Comportements réutilisés
 
-Les interactions sont centralisées dans `assets/prototype.js`: navigation de vues, état simulé, recherche, filtres, onglets asset/WO, checklist, formulaires de démonstration et messages de confirmation. Pour une implémentation ultérieure, cette séparation donne une base de composants/patterns; elle n’impose pas de réécriture des pages QPM existantes ni de changement de librairie.
+Les interactions sont centralisées dans `assets/prototype.js`: navigation de vues, état simulé, recherche, filtres, onglets asset/WO, checklist, formulaires de démonstration et messages de confirmation. Sur mobile, le harness d’état reste hors du téléphone simulé, le détail garde l’onglet « Mes ordres » comme contexte, et les identifiants de vues suivent la navigation. Pour une implémentation ultérieure, cette séparation donne une base de composants/patterns; elle n’impose pas de réécriture des pages QPM existantes ni de changement de librairie.

@@ -1,5 +1,15 @@
 import User, { users } from './user';
 
+export interface WorkOrderLifecycleEvent {
+  id: number;
+  previousStatus: 'OPEN' | 'ON_HOLD' | 'IN_PROGRESS' | 'COMPLETE';
+  newStatus: 'OPEN' | 'ON_HOLD' | 'IN_PROGRESS' | 'COMPLETE';
+  actorUserId: number;
+  actorName: string;
+  occurredAt: string;
+  reason?: string | null;
+}
+
 export default interface WorkOrderHistory {
   id: number;
   user: User;

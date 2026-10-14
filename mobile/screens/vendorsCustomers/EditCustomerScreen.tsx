@@ -4,7 +4,7 @@ import Form from '../../components/form';
 import * as Yup from 'yup';
 import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { editCustomer } from '../../slices/customer';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
@@ -22,12 +22,15 @@ import {
   getCustomFieldsValues
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function EditCustomerScreen({
   navigation,
   route
 }: RootStackScreenProps<'EditCustomer'>) {
   const { t } = useTranslation();
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { customer } = route.params;
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
@@ -58,6 +61,8 @@ export default function EditCustomerScreen({
   };
 
   const onEditSuccess = () => {
+    markFormClean();
+    setIsFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
     navigation.goBack();
   };
@@ -81,7 +86,7 @@ export default function EditCustomerScreen({
               }
             : null
         }}
-        onChange={({ field, e }) => {}}
+        onChange={() => setIsFormDirty(true)}
         onSubmit={async (values) => {
           const formattedValues = formatCustomFields(
             formatCustomerValues(values)

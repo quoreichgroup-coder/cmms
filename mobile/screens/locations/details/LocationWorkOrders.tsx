@@ -1,82 +1,44 @@
-import * as React from 'react';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useContext } from 'react';
 import { useDispatch, useSelector } from '../../../store';
 import { useTranslation } from 'react-i18next';
 import Location from '../../../models/location';
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity
-} from 'react-native';
-import { Divider, Text, useTheme } from 'react-native-paper';
-import { View } from '../../../components/Themed';
 import { getWorkOrdersByLocation } from '../../../slices/workOrder';
-import { getStatusColor } from '../../../utils/overall';
-import Tag from '../../../components/Tag';
+import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
+import RelatedWorkOrderList from '../../../components/RelatedWorkOrderList';
+import useRelatedWorkOrdersLoad from '../../../hooks/useRelatedWorkOrdersLoad';
 
 export default function LocationWorkOrders({
-                                             location,
-                                             navigation
-                                           }: {
+  location,
+  navigation
+}: {
   location: Location;
   navigation: any;
 }) {
-  const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const theme = useTheme();
-  const { workOrdersByLocation, loadingGet } = useSelector(
-    (state) => state.workOrders
-  );
+  const { workOrdersByLocation } = useSelector((state) => state.workOrders);
   const workOrders = workOrdersByLocation[location.id] ?? [];
+  const { loading, error, run } = useRelatedWorkOrdersLoad(location.id);
+  const { getFormattedDate } = useContext(CompanySettingsContext);
+  const { t } = useTranslation();
+
+  const refresh = useCallback(
+    () => dispatch(getWorkOrdersByLocation(location.id)),
+    [dispatch, location.id]
+  );
 
   useEffect(() => {
-    if (location) dispatch(getWorkOrdersByLocation(location.id));
-  }, [location]);
+    if (location) void run(location.id, refresh);
+  }, [location.id, refresh, run]);
 
   return (
-    <ScrollView
-      style={{ ...styles.container, backgroundColor: theme.colors.background }}
-      refreshControl={
-        <RefreshControl
-          refreshing={loadingGet}
-          colors={[theme.colors.primary]}
-        />
-      }
-    >
-      {workOrders.map((workOrder) => (
-        <TouchableOpacity
-          key={workOrder.id}
-          onPress={() => navigation.push('WODetails', { id: workOrder.id })}
-        >
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              padding: 20
-            }}
-          >
-            <Text style={{ fontWeight: 'bold', flexShrink: 1 }}>{workOrder.title}</Text>
-            <Tag
-              text={t(workOrder.status)}
-              color='white'
-              backgroundColor={getStatusColor(workOrder.status, theme)}
-            />
-          </View>
-          <Divider />
-        </TouchableOpacity>
-      ))}
-      {!loadingGet && workOrders.length === 0 && (
-        <View style={{ padding: 20 }}>
-          <Text variant={'titleLarge'}>{t('no_wo_linked_location')}</Text>
-        </View>
-      )}
-    </ScrollView>
+    <RelatedWorkOrderList
+      items={workOrders}
+      loading={loading}
+      error={error}
+      emptyMessage={t('no_wo_linked_location')}
+      onRefresh={() => run(location.id, refresh)}
+      navigation={navigation}
+      getFormattedDate={getFormattedDate}
+    />
   );
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  }
-});

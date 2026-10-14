@@ -1,37 +1,26 @@
 import {
-  Image,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
-import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import { getMoreParts, getParts } from '../../slices/part';
 import { FilterField, SearchCriteria } from '../../models/page';
-import {
-  Card,
-  IconButton,
-  List,
-  Searchbar,
-  Text,
-  Avatar,
-  TouchableRipple
-} from 'react-native-paper';
+import { Searchbar, Text, Avatar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Part from '../../models/part';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { useAppTheme } from '../../custom-theme';
-import _ from 'lodash';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
-import { Asset } from 'expo-asset';
 export const getFormattedQuantityWithUnit = (
   quantity: number,
   unit: string
@@ -39,8 +28,7 @@ export const getFormattedQuantityWithUnit = (
   return unit ? quantity + ' ' + unit : quantity;
 };
 export default function PartsScreen({
-  navigation,
-  route
+  navigation
 }: RootStackScreenProps<'Parts'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
@@ -50,10 +38,14 @@ export default function PartsScreen({
   const theme = useAppTheme();
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
-  const { getFormattedDate, getUserNameById } = useContext(
-    CompanySettingsContext
-  );
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const nextPageRequestInProgress = useRef(false);
+  const firstPageRequestSequence = useRef(0);
   const { hasViewPermission } = useAuth();
+  const canView = hasViewPermission(PermissionEntity.PARTS_AND_MULTIPARTS);
+  const [hasLoadedList, setHasLoadedList] = useState(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -77,16 +69,72 @@ export default function PartsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  useEffect(() => {
-    if (hasViewPermission(PermissionEntity.PARTS_AND_MULTIPARTS)) {
-      dispatch(
+  const fetchFirstPage = useCallback(async () => {
+    const requestSequence = ++firstPageRequestSequence.current;
+    setLoadError(false);
+    setLoadMoreError(false);
+    try {
+      await dispatch(
         getParts({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+    } catch (_error) {
+      if (requestSequence === firstPageRequestSequence.current) {
+        setLoadError(true);
+      }
+    } finally {
+      if (requestSequence === firstPageRequestSequence.current) {
+        setHasLoadedList(true);
+      }
     }
-  }, [criteria]);
+  }, [criteria, dispatch]);
 
-  const onRefresh = () => {
-    setCriteria(getCriteriaFromFilterFields([]));
+  const fetchNextPage = useCallback(
+    async (retry = false) => {
+      const requestSequence = firstPageRequestSequence.current;
+      if (
+        !canView ||
+        nextPageRequestInProgress.current ||
+        loadingGet ||
+        lastPage ||
+        (loadMoreError && !retry)
+      )
+        return;
+      nextPageRequestInProgress.current = true;
+      setLoadMoreError(false);
+      try {
+        await dispatch(getMoreParts(criteria, currentPageNum + 1));
+      } catch (_error) {
+        if (requestSequence === firstPageRequestSequence.current) {
+          setLoadMoreError(true);
+        }
+      } finally {
+        nextPageRequestInProgress.current = false;
+      }
+    },
+    [
+      canView,
+      criteria,
+      currentPageNum,
+      dispatch,
+      lastPage,
+      loadMoreError,
+      loadingGet
+    ]
+  );
+
+  useEffect(() => {
+    if (canView) void fetchFirstPage();
+  }, [canView, fetchFirstPage]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchFirstPage();
+    } catch (_error) {
+      // The API error handler displays the failure message globally.
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const onQueryChange = (query) => {
@@ -110,142 +158,272 @@ export default function PartsScreen({
     <View
       style={{ ...styles.container, backgroundColor: theme.colors.background }}
     >
-      <Searchbar
-        placeholder={t('search')}
-        onFocus={() => setStartedSearch(true)}
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={{ backgroundColor: theme.colors.background }}
-      />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
-        style={styles.scrollView}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) {
-            if (!loadingGet && !lastPage)
-              dispatch(getMoreParts(criteria, currentPageNum + 1));
-          }
-        }}
+      {canView && (
+        <Searchbar
+          placeholder={t('search')}
+          accessibilityLabel={t('search')}
+          onFocus={() => setStartedSearch(true)}
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={[styles.search, { backgroundColor: theme.colors.surface }]}
+        />
+      )}
+      <FlatList<Part>
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        data={parts.content}
+        keyExtractor={(part) => String(part.id)}
+        renderItem={({ item: part }) => (
+          <Pressable
+            onPress={() =>
+              navigation.push('PartDetails', { id: part.id, partProp: part })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${part.name}, ${t('remaining_parts', {
+              quantity: getFormattedQuantityWithUnit(part.quantity, part.unit)
+            })}, ${t('minimum_quantity')}: ${getFormattedQuantityWithUnit(
+              part.minQuantity,
+              part.unit
+            )}${
+              part.quantity < part.minQuantity
+                ? `, ${t('part_below_minimum_stock')}`
+                : ''
+            }`}
+            accessibilityHint={t('part_open_details_hint')}
+            style={({ pressed }) => [
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant,
+                opacity: pressed ? 0.72 : 1
+              }
+            ]}
+          >
+            {part.image ? (
+              <Avatar.Image size={48} source={{ uri: part.image.url }} />
+            ) : (
+              <Avatar.Icon
+                style={{ backgroundColor: theme.colors.primaryContainer }}
+                color={theme.colors.onPrimaryContainer}
+                icon="archive-outline"
+                size={48}
+              />
+            )}
+            <View style={styles.partDetails}>
+              <Text
+                variant="titleMedium"
+                style={styles.cardTitle}
+                numberOfLines={2}
+              >
+                {part.name}
+              </Text>
+              <View
+                style={[
+                  styles.quantityBadge,
+                  {
+                    backgroundColor:
+                      part.quantity < part.minQuantity
+                        ? theme.colors.errorContainer
+                        : theme.colors.secondaryContainer
+                  }
+                ]}
+              >
+                <IconWithLabel
+                  label={t('remaining_parts', {
+                    quantity: getFormattedQuantityWithUnit(
+                      part.quantity,
+                      part.unit
+                    )
+                  })}
+                  icon="toolbox-outline"
+                  color={
+                    part.quantity < part.minQuantity
+                      ? theme.colors.onErrorContainer
+                      : theme.colors.onSecondaryContainer
+                  }
+                />
+              </View>
+              {part.minQuantity > 0 && (
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {t('minimum_quantity')}:{' '}
+                  {getFormattedQuantityWithUnit(part.minQuantity, part.unit)}
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          canView && (loadingGet || !hasLoadedList) ? (
+            <View
+              style={styles.loadingState}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('loading')}
+            >
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('loading')}
+              </Text>
+            </View>
+          ) : !canView ? (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('no_access_inventory')}
+              </Text>
+            </View>
+          ) : loadError ? (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('parts_load_error')}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('retry')}
+                onPress={() => void fetchFirstPage()}
+                style={styles.retryButton}
+              >
+                <Text style={{ color: theme.colors.primary }}>
+                  {t('retry')}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {t('no_element_match_criteria')}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loadingGet && !refreshing && parts.content.length > 0 ? (
+            <View
+              style={styles.loadingFooter}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('parts_page_loading')}
+            >
+              <ActivityIndicator color={theme.colors.primary} />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('parts_page_loading')}
+              </Text>
+            </View>
+          ) : loadMoreError ? (
+            <View style={styles.loadingFooter}>
+              <Text style={{ color: theme.colors.error }}>
+                {t('parts_load_error')}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('retry')}
+                onPress={() => void fetchNextPage(true)}
+                style={styles.retryButton}
+              >
+                <Text style={{ color: theme.colors.primary }}>
+                  {t('retry')}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null
+        }
+        onEndReached={() => void fetchNextPage()}
+        onEndReachedThreshold={0.35}
+        initialNumToRender={8}
+        windowSize={7}
         refreshControl={
           <RefreshControl
-            refreshing={loadingGet}
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
           />
         }
-        scrollEventThrottle={400}
-      >
-        {!!parts.content.length ? (
-          parts.content.map((part) => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.push('PartDetails', { id: part.id, partProp: part })
-              }
-              key={part.id}
-            >
-              <View style={styles.card}>
-                <View
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    gap: 6
-                  }}
-                >
-                  {part.image ? (
-                    <Avatar.Image size={50} source={{ uri: part.image.url }} />
-                  ) : (
-                    <Avatar.Icon
-                      style={{
-                        backgroundColor: theme.colors.background
-                      }}
-                      color={'white'}
-                      icon={'archive-outline'}
-                      size={50}
-                    />
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {part.name}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardBody}>
-                      <IconWithLabel
-                        label={t('remaining_parts', {
-                          quantity: getFormattedQuantityWithUnit(
-                            part.quantity,
-                            part.unit
-                          )
-                        })}
-                        icon="toolbox-outline"
-                        color={
-                          part.quantity < part.minQuantity
-                            ? theme.colors.error
-                            : theme.colors.grey
-                        }
-                      />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : loadingGet ? null : (
-          <View
-            style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}
-          >
-            <Text variant={'titleLarge'}>{t('no_element_match_criteria')}</Text>
-          </View>
-        )}
-      </ScrollView>
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // alignItems: 'center',
-    justifyContent: 'center'
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold'
-  },
-  scrollView: {
+  container: { flex: 1 },
+  list: {
     width: '100%',
-    height: '100%'
+    flex: 1
   },
-  row: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center'
+  listContent: { paddingBottom: 100, flexGrow: 1 },
+  loadingState: {
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12
+  },
+  loadingFooter: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  retryButton: { paddingHorizontal: 12, paddingVertical: 8 },
+  search: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: qpmLayoutTokens.radius.control
   },
   card: {
-    backgroundColor: 'white',
-    marginBottom: 1,
-    padding: 10
-  },
-  cardHeader: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 78
+  },
+  partDetails: { flex: 1, minWidth: 0, gap: 5 },
+  quantityBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: qpmLayoutTokens.radius.control,
+    paddingHorizontal: 8,
+    paddingVertical: 3
   },
   cardTitle: {
     fontWeight: 'bold',
     marginBottom: 4,
     flexShrink: 1
   },
-  cardBody: {
-    gap: 10
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10
+  emptyState: {
+    margin: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
   }
 });

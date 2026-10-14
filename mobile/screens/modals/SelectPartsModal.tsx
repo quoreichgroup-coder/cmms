@@ -17,14 +17,14 @@ import {
   ActivityIndicator,
   Avatar,
   Button,
-  Checkbox,
   Searchbar,
-  Text,
-  useTheme
+  Text
 } from 'react-native-paper';
+import { useAppTheme } from '../../custom-theme';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { getMultiPartsMini } from '../../slices/multipart';
 import SetType from '../../models/setType';
+import SelectionIndicator from '../../components/SelectionIndicator';
 
 const PartItem = React.memo(
   ({
@@ -40,7 +40,7 @@ const PartItem = React.memo(
     onNavigate: (id: number) => void;
     formattedCost: string;
   }) => {
-    const theme = useTheme();
+    const theme = useAppTheme();
     const { t } = useTranslation();
 
     const handleToggle = useCallback(
@@ -53,10 +53,20 @@ const PartItem = React.memo(
     );
 
     return (
-      <Pressable onPress={handleToggle}>
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <Checkbox status={isSelected ? 'checked' : 'unchecked'} />
+      <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <View style={styles.cardRow}>
+          <Pressable
+            onPress={handleToggle}
+            accessibilityRole="checkbox"
+            accessibilityLabel={part.name}
+            accessibilityState={{ checked: isSelected }}
+            style={styles.selectionTarget}
+          >
+            <SelectionIndicator
+              checked={isSelected}
+              color={theme.colors.primary}
+              uncheckedColor={theme.colors.controlOutline}
+            />
             <Avatar.Icon
               size={50}
               icon="archive-outline"
@@ -72,25 +82,26 @@ const PartItem = React.memo(
                   >
                     {part.name}
                   </Text>
-                  <Text variant="bodyMedium" style={{ color: 'grey' }}>
+                  <Text
+                    variant="bodyMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
                     {formattedCost}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Button
-                    mode="text"
-                    buttonColor="white"
-                    onPress={handleNavigate}
-                    style={{ marginRight: 8 }}
-                  >
-                    {t('details')}
-                  </Button>
-                </View>
               </View>
             </View>
-          </View>
+          </Pressable>
+          <Button
+            mode="text"
+            onPress={handleNavigate}
+            accessibilityLabel={`${t('details')}: ${part.name}`}
+            style={{ marginRight: 8 }}
+          >
+            {t('details')}
+          </Button>
         </View>
-      </Pressable>
+      </View>
     );
   }
 );
@@ -105,34 +116,42 @@ const SetItem = React.memo(
     isSelected: boolean;
     onToggle: (multiPart: SetType, checked: boolean) => void;
   }) => {
-    const theme = useTheme();
+    const theme = useAppTheme();
     const handleToggle = useCallback(
       () => onToggle(multiPart, isSelected),
       [multiPart, isSelected, onToggle]
     );
 
     return (
-      <Pressable onPress={handleToggle}>
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <Avatar.Icon
-              size={50}
-              icon="archive-outline"
-              style={{ backgroundColor: theme.colors.primaryContainer }}
-            />
-            <View style={{ flex: 1 }}>
-              <View style={styles.cardHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="titleMedium" style={styles.cardTitle}>
-                    {multiPart.name}
-                  </Text>
-                </View>
-                <Checkbox status={isSelected ? 'checked' : 'unchecked'} />
+      <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <Pressable
+          onPress={handleToggle}
+          accessibilityRole="checkbox"
+          accessibilityLabel={multiPart.name}
+          accessibilityState={{ checked: isSelected }}
+          style={styles.cardRow}
+        >
+          <Avatar.Icon
+            size={50}
+            icon="archive-outline"
+            style={{ backgroundColor: theme.colors.primaryContainer }}
+          />
+          <View style={{ flex: 1 }}>
+            <View style={styles.cardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium" style={styles.cardTitle}>
+                  {multiPart.name}
+                </Text>
               </View>
+              <SelectionIndicator
+                checked={isSelected}
+                color={theme.colors.primary}
+                uncheckedColor={theme.colors.controlOutline}
+              />
             </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     );
   }
 );
@@ -151,7 +170,7 @@ const PartsRoute = React.memo(
   }) => {
     const { getFormattedCurrency } = useContext(CompanySettingsContext);
     const { t } = useTranslation();
-    const theme = useTheme();
+    const theme = useAppTheme();
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -225,7 +244,7 @@ const SetsRoute = React.memo(
     selectedIds: number[];
   }) => {
     const { t } = useTranslation();
-    const theme = useTheme();
+    const theme = useAppTheme();
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -300,7 +319,7 @@ export default function SelectParts({
   route
 }: RootStackScreenProps<'SelectParts'>) {
   const { onChange, selected } = route.params;
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { partsMini, loadingGet } = useSelector((state) => state.parts);
@@ -343,7 +362,7 @@ export default function SelectParts({
         </Pressable>
       )
     });
-  }, [selectedParts]);
+  }, [selectedParts, navigation, onChange, t]);
 
   useEffect(() => {
     dispatch(getPartsMini());
@@ -409,7 +428,7 @@ export default function SelectParts({
     (props) => (
       <TabBar
         {...props}
-        indicatorStyle={{ backgroundColor: 'white' }}
+        indicatorStyle={{ backgroundColor: theme.colors.onPrimary }}
         style={{ backgroundColor: theme.colors.primary }}
       />
     ),
@@ -458,13 +477,18 @@ export default function SelectParts({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   card: {
-    backgroundColor: 'white',
     marginBottom: 1,
     padding: 10,
     height: ITEM_HEIGHT
   },
   cardRow: {
     display: 'flex',
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center'
+  },
+  selectionTarget: {
+    flex: 1,
     flexDirection: 'row',
     gap: 6,
     alignItems: 'center'
