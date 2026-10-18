@@ -57,7 +57,11 @@ export function refreshAccessToken(): Promise<boolean> {
 }
 
 function isRefreshRequest(url: string): boolean {
-  return url.replace(/\/+$/, '').endsWith('/auth/refresh');
+  const normalizedUrl = url.replace(/\/+$/, '');
+  return (
+    normalizedUrl.endsWith('/auth/refresh') ||
+    normalizedUrl.endsWith('/auth/oauth/exchange')
+  );
 }
 
 let onConflictError: (() => void) | null = null;

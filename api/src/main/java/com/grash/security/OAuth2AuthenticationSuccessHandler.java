@@ -6,7 +6,6 @@ import com.grash.model.Company;
 import com.grash.model.User;
 import com.grash.model.Subscription;
 import com.grash.model.enums.RoleCode;
-import com.grash.model.enums.RoleCode;
 import com.grash.repository.UserRepository;
 import com.grash.service.*;
 import com.grash.utils.Helper;
@@ -37,7 +36,6 @@ import java.util.*;
 @Slf4j
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2Properties oAuth2Properties;
     private final UserRepository userRepository;
     private final LicenseSeatService licenseSeatService;
@@ -49,6 +47,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final CompanyService companyService;
     private final RoleService roleService;
     private final RefreshTokenService refreshTokenService;
+    private final OAuthLoginGrantService oAuthLoginGrantService;
 
     @Value("${mail.recipients:#{null}}")
     private String[] recipients;
@@ -102,17 +101,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 }
             }
 
-            // Generate JWT access token and a refresh token
-            String token = jwtTokenProvider.createToken(user.getEmail(),
-                    Collections.singletonList(user.getRole().getRoleType()));
-            String refreshToken = refreshTokenService.createRefreshToken(user);
-            return UriComponentsBuilder.fromUriString(targetUrl)
-                    .queryParam("token", token)
-                    .queryParam("refreshToken", refreshToken)
-                    .build().toUriString();
+            // Keep JWTs and exchange credentials out of the browser URL. The
+            // one-time grant is held only in the server-side OAuth session.
+            oAuthLoginGrantService.issue(request.getSession(true), refreshTokenService.createTokenPair(user));
+            return targetUrl;
         } catch (Exception e) {
+            log.error("OAuth login could not be completed ({})", e.getClass().getSimpleName());
             return UriComponentsBuilder.fromUriString(oAuth2Properties.getFailureRedirectUrl())
-                    .queryParam("error", e.getLocalizedMessage())
+                    .queryParam("error", "authentication_failed")
                     .build().toUriString();
         }
 
@@ -177,7 +173,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error creating user from SSO ({})", e.getClass().getSimpleName());
             throw new CustomException("Error creating user from SSO: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }

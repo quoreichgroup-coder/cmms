@@ -60,6 +60,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/auth/signin-ldap").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
                         .requestMatchers("/auth/refresh").permitAll()
+                        .requestMatchers("/auth/oauth/exchange").permitAll()
                         .requestMatchers("/auth/sso/**").permitAll()
                         .requestMatchers("/auth/sendMail").permitAll()
                         .requestMatchers("/auth/resetpwd/**").permitAll()

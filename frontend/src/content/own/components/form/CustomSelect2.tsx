@@ -583,14 +583,33 @@ export const CustomSelect = ({
         </>
       );
     case 'asset': {
-      const assetOptions = assetsMini
+      const availableAssetOptions = assetsMini
         .filter((asset) => asset.id !== excluded)
-        .map((asset) => {
-          return {
-            label: asset.name,
-            value: asset.id
-          };
-        });
+        .map((asset) => ({ label: asset.name, value: asset.id }));
+      // Keep the current Formik value in MUI's option set while a location-
+      // scoped asset request replaces the shared Redux mini list. Otherwise
+      // Autocomplete can no longer match its controlled value and clears the
+      // visible selection after the async response arrives.
+      const selectedAssetValues: OptionType[] = (
+        field.multiple
+          ? Array.isArray(fieldValue)
+            ? fieldValue
+            : []
+          : fieldValue
+          ? [fieldValue]
+          : []
+      ).filter(
+        (value): value is OptionType =>
+          !!value && typeof value === 'object' && value.value != null
+      );
+      const assetOptions = Array.from(
+        new Map(
+          [...availableAssetOptions, ...selectedAssetValues].map((option) => [
+            String(option.value),
+            option
+          ])
+        ).values()
+      );
       const locationId = field.relatedFields?.length
         ? formik.values[field.relatedFields[0].field]?.value ?? null
         : null;

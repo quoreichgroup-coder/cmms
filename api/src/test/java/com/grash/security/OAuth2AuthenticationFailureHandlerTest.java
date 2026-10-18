@@ -37,12 +37,11 @@ class OAuth2AuthenticationFailureHandlerTest {
     @Test
     void onAuthenticationFailure_redirectsToFailureUrlWithErrorParameter() throws Exception {
         when(oAuth2Properties.getFailureRedirectUrl()).thenReturn("https://app.com/oauth-error");
-        when(exception.getLocalizedMessage()).thenReturn("Access denied");
 
         handler.setRedirectStrategy(redirectStrategy);
         handler.onAuthenticationFailure(request, response, exception);
 
         verify(redirectStrategy).sendRedirect(eq(request), eq(response),
-                argThat(url -> ((String) url).equals("https://app.com/oauth-error?error=Access denied")));
+                argThat(url -> ((String) url).equals("https://app.com/oauth-error?error=authentication_failed")));
     }
 }

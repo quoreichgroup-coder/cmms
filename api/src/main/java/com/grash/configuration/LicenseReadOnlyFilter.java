@@ -19,7 +19,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LicenseReadOnlyFilter extends OncePerRequestFilter {
     private static final Set<String> ALLOWED_MUTATIONS = Set.of(
-            "/auth/signin", "/auth/signin-ldap", "/auth/refresh", "/auth/logout", "/auth/updatepwd",
+            "/auth/signin", "/auth/signin-ldap", "/auth/refresh", "/auth/oauth/exchange", "/auth/logout", "/auth/updatepwd",
             "/auth/activate-account", "/auth/reset-pwd-confirm", "/auth/delete-account-confirm",
             "/paddle/create-checkout-session", "/license/activate");
     private static final Set<String> LEGACY_MUTATING_GETS = Set.of(

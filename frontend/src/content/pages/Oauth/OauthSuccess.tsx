@@ -1,17 +1,32 @@
 import SuspenseLoader from '../../../components/SuspenseLoader';
-import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import useAuth from '../../../hooks/useAuth';
+import api, { authHeader } from '../../../utils/api';
+
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+}
 
 export default function OauthSuccess() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { loginInternal } = useAuth();
-  const token = searchParams.get('token');
-  const refreshToken = searchParams.get('refreshToken');
+  const started = useRef(false);
   useEffect(() => {
-    if (token) {
-      loginInternal(token, refreshToken);
-    }
-  }, [token, refreshToken]);
+    if (started.current) return;
+    started.current = true;
+
+    api
+      .post<AuthResponse>(
+        'auth/oauth/exchange',
+        {},
+        { credentials: 'include', headers: authHeader(true) }
+      )
+      .then(({ accessToken, refreshToken }) =>
+        loginInternal(accessToken, refreshToken)
+      )
+      .catch(() => {
+        window.location.replace('/oauth2/failure?error=authentication_failed');
+      });
+  }, [loginInternal]);
   return <SuspenseLoader />;
 }
