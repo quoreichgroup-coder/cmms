@@ -481,3 +481,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Défaut confirmé dans `frontend/src/slices/workload.ts` : plusieurs navigations de semaine ou changements de filtre pouvaient terminer dans le désordre et laisser les données d’une ancienne requête remplacer la période affichée.
 - Les requêtes Overview et OT non planifiés portent maintenant un identifiant monotone; succès, erreurs et arrêt du chargement des requêtes obsolètes sont ignorés. L’API et ses paramètres restent identiques.
 - Test de non-régression : une réponse tardive de la semaine précédente ne remplace plus la semaine courante. Tests ciblés workload : 2/2; ESLint ciblé et `git diff --check` passent.
+
+### Charge de travail Web — réponses API obsolètes — 18 octobre 2026
+
+- Défaut confirmé dans `frontend/src/slices/workload.ts` : plusieurs navigations de semaine ou changements de filtre pouvaient terminer dans le désordre et laisser les données d’une ancienne requête remplacer la période affichée.
+- Les requêtes Overview et OT non planifiés portent maintenant un identifiant monotone; succès, erreurs et arrêt du chargement des requêtes obsolètes sont ignorés. L’API et ses paramètres restent identiques.
+- Test de non-régression : une réponse tardive de la semaine précédente ne remplace plus la semaine courante. Tests ciblés workload : 2/2; ESLint ciblé passe.
