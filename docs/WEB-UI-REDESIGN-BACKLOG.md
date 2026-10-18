@@ -469,3 +469,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Défaut confirmé dans `frontend/src/content/own/WorkOrders/Calendar/eventPresentation.ts` : l’échéance est un jour métier, mais la comparaison utilisait l’instant UTC de `Date` contre le début de journée local. En fuseau négatif, une échéance sérialisée à minuit UTC pouvait apparaître « En retard » dès le matin du jour prévu.
 - La présentation compare maintenant les dates civiles `yyyy-MM-dd`, en gardant le statut `COMPLETE` prioritaire et en ignorant les dates invalides. Aucun endpoint, filtre, permission ou transition d’OT ne change.
 - Régression ajoutée pour `America/Los_Angeles` : échéance du jour reste ouverte, échéance de la veille devient en retard. `node --test scripts/calendar-event-presentation.test.cjs` passe. TypeScript lancé mais interrompu sans résultat exploitable; ESLint et `git diff --check` restent à confirmer.
+
+### Charge de travail Web — classification des échéances par jour — 18 octobre 2026
+
+- Le calendrier et la vue Charge de travail partagent maintenant la comparaison des échéances en date civile locale. Les listes « En retard », « Bientôt dû » et le badge des cartes traitent une échéance à minuit UTC comme le jour indiqué par l’API, y compris à Los Angeles.
+- « Bientôt dû » couvre aujourd’hui et le jour suivant dans la fenêtre exclusive de deux jours, au lieu de dépendre de l’heure courante. Les dates mal formées ne sont pas classées.
+- La mutation de planification, les API, les filtres et les statuts métier n’ont pas changé. Tests ciblés calendrier/charge de travail : 3/3; ESLint ciblé passe. TypeScript complet non confirmé dans cet environnement.

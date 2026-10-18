@@ -12,6 +12,22 @@ const sourcePath = path.join(
 const compiled = ts.transpileModule(fs.readFileSync(sourcePath, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true }
 }).outputText;
+const dueDatePath = path.join(__dirname, '../src/content/own/WorkOrders/dueDate.ts');
+const dueDateCompiled = ts.transpileModule(
+  fs.readFileSync(dueDatePath, 'utf8'),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }
+).outputText;
+
+const dueDate = (() => {
+  const exports = {};
+  const module = { exports };
+  vm.runInNewContext(dueDateCompiled, {
+    exports,
+    module,
+    require
+  });
+  return module.exports;
+})();
 
 const tokens = {
   OPEN: { foreground: '#2F5BEA' },
@@ -32,6 +48,7 @@ const presentation = (() => {
       if (name === 'date-fns') return require(name);
       if (name === 'src/theme/tokens')
         return { qpmWorkOrderStatusTokens: tokens };
+      if (name === '../dueDate') return dueDate;
       throw new Error(`Unexpected import: ${name}`);
     }
   });
@@ -100,6 +117,30 @@ test('calendar treats UTC midnight due dates as the same local due day', () => {
         now
       ),
       'OVERDUE'
+    );
+    assert.equal(
+      dueDate.isDueDateWithinNextDays(
+        '2026-10-17T00:00:00.000Z',
+        2,
+        now
+      ),
+      true
+    );
+    assert.equal(
+      dueDate.isDueDateWithinNextDays(
+        '2026-10-18T00:00:00.000Z',
+        2,
+        now
+      ),
+      true
+    );
+    assert.equal(
+      dueDate.isDueDateWithinNextDays(
+        '2026-10-19T00:00:00.000Z',
+        2,
+        now
+      ),
+      false
     );
   } finally {
     if (originalTimezone === undefined) delete process.env.TZ;

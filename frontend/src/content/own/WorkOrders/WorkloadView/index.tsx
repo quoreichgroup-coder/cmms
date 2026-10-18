@@ -65,6 +65,7 @@ import { getWorkloadDestination } from './scheduleDestination';
 import WorkloadOrderCard from './WorkloadOrderCard';
 import { getWorkloadUserDisplayName } from './userDisplayName';
 import { getCapacityUtilizationPercent } from './capacityUtilization';
+import { isDueDateBeforeDay, isDueDateWithinNextDays } from '../dueDate';
 
 interface WorkloadViewProps {
   handleOpenDetails: (id: number, type: string) => void;
@@ -396,17 +397,15 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
     if (!unscheduled) return [];
     const now = new Date();
     return unscheduled.workOrders.filter(
-      (wo) => wo.dueDate && new Date(wo.dueDate) < now
+      (wo) => isDueDateBeforeDay(wo.dueDate, now)
     );
   }, [unscheduled]);
 
   const dueSoonWOs = useMemo(() => {
     if (!unscheduled) return [];
     const now = new Date();
-    const soon = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
     return unscheduled.workOrders.filter(
-      (wo) =>
-        wo.dueDate && new Date(wo.dueDate) >= now && new Date(wo.dueDate) < soon
+      (wo) => isDueDateWithinNextDays(wo.dueDate, 2, now)
     );
   }, [unscheduled]);
 
@@ -636,8 +635,10 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                         index={index}
                       >
                         {(provided, snapshot) => {
-                          const isOverdue =
-                            wo.dueDate && new Date(wo.dueDate) < new Date();
+                          const isOverdue = isDueDateBeforeDay(
+                            wo.dueDate,
+                            new Date()
+                          );
                           return (
                             <WorkloadOrderCard
                               workOrder={wo}
