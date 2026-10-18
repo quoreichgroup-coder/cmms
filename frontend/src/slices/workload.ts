@@ -123,7 +123,8 @@ const slice = createSlice({
         userDay = {
           userId,
           fullName: '',
-          capacityMinutes: 480,
+          // Capacity must come from the workload API, never from a UI default.
+          capacityMinutes: 0,
           allocatedMinutes: 0,
           workOrders: []
         };

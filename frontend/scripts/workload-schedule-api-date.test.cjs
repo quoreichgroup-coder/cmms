@@ -68,3 +68,52 @@ test('workload scheduling sends the exact LocalDate string to the existing API',
     primaryUserId: 42
   });
 });
+
+test('optimistic scheduling does not invent an 8-hour user capacity', async () => {
+  const slice = loadWorkloadSlice({
+    patch: async () => ({
+      userId: 42,
+      userFirstName: 'Awa',
+      userLastName: 'Diallo',
+      estimatedStartDate: '2026-10-20T08:00:00.000Z'
+    })
+  });
+  let workloadState = slice.reducer(undefined, { type: '@@init' });
+  const overview = {
+    startDate: '2026-10-19',
+    endDate: '2026-10-25',
+    teamCapacityMinutes: 0,
+    teamAllocatedMinutes: 0,
+    days: [
+      {
+        date: '2026-10-20',
+        dayOfWeek: 'TUESDAY',
+        teamCapacityMinutes: 0,
+        teamAllocatedMinutes: 0,
+        users: []
+      }
+    ]
+  };
+  workloadState = slice.reducer(
+    workloadState,
+    slice.default.actions.getOverview({ overview })
+  );
+  const state = {
+    workOrders: { workOrders: { content: [] } },
+    workload: workloadState
+  };
+  const dispatch = (action) => {
+    state.workload = slice.reducer(state.workload, action);
+  };
+
+  await slice.scheduleWorkOrder(617, {
+    localDate: '2026-10-20',
+    estimatedDuration: 2,
+    primaryUserId: 42
+  })(dispatch, () => state);
+
+  const scheduledUser = state.workload.overview.days[0].users[0];
+  assert.equal(scheduledUser.allocatedMinutes, 120);
+  assert.equal(scheduledUser.capacityMinutes, 0);
+  assert.equal(scheduledUser.workOrders[0].estimatedDuration, 2);
+});
