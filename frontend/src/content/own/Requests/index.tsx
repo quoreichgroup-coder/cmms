@@ -108,6 +108,9 @@ function Requests() {
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
   const [openDiscardDialog, setOpenDiscardDialog] = useState<boolean>(false);
   const [isFormDirty, setIsFormDirty] = useState<boolean>(false);
+  const [openEditDiscardDialog, setOpenEditDiscardDialog] =
+    useState<boolean>(false);
+  const [isEditFormDirty, setIsEditFormDirty] = useState<boolean>(false);
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const {
@@ -239,19 +242,19 @@ function Requests() {
   const handleDelete = async (id: number) => {
     try {
       const deleted = await dispatch(deleteRequest(id));
-      setOpenDelete(false);
       if (deleted) {
+        setOpenDelete(false);
         handleCloseDetails();
         onDeleteSuccess();
       } else {
         onDeleteFailure(new Error('Request deletion was not confirmed'));
       }
     } catch (error) {
-      setOpenDelete(false);
       onDeleteFailure(error);
     }
   };
   const handleOpenUpdate = () => {
+    setIsEditFormDirty(false);
     setOpenUpdateModal(true);
   };
   const onCreationSuccess = () => {
@@ -262,6 +265,7 @@ function Requests() {
     showSnackBar(t('request_create_failure'), 'error');
   const onEditSuccess = () => {
     setOpenUpdateModal(false);
+    setIsEditFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
   const onEditFailure = (err) =>
@@ -491,7 +495,6 @@ function Requests() {
             values={{}}
             onChange={() => setIsFormDirty(true)}
             onSubmit={async (values) => {
-              setIsFormDirty(false);
               let formattedValues = formatValues(values);
               try {
                 const uploadedFiles = await uploadFiles(
@@ -508,6 +511,8 @@ function Requests() {
 
                 await dispatch(addRequest(formattedValues));
                 onCreationSuccess();
+                setIsFormDirty(false);
+                dispatch(getRequests(criteria));
               } catch (err) {
                 onCreationFailure(err);
                 throw err;
@@ -530,70 +535,87 @@ function Requests() {
     </Dialog>
   );
   const renderUpdateModal = () => (
-    <Dialog
-      fullWidth
-      maxWidth="md"
-      open={openUpdateModal}
-      onClose={() => setOpenUpdateModal(false)}
-    >
-      <DialogTitle
-        sx={{
-          p: 3
+    <>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        open={openUpdateModal}
+        onClose={() => {
+          if (isEditFormDirty) setOpenEditDiscardDialog(true);
+          else setOpenUpdateModal(false);
         }}
       >
-        <Typography variant="h4" gutterBottom>
-          {t('edit_request')}
-        </Typography>
-        <Typography variant="subtitle2">
-          {t('edit_request_description')}
-        </Typography>
-      </DialogTitle>
-      <DialogContent
-        dividers
-        sx={{
-          p: 3
+        <DialogTitle
+          sx={{
+            p: 3
+          }}
+        >
+          <Typography variant="h4" gutterBottom>
+            {t('edit_request')}
+          </Typography>
+          <Typography variant="subtitle2">
+            {t('edit_request_description')}
+          </Typography>
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            p: 3
+          }}
+        >
+          <Box>
+            <Form
+              fields={getFieldsAndShapes()[0]}
+              validation={Yup.object().shape(getFieldsAndShapes()[1])}
+              submitText={t('save')}
+              values={{
+                ...currentRequest,
+                ...getWOBaseValues(t, currentRequest)
+              }}
+              onChange={() => setIsEditFormDirty(true)}
+              onSubmit={async (values) => {
+                let formattedValues = formatValues(values);
+                try {
+                  const imageAndFiles = await handleFileUpload(
+                    {
+                      files: formattedValues.files,
+                      image: formattedValues.image
+                    },
+                    uploadFiles
+                  );
+
+                  formattedValues = {
+                    ...formattedValues,
+                    image: imageAndFiles.image,
+                    files: imageAndFiles.files
+                  };
+
+                  await dispatch(
+                    editRequest(currentRequest?.id, formattedValues)
+                  );
+                  await onEditSuccess();
+                  dispatch(getRequests(criteria));
+                } catch (err) {
+                  onEditFailure(err);
+                  throw err;
+                }
+              }}
+            />
+          </Box>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog
+        open={openEditDiscardDialog}
+        onCancel={() => setOpenEditDiscardDialog(false)}
+        onConfirm={() => {
+          setOpenEditDiscardDialog(false);
+          setOpenUpdateModal(false);
+          setIsEditFormDirty(false);
         }}
-      >
-        <Box>
-          <Form
-            fields={getFieldsAndShapes()[0]}
-            validation={Yup.object().shape(getFieldsAndShapes()[1])}
-            submitText={t('save')}
-            values={{
-              ...currentRequest,
-              ...getWOBaseValues(t, currentRequest)
-            }}
-            onChange={({ field, e }) => {}}
-            onSubmit={async (values) => {
-              let formattedValues = formatValues(values);
-              try {
-                const imageAndFiles = await handleFileUpload(
-                  {
-                    files: formattedValues.files,
-                    image: formattedValues.image
-                  },
-                  uploadFiles
-                );
-
-                formattedValues = {
-                  ...formattedValues,
-                  image: imageAndFiles.image,
-                  files: imageAndFiles.files
-                };
-
-                await dispatch(
-                  editRequest(currentRequest?.id, formattedValues)
-                );
-                await onEditSuccess();
-              } catch (err) {
-                onEditFailure(err);
-                throw err;
-              }
-            }}
-          />
-        </Box>
-      </DialogContent>
-    </Dialog>
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
+    </>
   );
   if (hasViewPermission(PermissionEntity.REQUESTS))
     return (
