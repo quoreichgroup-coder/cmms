@@ -301,7 +301,9 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       !isUnscheduled(source.droppableId) &&
       isUnscheduled(destination.droppableId)
     ) {
-      dispatch(unscheduleWorkOrder(wo.id, wo));
+      dispatch(unscheduleWorkOrder(wo.id, wo)).catch((err) =>
+        showSnackBar(getErrorMessage(err), 'error')
+      );
       return;
     }
 

@@ -87,3 +87,30 @@ test('unscheduled work order API failure becomes a retryable error state', async
   assert.equal(actions.at(-1).type, 'workload/setLoadingUnscheduled');
   assert.equal(actions.at(-1).payload.loading, false);
 });
+
+test('unscheduling API failure rejects without optimistic state mutations', async () => {
+  const slice = loadWorkloadSlice({
+    patch: async () => {
+      throw new Error('unschedule unavailable');
+    }
+  });
+  const actions = [];
+
+  await assert.rejects(
+    slice.unscheduleWorkOrder(617, {
+      id: 617,
+      customId: 'WO-617',
+      title: 'Pump inspection',
+      status: 'OPEN',
+      estimatedDuration: 1,
+      estimatedStartDate: '2026-10-20T08:00:00.000Z',
+      dueDate: '2026-10-20'
+    })(
+      (action) => actions.push(action),
+      () => ({})
+    ),
+    /unschedule unavailable/
+  );
+
+  assert.deepEqual(actions, []);
+});
