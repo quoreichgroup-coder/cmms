@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
+const { configureStore } = require('@reduxjs/toolkit');
 
 const source = ts.transpileModule(
   fs.readFileSync('src/slices/workload.ts', 'utf8'),
@@ -86,6 +87,30 @@ test('unscheduled work order API failure becomes a retryable error state', async
   );
   assert.equal(actions.at(-1).type, 'workload/setLoadingUnscheduled');
   assert.equal(actions.at(-1).payload.loading, false);
+});
+
+test('workload overview ignores a late response from a previous week or filter', async () => {
+  const pending = [];
+  const slice = loadWorkloadSlice({
+    get: () =>
+      new Promise((resolve, reject) => pending.push({ resolve, reject }))
+  });
+  const store = configureStore({ reducer: slice.reducer });
+  const previous = store.dispatch(
+    slice.getOverview('2026-10-12', '2026-10-18', [1])
+  );
+  const current = store.dispatch(
+    slice.getOverview('2026-10-19', '2026-10-25', [2])
+  );
+
+  pending[1].resolve({ startDate: '2026-10-19', days: [] });
+  await current;
+  pending[0].resolve({ startDate: '2026-10-12', days: [] });
+  await previous;
+
+  assert.equal(store.getState().overview.startDate, '2026-10-19');
+  assert.equal(store.getState().loadingOverview, false);
+  assert.equal(store.getState().overviewError, null);
 });
 
 test('unscheduling API failure rejects without optimistic state mutations', async () => {

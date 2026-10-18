@@ -11,6 +11,8 @@ import { updateWorkOrderInContent } from './workOrder';
 import { getErrorMessage } from '../utils/api';
 
 const basePath = 'workload';
+let overviewRequestId = 0;
+let unscheduledRequestId = 0;
 
 interface WorkloadState {
   overview: WorkloadOverviewDTO | null;
@@ -19,6 +21,8 @@ interface WorkloadState {
   loadingUnscheduled: boolean;
   overviewError: string | null;
   unscheduledError: string | null;
+  overviewRequestId: number;
+  unscheduledRequestId: number;
 }
 
 const initialState: WorkloadState = {
@@ -27,7 +31,9 @@ const initialState: WorkloadState = {
   loadingOverview: false,
   loadingUnscheduled: false,
   overviewError: null,
-  unscheduledError: null
+  unscheduledError: null,
+  overviewRequestId: 0,
+  unscheduledRequestId: 0
 };
 
 const slice = createSlice({
@@ -36,30 +42,52 @@ const slice = createSlice({
   reducers: {
     getOverview(
       state: WorkloadState,
-      action: PayloadAction<{ overview: WorkloadOverviewDTO }>
+      action: PayloadAction<{
+        overview: WorkloadOverviewDTO;
+        requestId?: number;
+      }>
     ) {
-      const { overview } = action.payload;
+      const { overview, requestId } = action.payload;
+      if (requestId !== undefined && requestId !== state.overviewRequestId)
+        return;
       state.overview = overview;
       state.overviewError = null;
+      state.loadingOverview = false;
     },
     getUnscheduled(
       state: WorkloadState,
-      action: PayloadAction<{ unscheduled: UnscheduledWorkOrdersDTO }>
+      action: PayloadAction<{
+        unscheduled: UnscheduledWorkOrdersDTO;
+        requestId?: number;
+      }>
     ) {
-      const { unscheduled } = action.payload;
+      const { unscheduled, requestId } = action.payload;
+      if (requestId !== undefined && requestId !== state.unscheduledRequestId)
+        return;
       state.unscheduled = unscheduled;
       state.unscheduledError = null;
+      state.loadingUnscheduled = false;
     },
     setOverviewError(
       state: WorkloadState,
-      action: PayloadAction<{ error: string | null }>
+      action: PayloadAction<{ error: string | null; requestId?: number }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        action.payload.requestId !== state.overviewRequestId
+      )
+        return;
       state.overviewError = action.payload.error;
     },
     setUnscheduledError(
       state: WorkloadState,
-      action: PayloadAction<{ error: string | null }>
+      action: PayloadAction<{ error: string | null; requestId?: number }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        action.payload.requestId !== state.unscheduledRequestId
+      )
+        return;
       state.unscheduledError = action.payload.error;
     },
     removeFromUnscheduled(
@@ -94,16 +122,28 @@ const slice = createSlice({
     },
     setLoadingOverview(
       state: WorkloadState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; requestId?: number }>
     ) {
-      const { loading } = action.payload;
+      const { requestId, loading } = action.payload;
+      if (requestId !== undefined) {
+        if (loading) {
+          state.overviewRequestId = requestId;
+          state.overviewError = null;
+        } else if (requestId !== state.overviewRequestId) return;
+      }
       state.loadingOverview = loading;
     },
     setLoadingUnscheduled(
       state: WorkloadState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; requestId?: number }>
     ) {
-      const { loading } = action.payload;
+      const { loading, requestId } = action.payload;
+      if (requestId !== undefined) {
+        if (loading) {
+          state.unscheduledRequestId = requestId;
+          state.unscheduledError = null;
+        } else if (requestId !== state.unscheduledRequestId) return;
+      }
       state.loadingUnscheduled = loading;
     },
     addWoToUserDay(
@@ -163,8 +203,8 @@ export const reducer = slice.reducer;
 export const getOverview =
   (startDate: string, endDate: string, userIds?: number[]): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setOverviewError({ error: null }));
-    dispatch(slice.actions.setLoadingOverview({ loading: true }));
+    const requestId = ++overviewRequestId;
+    dispatch(slice.actions.setLoadingOverview({ loading: true, requestId }));
     try {
       const params = new URLSearchParams({ startDate, endDate });
       if (userIds?.length) {
@@ -173,21 +213,24 @@ export const getOverview =
       const overview = await api.get<WorkloadOverviewDTO>(
         `${basePath}/overview?${params}`
       );
-      dispatch(slice.actions.getOverview({ overview }));
+      dispatch(slice.actions.getOverview({ overview, requestId }));
     } catch (error) {
       dispatch(
-        slice.actions.setOverviewError({ error: getErrorMessage(error) })
+        slice.actions.setOverviewError({
+          error: getErrorMessage(error),
+          requestId
+        })
       );
     } finally {
-      dispatch(slice.actions.setLoadingOverview({ loading: false }));
+      dispatch(slice.actions.setLoadingOverview({ loading: false, requestId }));
     }
   };
 
 export const getUnscheduled =
   (statuses?: string[]): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setUnscheduledError({ error: null }));
-    dispatch(slice.actions.setLoadingUnscheduled({ loading: true }));
+    const requestId = ++unscheduledRequestId;
+    dispatch(slice.actions.setLoadingUnscheduled({ loading: true, requestId }));
     try {
       const params = new URLSearchParams();
       if (statuses?.length) {
@@ -197,13 +240,18 @@ export const getUnscheduled =
       const unscheduled = await api.get<UnscheduledWorkOrdersDTO>(
         `${basePath}/unscheduled${query ? `?${query}` : ''}`
       );
-      dispatch(slice.actions.getUnscheduled({ unscheduled }));
+      dispatch(slice.actions.getUnscheduled({ unscheduled, requestId }));
     } catch (error) {
       dispatch(
-        slice.actions.setUnscheduledError({ error: getErrorMessage(error) })
+        slice.actions.setUnscheduledError({
+          error: getErrorMessage(error),
+          requestId
+        })
       );
     } finally {
-      dispatch(slice.actions.setLoadingUnscheduled({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingUnscheduled({ loading: false, requestId })
+      );
     }
   };
 
