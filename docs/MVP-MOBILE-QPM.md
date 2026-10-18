@@ -1024,6 +1024,8 @@ Le formulaire de tâche conservait le responsable choisi dans son résumé, mais
 
 Une régression vérifie la valeur initiale transmise au sélecteur. Essai TalkBack/VoiceOver sur appareil restant; aucune APK/IPA n’est générée.
 
+Suite après ce lot : `npm run test:mobile-regression` (**30/30**), `tsc --noEmit --pretty false`, Prettier et `git diff --check` passent. La sélection à la réouverture reste à confirmer visuellement sur téléphone.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.
