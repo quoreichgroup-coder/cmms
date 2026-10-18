@@ -17,7 +17,7 @@ import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import { getPartConsumptionsByAsset } from '../../../../../slices/analytics/part';
 
 interface WOStatusIncompleteProps {
@@ -59,7 +59,7 @@ function PartConsumptionsByAsset({
     return {
       label: asset.name,
       cost: asset.cost,
-      color: getRandomColor(),
+      color: getQpmChartColor(`asset-${asset.id}`),
       filters: [{ key: 'asset', value: asset.id }]
     };
   });
@@ -81,7 +81,7 @@ function PartConsumptionsByAsset({
           <Tooltip />
           <Bar
             dataKey="cost"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('cost')}
             yAxisId="left-axis"
           >

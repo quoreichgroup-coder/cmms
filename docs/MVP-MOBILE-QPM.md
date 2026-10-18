@@ -997,3 +997,9 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite 
 Le picker client était le dernier annuaire audité dont la sélection préchargée restait invisible en choix unique et sans annonce d’état. Il affiche maintenant une coche QPM pour le client sélectionné et expose `accessibilityState.selected`; les cases et l’état `checked` du mode multiple restent inchangés. La recherche, la valeur retournée, les callbacks et les contrats API ne changent pas.
 
 Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile, TypeScript, Prettier et `git diff --check` validés. TalkBack/VoiceOver et le rendu sur appareil restent à vérifier; aucune APK/IPA n’est générée.
+
+## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
+
+Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.
+
+Pour expliquer le `00` observé sur le compte concerné, comparer les six cartes à la réponse JSON de cet endpoint avec la même valeur `assignedToMe`, puis répéter avec les deux préférences de scope et vérifier les WO clôturés/archivés. Vérifier également réseau interrompu/relance sur appareil. Point sécurité à traiter séparément : la méthode d’overview semble protégée par rôle Spring global, sans permission granulaire identifiée dans ce chemin; ne pas compenser cette lacune par le masquage UI. Aucun changement API ou permission n’a été fait dans cette passe.

@@ -16,7 +16,7 @@ import AnalyticsCard from '../../AnalyticsCard';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import Loading from '../../Loading';
 import { getDayAndMonth } from '../../../../../utils/dates';
 import { getPartConsumptionsByPart } from '../../../../../slices/analytics/part';
@@ -51,6 +51,11 @@ function PartConsumptionsPareto({
 
   const columns: string[] = ['id'];
 
+  const totalCost = partConsumptionsByPart.reduce(
+    (total, part) => total + part.cost,
+    0
+  );
+
   const formattedData: {
     label: string;
     cost: number;
@@ -62,10 +67,14 @@ function PartConsumptionsPareto({
       label: part.name,
       cost: Number(part.cost.toFixed(2)),
       cumulativePercent:
-        (100 *
-          array.slice(0, index).reduce((prev, curr) => prev + curr.cost, 0)) /
-        array.reduce((prev, curr) => prev + curr.cost, 0),
-      color: getRandomColor(),
+        totalCost > 0
+          ? (100 *
+              array
+                .slice(0, index + 1)
+                .reduce((previous, current) => previous + current.cost, 0)) /
+            totalCost
+          : 0,
+      color: getQpmChartColor(`part-${part.id}`),
       filters: [{ key: 'part', value: part.id }]
     };
   });
@@ -98,7 +107,7 @@ function PartConsumptionsPareto({
           <Legend />
           <Bar
             dataKey="cost"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('cost')}
             yAxisId={'left-axis'}
           >
@@ -116,7 +125,7 @@ function PartConsumptionsPareto({
             name={t('cumulative_percent')}
             type="monotone"
             dataKey="cumulativePercent"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

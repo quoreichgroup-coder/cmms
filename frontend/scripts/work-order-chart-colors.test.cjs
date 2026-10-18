@@ -15,7 +15,9 @@ const chartFiles = [
   'src/content/own/Analytics/Asset/UsefulLife/IncompleteByAsset.tsx',
   'src/content/own/Analytics/Asset/UsefulLife/IncompleteByUser.tsx',
   'src/content/own/Analytics/Asset/Cost/DowntimesAndCosts.tsx',
-  'src/content/own/Analytics/Asset/Reliability/index.tsx'
+  'src/content/own/Analytics/Asset/Reliability/index.tsx',
+  'src/content/own/Analytics/Part/Consumption/PartConsumptionsByAsset.tsx',
+  'src/content/own/Analytics/Part/Consumption/PartConsumptionsPareto.tsx'
 ];
 
 test('maintenance analytics use stable QPM chart colors for series', () => {
@@ -32,13 +34,25 @@ test('maintenance analytics use stable QPM chart colors for series', () => {
 });
 
 test('time-series chart colors remain stable through theme tokens', () => {
-  const source = fs.readFileSync(
+  const files = [
     'src/content/own/Analytics/Asset/Cost/DowntimesByDate.tsx',
+    'src/content/own/Analytics/Part/Consumption/PartConsumptionsByDate.tsx'
+  ];
+
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.match(source, /theme\.palette\.primary\.main/, file);
+    assert.doesNotMatch(source, /getRandomColor\(\)|#8884d8|#ff7300/, file);
+  }
+});
+
+test('Pareto cumulative percentages include the current part and avoid zero division', () => {
+  const source = fs.readFileSync(
+    'src/content/own/Analytics/Part/Consumption/PartConsumptionsPareto.tsx',
     'utf8'
   );
-  assert.match(source, /color:\s*theme\.palette\.primary\.main/);
-  assert.match(source, /stroke=\{theme\.palette\.warning\.main\}/);
-  assert.doesNotMatch(source, /getRandomColor\(\)|#8884d8|#ff7300/);
+  assert.match(source, /totalCost > 0/);
+  assert.match(source, /slice\(0, index \+ 1\)/);
 });
 
 test('asset reliability chart series use semantic theme colors', () => {

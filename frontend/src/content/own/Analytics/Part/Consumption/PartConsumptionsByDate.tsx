@@ -14,7 +14,6 @@ import AnalyticsCard from '../../AnalyticsCard';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getRandomColor } from '../../../../../utils/overall';
 import Loading from '../../Loading';
 import { getDayAndMonth } from '../../../../../utils/dates';
 import { getPartConsumptionsByDate } from '../../../../../slices/analytics/part';
@@ -58,7 +57,7 @@ function PartConsumptionsByDate({
     return {
       label: getDayAndMonth(month.date),
       cost: Number(month.cost.toFixed(2)),
-      color: getRandomColor(),
+      color: theme.palette.primary.main,
       filters: [{ key: 'month', value: month.date }]
     };
   });
@@ -79,7 +78,11 @@ function PartConsumptionsByDate({
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="cost" fill="#8884d8" name={t('cost')}>
+          <Bar
+            dataKey="cost"
+            fill={theme.palette.primary.main}
+            name={t('cost')}
+          >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}
