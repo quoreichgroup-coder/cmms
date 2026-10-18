@@ -63,3 +63,36 @@ test('application auth state is cleared when browser storage throws', () => {
 
   assert.deepEqual(calls, ['storage', 'application']);
 });
+
+test('server logout failure is preserved when local cleanup also throws', async () => {
+  const serverError = new Error('Logout endpoint unavailable');
+  const storageError = new Error('Storage access denied');
+  const calls = [];
+
+  await assert.rejects(
+    moduleExports.logoutWithFallback(
+      async () => {
+        calls.push('server');
+        throw serverError;
+      },
+      () => {
+        calls.push('local');
+        throw storageError;
+      }
+    ),
+    serverError
+  );
+
+  assert.deepEqual(calls, ['server', 'local']);
+});
+
+test('local cleanup failure is reported after successful server logout', async () => {
+  const storageError = new Error('Storage access denied');
+
+  await assert.rejects(
+    moduleExports.logoutWithFallback(async () => {}, () => {
+      throw storageError;
+    }),
+    storageError
+  );
+});
