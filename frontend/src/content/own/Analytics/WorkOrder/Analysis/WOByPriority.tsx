@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
@@ -27,6 +28,7 @@ function WOByPriority({
   companyId
 }: WOByPrimaryUserProps) {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { completeByPriority, loading, errors } = useSelector(
     (state) => state.woAnalytics
@@ -68,7 +70,7 @@ function WOByPriority({
             cy="50%"
             outerRadius={100}
             innerRadius={50}
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
           >
             {formattedData.map((entry, index) => (
               <Cell

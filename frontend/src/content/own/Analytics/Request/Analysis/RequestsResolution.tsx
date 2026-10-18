@@ -88,14 +88,14 @@ function RequestsResolution({
           <Legend />
           <Bar
             dataKey="received"
-            fill="red"
+            fill={theme.palette.primary.main}
             name={t('count')}
             yAxisId="left-axis"
           >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}
-                fill={'red'}
+                fill={theme.palette.primary.main}
                 onClick={() => {
                   handleOpenModal(columns, entry.filters, t(title));
                 }}
@@ -104,14 +104,14 @@ function RequestsResolution({
           </Bar>
           <Bar
             dataKey="resolved"
-            fill="blue"
+            fill={theme.palette.success.main}
             name={t('resolved')}
             yAxisId="left-axis"
           >
             {formattedData.map((entry, index) => (
               <Cell
                 key={index}
-                fill={'blue'}
+                fill={theme.palette.success.main}
                 onClick={() => {
                   handleOpenModal(columns, entry.filters, t(title));
                 }}
@@ -122,7 +122,7 @@ function RequestsResolution({
             name={t('resolution_rate')}
             type="monotone"
             dataKey="resolutionRate"
-            stroke="#ff7300"
+            stroke={theme.palette.info.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

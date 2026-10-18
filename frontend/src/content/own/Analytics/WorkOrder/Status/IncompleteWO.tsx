@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
   Bar,
@@ -37,6 +38,7 @@ function IncompleteWO({
   companyId
 }: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
   const { incompleteByPriority, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
@@ -104,7 +106,7 @@ function IncompleteWO({
           <Legend />
           <Bar
             dataKey="count"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('work_orders')}
             yAxisId="left-axis"
           >
@@ -122,7 +124,7 @@ function IncompleteWO({
             name={t('estimated_duration')}
             type="monotone"
             dataKey="estimatedHours"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

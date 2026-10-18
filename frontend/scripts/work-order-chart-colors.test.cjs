@@ -68,3 +68,26 @@ test('asset reliability chart series use semantic theme colors', () => {
     assert.doesNotMatch(source, /#8884d8|#ff7300/, file);
   }
 });
+
+test('priority and request resolution charts use semantic theme colors', () => {
+  const semanticColorFiles = [
+    'src/content/own/Analytics/WorkOrder/Analysis/WOByPriority.tsx',
+    'src/content/own/Analytics/Request/Analysis/RequestStatsByPriority.tsx',
+    'src/content/own/Analytics/WorkOrder/Status/IncompleteWO.tsx'
+  ];
+
+  for (const file of semanticColorFiles) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.match(source, /theme\.palette\.primary\.main/, file);
+    assert.doesNotMatch(source, /#8884d8|#ff7300/, file);
+  }
+
+  const resolution = fs.readFileSync(
+    'src/content/own/Analytics/Request/Analysis/RequestsResolution.tsx',
+    'utf8'
+  );
+  assert.match(resolution, /theme\.palette\.primary\.main/);
+  assert.match(resolution, /theme\.palette\.success\.main/);
+  assert.match(resolution, /theme\.palette\.info\.main/);
+  assert.doesNotMatch(resolution, /fill=['"](red|blue)['"]|#ff7300/);
+});

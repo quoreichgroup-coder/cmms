@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
@@ -26,6 +27,7 @@ function RequestStatsByPriority({
   companyId
 }: OwnProps) {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { requestStatsByPriority, loading, errors } = useSelector(
     (state) => state.requestAnalytics
@@ -88,7 +90,7 @@ function RequestStatsByPriority({
             cy="50%"
             outerRadius={100}
             innerRadius={50}
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
           >
             {formattedData.map((entry, index) => (
               <Cell
