@@ -44,6 +44,7 @@ import { getFormattedQuantityWithUnit } from './Parts';
 import { getFormattedCostPerUnit } from '../../../utils/formatters';
 import { getCustomFieldValuesForDetails } from '../type';
 import RestockPartModal from './RestockPartModal';
+import WorkOrderStatusChip from '../WorkOrders/WorkOrderStatusChip';
 
 interface PartDetailsProps {
   part: Part;
@@ -421,7 +422,9 @@ export default function PartDetails(props: PartDetailsProps) {
                     >
                       <ListItemText
                         primary={workOrder.title}
-                        secondary={t(workOrder.status)}
+                        secondary={
+                          <WorkOrderStatusChip status={workOrder.status} />
+                        }
                       />
                     </ListItem>
                   </ListItemButton>

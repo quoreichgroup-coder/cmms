@@ -57,6 +57,10 @@ export default function WorkOrdersScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [hasLoadedFirstPage, setHasLoadedFirstPage] = useState(false);
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
   const nextPageRequestInProgress = useRef(false);
@@ -111,6 +115,11 @@ export default function WorkOrdersScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const hasCurrentCriteriaResults =
+    loadedCriteria !== null &&
+    _.isEqual(loadedCriteria.filterFields, criteria.filterFields) &&
+    loadedCriteria.searchQuery === searchQuery;
+  const visibleWorkOrders = hasCurrentCriteriaResults ? workOrders.content : [];
   const fetchFirstPage = useCallback(
     async (isRefresh = false) => {
       const requestSequence = beginRequest(firstPageRequestSequence);
@@ -132,6 +141,12 @@ export default function WorkOrdersScreen({
             direction: 'DESC'
           })
         );
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadedCriteria({
+            filterFields: criteria.filterFields,
+            searchQuery
+          });
+        }
       } catch (_error) {
         if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
           setLoadError(true);
@@ -152,6 +167,7 @@ export default function WorkOrdersScreen({
         nextPageRequestInProgress.current ||
         loadingGet ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -176,7 +192,15 @@ export default function WorkOrdersScreen({
         }
       }
     },
-    [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
+    [
+      criteria,
+      currentPageNum,
+      dispatch,
+      hasCurrentCriteriaResults,
+      lastPage,
+      loadMoreError,
+      loadingGet
+    ]
   );
 
   useEffect(() => {
@@ -212,11 +236,13 @@ export default function WorkOrdersScreen({
     }
   };
   const onFilterChange = (newFilters: FilterField[]) => {
+    setLoadError(false);
     const newCriteria = { ...criteria };
     newCriteria.filterFields = newFilters;
     setCriteria(newCriteria);
   };
   const onResetFilters = () => {
+    setLoadError(false);
     setCriteria(getCriteriaFromFilterFields([]));
   };
   const hasActiveFilters = !_.isEqual(
@@ -228,6 +254,7 @@ export default function WorkOrdersScreen({
     // Keep debounced search enabled while the Searchbar remains focused so
     // the next query is applied without requiring a blur/refocus cycle.
     setStartedSearch(true);
+    setLoadError(false);
     setSearchQuery('');
     setCriteria(getCriteriaFromFilterFields([]));
   };
@@ -247,6 +274,10 @@ export default function WorkOrdersScreen({
       ]
     );
   };
+  const onSearchTextChange = (query: string) => {
+    setLoadError(false);
+    setSearchQuery(query);
+  };
   useDebouncedEffect(
     () => {
       if (startedSearch) onQueryChange(searchQuery);
@@ -263,7 +294,7 @@ export default function WorkOrdersScreen({
           placeholder={t('search')}
           accessibilityLabel={t('search')}
           onFocus={() => setStartedSearch(true)}
-          onChangeText={setSearchQuery}
+          onChangeText={onSearchTextChange}
           value={searchQuery}
           style={[
             styles.searchbar,
@@ -276,7 +307,7 @@ export default function WorkOrdersScreen({
         <FlatList<WorkOrder>
           style={styles.list}
           contentContainerStyle={styles.listContent}
-          data={workOrders.content}
+          data={visibleWorkOrders}
           keyExtractor={(workOrder) => String(workOrder.id)}
           renderItem={({ item: workOrder }) => {
             // Combine primaryUser and assignedTo without duplicates
@@ -492,7 +523,7 @@ export default function WorkOrdersScreen({
           }}
           ListHeaderComponent={
             <View>
-              {loadError && workOrders.content.length > 0 && (
+              {loadError && visibleWorkOrders.length > 0 && (
                 <View
                   style={[
                     styles.errorBanner,
@@ -616,7 +647,9 @@ export default function WorkOrdersScreen({
             </View>
           }
           ListEmptyComponent={
-            loadingGet || !hasLoadedFirstPage ? (
+            loadingGet ||
+            !hasLoadedFirstPage ||
+            (!hasCurrentCriteriaResults && !loadError) ? (
               <View
                 style={styles.loadingState}
                 accessibilityRole="progressbar"
@@ -686,7 +719,7 @@ export default function WorkOrdersScreen({
             )
           }
           ListFooterComponent={
-            loadingGet && !refreshing && workOrders.content.length > 0 ? (
+            loadingGet && !refreshing && visibleWorkOrders.length > 0 ? (
               <ActivityIndicator
                 color={theme.colors.primary}
                 style={styles.loadingFooter}

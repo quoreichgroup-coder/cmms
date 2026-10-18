@@ -1032,6 +1032,12 @@ Régression ciblée ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. E
 
 Suite après ce lot : `npm run test:mobile-regression` (**30/30**), `tsc --noEmit --pretty false`, Prettier et `git diff --check` passent. La sélection à la réouverture reste à confirmer visuellement sur téléphone.
 
+## Liste des OT — résultats associés aux filtres et à la recherche — 18 octobre 2026
+
+La liste pouvait continuer à afficher les OT précédents quand les filtres changeaient ou pendant le délai de recherche, puis les garder si la requête échouait. La pagination pouvait aussi partir depuis ces lignes périmées. Les résultats sont maintenant visibles uniquement si les filtres et le texte de recherche correspondent à la dernière première page chargée; les changements affichent un état de chargement et une erreur ne révèle plus les anciens OT. Une actualisation échouée avec la même recherche conserve les lignes valides et présente l’erreur relançable. Aucun endpoint, filtre, permission ou règle d’OT ne change.
+
+Une régression est ajoutée à `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile (**30/30**), TypeScript, Prettier et export Expo Web (**1 889 modules**) validés; essai réseau réel et rendu téléphone restent à faire.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.

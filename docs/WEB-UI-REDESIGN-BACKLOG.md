@@ -591,3 +591,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - L’aperçu d’équipement représentait tous les OT non clôturés avec la même couleur d’avertissement et les OT clôturés en gris. Il réutilise maintenant `WorkOrderStatusChip`; ouvert, en cours, en attente et clôturé conservent leur sémantique propre.
 - Aucun calcul, permission, navigation, appel API ou statut métier n’a changé. Une assertion protège l’usage du composant commun. La recette visuelle clair/sombre dans Chromium reste ouverte.
+
+### UX-02 / UX-06 — statuts des OT dans une fiche Pièce — 18 octobre 2026
+
+- L’historique OT d’une pièce affichait le statut comme texte secondaire sans indicateur sémantique, alors que les fiches OT et Équipement utilisent un badge cohérent. Il emploie maintenant le `WorkOrderStatusChip` partagé.
+- Chargement, navigation, données et permissions restent inchangés. Test de régression ajouté; recette visuelle clair/sombre toujours requise.
+- Suite frontend (**67/67**), TypeScript, ESLint ciblé, Prettier et build optimisé réussis. Les seuls avertissements de build proviennent de quatre fichiers non modifiés dans ce lot.
