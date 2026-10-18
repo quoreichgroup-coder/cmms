@@ -107,6 +107,17 @@ test('single location picker announces and marks the current selection', () => {
     /!multiple\s*&&\s*isSelected\s*&&\s*\(\s*<Icon\s+source="check-circle"/
   );
 });
+test('task meter picker reopens with its current meter selected', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectTasksModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /navigation\.navigate\('SelectMeters',\s*\{\s*onChange: \(meters\) => setMeter\(meters\[0\]\),\s*selected: meter \? \[meter\.id\] : \[\],\s*multiple: false\s*\}\)/
+  );
+});
 test('single team picker announces and marks the current selection', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/modals/SelectTeamsModal.tsx'),

@@ -1,5 +1,7 @@
 # Périmètre MVP mobile QPM — décision de passage au Web
 
+**Backlog UI/UX complémentaire :** la navigation flottante Scan, la séparation Home/Stats et l’audit des cartes sont cadrés dans [`FINAL-UIUX-MAINTENANCE-BACKLOG.md`](FINAL-UIUX-MAINTENANCE-BACKLOG.md). Ils ne sont pas déclarés implémentés par les correctifs d’accessibilité recensés ci-dessous.
+
 **Révision :** 12 octobre 2026
 **Cible :** pilote mobile de maintenance minière sur convoyeur
 **Règle :** terminer et valider le pilote mobile avant d’ouvrir le lot de refonte UI/UX Web. Le Web existant reste utilisable pour les fonctions de planification et d’administration qui ne sont pas disponibles dans l’app mobile.
@@ -1003,6 +1005,12 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mob
 Le bouton « Ajouter » en haut du sélecteur de pièces était désactivé tant qu’aucune pièce n’était sélectionnée, mais le `Pressable` n’exposait ni son rôle de bouton ni cet état désactivé aux technologies d’assistance. Il annonce maintenant le nombre de pièces sélectionnées et son état `disabled`; la condition de disponibilité, les valeurs retournées et la navigation restent identiques.
 
 Une régression vérifie le rôle, le libellé avec le nombre et l’état désactivé. Aucun endpoint, droit, règle d’inventaire ou comportement d’ajout ne change. TalkBack/VoiceOver doivent encore être vérifiés sur téléphone; aucune APK/IPA n’est générée.
+
+## Tâche avec compteur — sélection conservée à la réouverture — 18 octobre 2026
+
+Lorsqu’on rouvrait le sélecteur de compteurs depuis la création d’une tâche de type « compteur », celui-ci recevait toujours une liste vide même si un compteur avait déjà été choisi. Le nom restait visible sur le formulaire, mais la coche et l’état sélectionné disparaissaient dans le picker. Le formulaire transmet désormais l’identifiant du compteur courant comme sélection initiale; une première ouverture continue de démarrer sans sélection. Les données enregistrées, callbacks, API et règles métier ne changent pas.
+
+Une régression vérifie que le picker reçoit l’identifiant courant et garde le choix unique. Validation de l’interface sur appareil non effectuée dans ce lot; aucune APK/IPA n’est générée.
 
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 

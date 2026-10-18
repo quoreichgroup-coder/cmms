@@ -3,6 +3,8 @@
 **Référence audit :** `docs/WEB-UI-SECURITY-AUDIT-2026-10-14.md`  
 **Statut :** backlog de référence pour l’implémentation Web. Les lignes ci-dessous restent les critères d’acceptation; l’avancement concret est suivi dans la section « Suivi d’implémentation ». Le périmètre demandé ici est exclusivement QPM Web.
 
+**Complément inter-plateformes :** les demandes mobiles et les modules Shift Roster / Shutdown Calendar / Procurement Tracking sont cadrés dans [`FINAL-UIUX-MAINTENANCE-BACKLOG.md`](FINAL-UIUX-MAINTENANCE-BACKLOG.md). Ce document reste le suivi des lots Web.
+
 ## Reprise et validation de production — 18 octobre 2026
 
 - Le commit `b29057f0` de `projet` est le code source déployé sur le VPS. Les images locales Docker `atlas-cmms-backend:local` et `atlas-cmms-frontend:local` ont été reconstruites depuis ce checkout et les conteneurs API/frontend recréés avec `docker-compose.license.yml`. PostgreSQL et ses volumes n’ont pas été redémarrés ni modifiés.

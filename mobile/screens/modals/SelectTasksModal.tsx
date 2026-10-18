@@ -221,7 +221,7 @@ export default function SelectTasksModal({
               onPress={() =>
                 navigation.navigate('SelectMeters', {
                   onChange: (meters) => setMeter(meters[0]),
-                  selected: [],
+                  selected: meter ? [meter.id] : [],
                   multiple: false
                 })
               }
