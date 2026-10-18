@@ -259,7 +259,7 @@ export default function SelectTasksModal({
             onPress={() =>
               navigation.navigate('SelectAssets', {
                 onChange: (assets) => setAsset(assets[0]),
-                selected: [],
+                selected: asset ? [asset.id] : [],
                 multiple: false,
                 locationId: null
               })

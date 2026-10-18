@@ -569,3 +569,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les graphiques priorité et résolution des demandes abandonnent également les couleurs brutes de bibliothèque au profit des couleurs sémantiques du thème (primaire, succès, information); les indicateurs de priorité conservent leurs couleurs métier.
 - La fonction Web `getRandomColor` et ses imports résiduels non utilisés sont supprimés après migration de l’ensemble des graphiques Analytics concernés vers les tokens stables/sémantiques.
 - Validation finale : suite frontend **71/71**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis. Le build affiche uniquement des avertissements de mise en forme préexistants hors des fichiers concernés.
+
+### UX-02 — icônes des champs du portail de demandes — 18 octobre 2026
+
+- Le pictogramme d’un champ activé dans la configuration du portail utilisait du noir fixe, ce qui ne suivait pas le thème sombre. Il utilise maintenant `theme.palette.primary.main`; l’état désactivé reste lié à `theme.palette.text.disabled`.
+- Une régression vérifie l’usage des couleurs du thème et l’absence du noir fixe. Le formulaire, ses actions, l’API et les permissions restent inchangés. La recette visuelle clair/sombre reste nécessaire.

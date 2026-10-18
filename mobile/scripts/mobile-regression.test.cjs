@@ -118,6 +118,17 @@ test('task meter picker reopens with its current meter selected', () => {
     /navigation\.navigate\('SelectMeters',\s*\{\s*onChange: \(meters\) => setMeter\(meters\[0\]\),\s*selected: meter \? \[meter\.id\] : \[\],\s*multiple: false\s*\}\)/
   );
 });
+test('task asset picker reopens with its current asset selected', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectTasksModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /navigation\.navigate\('SelectAssets',\s*\{\s*onChange: \(assets\) => setAsset\(assets\[0\]\),\s*selected: asset \? \[asset\.id\] : \[\],\s*multiple: false,\s*locationId: null\s*\}\)/
+  );
+});
 test('single team picker announces and marks the current selection', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/modals/SelectTeamsModal.tsx'),

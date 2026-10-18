@@ -235,6 +235,19 @@ test('preventive work-order history uses the shared semantic status badge', () =
   assert.doesNotMatch(source, /theme\.colors\.warning\.main/);
 });
 
+test('request portal field icons use theme-aware colors', () => {
+  const source = fs.readFileSync(
+    'src/content/own/Settings/Features/RequestPortal/components/RequestPortalModal.tsx',
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /const color = config\.enabled\s*\? theme\.palette\.primary\.main\s*:\s*theme\.palette\.text\.disabled/
+  );
+  assert.doesNotMatch(source, /config\.enabled\s*\?\s*['"]#000000['"]/);
+});
+
 test('work-order analytics charts use the centralized status colors', () => {
   const daily = fs.readFileSync(
     'src/content/own/Analytics/WorkOrder/Status/StatusByDate.tsx',

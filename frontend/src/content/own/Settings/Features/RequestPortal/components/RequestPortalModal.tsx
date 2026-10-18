@@ -151,7 +151,9 @@ function FieldRow({
   t: (k: string) => string;
 }) {
   const theme = useTheme();
-  const color = config.enabled ? '#000000' : theme.palette.text.disabled;
+  const color = config.enabled
+    ? theme.palette.primary.main
+    : theme.palette.text.disabled;
   const [showCollapse, setShowCollapse] = useState<boolean>(
     config.enabled && def.hasSelectionPanel
   );

@@ -1012,6 +1012,12 @@ Lorsqu’on rouvrait le sélecteur de compteurs depuis la création d’une tâc
 
 Une régression vérifie que le picker reçoit l’identifiant courant et garde le choix unique. Validation de l’interface sur appareil non effectuée dans ce lot; aucune APK/IPA n’est générée.
 
+## Tâche avec équipement — sélection conservée à la réouverture — 18 octobre 2026
+
+Dans l’ajout d’une tâche avec équipement associé, rouvrir le sélecteur d’équipements transmettait une sélection vide alors que l’équipement restait affiché sur le formulaire. La coche courante et l’état sélectionné n’étaient donc pas restaurés dans la liste. Le formulaire transmet maintenant l’identifiant de l’équipement choisi; à la première ouverture, aucune sélection n’est ajoutée. Le mode choix unique, les données enregistrées et les contrats API restent inchangés.
+
+Une régression vérifie le préremplissage du sélecteur. Les interactions TalkBack/VoiceOver et le rendu sur appareil restent à valider; aucun build APK/IPA n’est effectué.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.
