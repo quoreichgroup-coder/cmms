@@ -90,11 +90,19 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
   const [currentCategory, setCurrentCategory] = useState<Category>();
   const { showSnackBar } = useContext(CustomSnackBarContext);
 
-  const handleDelete = (id: number) => {
-    dispatch(deleteCategory(id, basePath))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id?: number) => {
+    if (id === undefined) return;
+    try {
+      const deleted = await dispatch(deleteCategory(id, basePath));
+      if (!deleted) {
+        onDeleteFailure(new Error('Category deletion was rejected'));
+        return;
+      }
+      onDeleteSuccess();
+      setOpenDelete(false);
+    } catch (error) {
+      onDeleteFailure(error);
+    }
   };
   useEffect(() => {
     setTitle(t('categories'));

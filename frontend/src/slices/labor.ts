@@ -147,6 +147,7 @@ export const deleteLabor =
     if (success) {
       dispatch(slice.actions.deleteLabor({ workOrderId, id }));
     }
+    return success;
   };
 
 export const controlTimer =

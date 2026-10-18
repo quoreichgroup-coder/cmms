@@ -118,6 +118,7 @@ export const deleteCategory =
     if (success) {
       dispatch(slice.actions.deleteCategory({ id, basePath }));
     }
+    return success;
   };
 
 export default slice;

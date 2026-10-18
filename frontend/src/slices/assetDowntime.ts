@@ -130,6 +130,7 @@ export const deleteAssetDowntime =
     if (success) {
       dispatch(slice.actions.deleteAssetDowntime({ assetId, id }));
     }
+    return success;
   };
 
 export default slice;

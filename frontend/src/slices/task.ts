@@ -166,6 +166,7 @@ export const deleteTask =
     if (success) {
       dispatch(slice.actions.deleteTask({ workOrderId, id }));
     }
+    return success;
   };
 
 export const patchTask =

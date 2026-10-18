@@ -427,3 +427,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Défaut confirmé dans `Inventory/Sets.tsx` et `slices/multipart.ts` : le thunk de suppression ne renvoyait pas le booléen `success` de l’API. L’interface interprétait donc une réponse négative comme un succès et fermait la fiche avant même de recevoir le résultat.
 - Le thunk renvoie maintenant la confirmation serveur; la fiche ne se ferme qu’après succès confirmé et affiche le message d’échec sinon. Le reducer ignore également un identifiant absent au lieu d’utiliser `splice(-1, 1)` et de retirer le dernier ensemble par erreur.
 - `multipart-delete-confirmation.test.cjs` couvre la propagation du résultat, la fermeture conditionnelle et l’index absent. Tests ciblés réussis; suite complète, TypeScript, ESLint et build à relancer après ce correctif. Le test contre l’API authentifiée reste à faire.
+
+### UX-08 — fiabilisation des suppressions liées aux OT et aux équipements — 18 octobre 2026
+
+- Défaut confirmé : plusieurs thunks de suppression (`task`, `labor`, `additionalCost`, `assetDowntime`, `floorPlan`, `workOrderMeterTrigger`, `category`) ne propageaient pas le booléen `success` de l’API. Les vues ne pouvaient donc pas distinguer une suppression refusée d'une suppression effectuée.
+- Les thunks renvoient maintenant le résultat serveur. Les suppressions de main-d’œuvre, coûts, arrêts d’équipement, catégories et plans d’étage conservent ou signalent correctement l’échec. La suppression d’un déclencheur de compteur demande maintenant confirmation, est masquée sans droit d’édition et affiche un retour succès/échec.
+- Vérification : suite frontend complète (`node --test --test-reporter=dot scripts/*.test.cjs`), `tsc --noEmit --pretty false`, ESLint ciblé et `git diff --check` réussis. Le build de production a été tenté, mais CRA a terminé prématurément (probable manque mémoire); la validation avec API authentifiée reste à faire.

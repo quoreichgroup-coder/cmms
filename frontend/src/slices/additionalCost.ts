@@ -134,6 +134,7 @@ export const deleteAdditionalCost =
     if (success) {
       dispatch(slice.actions.deleteAdditionalCost({ workOrderId, id }));
     }
+    return success;
   };
 
 export default slice;

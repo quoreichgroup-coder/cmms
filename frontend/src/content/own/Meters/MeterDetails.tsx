@@ -61,6 +61,8 @@ import { subDays } from 'date-fns';
 import useDateLocale from '../../../hooks/useDateLocale';
 import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
 import { isCloudVersion } from '../../../config';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 
 interface MeterDetailsProps {
   meter: Meter;
@@ -80,6 +82,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
   const [currentTab, setCurrentTab] = useState<string>('details');
   const dateLocale = useDateLocale();
   const { getFormattedDate } = useContext(CompanySettingsContext);
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const theme = useTheme();
   const { histogramData, loadingHistogram } = useSelector(
     (state) => state.readings
@@ -92,6 +95,8 @@ export default function MeterDetails(props: MeterDetailsProps) {
   const [openEditTriggerModal, setOpenEditTriggerModal] =
     useState<boolean>(false);
   const [currentWorkOrderMeterTrigger, setCurrentWorkOrderMeterTrigger] =
+    useState<WorkOrderMeterTrigger>();
+  const [triggerToDelete, setTriggerToDelete] =
     useState<WorkOrderMeterTrigger>();
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const [dateRange, setDateRange] = useState<[Date, Date]>([
@@ -125,6 +130,22 @@ export default function MeterDetails(props: MeterDetailsProps) {
     if (value === 'history' && !historyFetched) {
       setHistoryFetched(true);
       dispatch(getReadings(meter.id));
+    }
+  };
+  const handleDeleteTrigger = async () => {
+    if (!triggerToDelete) return;
+    try {
+      const deleted = await dispatch(
+        deleteWorkOrderMeterTrigger(meter.id, triggerToDelete.id)
+      );
+      if (!deleted) {
+        showSnackBar(t('wo_trigger_delete_failure'), 'error');
+        return;
+      }
+      showSnackBar(t('wo_trigger_delete_success'), 'success');
+      setTriggerToDelete(undefined);
+    } catch {
+      showSnackBar(t('wo_trigger_delete_failure'), 'error');
     }
   };
   const fieldsToRender = (meter: Meter): { label: string; value: any }[] => [
@@ -350,7 +371,8 @@ export default function MeterDetails(props: MeterDetailsProps) {
                     <ListItem
                       key={trigger.id}
                       secondaryAction={
-                        hasConditionBasedPm ? (
+                        hasConditionBasedPm &&
+                        hasEditPermission(PermissionEntity.METERS, meter) ? (
                           <Stack spacing={1} direction="row">
                             <IconButton
                               onClick={() => {
@@ -365,14 +387,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                               <EditOutlinedIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => {
-                                dispatch(
-                                  deleteWorkOrderMeterTrigger(
-                                    meter.id,
-                                    trigger.id
-                                  )
-                                );
-                              }}
+                              onClick={() => setTriggerToDelete(trigger)}
                             >
                               <DeleteOutlinedIcon color="error" />
                             </IconButton>
@@ -424,6 +439,13 @@ export default function MeterDetails(props: MeterDetailsProps) {
         onClose={() => setOpenEditTriggerModal(false)}
         meter={meter}
         workOrderMeterTrigger={currentWorkOrderMeterTrigger}
+      />
+      <ConfirmDialog
+        open={Boolean(triggerToDelete)}
+        onCancel={() => setTriggerToDelete(undefined)}
+        onConfirm={handleDeleteTrigger}
+        confirmText={t('delete')}
+        question={t('confirm_delete_row')}
       />
       {isImageViewerOpen && (
         <div style={{ zIndex: 100 }}>

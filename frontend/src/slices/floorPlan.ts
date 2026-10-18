@@ -85,6 +85,7 @@ export const deleteFloorPlan =
     if (success) {
       dispatch(slice.actions.deleteFloorPlan({ locationId, id }));
     }
+    return success;
   };
 
 export default slice;

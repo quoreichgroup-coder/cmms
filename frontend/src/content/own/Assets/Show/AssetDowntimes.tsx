@@ -99,7 +99,13 @@ const AssetDowntimes = ({ asset }: PropsType) => {
 
     deleteInProgressRef.current = true;
     try {
-      await dispatch(deleteAssetDowntime(asset.id, downtimeToDelete));
+      const deleted = await dispatch(
+        deleteAssetDowntime(asset.id, downtimeToDelete)
+      );
+      if (!deleted) {
+        showSnackBar(t('downtime_delete_failure'), 'error');
+        return;
+      }
       setDowntimeToDelete(null);
       showSnackBar(t('downtime_delete_success'), 'success');
     } catch (error) {

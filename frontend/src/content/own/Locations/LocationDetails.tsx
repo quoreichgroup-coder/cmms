@@ -38,6 +38,7 @@ import {
   getFloorPlans
 } from '../../../slices/floorPlan';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
+import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getAssetUrl } from '../../../utils/urlPaths';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
@@ -55,6 +56,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { getFormattedDate, uploadFiles } = useContext(CompanySettingsContext);
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const [openAddFloorPlan, setOpenAddFloorPlan] = useState<boolean>(false);
   const [currentTab, setCurrentTab] = useState<string>('assets');
   const { assetsByLocation } = useSelector((state) => state.assets);
@@ -383,7 +385,14 @@ export default function LocationDetails(props: LocationDetailsProps) {
                             ) {
                               dispatch(
                                 deleteFloorPlan(location.id, floorPlan.id)
-                              );
+                              )
+                                .then((deleted) => {
+                                  if (!deleted)
+                                    showSnackBar(t('an_error_occured'), 'error');
+                                })
+                                .catch(() =>
+                                  showSnackBar(t('an_error_occured'), 'error')
+                                );
                             }
                           }}
                         >

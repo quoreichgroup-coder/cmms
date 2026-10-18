@@ -59,14 +59,21 @@ export default function CostSection({
     setOpenDeleteConfirm(true);
   };
 
-  const confirmDelete = () => {
-    if (costToDelete) {
-      dispatch(deleteAdditionalCost(workOrder.id, costToDelete.id)).catch(
-        (err) => showSnackBar(getErrorMessage(err), 'error')
+  const confirmDelete = async () => {
+    if (!costToDelete) return;
+    try {
+      const deleted = await dispatch(
+        deleteAdditionalCost(workOrder.id, costToDelete.id)
       );
+      if (!deleted) {
+        showSnackBar(t('an_error_occured'), 'error');
+        return;
+      }
+      setOpenDeleteConfirm(false);
+      setCostToDelete(null);
+    } catch (err) {
+      showSnackBar(getErrorMessage(err), 'error');
     }
-    setOpenDeleteConfirm(false);
-    setCostToDelete(null);
   };
 
   const canEdit = hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder);

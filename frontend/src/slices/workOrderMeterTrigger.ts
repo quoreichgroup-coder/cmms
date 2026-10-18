@@ -114,6 +114,7 @@ export const deleteWorkOrderMeterTrigger =
     if (success) {
       dispatch(slice.actions.deleteWorkOrderMeterTrigger({ meterId, id }));
     }
+    return success;
   };
 
 export const editWorkOrderMeterTrigger =

@@ -68,14 +68,21 @@ export default function TimeSection({
     setOpenDeleteConfirm(true);
   };
 
-  const confirmDelete = () => {
-    if (laborToDelete) {
-      dispatch(deleteLabor(workOrder.id, laborToDelete.id)).catch((err) =>
-        showSnackBar(getErrorMessage(err), 'error')
+  const confirmDelete = async () => {
+    if (!laborToDelete) return;
+    try {
+      const deleted = await dispatch(
+        deleteLabor(workOrder.id, laborToDelete.id)
       );
+      if (!deleted) {
+        showSnackBar(t('an_error_occured'), 'error');
+        return;
+      }
+      setOpenDeleteConfirm(false);
+      setLaborToDelete(null);
+    } catch (err) {
+      showSnackBar(getErrorMessage(err), 'error');
     }
-    setOpenDeleteConfirm(false);
-    setLaborToDelete(null);
   };
 
   const canEdit = hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder);
