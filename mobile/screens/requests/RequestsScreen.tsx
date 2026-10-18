@@ -53,6 +53,9 @@ export default function RequestsScreen({
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [hasLoadedFirstPage, setHasLoadedFirstPage] = useState(false);
+  const [loadedFilterFields, setLoadedFilterFields] = useState<
+    FilterField[] | null
+  >(null);
   const [loadError, setLoadError] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
   const nextPageRequestInProgress = useRef(false);
@@ -100,6 +103,10 @@ export default function RequestsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const hasCurrentCriteriaResults =
+    loadedFilterFields !== null &&
+    _.isEqual(loadedFilterFields, criteria.filterFields);
+  const visibleRequests = hasCurrentCriteriaResults ? requests.content : [];
   const fetchFirstPage = useCallback(
     async (isRefresh = false) => {
       const requestSequence = beginRequest(firstPageRequestSequence);
@@ -120,6 +127,9 @@ export default function RequestsScreen({
             direction: 'DESC'
           })
         );
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadedFilterFields(criteria.filterFields);
+        }
       } catch (_error) {
         if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
           setLoadError(true);
@@ -139,6 +149,7 @@ export default function RequestsScreen({
         nextPageRequestInProgress.current ||
         loadingGet ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -163,7 +174,15 @@ export default function RequestsScreen({
         }
       }
     },
-    [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
+    [
+      criteria,
+      currentPageNum,
+      dispatch,
+      hasCurrentCriteriaResults,
+      lastPage,
+      loadMoreError,
+      loadingGet
+    ]
   );
 
   useEffect(() => {
@@ -304,7 +323,7 @@ export default function RequestsScreen({
           <FlatList<Request>
             style={styles.list}
             contentContainerStyle={styles.listContent}
-            data={requests.content}
+            data={visibleRequests}
             keyExtractor={(request) => String(request.id)}
             renderItem={({ item: request }) => (
               <Card
@@ -448,7 +467,7 @@ export default function RequestsScreen({
             )}
             ListHeaderComponent={
               <View>
-                {loadError && requests.content.length > 0 && (
+                {loadError && visibleRequests.length > 0 && (
                   <View
                     style={[
                       styles.errorBanner,
@@ -519,6 +538,7 @@ export default function RequestsScreen({
             }
             ListEmptyComponent={
               loadingGet ||
+              (!hasCurrentCriteriaResults && !loadError) ||
               (hasViewPermission(PermissionEntity.REQUESTS) &&
                 !hasLoadedFirstPage) ? (
                 <View
@@ -593,7 +613,7 @@ export default function RequestsScreen({
               )
             }
             ListFooterComponent={
-              loadingGet && !refreshing && requests.content.length > 0 ? (
+              loadingGet && !refreshing && visibleRequests.length > 0 ? (
                 <View
                   style={styles.loadingFooter}
                   accessibilityRole="progressbar"

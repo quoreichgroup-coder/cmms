@@ -580,3 +580,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les cartes de la page Fonctionnalités imposaient un fond blanc qui ne suivait pas le mode sombre. Elles utilisent maintenant la surface `background.paper` du thème MUI.
 - Une régression protège la surface thématique. Le contenu, les fonctions, routes et droits ne changent pas; une recette visuelle en thème sombre reste à effectuer.
 - Vérification locale après les deux corrections UX-02 : suite frontend **67/67**, TypeScript, Prettier, ESLint ciblé, `git diff --check` et build optimisé réussis. Le build conserve des avertissements de formatage ESLint préexistants dans quatre fichiers non touchés.
+
+### UX-02 / UX-06 — statuts des OT liés dans le détail d’un OT — 18 octobre 2026
+
+- La section des OT liés appliquait des couleurs dédiées incohérentes : « En cours » vert, « Clôturé » bleu et les autres statuts gris. Elle réutilise maintenant `WorkOrderStatusChip`, comme les autres historiques d’OT, afin de conserver la même couleur sémantique et le même libellé partout.
+- Aucun statut métier, droit, appel API ou action ne change. Un test de régression protège l’usage du badge partagé; la recette visuelle clair/sombre reste à faire dans Chromium.
+- Validation de ce lot : suite frontend **67/67**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis. Le build garde les avertissements de formatage connus dans quatre fichiers hors de ce lot. La recette visuelle navigateur reste ouverte.

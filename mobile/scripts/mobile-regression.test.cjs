@@ -1252,6 +1252,26 @@ test('clearing WO or request search keeps focused search ready for new text', ()
     );
   }
 });
+test('request list hides stale results after filter failure and blocks stale pagination', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/requests/RequestsScreen.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /loadedFilterFields !== null &&\s*_.isEqual\(loadedFilterFields, criteria\.filterFields\)/
+  );
+  assert.match(source, /data=\{visibleRequests\}/);
+  assert.match(
+    source,
+    /!hasCurrentCriteriaResults \|\|\s*\(loadMoreError && !retry\)/
+  );
+  assert.match(
+    source,
+    /if \(isCurrentRequest\(requestSequence, firstPageRequestSequence\)\) \{\s*setLoadedFilterFields\(criteria\.filterFields\);\s*\}/
+  );
+});
 test('compliance stats show no data when there are no completed work orders', () => {
   const { formatComplianceRateDisplay } =
     mobileRuntime().load('utils/analytics.ts');

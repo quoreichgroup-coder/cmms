@@ -16,7 +16,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  styled,
   Tab,
   Tabs,
   TextField,
@@ -102,17 +101,6 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { ContentCopyOutlined } from '@mui/icons-material';
 import WorkOrderStatusChip from '../WorkOrderStatusChip';
 import ConfirmDialog from '../../components/ConfirmDialog';
-
-const LabelWrapper = styled(Box)(
-  ({ theme }) => `
-    font-size: ${theme.typography.pxToRem(10)};
-    font-weight: bold;
-    text-transform: uppercase;
-    border-radius: ${theme.general.borderRadiusSm};
-    padding: ${theme.spacing(0.9, 1.5, 0.7)};
-    line-height: 1;
-  `
-);
 
 function WorkOrderImagePreview({
   src,
@@ -1208,24 +1196,9 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                                       <Typography variant="h6">
                                         {relation.workOrder.title}
                                       </Typography>
-                                      <LabelWrapper
-                                        sx={{
-                                          background:
-                                            relation.workOrder.status ===
-                                            'IN_PROGRESS'
-                                              ? theme.colors.success.main
-                                              : relation.workOrder.status ===
-                                                'ON_HOLD'
-                                              ? theme.colors.warning.main
-                                              : relation.workOrder.status ===
-                                                'COMPLETE'
-                                              ? theme.colors.primary.main
-                                              : theme.colors.alpha.black[30],
-                                          color: 'white'
-                                        }}
-                                      >
-                                        {t(relation.workOrder.status)}
-                                      </LabelWrapper>
+                                      <WorkOrderStatusChip
+                                        status={relation.workOrder.status}
+                                      />
                                     </Stack>
                                   }
                                   secondary={getFormattedDate(

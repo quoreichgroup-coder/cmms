@@ -1024,6 +1024,12 @@ Le formulaire de tâche conservait le responsable choisi dans son résumé, mais
 
 Une régression vérifie la valeur initiale transmise au sélecteur. Essai TalkBack/VoiceOver sur appareil restant; aucune APK/IPA n’est générée.
 
+## Demandes — résultats obsolètes masqués après un filtre en échec — 18 octobre 2026
+
+La liste conservait les demandes du filtre précédent pendant une nouvelle recherche; si la nouvelle requête échouait, ces anciennes lignes restaient sous les nouveaux filtres. La pagination pouvait aussi tenter de continuer sur cette liste obsolète. La vue affiche maintenant les lignes seulement lorsque leur filtre correspond au filtre courant, présente l’état de chargement ou l’erreur de la requête courante et bloque la pagination jusqu’au succès de la première page. Un rafraîchissement qui échoue avec les mêmes filtres conserve les résultats déjà pertinents et montre l’erreur. Les endpoints, critères transmis et règles métier ne changent pas.
+
+Régression ciblée ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Essai réseau réel et rendu sur appareil non inclus; aucune APK/IPA n’est générée.
+
 Suite après ce lot : `npm run test:mobile-regression` (**30/30**), `tsc --noEmit --pretty false`, Prettier et `git diff --check` passent. La sélection à la réouverture reste à confirmer visuellement sur téléphone.
 
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
