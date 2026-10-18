@@ -1702,6 +1702,25 @@ test('dashboard analytics and navigation respect permission and resolved work-or
   );
 });
 
+test('home keeps only actionable work-order summaries while Stats owns the full breakdown', () => {
+  const home = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/HomeScreen.tsx'),
+    'utf8'
+  );
+  const stats = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/WorkOrderStatsScreen.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    home,
+    /const homeStats = stats\.filter\([\s\S]*?stat\.label === 'TODAY_WO' \|\| stat\.label === 'HIGH_WO'/
+  );
+  assert.match(home, /\{homeStats\.map\(\(stat\) =>/);
+  assert.match(stats, /const distribution = metrics\.slice\(0, 4\)/);
+  assert.match(stats, /const metrics = useMemo<DashboardMetric\[]>/);
+});
+
 test('home dashboard handles notification load failures and offers retry', () => {
   const home = fs.readFileSync(
     path.join(__dirname, '..', 'screens/HomeScreen.tsx'),

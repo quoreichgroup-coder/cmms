@@ -1037,3 +1037,9 @@ Suite après ce lot : `npm run test:mobile-regression` (**30/30**), `tsc --noEmi
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.
 
 Pour expliquer le `00` observé sur le compte concerné, comparer les six cartes à la réponse JSON de cet endpoint avec la même valeur `assignedToMe`, puis répéter avec les deux préférences de scope et vérifier les WO clôturés/archivés. Vérifier également réseau interrompu/relance sur appareil. Point sécurité à traiter séparément : la méthode d’overview semble protégée par rôle Spring global, sans permission granulaire identifiée dans ce chemin; ne pas compenser cette lacune par le masquage UI. Aucun changement API ou permission n’a été fait dans cette passe.
+
+## Home et Stats — réduction de la duplication — 18 octobre 2026
+
+Home et Stats consommaient la même synthèse et affichaient six cartes de compteurs d’OT en double. Home conserve maintenant les deux signaux d’action de cette réponse — échéances du jour et priorité élevée — tandis que Stats garde la répartition analytique complète. Le résumé d’OT actif dans l’en-tête, les filtres, le scope assigné/global, les permissions, la navigation et l’API restent inchangés. L’endpoint ne fournissant pas de nombre d’OT en retard, Home n’en invente pas.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Validation de ce lot : suite Mobile (**30/30**), TypeScript, Prettier et `git diff --check`. Aucune APK/IPA ni essai visuel sur appareil n’est inclus.

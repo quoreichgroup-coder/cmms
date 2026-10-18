@@ -257,6 +257,9 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
       ]
     }
   ];
+  const homeStats = stats.filter(
+    (stat) => stat.label === 'TODAY_WO' || stat.label === 'HIGH_WO'
+  );
   return (
     <ScrollView
       contentContainerStyle={{ paddingBottom: 100 }}
@@ -489,7 +492,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
             </Text>
           </View>
           <View style={styles.statsGrid}>
-            {stats.map((stat) => {
+            {homeStats.map((stat) => {
               const statusIcons: Record<ExtendedWorkOrderStatus, string> = {
                 OPEN: 'wrench-outline',
                 ON_HOLD: 'pause-circle-outline',
