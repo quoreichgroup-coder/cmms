@@ -85,7 +85,7 @@ function MTBFByAsset({
           <Tooltip />
           <Bar
             dataKey="mtbf"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('MTBF')}
             yAxisId="left-axis"
           >

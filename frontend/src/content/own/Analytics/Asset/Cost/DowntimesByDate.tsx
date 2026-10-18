@@ -15,7 +15,6 @@ import AnalyticsCard from '../../AnalyticsCard';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getRandomColor } from '../../../../../utils/overall';
 import Loading from '../../Loading';
 import { getDowntimesByDate } from '../../../../../slices/analytics/asset';
 import { getDayAndMonth } from '../../../../../utils/dates';
@@ -61,7 +60,7 @@ function DowntimesByDate({
       label: getDayAndMonth(month.date),
       duration: Number((month.duration / 3600).toFixed(2)),
       cost: month.workOrdersCosts.toFixed(2),
-      color: getRandomColor(),
+      color: theme.palette.primary.main,
       filters: [{ key: 'month', value: month.date }]
     };
   });
@@ -83,7 +82,7 @@ function DowntimesByDate({
           <Legend />
           <Bar
             dataKey="cost"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('total_maintenance_cost')}
             yAxisId="left-axis"
           >
@@ -101,7 +100,7 @@ function DowntimesByDate({
             name={t('total_downtime_in_hours')}
             type="monotone"
             dataKey="duration"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

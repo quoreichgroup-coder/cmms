@@ -86,7 +86,7 @@ function DowntimesByAsset({
           <Legend />
           <Bar
             dataKey="count"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('downtime_events')}
             yAxisId="left-axis"
           >
@@ -104,7 +104,7 @@ function DowntimesByAsset({
             name={t('percent_downtime')}
             type="monotone"
             dataKey="percent"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

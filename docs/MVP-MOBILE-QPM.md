@@ -972,7 +972,7 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les séle
 
 L’audit des sélecteurs d’équipes et de localisations a confirmé que les lignes en mode choix unique omettaient l’indicateur visuel et l’état d’accessibilité pour la valeur préchargée. Le composant de ligne de localisation, réutilisé par toute la liste, affiche maintenant une coche pour l’élément courant et annonce son état « sélectionné ». Les cases du mode multiple, le filtrage, les callbacks, les API et les règles de localisation restent inchangés. Le sélecteur d’équipes conserve ce défaut pour un prochain lot ciblé.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, le typecheck, Prettier et `git diff --check` passent. TalkBack/VoiceOver et le rendu sur appareil restent à tester; aucune APK/IPA n’est générée.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les sélecteurs de localisation et d’équipe ont depuis été corrigés dans leurs lots dédiés. Les tests Mobile, le typecheck, Prettier et `git diff --check` passent. TalkBack/VoiceOver et le rendu sur appareil restent à tester; aucune APK/IPA n’est générée.
 
 ## Sélecteur d’équipe — choix courant visible — 18 octobre 2026
 
@@ -990,7 +990,7 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Vérifica
 
 L’audit des pickers fournisseur et client a confirmé la même lacune dans les deux implémentations : en choix unique, une valeur préchargée n’était pas marquée visuellement ni annoncée comme sélectionnée. Le picker fournisseur, utilisé dans les parcours d’approvisionnement, affiche maintenant une coche QPM et expose l’état `selected`; le contrôle `checked` des sélections multiples reste inchangé. Les valeurs, callbacks, endpoints et règles d’approbation ne changent pas. Le sélecteur client reste à traiter dans un lot ultérieur, car il ne partage pas de composant de ligne avec le picker fournisseur.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, TypeScript, Prettier et `git diff --check` passent. La vérification TalkBack/VoiceOver sur appareil reste à faire; aucune APK/IPA n’est générée.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, TypeScript, Prettier et `git diff --check` passent. Le picker client a depuis été corrigé dans son lot dédié. La vérification TalkBack/VoiceOver sur appareil reste à faire; aucune APK/IPA n’est générée.
 
 ## Sélecteur de clients — choix courant visible — 18 octobre 2026
 

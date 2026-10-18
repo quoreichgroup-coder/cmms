@@ -15,7 +15,7 @@ import AnalyticsCard from '../../AnalyticsCard';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import Loading from '../../Loading';
 import { getDowntimesAndCostsByAsset } from '../../../../../slices/analytics/asset';
 
@@ -60,7 +60,7 @@ function DowntimesAndCosts({
       label: asset.name,
       duration: Number((asset.duration / 3600).toFixed(2)),
       cost: Number(asset.workOrdersCosts.toFixed(2)),
-      color: getRandomColor(),
+      color: getQpmChartColor(`asset-${asset.id}`),
       filters: [{ key: 'user', value: asset.id }]
     };
   });
@@ -84,7 +84,7 @@ function DowntimesAndCosts({
           <Legend />
           <Bar
             dataKey="duration"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('total_downtime_in_hours')}
             yAxisId="left-axis"
           >
@@ -102,7 +102,7 @@ function DowntimesAndCosts({
             name={t('cost')}
             type="monotone"
             dataKey="cost"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

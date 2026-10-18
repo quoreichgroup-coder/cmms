@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
   Bar,
@@ -39,6 +40,7 @@ function RepairTimeByAsset({
   companyId
 }: WOStatusPieProps) {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { repairTimeByAsset, loading, errors } = useSelector(
     (state) => state.assetAnalytics
@@ -84,7 +86,7 @@ function RepairTimeByAsset({
           <Legend />
           <Bar
             dataKey="duration"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('mean_time_to_repair_in_hours')}
           >
             {formattedData.map((entry, index) => (
@@ -101,7 +103,7 @@ function RepairTimeByAsset({
             name={t('average')}
             type="monotone"
             dataKey="average"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
           />
         </ComposedChart>
       )}
