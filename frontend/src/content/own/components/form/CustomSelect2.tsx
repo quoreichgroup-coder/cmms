@@ -42,6 +42,7 @@ import { AssetMiniDTO } from '../../../../models/owns/asset';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import api from '../../../../utils/api';
+import { mergeSelectedOptions } from '../../../../utils/mergeSelectedOptions';
 
 interface OptionType {
   label: string;
@@ -602,13 +603,9 @@ export const CustomSelect = ({
         (value): value is OptionType =>
           !!value && typeof value === 'object' && value.value != null
       );
-      const assetOptions = Array.from(
-        new Map(
-          [...availableAssetOptions, ...selectedAssetValues].map((option) => [
-            String(option.value),
-            option
-          ])
-        ).values()
+      const assetOptions = mergeSelectedOptions(
+        availableAssetOptions,
+        selectedAssetValues
       );
       const locationId = field.relatedFields?.length
         ? formik.values[field.relatedFields[0].field]?.value ?? null
