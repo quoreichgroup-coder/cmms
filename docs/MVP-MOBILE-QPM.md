@@ -998,6 +998,12 @@ Le picker client était le dernier annuaire audité dont la sélection précharg
 
 Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile, TypeScript, Prettier et `git diff --check` validés. TalkBack/VoiceOver et le rendu sur appareil restent à vérifier; aucune APK/IPA n’est générée.
 
+## Sélecteur de pièces — action « Ajouter » accessible — 18 octobre 2026
+
+Le bouton « Ajouter » en haut du sélecteur de pièces était désactivé tant qu’aucune pièce n’était sélectionnée, mais le `Pressable` n’exposait ni son rôle de bouton ni cet état désactivé aux technologies d’assistance. Il annonce maintenant le nombre de pièces sélectionnées et son état `disabled`; la condition de disponibilité, les valeurs retournées et la navigation restent identiques.
+
+Une régression vérifie le rôle, le libellé avec le nombre et l’état désactivé. Aucun endpoint, droit, règle d’inventaire ou comportement d’ajout ne change. TalkBack/VoiceOver doivent encore être vérifiés sur téléphone; aucune APK/IPA n’est générée.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.

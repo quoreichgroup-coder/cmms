@@ -459,6 +459,9 @@ export default function SelectParts({
       headerRight: () => (
         <Pressable
           disabled={!selectedParts.length}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('add')} (${selectedParts.length})`}
+          accessibilityState={{ disabled: !selectedParts.length }}
           onPress={() => {
             onChange(selectedParts);
             navigation.goBack();

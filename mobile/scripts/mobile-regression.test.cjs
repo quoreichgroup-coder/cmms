@@ -167,6 +167,27 @@ test('single customer picker announces and marks the current selection', () => {
     /!multiple\s*&&\s*selectedIds\.includes\(customer\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
   );
 });
+test('parts selector add action exposes its role, selected count, and disabled state', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectPartsModal.tsx'),
+    'utf8'
+  );
+  const headerAction = source.match(
+    /headerRight: \(\) => \(([\s\S]*?)\n      \)/
+  );
+
+  assert.ok(headerAction, 'the parts selector should define its add action');
+  assert.match(headerAction[1], /accessibilityRole="button"/);
+  assert.match(
+    headerAction[1],
+    /accessibilityLabel=\{`\$\{t\('add'\)\} \(\$\{selectedParts\.length\}\)`\}/
+  );
+  assert.match(
+    headerAction[1],
+    /accessibilityState=\{\{ disabled: !selectedParts\.length \}\}/
+  );
+  assert.match(headerAction[1], /disabled=\{!selectedParts\.length\}/);
+});
 test('shared error retry actions meet the QPM minimum touch target', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'components/AsyncStateFeedback.tsx'),
