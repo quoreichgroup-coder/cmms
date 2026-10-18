@@ -1042,4 +1042,4 @@ Pour expliquer le `00` observé sur le compte concerné, comparer les six cartes
 
 Home et Stats consommaient la même synthèse et affichaient six cartes de compteurs d’OT en double. Home conserve maintenant les deux signaux d’action de cette réponse — échéances du jour et priorité élevée — tandis que Stats garde la répartition analytique complète. Le résumé d’OT actif dans l’en-tête, les filtres, le scope assigné/global, les permissions, la navigation et l’API restent inchangés. L’endpoint ne fournissant pas de nombre d’OT en retard, Home n’en invente pas.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Validation de ce lot : suite Mobile (**30/30**), TypeScript, Prettier et `git diff --check`. Aucune APK/IPA ni essai visuel sur appareil n’est inclus.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Validation de ce lot : suite Mobile (**30/30**), TypeScript, Prettier, `git diff --check` et export Expo Web réussi (**1 889 modules**). L’export est temporaire et n’a pas produit d’APK/IPA; essai visuel sur appareil encore requis.
