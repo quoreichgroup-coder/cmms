@@ -7,7 +7,7 @@ import {
   GridToolbar
 } from '@mui/x-data-grid';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { useNavigate } from 'react-router-dom';
 import { AssetDTO } from '../../../../models/owns/asset';
 import { useDispatch } from '../../../../store';
@@ -63,7 +63,7 @@ const AssetParts = ({ asset }: PropsType) => {
         let actions = [
           <GridActionsCellItem
             key="delete"
-            icon={<DeleteTwoToneIcon fontSize="small" color="error" />}
+            icon={<DeleteOutlinedIcon fontSize="small" color="error" />}
             onClick={() => handleDelete(Number(params.id))}
             label="Remove part"
           />

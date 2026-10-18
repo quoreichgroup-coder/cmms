@@ -1,12 +1,19 @@
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
+} from 'react-native';
 import { Text, Button, TextInput, useTheme } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import api from '../utils/api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
+import { createAsyncActionLock } from '../utils/asyncActionLock';
+import { qpmLayoutTokens } from '../custom-theme';
 
 type FeedbackNavProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,19 +27,28 @@ export default function FeedbackScreen() {
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef<ReturnType<typeof createAsyncActionLock> | null>(
+    null
+  );
+  const submitLock =
+    submitLockRef.current ?? (submitLockRef.current = createAsyncActionLock());
 
-  const handleSubmit = async () => {
-    if (!feedback.trim()) return;
-    setSubmitting(true);
-    try {
-      await api.post('reviews/feedback', { value: feedback.trim() });
-      showSnackBar(t('feedback_sent'), 'success');
-      navigation.goBack();
-    } catch {
-      showSnackBar(t('an_error_occured'), 'error');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleSubmit = () => {
+    const value = feedback.trim();
+    if (!value) return;
+
+    return submitLock(async () => {
+      setSubmitting(true);
+      try {
+        await api.post('reviews/feedback', { value });
+        showSnackBar(t('feedback_sent'), 'success');
+        navigation.goBack();
+      } catch {
+        showSnackBar(t('an_error_occured'), 'error');
+      } finally {
+        setSubmitting(false);
+      }
+    });
   };
 
   return (
@@ -40,7 +56,11 @@ export default function FeedbackScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
         <Text
           variant="headlineSmall"
           accessibilityRole="header"
@@ -58,10 +78,10 @@ export default function FeedbackScreen() {
           mode="outlined"
           multiline
           numberOfLines={4}
+          label={t('feedback_placeholder')}
           value={feedback}
           onChangeText={setFeedback}
           style={styles.input}
-          placeholder={t('feedback_placeholder')}
           accessibilityLabel={t('feedback_placeholder')}
           editable={!submitting}
         />
@@ -72,10 +92,14 @@ export default function FeedbackScreen() {
           disabled={!feedback.trim() || submitting}
           style={styles.button}
           accessibilityRole="button"
+          accessibilityState={{
+            disabled: !feedback.trim() || submitting,
+            busy: submitting
+          }}
         >
           {t('send')}
         </Button>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -85,7 +109,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24
@@ -102,6 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: 24
   },
   button: {
-    minWidth: 120
+    minWidth: 120,
+    minHeight: qpmLayoutTokens.touchTarget.prominent
   }
 });

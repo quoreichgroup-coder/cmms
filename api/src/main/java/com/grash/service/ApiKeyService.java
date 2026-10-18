@@ -67,21 +67,19 @@ public class ApiKeyService {
     }
 
 
-    public List<ApiKey> getAll() {
-        return apiKeyRepository.findAll();
+    public void delete(Long id, User user) {
+        ApiKey apiKey = findByIdAndCompany(id, user)
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        apiKeyRepository.delete(apiKey);
     }
 
-    public void delete(Long id) {
-        apiKeyRepository.deleteById(id);
-    }
-
-    public Optional<ApiKey> findById(Long id) {
-        return apiKeyRepository.findById(id);
+    public Optional<ApiKey> findByIdAndCompany(Long id, User user) {
+        return apiKeyRepository.findByIdAndCompany_Id(id, user.getCompany().getId());
     }
 
     public ApiKey update(Long id, ApiKeyPatchDTO apiKeyPatchDTO, User user) {
         ApiKey savedApiKey =
-                apiKeyRepository.findById(id).orElseThrow(() -> new CustomException("Not found",
+                findByIdAndCompany(id, user).orElseThrow(() -> new CustomException("Not found",
                         HttpStatus.NOT_FOUND));
         ApiKey updatedApiKey = apiKeyMapper.updateApiKey(savedApiKey, apiKeyPatchDTO);
         Sanitizer.sanitizeApiKey(updatedApiKey);
@@ -112,8 +110,8 @@ public class ApiKeyService {
     }
 
     public Pair<ApiKey, String> rotateKey(Long id, User user) {
-        ApiKey oldKey = apiKeyRepository.findById(id)
-                .orElseThrow(() -> new CustomException("API key not found", HttpStatus.NOT_FOUND));
+        ApiKey oldKey = findByIdAndCompany(id, user)
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
         if (!oldKey.getUser().getId().equals(user.getId())) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }

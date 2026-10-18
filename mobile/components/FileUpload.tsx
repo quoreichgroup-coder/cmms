@@ -5,7 +5,12 @@ import * as React from 'react';
 import { useContext, useRef, useState } from 'react';
 import * as FileSystem from 'expo-file-system';
 import { Image, ScrollView, Text, TouchableOpacity } from 'react-native';
-import { ActivityIndicator, IconButton, useTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Icon,
+  IconButton,
+  useTheme
+} from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { SheetManager } from 'react-native-actions-sheet';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
@@ -242,15 +247,20 @@ export default function FileUpload({
               accessibilityLabel={t('loading')}
             />
           ) : (
-            <IconButton
-              iconColor={theme.colors.primary}
-              icon={'plus-circle'}
-              disabled={!canUpload || disabled}
-              accessibilityLabel={t('upload')}
-              accessibilityHint={
-                !hasFileEntitlement ? t('you_need_a_license') : undefined
-              }
-            />
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Icon
+                source="plus-circle"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </View>
           )}
         </View>
       </TouchableOpacity>

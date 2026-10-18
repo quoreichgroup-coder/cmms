@@ -225,6 +225,7 @@ export const deletePreventiveMaintenance =
     if (success) {
       dispatch(slice.actions.deletePreventiveMaintenance({ id }));
     }
+    return success;
   };
 
 export const triggerWorkOrder =

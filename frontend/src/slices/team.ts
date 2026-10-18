@@ -127,6 +127,7 @@ export const deleteTeam =
     if (success) {
       dispatch(slice.actions.deleteTeam({ id }));
     }
+    return success;
   };
 export const clearSingleTeam = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.clearSingleTeam({}));

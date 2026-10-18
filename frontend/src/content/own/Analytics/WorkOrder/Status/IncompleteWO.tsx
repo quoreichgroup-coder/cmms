@@ -1,4 +1,3 @@
-import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
   Bar,
@@ -17,6 +16,8 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getIncompleteByPriority } from '../../../../../slices/analytics/workOrder';
 import Loading from '../../Loading';
+import { qpmPriorityTokens } from '../../../../../theme/tokens';
+import { getPriorityLabel } from '../../../../../utils/formatters';
 
 interface WOStatusIncompleteProps {
   handleOpenModal: (
@@ -36,7 +37,6 @@ function IncompleteWO({
   companyId
 }: WOStatusIncompleteProps) {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const { incompleteByPriority, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
@@ -56,31 +56,31 @@ function IncompleteWO({
     filters: Filter[];
   }[] = [
     {
-      label: 'High',
+      label: getPriorityLabel('HIGH', t),
       count: incompleteByPriority.high.count,
-      color: theme.colors.error.main,
+      color: qpmPriorityTokens.HIGH.foreground,
       estimatedHours: incompleteByPriority.high.estimatedHours,
       filters: [{ key: 'fs', value: false }]
     },
     {
-      label: 'Medium',
+      label: getPriorityLabel('MEDIUM', t),
       count: incompleteByPriority.medium.count,
-      color: theme.colors.warning.main,
+      color: qpmPriorityTokens.MEDIUM.foreground,
       estimatedHours: incompleteByPriority.medium.estimatedHours,
       filters: [{ key: 'fs', value: false }]
     },
     {
-      label: 'Low',
+      label: getPriorityLabel('LOW', t),
       count: incompleteByPriority.low.count,
-      color: theme.colors.success.main,
+      color: qpmPriorityTokens.LOW.foreground,
       estimatedHours: incompleteByPriority.low.estimatedHours,
       filters: [{ key: 'fs', value: false }]
     },
     {
-      label: 'None',
+      label: getPriorityLabel('NONE', t),
       count: incompleteByPriority.none.count,
-      color: theme.colors.alpha.black[70],
-      estimatedHours: incompleteByPriority.low.estimatedHours,
+      color: qpmPriorityTokens.DEFAULT.foreground,
+      estimatedHours: incompleteByPriority.none.estimatedHours,
       filters: [{ key: 'fs', value: false }]
     }
   ];

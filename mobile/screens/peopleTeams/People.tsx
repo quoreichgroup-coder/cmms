@@ -1,8 +1,8 @@
 import {
   ActivityIndicator,
   Linking,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View
 } from 'react-native';
@@ -16,7 +16,7 @@ import { FilterField, SearchCriteria } from '../../models/page';
 import { Button, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import User from '../../models/user';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { getUserInitials } from '../../utils/displayers';
@@ -31,7 +31,7 @@ export default function People({
   const { t } = useTranslation();
   const currentUser = useAuth().user;
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
-  const { users, loadingGet, currentPageNum, lastPage } = useSelector(
+  const { users, listLoading, currentPageNum, lastPage } = useSelector(
     (state) => state.users
   );
   const theme = useAppTheme();
@@ -45,6 +45,7 @@ export default function People({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
+  const activeListLoadId = useRef(0);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -70,6 +71,7 @@ export default function People({
   );
   const loadUsers = useCallback(async () => {
     if (!canView) return;
+    const requestId = ++activeListLoadId.current;
     setLoadError(false);
     setLoadMoreError(false);
     try {
@@ -78,9 +80,9 @@ export default function People({
       );
     } catch (error) {
       console.warn('Could not load people:', error);
-      setLoadError(true);
+      if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
-      setHasLoadedList(true);
+      if (activeListLoadId.current === requestId) setHasLoadedList(true);
     }
   }, [canView, criteria, dispatch]);
 
@@ -103,20 +105,21 @@ export default function People({
       if (
         !canView ||
         loadingMoreRef.current ||
-        loadingGet ||
+        listLoading ||
         lastPage ||
         (loadMoreError && !retry)
       )
         return;
 
       loadingMoreRef.current = true;
+      const listRequestId = activeListLoadId.current;
       setLoadingMore(true);
       setLoadMoreError(false);
       try {
         await dispatch(getMoreUsers(criteria, currentPageNum + 1));
       } catch (error) {
         console.warn('Could not load more people:', error);
-        setLoadMoreError(true);
+        if (activeListLoadId.current === listRequestId) setLoadMoreError(true);
       } finally {
         loadingMoreRef.current = false;
         setLoadingMore(false);
@@ -129,7 +132,7 @@ export default function People({
       dispatch,
       lastPage,
       loadMoreError,
-      loadingGet
+      listLoading
     ]
   );
 
@@ -163,11 +166,52 @@ export default function People({
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
       )}
-      <ScrollView
+      <FlatList
         style={styles.scrollView}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) void loadMoreUsers();
-        }}
+        contentContainerStyle={styles.listContent}
+        data={canView ? users.content : []}
+        keyExtractor={(user) => String(user.id)}
+        renderItem={({ item: user }) => (
+          <DirectoryCard
+            title={`${user.firstName} ${user.lastName}`}
+            icon="account-outline"
+            avatarSource={user.image ? { uri: user.image.url } : undefined}
+            avatarLabel={!user.image ? getUserInitials(user) : undefined}
+            accessibilityLabel={`${user.firstName} ${user.lastName}${
+              user.email ? `, ${user.email}` : ''
+            }`}
+            details={[
+              ...(user.email
+                ? [{ label: user.email, icon: 'email-outline' as const }]
+                : []),
+              ...(user.phone
+                ? [{ label: user.phone, icon: 'phone-outline' as const }]
+                : [])
+            ]}
+            trailingAction={
+              user.phone
+                ? {
+                    icon: 'phone' as const,
+                    label: `${t('phone')} ${user.firstName} ${user.lastName}`,
+                    onPress: () => Linking.openURL(`tel:${user.phone}`)
+                  }
+                : undefined
+            }
+            onPress={() => {
+              if (user.id === currentUser.id) {
+                navigation.navigate('UserProfile');
+              } else
+                navigation.push('UserDetails', {
+                  id: user.id,
+                  userProp: user
+                });
+            }}
+          />
+        )}
+        onEndReached={() => void loadMoreUsers()}
+        onEndReachedThreshold={0.4}
+        initialNumToRender={8}
+        windowSize={7}
         refreshControl={
           canView ? (
             <RefreshControl
@@ -178,118 +222,83 @@ export default function People({
             />
           ) : undefined
         }
-        scrollEventThrottle={400}
-      >
-        {loadError && users.content.length > 0 && (
-          <AsyncStateFeedback
-            mode="banner"
-            message={t('directory_load_error')}
-            onRetry={loadUsers}
-          />
-        )}
-        {canView && users.content.length > 0 ? (
-          users.content.map((user) => (
-            <DirectoryCard
-              key={user.id}
-              title={`${user.firstName} ${user.lastName}`}
-              icon="account-outline"
-              avatarSource={user.image ? { uri: user.image.url } : undefined}
-              avatarLabel={!user.image ? getUserInitials(user) : undefined}
-              accessibilityLabel={`${user.firstName} ${user.lastName}${
-                user.email ? `, ${user.email}` : ''
-              }`}
-              details={[
-                ...(user.email
-                  ? [{ label: user.email, icon: 'email-outline' as const }]
-                  : []),
-                ...(user.phone
-                  ? [{ label: user.phone, icon: 'phone-outline' as const }]
-                  : [])
-              ]}
-              trailingAction={
-                user.phone
-                  ? {
-                      icon: 'phone' as const,
-                      label: `${t('phone')} ${user.firstName} ${user.lastName}`,
-                      onPress: () => Linking.openURL(`tel:${user.phone}`)
-                    }
-                  : undefined
-              }
-              onPress={() => {
-                if (user.id === currentUser.id) {
-                  navigation.navigate('UserProfile');
-                } else
-                  navigation.push('UserDetails', {
-                    id: user.id,
-                    userProp: user
-                  });
-              }}
+        ListHeaderComponent={
+          loadError && users.content.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('directory_load_error')}
+              onRetry={loadUsers}
             />
-          ))
-        ) : canView && (loadingGet || !hasLoadedList) ? (
-          <View
-            style={styles.loadingState}
-            accessibilityRole="progressbar"
-            accessibilityLabel={t('loading')}
-          >
-            <ActivityIndicator color={theme.colors.primary} size="large" />
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>
-              {t('loading')}
-            </Text>
-          </View>
-        ) : !canView ? (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text style={{ color: theme.colors.onSurface }}>
-              {t('no_access_people_team')}
-            </Text>
-          </View>
-        ) : loadError ? (
-          <View style={styles.emptyState} accessibilityRole="alert">
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface }}
+          ) : null
+        }
+        ListEmptyComponent={
+          canView && (listLoading || !hasLoadedList) ? (
+            <View
+              style={styles.loadingState}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('loading')}
             >
-              {t('directory_load_error')}
-            </Text>
-            <Button onPress={loadUsers}>{t('retry')}</Button>
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface }}
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('loading')}
+              </Text>
+            </View>
+          ) : !canView ? (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
             >
-              {searchQuery.trim()
-                ? t('no_element_match_criteria')
-                : t('no_users_available')}
-            </Text>
-          </View>
-        )}
-        {canView && !!users.content.length && !lastPage && (
-          <DirectoryPaginationFooter
-            loading={loadingMore}
-            error={loadMoreError}
-            loadingMessage={t('people_page_loading')}
-            onRetry={() => void loadMoreUsers(true)}
-          />
-        )}
-      </ScrollView>
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('no_access_people_team')}
+              </Text>
+            </View>
+          ) : loadError ? (
+            <View style={styles.emptyState} accessibilityRole="alert">
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {t('directory_load_error')}
+              </Text>
+              <Button onPress={loadUsers}>{t('retry')}</Button>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {searchQuery.trim()
+                  ? t('no_element_match_criteria')
+                  : t('no_users_available')}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          canView && !!users.content.length && !lastPage ? (
+            <DirectoryPaginationFooter
+              loading={loadingMore}
+              error={loadMoreError}
+              loadingMessage={t('people_page_loading')}
+              onRetry={() => void loadMoreUsers(true)}
+            />
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -308,6 +317,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flex: 1
   },
+  listContent: { flexGrow: 1, paddingBottom: 24 },
   loadingState: {
     minHeight: 180,
     alignItems: 'center',

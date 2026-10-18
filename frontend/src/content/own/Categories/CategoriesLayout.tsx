@@ -21,8 +21,8 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import ClearTwoToneIcon from '@mui/icons-material/ClearTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { TitleContext } from '../../../contexts/TitleContext';
@@ -451,7 +451,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
                               }}
                               size="small"
                             >
-                              <EditTwoToneIcon fontSize="small" />
+                              <EditOutlinedIcon fontSize="small" />
                             </IconButtonWrapper>
                           )}
                           {hasDeletePermission(
@@ -486,7 +486,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
                               }}
                               size="small"
                             >
-                              <ClearTwoToneIcon fontSize="small" />
+                              <ClearOutlinedIcon fontSize="small" />
                             </IconButtonWrapper>
                           )}
                         </Box>

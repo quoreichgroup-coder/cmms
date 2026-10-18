@@ -11,7 +11,7 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import UploadTwoToneIcon from '@mui/icons-material/UploadTwoTone';
+import UploadOutlinedIcon from '@mui/icons-material/UploadOutlined';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
 
@@ -111,7 +111,7 @@ const ProfileCover: FC<ProfileCoverProps> = ({ user }) => {
               {changingPicture ? (
                 <CircularProgress size="1rem" sx={{ color: 'white' }} />
               ) : (
-                <UploadTwoToneIcon />
+                <UploadOutlinedIcon />
               )}
             </IconButton>
           </label>

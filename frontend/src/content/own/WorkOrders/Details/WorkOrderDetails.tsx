@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  ButtonBase,
   CircularProgress,
   debounce,
   Divider,
@@ -29,29 +30,31 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ReportConfigModal from './ReportConfigModal';
 import SendReportModal from './SendReportModal';
 import Tasks from './Tasks';
 import TimeSection from './TimeSection';
 import CostSection from './CostSection';
-import LinkTwoToneIcon from '@mui/icons-material/LinkTwoTone';
-import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveTwoTone';
-import PictureAsPdfTwoToneIcon from '@mui/icons-material/PictureAsPdfTwoTone';
+import LinkOutlinedIcon from '@mui/icons-material/LinkOutlined';
+import { getSafeHttpUrl } from '../../../../utils/safeWindow';
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import PriorityWrapper from '../../components/PriorityWrapper';
-import TimerTwoToneIcon from '@mui/icons-material/TimerTwoTone';
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import {
   changeWorkOrderStatus,
   editWorkOrder,
   removeFileFromWorkOrder
 } from '../../../../slices/workOrder';
 import { useDispatch, useSelector } from '../../../../store';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import SelectParts from '../../components/form/SelectParts';
 import ImageViewer from 'react-simple-image-viewer';
 import {
@@ -94,9 +97,11 @@ import { getErrorMessage } from '../../../../utils/api';
 import { getCommentsCountByWorkOrder } from '../../../../slices/comment';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
-import EmailTwoToneIcon from '@mui/icons-material/EmailTwoTone';
-import { ContentCopyTwoTone } from '@mui/icons-material';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import { ContentCopyOutlined } from '@mui/icons-material';
+import WorkOrderStatusChip from '../WorkOrderStatusChip';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const LabelWrapper = styled(Box)(
   ({ theme }) => `
@@ -108,6 +113,51 @@ const LabelWrapper = styled(Box)(
     line-height: 1;
   `
 );
+
+function WorkOrderImagePreview({
+  src,
+  label,
+  height,
+  onOpen
+}: {
+  src: string;
+  label: string;
+  height: number;
+  onOpen: () => void;
+}) {
+  return (
+    <ButtonBase
+      component="button"
+      type="button"
+      aria-label={label}
+      onClick={onOpen}
+      sx={{
+        p: 0,
+        border: 0,
+        borderRadius: 1,
+        overflow: 'hidden',
+        verticalAlign: 'middle',
+        '&:focus-visible': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: 2
+        }
+      }}
+    >
+      <img
+        src={src}
+        alt=""
+        style={{
+          borderRadius: 5,
+          height,
+          maxWidth: '100%',
+          objectFit: 'contain',
+          display: 'block'
+        }}
+      />
+    </ButtonBase>
+  );
+}
 
 interface WorkOrderDetailsProps {
   workOrder: WorkOrder;
@@ -133,6 +183,8 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   const [openAddFileModal, setOpenAddFileModal] = useState<boolean>(false);
   const [openLinkModal, setOpenLinkModal] = useState<boolean>(false);
   const [openCompleteModal, setOpenCompleteModal] = useState<boolean>(false);
+  const [openArchiveConfirm, setOpenArchiveConfirm] = useState<boolean>(false);
+  const archiveInProgressRef = useRef(false);
   const [openReportConfigModal, setOpenReportConfigModal] =
     useState<boolean>(false);
   const [openSendReportModal, setOpenSendReportModal] =
@@ -223,11 +275,18 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
     showSnackBar(t('wo_archive_failure'), 'error');
   const onArchive = () => {
     handleCloseMenu();
-    if (window.confirm(t('wo_archive_confirm') + workOrder.title + ' ?')) {
-      dispatch(editWorkOrder(workOrder?.id, { ...workOrder, archived: true }))
-        .then(onArchiveSuccess)
-        .catch(onArchiveFailure);
-    }
+    setOpenArchiveConfirm(true);
+  };
+  const confirmArchive = () => {
+    if (archiveInProgressRef.current) return;
+    archiveInProgressRef.current = true;
+    setOpenArchiveConfirm(false);
+    dispatch(editWorkOrder(workOrder.id, { ...workOrder, archived: true }))
+      .then(onArchiveSuccess)
+      .catch(onArchiveFailure)
+      .finally(() => {
+        archiveInProgressRef.current = false;
+      });
   };
   const onGenerateReport = () => {
     handleCloseMenu();
@@ -330,7 +389,10 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         signature
       })
     )
-      .then(() => dispatch(getLabors(workOrder?.id)))
+      .then(() => {
+        showSnackBar(t('wo_close_success'), 'success');
+        return dispatch(getLabors(workOrder?.id)).catch(() => undefined);
+      })
       .finally(() => setChangingStatus(false));
   };
   const groupRelations = (
@@ -438,19 +500,19 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
     isLink?: boolean;
   }) => {
     if (value && (isLink || !type || (type && id))) {
-      const href = value.toString().startsWith('http')
-        ? value.toString()
-        : `https://${value}`;
+      const href = isLink
+        ? getSafeHttpUrl(value.toString(), { assumeHttps: true })
+        : null;
       return (
         <Grid item xs={12} lg={6}>
-          <Typography variant="h6" sx={{ color: theme.colors.alpha.black[70] }}>
+          <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
             {label}
           </Typography>
           {type ? (
             <Link href={getPath(type, id)} variant="h6" fontWeight="bold">
               {value}
             </Link>
-          ) : isLink ? (
+          ) : isLink && href ? (
             <Link
               variant="h6"
               fontWeight="bold"
@@ -534,47 +596,75 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
       justifyContent="center"
       alignItems="stretch"
       spacing={2}
-      padding={4}
+      sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 2, sm: 3 } }}
     >
       <Grid
         item
         xs={12}
         display="flex"
-        flexDirection="row"
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
         justifyContent="space-between"
+        gap={2}
       >
-        <Box>
-          <Box sx={{ mb: 2 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            flexWrap="wrap"
+            sx={{ mb: 1.5 }}
+          >
+            {workOrder.customId && (
+              <Typography variant="overline" color="text.secondary">
+                {workOrder.customId}
+              </Typography>
+            )}
+            <WorkOrderStatusChip status={workOrder.status} />
             {workOrder?.priority !== 'NONE' && (
               <PriorityWrapper priority={workOrder?.priority} withSuffix />
             )}
-          </Box>
-          <Typography variant="h2">{workOrder?.title}</Typography>
-          <Typography variant="h6">{workOrder?.description}</Typography>
+          </Stack>
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: { xs: '1.5rem', sm: '2rem' },
+              overflowWrap: 'anywhere'
+            }}
+          >
+            {workOrder?.title}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.75 }}>
+            {workOrder?.description}
+          </Typography>
         </Box>
-        <Box>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' } }}
+        >
           {hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
-            <IconButton style={{ marginRight: 10 }} onClick={handleOpenMenu}>
-              <MoreVertTwoToneIcon />
+            <IconButton aria-label={t('actions')} onClick={handleOpenMenu}>
+              <MoreVertOutlinedIcon />
             </IconButton>
           )}
           {hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
             <IconButton
+              aria-label={t('edit')}
               onClick={() => onEdit(workOrder.id)}
-              style={{ marginRight: 10 }}
             >
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.WORK_ORDERS, workOrder) && (
-            <IconButton>
-              <DeleteTwoToneIcon
-                color="error"
-                onClick={() => onDelete(workOrder.id)}
-              />
+            <IconButton
+              aria-label={t('delete')}
+              onClick={() => onDelete(workOrder.id)}
+            >
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
-        </Box>
+        </Stack>
       </Grid>
       <Divider />
       <Grid item xs={12}>
@@ -599,9 +689,10 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 item
                 xs={12}
                 display="flex"
-                flexDirection="row"
+                flexDirection={{ xs: 'column', sm: 'row' }}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                gap={1.5}
               >
                 <Box>
                   {changingStatus ? (
@@ -618,26 +709,23 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                     </Box>
                   ) : (
                     <Select
+                      inputProps={{ 'aria-label': t('status') }}
                       onChange={(event) => {
                         if (event.target.value === 'COMPLETE') {
                           if (canComplete()) {
-                            if (
-                              generalPreferences.askFeedBackOnWOClosed ||
-                              workOrder.requiredSignature
-                            ) {
-                              let error;
-                              if (workOrder.requiredSignature) {
-                                if (!hasFeature(PlanFeature.SIGNATURE)) {
-                                  error =
-                                    'Signature on Work Order completion is not available in your current subscription plan.';
-                                }
+                            let error;
+                            if (workOrder.requiredSignature) {
+                              if (!hasFeature(PlanFeature.SIGNATURE)) {
+                                error =
+                                  'Signature on Work Order completion is not available in your current subscription plan.';
                               }
-                              if (error) {
-                                showSnackBar(t(error), 'error');
-                              } else {
-                                setOpenCompleteModal(true);
-                                return;
-                              }
+                            }
+                            if (error) {
+                              showSnackBar(t(error), 'error');
+                            } else {
+                              // Keep completion explicit even when feedback and signature are optional.
+                              setOpenCompleteModal(true);
+                              return;
                             }
                           } else return;
                         }
@@ -646,7 +734,17 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                           changeWorkOrderStatus(workOrder?.id, {
                             status: event.target.value
                           })
-                        ).finally(() => setChangingStatus(false));
+                        )
+                          .then(() =>
+                            showSnackBar(
+                              t('wo_status_change_success'),
+                              'success'
+                            )
+                          )
+                          .catch((error) =>
+                            showSnackBar(getErrorMessage(error), 'error')
+                          )
+                          .finally(() => setChangingStatus(false));
                       }}
                       disabled={
                         !hasEditPermission(
@@ -655,23 +753,13 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                         )
                       }
                       value={workOrder.status}
-                      sx={
-                        workOrder.status === 'OPEN'
-                          ? {}
-                          : {
-                              backgroundColor:
-                                workOrder.status === 'IN_PROGRESS'
-                                  ? theme.colors.success.main
-                                  : workOrder.status === 'ON_HOLD'
-                                  ? theme.colors.warning.main
-                                  : theme.colors.alpha.black[30],
-                              color: 'white',
-                              fontWeight: 'bold',
-                              '.MuiSvgIcon-root ': {
-                                fill: 'white !important'
-                              }
-                            }
-                      }
+                      sx={{
+                        minWidth: { xs: '100%', sm: 180 },
+                        borderRadius: 2,
+                        bgcolor: 'background.paper',
+                        color: 'text.primary',
+                        fontWeight: 600
+                      }}
                     >
                       {workOrderStatuses.map((workOrderStatus, index) => (
                         <MenuItem key={index} value={workOrderStatus}>
@@ -687,7 +775,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                       controllingTime ? (
                         <CircularProgress size="1rem" />
                       ) : (
-                        <TimerTwoToneIcon />
+                        <TimerOutlinedIcon />
                       )
                     }
                     disabled={
@@ -706,6 +794,8 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                         .finally(() => setControllingTime(false));
                     }}
                     variant={runningTimer ? 'contained' : 'outlined'}
+                    color={runningTimer ? 'error' : 'primary'}
+                    sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: 44 }}
                   >
                     {runningTimer
                       ? t('timer_running')
@@ -723,10 +813,11 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   display="flex"
                   justifyContent="center"
                 >
-                  <img
+                  <WorkOrderImagePreview
                     src={workOrder.image.url}
-                    style={{ borderRadius: 5, height: 250, cursor: 'pointer' }}
-                    onClick={() => {
+                    label={`${t('view')} ${t('image')}`}
+                    height={250}
+                    onOpen={() => {
                       setImageState([workOrder.image.url], workOrder.image.url);
                     }}
                   />
@@ -739,7 +830,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('primary_worker')}
                   </Typography>
@@ -755,7 +846,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {workOrder.parentRequest
                       ? t('approved_by')
@@ -770,7 +861,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('preventive_maintenance')}
                   </Typography>
@@ -790,7 +881,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                     <Grid item xs={12} lg={6}>
                       <Typography
                         variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
+                        sx={{ color: theme.palette.text.secondary }}
                       >
                         {t('completed_by')}
                       </Typography>
@@ -805,7 +896,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   <Grid item xs={12} lg={6}>
                     <Typography
                       variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
+                      sx={{ color: theme.palette.text.secondary }}
                     >
                       {t('completed_on')}
                     </Typography>
@@ -817,7 +908,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                     <Grid item xs={12} lg={6}>
                       <Typography
                         variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
+                        sx={{ color: theme.palette.text.secondary }}
                       >
                         {t('feedback')}
                       </Typography>
@@ -828,18 +919,15 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                     <Grid item xs={12} lg={6}>
                       <Typography
                         variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
+                        sx={{ color: theme.palette.text.secondary }}
                       >
                         {t('signature')}
                       </Typography>
-                      <img
+                      <WorkOrderImagePreview
                         src={workOrder.signature}
-                        style={{
-                          borderRadius: 5,
-                          height: 100,
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => {
+                        label={`${t('view')} ${t('signature')}`}
+                        height={100}
+                        onOpen={() => {
                           setImageState(
                             [workOrder.signature],
                             workOrder.signature
@@ -854,7 +942,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('requested_by')}
                   </Typography>
@@ -870,7 +958,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('time')}
                   </Typography>
@@ -900,7 +988,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                           disabled={savingPrimaryTime}
                           onClick={onSavePrimaryTime}
                         >
-                          <CheckTwoToneIcon color={'primary'} />
+                          <CheckOutlinedIcon color={'primary'} />
                         </IconButton>
                       )}
                       <IconButton onClick={() => setOpenEditPrimaryTime(false)}>
@@ -923,7 +1011,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('assigned_to')}
                   </Typography>
@@ -942,7 +1030,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <Grid item xs={12} lg={6}>
                   <Typography
                     variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
+                    sx={{ color: theme.palette.text.secondary }}
                   >
                     {t('customers')}
                   </Typography>
@@ -1079,7 +1167,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                                         )
                                       }
                                     >
-                                      <DeleteTwoToneIcon
+                                      <DeleteOutlinedIcon
                                         fontSize="small"
                                         color="error"
                                       />
@@ -1164,7 +1252,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   }}
                 />
               ) : (
-                <Typography sx={{ color: theme.colors.alpha.black[70] }}>
+                <Typography sx={{ color: theme.palette.text.secondary }}>
                   {t('no_file_linked_to_wo')}
                 </Typography>
               )}
@@ -1236,6 +1324,13 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         }}
         onComplete={onCompleteWO}
       />
+      <ConfirmDialog
+        open={openArchiveConfirm}
+        onCancel={() => setOpenArchiveConfirm(false)}
+        onConfirm={confirmArchive}
+        confirmText={t('archive')}
+        question={`${t('wo_archive_confirm')}${workOrder.title} ?`}
+      />
       <Menu anchorEl={anchorEl} open={openMenu} onClose={handleCloseMenu}>
         <MenuItem
           onClick={() => {
@@ -1244,7 +1339,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
           }}
         >
           <Stack spacing={2} direction="row">
-            <LinkTwoToneIcon />
+            <LinkOutlinedIcon />
             <Typography variant="h6">{t('link')}</Typography>
           </Stack>
         </MenuItem>
@@ -1253,14 +1348,14 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
             {generatingReport ? (
               <CircularProgress size="1rem" />
             ) : (
-              <PictureAsPdfTwoToneIcon />
+              <PictureAsPdfOutlinedIcon />
             )}
             <Typography variant="h6">{t('pdf_report')}</Typography>
           </Stack>
         </MenuItem>
         <MenuItem onClick={onEmailContractors}>
           <Stack spacing={2} direction="row">
-            <EmailTwoToneIcon />
+            <EmailOutlinedIcon />
             <Typography variant="h6">{t('email_contractors')}</Typography>
           </Stack>
         </MenuItem>
@@ -1272,14 +1367,14 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
             }}
           >
             <Stack spacing={2} direction="row">
-              <ContentCopyTwoTone />
+              <ContentCopyOutlined />
               <Typography variant="h6">{t('copy_wo')}</Typography>
             </Stack>
           </MenuItem>
         )}
         <MenuItem onClick={onArchive}>
           <Stack spacing={2} direction="row">
-            <ArchiveTwoToneIcon />
+            <ArchiveOutlinedIcon />
             <Typography variant="h6">{t('archive')}</Typography>
           </Stack>
         </MenuItem>

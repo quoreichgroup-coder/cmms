@@ -42,6 +42,36 @@ test('task templates keep the existing labels payload and attach to the created 
   );
 });
 
+test('meter task templates preserve the selected meter association in the API payload', async () => {
+  let attachedTaskBases;
+
+  await createWorkOrderWithTasks(
+    {
+      id: 0,
+      tasks: [
+        {
+          taskBase: {
+            label: 'Record vibration reading',
+            taskType: 'METER',
+            meter: { id: 17, name: 'Pump vibration' },
+            options: []
+          }
+        }
+      ]
+    },
+    async () => ({ id: 42 }),
+    async (_workOrderId, taskBases) => {
+      attachedTaskBases = taskBases;
+    }
+  );
+
+  assert.deepEqual(attachedTaskBases[0].meter, {
+    id: 17,
+    name: 'Pump vibration'
+  });
+  assert.equal(attachedTaskBases[0].taskType, 'METER');
+});
+
 test('task attachment failure reports the already-created WO for safe recovery', async () => {
   const attachmentError = new Error('network timeout');
   let createCalls = 0;

@@ -16,7 +16,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { useDispatch } from '../../../../store';
 import { addRole } from '../../../../slices/role';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
@@ -89,7 +89,7 @@ function PageHeader({ rolesNumber, formatValues }: PageHeaderProps) {
                 disabled={!hasFeature(PlanFeature.ROLE)}
                 onClick={handleCreateRoleOpen}
                 variant="contained"
-                startIcon={<AddTwoToneIcon fontSize="small" />}
+                startIcon={<AddOutlinedIcon fontSize="small" />}
               >
                 {t('create_role')}
               </Button>

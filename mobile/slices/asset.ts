@@ -24,6 +24,8 @@ interface AssetState {
   lastPage: boolean;
   assetChildrenPageNum: { [key: number]: number };
   assetChildrenLastPage: { [key: number]: boolean };
+  listLoading: boolean;
+  latestListRequestId: number;
   loadingGet: boolean;
   loadingWorkOrders: boolean;
 }
@@ -39,6 +41,8 @@ const initialState: AssetState = {
   lastPage: true,
   assetChildrenPageNum: {},
   assetChildrenLastPage: {},
+  listLoading: false,
+  latestListRequestId: 0,
   loadingGet: false,
   loadingWorkOrders: false
 };
@@ -50,18 +54,20 @@ const slice = createSlice({
   reducers: {
     getAssets(
       state: AssetState,
-      action: PayloadAction<{ assets: Page<AssetDTO> }>
+      action: PayloadAction<{ assets: Page<AssetDTO>; requestId: number }>
     ) {
-      const { assets } = action.payload;
+      const { assets, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.assets = assets;
       state.currentPageNum = 0;
       state.lastPage = assets.last;
     },
     getMoreAssets(
       state: AssetState,
-      action: PayloadAction<{ assets: Page<AssetDTO> }>
+      action: PayloadAction<{ assets: Page<AssetDTO>; requestId: number }>
     ) {
-      const { assets } = action.payload;
+      const { assets, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.assets.content = state.assets.content.concat(assets.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = assets.last;
@@ -95,7 +101,22 @@ const slice = createSlice({
       const assetIndex = state.assets.content.findIndex(
         (asset) => asset.id === id
       );
-      state.assets.content.splice(assetIndex, 1);
+      if (assetIndex !== -1) state.assets.content.splice(assetIndex, 1);
+      state.assetsMini = state.assetsMini.filter((asset) => asset.id !== id);
+      state.assetsHierarchy = state.assetsHierarchy.filter(
+        (asset) => asset.id !== id
+      );
+      delete state.assetInfos[id];
+      Object.keys(state.assetsByLocation).forEach((locationId) => {
+        state.assetsByLocation[Number(locationId)] = state.assetsByLocation[
+          Number(locationId)
+        ].filter((asset) => asset.id !== id);
+      });
+      Object.keys(state.assetsByPart).forEach((partId) => {
+        state.assetsByPart[Number(partId)] = state.assetsByPart[
+          Number(partId)
+        ].filter((asset) => asset.id !== id);
+      });
     },
     setLoadingGet(
       state: AssetState,
@@ -103,6 +124,15 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: AssetState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: AssetState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     },
     setLoadingWorkOrders(
       state: AssetState,
@@ -185,43 +215,47 @@ const slice = createSlice({
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getAssets =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     const { signal } = createCancellableRequest('getAssets');
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const assets = await api.post<Page<AssetDTO>>(
         `${basePath}/search`,
         criteria,
         { signal }
       );
-      dispatch(slice.actions.getAssets({ assets }));
+      dispatch(slice.actions.getAssets({ assets, requestId }));
     } catch (error) {
       if (isAbortError(error)) return;
       throw error;
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreAssets =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     const { signal } = createCancellableRequest('getMoreAssets');
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const assets = await api.post<Page<AssetDTO>>(
         `${basePath}/search`,
         criteria,
         { signal }
       );
-      dispatch(slice.actions.getMoreAssets({ assets }));
+      dispatch(slice.actions.getMoreAssets({ assets, requestId }));
     } catch (error) {
       if (isAbortError(error)) return;
       throw error;
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getAssetsMini =
@@ -278,21 +312,19 @@ export const getAssetChildren =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const page = await api.get<Page<AssetDTO>>(
-      `${basePath}/children/${id}/paginated?page=${pageNum}&size=${pageSize}`
-    );
-    dispatch(
-      slice.actions.getAssetChildren({
-        id,
-        pageNum,
-        lastPage: page.last,
-        assets: page.content.map((asset) => {
-          return { ...asset, hierarchy: [...parents, asset.id] };
+      const page = await api.get<Page<AssetDTO>>(
+        `${basePath}/children/${id}/paginated?page=${pageNum}&size=${pageSize}`
+      );
+      dispatch(
+        slice.actions.getAssetChildren({
+          id,
+          pageNum,
+          lastPage: page.last,
+          assets: page.content.map((asset) => {
+            return { ...asset, hierarchy: [...parents, asset.id] };
+          })
         })
-      })
-    );
-
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -303,15 +335,13 @@ export const getAssetDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const asset = await api.get<AssetDTO>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getAssetDetails({
-        id,
-        asset
-      })
-    );
-
+      const asset = await api.get<AssetDTO>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getAssetDetails({
+          id,
+          asset
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -345,15 +375,13 @@ export const getAssetWorkOrders =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingWorkOrders({ loading: true }));
     try {
-
-    const workOrders = await api.get<WorkOrder[]>(`work-orders/asset/${id}`);
-    dispatch(
-      slice.actions.getAssetWorkOrders({
-        id,
-        workOrders
-      })
-    );
-
+      const workOrders = await api.get<WorkOrder[]>(`work-orders/asset/${id}`);
+      dispatch(
+        slice.actions.getAssetWorkOrders({
+          id,
+          workOrders
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingWorkOrders({ loading: false }));
     }

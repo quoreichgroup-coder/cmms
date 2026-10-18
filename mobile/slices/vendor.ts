@@ -15,6 +15,8 @@ interface VendorState {
   currentPageNum: number;
   lastPage: boolean;
   loadingGet: boolean;
+  listLoading: boolean;
+  latestListRequestId: number;
 }
 
 const initialState: VendorState = {
@@ -23,7 +25,9 @@ const initialState: VendorState = {
   vendorsMini: [],
   currentPageNum: 0,
   lastPage: true,
-  loadingGet: false
+  loadingGet: false,
+  listLoading: false,
+  latestListRequestId: 0
 };
 
 const slice = createSlice({
@@ -33,18 +37,20 @@ const slice = createSlice({
   reducers: {
     getVendors(
       state: VendorState,
-      action: PayloadAction<{ vendors: Page<Vendor> }>
+      action: PayloadAction<{ vendors: Page<Vendor>; requestId: number }>
     ) {
-      const { vendors } = action.payload;
+      const { vendors, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.vendors = vendors;
       state.currentPageNum = 0;
       state.lastPage = vendors.last;
     },
     getMoreVendors(
       state: VendorState,
-      action: PayloadAction<{ vendors: Page<Vendor> }>
+      action: PayloadAction<{ vendors: Page<Vendor>; requestId: number }>
     ) {
-      const { vendors } = action.payload;
+      const { vendors, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.vendors.content = state.vendors.content.concat(vendors.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = vendors.last;
@@ -80,7 +86,11 @@ const slice = createSlice({
       const vendorIndex = state.vendors.content.findIndex(
         (vendor) => vendor.id === id
       );
-      state.vendors.content.splice(vendorIndex, 1);
+      if (vendorIndex !== -1) state.vendors.content.splice(vendorIndex, 1);
+      state.vendorsMini = state.vendorsMini.filter(
+        (vendor) => vendor.id !== id
+      );
+      delete state.vendorInfos[id];
     },
     setLoadingGet(
       state: VendorState,
@@ -88,39 +98,52 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: VendorState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: VendorState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getVendors =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const vendors = await api.post<Page<Vendor>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getVendors({ vendors }));
+      dispatch(slice.actions.getVendors({ vendors, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreVendors =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const vendors = await api.post<Page<Vendor>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getMoreVendors({ vendors }));
+      dispatch(slice.actions.getMoreVendors({ vendors, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getVendorDetails =
@@ -145,9 +168,12 @@ export const editVendor =
   };
 export const getVendorsMini = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.setLoadingGet({ loading: true }));
-  const vendors = await api.get<Vendor[]>('vendors/mini');
-  dispatch(slice.actions.getVendorsMini({ vendors }));
-  dispatch(slice.actions.setLoadingGet({ loading: false }));
+  try {
+    const vendors = await api.get<Vendor[]>('vendors/mini');
+    dispatch(slice.actions.getVendorsMini({ vendors }));
+  } finally {
+    dispatch(slice.actions.setLoadingGet({ loading: false }));
+  }
 };
 export const addVendor =
   (vendor): AppThunk =>

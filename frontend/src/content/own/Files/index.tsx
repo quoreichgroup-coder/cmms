@@ -13,12 +13,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useContext, useEffect, useState } from 'react';
 import { TitleContext } from '../../../contexts/TitleContext';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../components/CustomDatagrid2';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import { useDispatch, useSelector } from '../../../store';
 import {
@@ -46,6 +46,7 @@ import { SearchCriteria } from '../../../models/owns/page';
 import { isNumeric } from '../../../utils/validators';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
+import { openSafeWindow } from '../../../utils/safeWindow';
 
 function Files() {
   const { t }: { t: any } = useTranslation();
@@ -103,9 +104,16 @@ function Files() {
     setCurrentFile(files.content.find((file) => file.id === id));
     setOpenDelete(true);
   };
-  const handleDelete = (id: number) => {
-    dispatch(deleteFile(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteFile(id));
+      setOpenDelete(false);
+      if (deleted) onDeleteSuccess();
+      else onDeleteFailure(new Error('File deletion was not confirmed'));
+    } catch (err) {
+      setOpenDelete(false);
+      onDeleteFailure(err);
+    }
   };
 
   const handleRename = (id: number) => {
@@ -202,7 +210,7 @@ function Files() {
         return (
           <Stack direction="row" spacing={1}>
             {canEdit && (
-              <EditTwoToneIcon
+              <EditOutlinedIcon
                 fontSize="small"
                 color="primary"
                 sx={{ cursor: 'pointer' }}
@@ -213,7 +221,7 @@ function Files() {
               />
             )}
             {canDelete && (
-              <DeleteTwoToneIcon
+              <DeleteOutlinedIcon
                 fontSize="small"
                 color="error"
                 sx={{ cursor: 'pointer' }}
@@ -346,7 +354,7 @@ function Files() {
                 alignItems="center"
               >
                 <Button
-                  startIcon={<AddTwoToneIcon />}
+                  startIcon={<AddOutlinedIcon />}
                   onClick={() => setOpenAddModal(true)}
                   sx={{ my: 1 }}
                   variant="contained"
@@ -381,7 +389,7 @@ function Files() {
                   onColumnSizingChange={setColumnSizing}
                   columnVisibility={columnVisibility}
                   onColumnVisibilityChange={setColumnVisibility}
-                  onRowClick={(row) => window.open(row.url, '_blank')}
+                  onRowClick={(row) => openSafeWindow(row.url)}
                   noRowsMessage={t('noRows.file.message')}
                   noRowsAction={t('noRows.file.action')}
                   enableColumnReordering

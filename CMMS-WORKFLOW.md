@@ -44,6 +44,7 @@ git switch projet
 git switch -c integration/upstream-AAAA-MM-JJ
 git merge upstream/main
 ```
+https://169-58-86-7.sslip.io/api/api-docs.html
 
 En cas de conflit : examiner les fichiers, résoudre, puis `git add <fichiers>` et `git merge --continue`. Pour abandonner la fusion en cours : `git merge --abort`.
 

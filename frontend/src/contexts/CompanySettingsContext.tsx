@@ -12,6 +12,7 @@ import mailToLink from 'mailto-link';
 import { useBrand } from '../hooks/useBrand';
 import { format } from 'date-fns';
 import { utcToZonedTime } from 'date-fns-tz';
+import { openSafeWindow } from '../utils/safeWindow';
 
 type CompanySettingsContext = {
   getFormattedDate: (dateString: string, hideTime?: boolean) => string;
@@ -186,7 +187,7 @@ export const CompanySettingsProvider: FC = ({ children }) => {
     return [fields, shape];
   };
   const requestSubscriptionChange = () => {
-    window.open(
+    openSafeWindow(
       mailToLink({
         to: brandConfig.mail,
         subject: 'Subscription change request',
@@ -215,7 +216,8 @@ ${user.firstName} ${user.lastName}
 [Your Position]
 ${company.name}
 `
-      })
+      }),
+      { allowMailto: true }
     );
   };
   useEffect(() => {

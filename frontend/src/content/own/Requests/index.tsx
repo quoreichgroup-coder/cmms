@@ -10,7 +10,7 @@ import {
   Divider,
   Drawer,
   Grid,
-  Stack,
+  Alert,
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +29,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../components/CustomDatagrid2';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Request from '../../../models/owns/request';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -53,11 +53,8 @@ import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import NoRowsMessageWrapper from '../components/NoRowsMessageWrapper';
-import {
-  handleFileUpload,
-  getImageAndFiles,
-  onSearchQueryChange
-} from '../../../utils/overall';
+import { handleFileUpload, getImageAndFiles } from '../../../utils/overall';
+import { buildFirstPageSearchCriteria } from '../../../utils/listSearch';
 import {
   FilterField,
   SearchCriteria,
@@ -67,15 +64,16 @@ import { loadFilterFields, saveFilterFields } from '../../../utils/filter';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import _ from 'lodash';
-import FilterAltTwoToneIcon from '@mui/icons-material/FilterAltTwoTone';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import CompanyFilter from '../WorkOrders/Filters/CompanyFilter';
 import EnumFilter from '../WorkOrders/Filters/EnumFilter';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
-import SignalCellularAltTwoToneIcon from '@mui/icons-material/SignalCellularAltTwoTone';
-import CircleTwoToneIcon from '@mui/icons-material/CircleTwoTone';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import SignalCellularAltOutlinedIcon from '@mui/icons-material/SignalCellularAltOutlined';
+import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
 import SearchInput from '../components/SearchInput';
 import * as React from 'react';
-import WorkOrder from '../../../models/owns/workOrder';
+import RequestStatusChip from './RequestStatusChip';
+import ContentState from '../components/ContentState';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof Request>([
   'title',
@@ -125,11 +123,16 @@ function Requests() {
   const { requestId } = useParams();
   const dispatch = useDispatch();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
-  const { requests, loadingGet, singleRequest } = useSelector(
-    (state) => state.requests
-  );
+  const {
+    requests,
+    loadingGet,
+    singleRequest,
+    requestsError,
+    singleRequestLoading,
+    singleRequestError
+  } = useSelector((state) => state.requests);
   const { customFields } = useSelector((state) => state.customFields);
-  const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
+  const [requestedRequestId, setRequestedRequestId] = useState<number>();
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: getInitialFilterFields(),
     pageSize: 10,
@@ -175,6 +178,7 @@ function Requests() {
   const navigate = useNavigate();
   const handleOpenDrawer = (request: Request) => {
     setCurrentRequest(request);
+    setRequestedRequestId(undefined);
     window.history.replaceState(
       null,
       'Request details',
@@ -187,6 +191,9 @@ function Requests() {
   }, []);
   useEffect(() => {
     if (requestId && isNumeric(requestId)) {
+      setRequestedRequestId(Number(requestId));
+      setCurrentRequest(undefined);
+      setOpenDrawer(true);
       dispatch(getSingleRequest(Number(requestId)));
     }
   }, [requestId]);
@@ -198,24 +205,30 @@ function Requests() {
 
   //see changes in ui on edit
   useEffect(() => {
-    if (singleRequest || requests.content.length) {
+    if (currentRequest) {
       const currentInContent = requests.content.find(
-        (request) => request.id === currentRequest?.id
+        (request) => request.id === currentRequest.id
       );
-      const updatedRequest = currentInContent ?? singleRequest;
-      if (updatedRequest) {
-        if (openDrawerFromUrl) {
-          setCurrentRequest(updatedRequest);
-        } else {
-          handleOpenDrawer(updatedRequest);
-          setOpenDrawerFromUrl(true);
-        }
-      }
+      const updatedRequest =
+        currentInContent ??
+        (singleRequest?.id === currentRequest.id ? singleRequest : null);
+      if (updatedRequest && updatedRequest !== currentRequest)
+        setCurrentRequest(updatedRequest);
+      return;
     }
-    return () => {
-      dispatch(clearSingleRequest());
-    };
-  }, [singleRequest, requests]);
+    if (
+      requestedRequestId != null &&
+      singleRequest?.id === requestedRequestId
+    ) {
+      setCurrentRequest(singleRequest);
+      window.history.replaceState(
+        null,
+        'Request details',
+        `/app/requests/${singleRequest.id}`
+      );
+      setOpenDrawer(true);
+    }
+  }, [singleRequest, requests.content, currentRequest, requestedRequestId]);
 
   useEffect(() => {
     if ((openAddModal || openUpdateModal) && !customFields.length) {
@@ -223,10 +236,20 @@ function Requests() {
     }
   }, [openAddModal, openUpdateModal]);
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteRequest(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteRequest(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        onDeleteFailure(new Error('Request deletion was not confirmed'));
+      }
+    } catch (error) {
+      setOpenDelete(false);
+      onDeleteFailure(error);
+    }
   };
   const handleOpenUpdate = () => {
     setOpenUpdateModal(true);
@@ -262,6 +285,9 @@ function Requests() {
   const handleCloseDetails = () => {
     window.history.replaceState(null, 'Request', `/app/requests`);
     setOpenDrawer(false);
+    setRequestedRequestId(undefined);
+    setCurrentRequest(undefined);
+    dispatch(clearSingleRequest());
   };
   const formatValues = (values) => {
     const newValues = { ...values };
@@ -307,11 +333,17 @@ function Requests() {
       header: () => t('status'),
       cell: (info) => {
         const row = info.row.original;
-        return row.cancelled
-          ? t('rejected')
+        const status = row.cancelled
+          ? 'CANCELLED'
           : row.workOrder
-          ? t('approved')
-          : t('pending');
+          ? 'APPROVED'
+          : 'PENDING';
+        const labelKey = row.cancelled
+          ? 'rejected'
+          : row.workOrder
+          ? 'approved'
+          : 'pending';
+        return <RequestStatusChip status={status} labelKey={labelKey} />;
       },
       size: 150
     }),
@@ -398,19 +430,26 @@ function Requests() {
     return [fields, shape];
   };
   const onQueryChange = (event) => {
-    onSearchQueryChange<WorkOrder>(event, criteria, setCriteria, [
-      'title',
-      'description',
-      'customId',
-      'customFieldValues.value'
-    ]);
+    const query = event.target.value;
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    setCriteria((current) =>
+      buildFirstPageSearchCriteria(current, query, [
+        'title',
+        'description',
+        'customId',
+        'customFieldValues.value'
+      ])
+    );
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
 
   const onFilterChange = (newFilters: FilterField[]) => {
-    const newCriteria = { ...criteria };
-    newCriteria.filterFields = newFilters;
-    setCriteria(newCriteria);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    setCriteria((current) => ({
+      ...current,
+      filterFields: newFilters,
+      pageNum: 0
+    }));
     saveFilterFields(FILTERS_STORAGE_KEY, newFilters, QUERY_SEARCH_FIELDS);
   };
   const renderAddModal = () => (
@@ -564,17 +603,22 @@ function Requests() {
         </Helmet>
         {renderAddModal()}
         {renderUpdateModal()}
-        <Box justifyContent="center" alignItems="stretch" paddingX={4}>
+        <Box
+          justifyContent="center"
+          alignItems="stretch"
+          sx={{ px: { xs: 1.5, sm: 2.5, xl: 4 }, pb: 3 }}
+        >
           {hasCreatePermission(PermissionEntity.REQUESTS) && (
             <Box
               display="flex"
-              flexDirection="row"
-              justifyContent="right"
-              alignItems="center"
+              flexDirection={{ xs: 'column', sm: 'row' }}
+              justifyContent="flex-end"
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              sx={{ my: 1.5 }}
             >
               <Button
-                startIcon={<AddTwoToneIcon />}
-                sx={{ my: 1 }}
+                startIcon={<AddOutlinedIcon />}
+                sx={{ minHeight: 44, borderRadius: 2, textTransform: 'none' }}
                 variant="contained"
                 onClick={() => setOpenAddModal(true)}
               >
@@ -584,69 +628,120 @@ function Requests() {
           )}
           <Card
             sx={{
-              py: 2,
+              py: { xs: 1, sm: 2 },
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center'
+              alignItems: 'stretch',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 3,
+              boxShadow: 'none',
+              overflow: 'hidden'
             }}
           >
-            <Stack
-              sx={{ ml: 1 }}
-              direction="row"
-              spacing={1}
-              justifyContent={'flex-start'}
-              width={'95%'}
+            <Box
+              component="section"
+              aria-label={t('filters')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: 1,
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1,
+                '& .MuiButton-root': {
+                  minHeight: 40,
+                  borderRadius: 2,
+                  textTransform: 'none'
+                }
+              }}
             >
               <EnumFilter
                 filterFields={criteria.filterFields}
                 onChange={onFilterChange}
                 completeOptions={['NONE', 'LOW', 'MEDIUM', 'HIGH']}
                 fieldName="priority"
-                icon={<SignalCellularAltTwoToneIcon />}
+                icon={<SignalCellularAltOutlinedIcon />}
               />
               <EnumFilter
                 filterFields={criteria.filterFields}
                 onChange={onFilterChange}
                 completeOptions={['APPROVED', 'CANCELLED', 'PENDING']}
                 fieldName="status"
-                icon={<CircleTwoToneIcon />}
+                icon={<CircleOutlinedIcon />}
               />
               {user?.superAccountRelations?.length > 0 && (
                 <CompanyFilter
                   filterFields={criteria.filterFields}
                   onChange={onFilterChange}
                   superAccountRelations={user.superAccountRelations}
-                  icon={<BusinessTwoToneIcon />}
+                  icon={<BusinessOutlinedIcon />}
                 />
               )}
-              <SearchInput onChange={debouncedQueryChange} />
-            </Stack>
-            <Divider sx={{ mt: 1 }} />
-            <Box sx={{ width: '95%' }}>
-              <CustomDatagrid2
-                columns={columns}
-                data={requests.content}
-                loading={loadingGet}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                totalRows={requests.totalElements}
-                pageSizeOptions={[10, 20, 50]}
-                sorting={sorting}
-                onSortingChange={setSorting}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-                columnSizing={columnSizing}
-                onColumnSizingChange={setColumnSizing}
-                columnVisibility={columnVisibility}
-                onColumnVisibilityChange={setColumnVisibility}
-                onRowClick={(row) => handleOpenDetails(row.id)}
-                noRowsMessage={t('noRows.request.message')}
-                noRowsAction={t('noRows.request.action')}
-                enableColumnReordering
-                enableColumnResizing
-                pinnedColumns={pinnedColumns}
-                onPinnedColumnsChange={setPinnedColumns}
-              />
+              <Box
+                sx={{
+                  flex: { xs: '1 1 100%', md: '0 1 280px' },
+                  minWidth: { xs: '100%', md: 220 },
+                  ml: { md: 'auto' },
+                  '& .MuiFormControl-root': { width: '100%' },
+                  '& .MuiOutlinedInput-root': { borderRadius: 2 }
+                }}
+              >
+                <SearchInput onChange={debouncedQueryChange} />
+              </Box>
+            </Box>
+            <Divider />
+            <Box sx={{ width: '100%', minWidth: 0 }}>
+              {requestsError && requests.content.length > 0 && (
+                <Alert
+                  severity="error"
+                  sx={{ mb: 2 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => dispatch(getRequests(criteria))}
+                    >
+                      {t('retry')}
+                    </Button>
+                  }
+                >
+                  {requestsError}
+                </Alert>
+              )}
+              {requestsError && requests.content.length === 0 ? (
+                <ContentState
+                  variant="error"
+                  message={requestsError}
+                  actionLabel={t('retry')}
+                  onAction={() => dispatch(getRequests(criteria))}
+                />
+              ) : (
+                <CustomDatagrid2
+                  columns={columns}
+                  data={requests.content}
+                  loading={loadingGet}
+                  pagination={pagination}
+                  onPaginationChange={setPagination}
+                  totalRows={requests.totalElements}
+                  pageSizeOptions={[10, 20, 50]}
+                  sorting={sorting}
+                  onSortingChange={setSorting}
+                  columnOrder={columnOrder}
+                  onColumnOrderChange={setColumnOrder}
+                  columnSizing={columnSizing}
+                  onColumnSizingChange={setColumnSizing}
+                  columnVisibility={columnVisibility}
+                  onColumnVisibilityChange={setColumnVisibility}
+                  onRowClick={(row) => handleOpenDetails(row.id)}
+                  noRowsMessage={t('noRows.request.message')}
+                  noRowsAction={t('noRows.request.action')}
+                  enableColumnReordering
+                  enableColumnResizing
+                  pinnedColumns={pinnedColumns}
+                  onPinnedColumnsChange={setPinnedColumns}
+                />
+              )}
             </Box>
           </Card>
         </Box>
@@ -658,12 +753,28 @@ function Requests() {
             sx: { width: { xs: '90%', sm: '70%', md: '50%' } }
           }}
         >
-          <RequestDetails
-            onClose={handleCloseDetails}
-            request={currentRequest}
-            handleOpenUpdate={handleOpenUpdate}
-            handleOpenDelete={() => setOpenDelete(true)}
-          />
+          {currentRequest ? (
+            <RequestDetails
+              onClose={handleCloseDetails}
+              request={currentRequest}
+              handleOpenUpdate={handleOpenUpdate}
+              handleOpenDelete={() => setOpenDelete(true)}
+            />
+          ) : singleRequestLoading ? (
+            <ContentState variant="loading" message={t('loading')} />
+          ) : singleRequestError ? (
+            <ContentState
+              variant="error"
+              message={singleRequestError}
+              actionLabel={t('retry')}
+              onAction={() => {
+                if (requestedRequestId != null)
+                  dispatch(getSingleRequest(requestedRequestId));
+              }}
+            />
+          ) : (
+            <ContentState variant="loading" message={t('loading')} />
+          )}
         </Drawer>
         <ConfirmDialog
           open={openDelete}

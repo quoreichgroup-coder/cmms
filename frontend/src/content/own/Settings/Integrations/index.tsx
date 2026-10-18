@@ -1,4 +1,4 @@
-import { Box, Grid, Tab, Tabs } from '@mui/material';
+import { Box, CircularProgress, Grid, Tab, Tabs } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ChangeEvent, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -10,6 +10,9 @@ import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import FeatureErrorMessage from '../../components/FeatureErrorMessage';
 import useAuth from '../../../../hooks/useAuth';
 import { useLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
+import { useDispatch, useSelector } from '../../../../store';
+import { getLicenseValidity } from '../../../../slices/license';
+import ContentState from '../../components/ContentState';
 
 function IntegrationsLayout() {
   const { t }: { t: any } = useTranslation();
@@ -17,6 +20,10 @@ function IntegrationsLayout() {
   const location = useLocation();
   const { hasFeature } = useAuth();
   const hasAPIEntitlement = useLicenseEntitlement('API_ACCESS');
+  const dispatch = useDispatch();
+  const licenseRequestStatus = useSelector(
+    (state) => state.license.requestStatus
+  );
 
   const tabs = [
     {
@@ -45,6 +52,27 @@ function IntegrationsLayout() {
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     navigate(`/app/settings/integrations/${value}`);
   };
+
+  if (licenseRequestStatus === 'idle' || licenseRequestStatus === 'loading') {
+    return (
+      <Box sx={{ minHeight: 240, display: 'grid', placeItems: 'center' }}>
+        <CircularProgress aria-label={t('loading')} />
+      </Box>
+    );
+  }
+
+  if (licenseRequestStatus === 'failed') {
+    return (
+      <ContentState
+        variant="error"
+        message={t('license_authority_unavailable')}
+        actionLabel={t('retry')}
+        onAction={() => {
+          dispatch(getLicenseValidity()).catch(() => undefined);
+        }}
+      />
+    );
+  }
 
   if (!hasFeature(PlanFeature.API_ACCESS) || !hasAPIEntitlement) {
     return <FeatureErrorMessage message={'upgrade_api'} />;

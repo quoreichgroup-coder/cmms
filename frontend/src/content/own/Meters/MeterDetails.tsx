@@ -18,8 +18,8 @@ import {
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Meter from '../../../models/owns/meter';
 import * as Yup from 'yup';
@@ -36,7 +36,7 @@ import {
   deleteWorkOrderMeterTrigger,
   getWorkOrderMeterTriggers
 } from '../../../slices/workOrderMeterTrigger';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import AddTriggerModal from './AddTriggerModal';
 import EditTriggerModal from './EditTriggerModal';
 import MeterReadingHistory from './MeterReadingHistory';
@@ -195,7 +195,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
         <Box>
           {hasEditPermission(PermissionEntity.METERS, meter) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.METERS) && (
@@ -208,7 +208,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
           )}
           {hasDeletePermission(PermissionEntity.METERS, meter) && (
             <IconButton onClick={handleOpenDelete}>
-              <DeleteTwoToneIcon color="error" />
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
         </Box>
@@ -362,7 +362,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                                 setOpenEditTriggerModal(true);
                               }}
                             >
-                              <EditTwoToneIcon />
+                              <EditOutlinedIcon />
                             </IconButton>
                             <IconButton
                               onClick={() => {
@@ -374,7 +374,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                                 );
                               }}
                             >
-                              <DeleteTwoToneIcon color="error" />
+                              <DeleteOutlinedIcon color="error" />
                             </IconButton>
                           </Stack>
                         ) : undefined
@@ -394,7 +394,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                 {hasConditionBasedPm &&
                   hasEditPermission(PermissionEntity.METERS, meter) && (
                     <Button
-                      startIcon={<AddTwoToneIcon />}
+                      startIcon={<AddOutlinedIcon />}
                       sx={{ my: 1 }}
                       variant="outlined"
                       onClick={() => setOpenAddTriggerModal(true)}

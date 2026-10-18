@@ -11,7 +11,7 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import GavelTwoToneIcon from '@mui/icons-material/GavelTwoTone';
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import useAuth from '../../../hooks/useAuth';
 import api, { getErrorMessage } from '../../../utils/api';
 import { PermissionEntity } from '../../../models/owns/role';
@@ -78,7 +78,7 @@ export default function CompanyLegalDetails() {
   return (
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 3, pb: 2 }}>
-        <GavelTwoToneIcon color="primary" />
+        <GavelOutlinedIcon color="primary" />
         <Box>
           <Typography variant="h4">{t('company_legal_information')}</Typography>
           <Typography variant="body2" color="text.secondary">

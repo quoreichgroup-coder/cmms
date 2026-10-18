@@ -162,6 +162,7 @@ export const deleteRequestPortal =
     if (success) {
       dispatch(slice.actions.deleteRequestPortal({ id }));
     }
+    return success;
   };
 export const clearSingleRequestPortal = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.clearSingleRequestPortal({}));

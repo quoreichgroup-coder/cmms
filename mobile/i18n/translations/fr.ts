@@ -104,6 +104,8 @@ const frJSON = {
   license_activated: 'Licence activée. Vos droits ont été mis à jour.',
   you_need_a_license:
     'Une licence est nécessaire pour utiliser cette fonctionnalité.',
+  license_load_error:
+    'La licence n’a pas pu être vérifiée. Vérifiez votre connexion puis réessayez.',
   file_upload_unavailable:
     'Votre rôle ou votre formule ne permet pas l’ajout de fichiers.',
   file_pick_error: 'Impossible de sélectionner le fichier. Veuillez réessayer.',
@@ -265,6 +267,8 @@ const frJSON = {
   related_asset_open_hint: 'Ouvre la fiche de cet équipement.',
   view_children_for_asset: 'Voir les équipements enfants de {{asset}}',
   view_child_assets_hint: 'Ouvre la liste des équipements enfants.',
+  view_children_for_location: 'Voir les emplacements enfants de {{location}}',
+  view_child_locations_hint: 'Ouvre la liste des emplacements enfants.',
   pm_calls_loading: 'Chargement des appels de maintenance.',
   pm_work_orders_loading: 'Chargement des ordres de travail associés.',
   pm_mobile_read_only_description:
@@ -497,7 +501,7 @@ const frJSON = {
   add_time: 'Ajouter du temps',
   add_time_description:
     'Remplissez les champs ci-dessous pour créer et ajouter du temps',
-  feedback: 'Feedback',
+  feedback: 'Commentaire',
   feedback_description: 'Donnez votre avis',
   required_feedback: "L'avis est requis",
   signature: 'Signature',
@@ -550,6 +554,8 @@ const frJSON = {
   location: 'Emplacement',
   location_details_load_error:
     'Impossible de charger cet emplacement. Vérifiez votre connexion puis réessayez.',
+  locations_load_error:
+    'Impossible de charger les emplacements. Vérifiez votre connexion puis réessayez.',
   asset: 'Équipement',
   team: 'Équipe',
   created_at: 'Date créée',
@@ -567,6 +573,8 @@ const frJSON = {
   wo_update_failure: "Le bon de travail n'a pas pu être modifié",
   wo_delete_success: 'Le bon de travail a été supprimé avec succès',
   wo_complete_success: 'Le bon de travail a été clôturé avec succès',
+  work_order_completion_read_only_notice:
+    'Après la clôture, ce bon de travail passe en lecture seule. Sa réouverture exige le droit correspondant et un motif enregistré; la clôture reste dans son historique.',
   work_order_reopen_title: 'Rouvrir le bon de travail terminé',
   work_order_reopen_description:
     'La réouverture remet le bon de travail à l’état Ouvert. Saisissez un motif; la clôture précédente reste dans son historique.',
@@ -709,6 +717,7 @@ const frJSON = {
   categories: 'Catégories',
   settings: 'Paramètres',
   notifications: 'Notifications',
+  unread_notifications_count: '{{count}} notifications non lues',
   //request
   cancelled: 'Annulé',
   reject: 'Rejeter',
@@ -1468,6 +1477,7 @@ const frJSON = {
   limited_technical_role: 'Technique limitée',
   requester_role: 'Demandeur',
   view_only_role: 'Affichage uniquement',
+  work_order_tasks_read_only: 'Les tâches de cet ordre sont en lecture seule.',
   how_will_you_be_billed: 'Comment souhaitez-vous être facturé ?',
   which_plan_fits_you: 'Quel plan vous convient le mieux?',
   per_user_month: 'par utilisateur/mois',
@@ -1736,6 +1746,8 @@ const frJSON = {
   API_ACCESS_feature: "Accès à l'API",
   WEBHOOK_feature: 'Webhooks',
   add_new_option: 'Ajouter une option',
+  task_option_number: 'Option {{number}}',
+  remove_task_option: 'Supprimer l’option {{number}}',
   edit_company: "Modifier les informations sur l'entreprise",
   fill_fields_below: 'Remplissez les champs ci-dessous',
   IMPORT_CSV_feature: 'Importation CSV',
@@ -1762,6 +1774,7 @@ const frJSON = {
   signature_required_feature_unavailable:
     "Cet ordre de travail exige une signature, mais cette fonction n'est pas disponible dans votre offre actuelle.",
   no_parts: 'Aucune pièce',
+  no_part_sets_available: 'Aucun jeu de pièces disponible',
   edit_quantity: 'Modifier la quantité',
   remaining_tasks: '{{count}} tâches restantes',
   complete_tasks_percent: '{{percent}}% terminées',
@@ -1792,12 +1805,18 @@ const frJSON = {
     'Impossible de charger les ordres de travail. Vérifiez votre connexion et réessayez.',
   dashboard_settings_load_error:
     'Impossible de charger les préférences du tableau de bord. Vérifiez votre connexion et réessayez.',
+  notifications_load_error:
+    'Impossible de charger les notifications. Vérifiez votre connexion et réessayez.',
   work_order_details_load_error:
     'Impossible de charger cet ordre de travail. Vérifiez votre connexion et réessayez.',
   requests_load_error:
     'Impossible de charger les demandes. Vérifiez votre connexion et réessayez.',
   parts_load_error:
     'Impossible de charger les pièces. Vérifiez votre connexion et réessayez.',
+  part_details_load_error:
+    'Impossible de charger cette pièce. Vérifiez votre connexion et réessayez.',
+  multi_parts_load_error:
+    'Impossible de charger les jeux de pièces. Vérifiez votre connexion et réessayez.',
   parts_page_loading: 'Chargement des pièces suivantes.',
   part_below_minimum_stock: 'Sous le niveau de stock minimum',
   part_open_details_hint: 'Ouvre les détails de la pièce.',
@@ -1824,7 +1843,14 @@ const frJSON = {
   this_week: 'Cette semaine',
   all_time: 'Depuis toujours',
   compliant_work_orders: 'Bons de travail clôturés à temps',
+  compliance_rate_no_data: 'Aucun bon de travail clôturé',
   stats: 'Statistiques',
+  maintenance_dashboard: 'Tableau de bord maintenance',
+  maintenance_dashboard_subtitle: 'Charge et état des ordres de travail en un coup d’œil.',
+  all_work_orders: 'Tous les ordres de travail',
+  work_order_distribution: 'Répartition des ordres de travail',
+  work_order_distribution_hint: 'Comparez les volumes indiqués pour chaque statut.',
+  open_filtered_work_orders: 'Ouvre la liste des ordres de travail correspondants',
   vendors_and_customers: 'Fournisseurs & Prestataires ',
   no_notification_message:
     "Des mises à jour importantes s'afficheront ici pour vous aider a suivre l'évolution de votre travail",
@@ -1866,11 +1892,19 @@ const frJSON = {
   error: 'Erreur',
   tag_not_found: 'Tag non trouvé',
   'no nfc support': "L'appareil ne supporte pas la technologie NFC",
+  nfc_disabled:
+    'Activez le NFC dans les réglages de votre appareil, puis réessayez.',
+  nfc_hold_near_device:
+    'Approchez le téléphone du tag NFC et gardez-le immobile jusqu’à la lecture.',
+  scan_barcode_hint:
+    'Ouvrir la caméra pour scanner un code-barres ou un QR code.',
   remaining_parts: '{{quantity}} restants',
   team_members_count: '{{count}} membres',
   no_asset_found_nfc:
     'Aucun équipement trouvé avec ce Tag NFC. Voulez-vous le créer?',
   no_access_to_camera: "L'application n'a pas accès à la caméra",
+  camera_permission_explanation:
+    'L’accès à la caméra est nécessaire pour scanner un code-barres ou un QR code. Réessayez ou autorisez-le dans les paramètres de votre appareil.',
   no_asset_found_barcode:
     'Aucun équipement trouvé avec ce code barres. Voulez-vous le créer?',
   remove_blank_meter_tasks: 'Veuillez sélectionner un compteur',
@@ -1896,6 +1930,9 @@ const frJSON = {
     'Impossible de demander l’autorisation d’utiliser la caméra.',
   camera_settings_error: 'Impossible d’ouvrir les paramètres de la caméra.',
   camera_capture_error: 'La photo n’a pas pu être prise. Veuillez réessayer.',
+  camera_preview_loading: 'Démarrage de la caméra…',
+  camera_preview_error:
+    'La caméra n’a pas pu démarrer. Vérifiez qu’aucune autre application ne l’utilise, puis réessayez.',
   switch_camera: 'Changer de caméra',
   take_photo: 'Prendre une photo',
   media_library: 'Photothèque',
@@ -1966,8 +2003,16 @@ const frJSON = {
   no_vendors_available: 'Aucun fournisseur disponible',
   no_customers_available: 'Aucun client disponible',
   no_checklists_available: 'Aucune liste de contrôle disponible',
+  checklists_load_error:
+    'Impossible de charger les listes de contrôle. Vérifiez votre connexion puis réessayez.',
   no_meters_available: 'Aucun compteur disponible',
+  meters_load_error:
+    'Impossible de charger les compteurs. Vérifiez votre connexion puis réessayez.',
   no_locations_available: 'Aucun emplacement disponible',
+  no_categories: 'Aucune catégorie disponible',
+  category_load_failed:
+    'Impossible de charger les catégories. Vérifiez votre connexion puis réessayez.',
+  match_at_least_column: 'Correspondre à au moins une colonne',
   category_create_failed:
     'Impossible de créer la catégorie. Votre saisie est conservée ; réessayez.',
   no_sub_assets: 'Aucun sous-équipement',
@@ -1985,7 +2030,8 @@ const frJSON = {
   view_image: 'Afficher l’image',
   confirm_delete_comment: 'Êtes-vous sûr de vouloir supprimer ce commentaire ?',
   add_comment_placeholder: 'Ajouter un commentaire...',
-  create_category: 'Create Category',
+  create_category: 'Créer une catégorie',
+  id_required: 'L’identifiant est obligatoire.',
   delete_row_confirm_message:
     'Êtes-vous sûr de vouloir supprimer cette ligne ?',
   review_prompt_title: 'Appréciez-vous QPM ?',

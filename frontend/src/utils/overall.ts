@@ -13,6 +13,7 @@ import { apiUrl, googleTrackingId, IS_LOCALHOST } from '../config';
 import ReactGA from 'react-ga4';
 import { UaEventOptions } from 'react-ga4/types/ga4';
 import type { Paths } from 'type-fest';
+import { openSafeWindow } from './safeWindow';
 
 export const canAddReading = (meter: Meter): boolean => {
   if (!meter) {
@@ -206,5 +207,5 @@ export const companyLogosAssets: string[] = [
 ];
 
 export const onOpenApiDocs = async () => {
-  window.open(apiUrl + 'api-docs.html', '_blank');
+  openSafeWindow(apiUrl + 'api-docs.html');
 };

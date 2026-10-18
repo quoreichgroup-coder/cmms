@@ -8,7 +8,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { PartQuantityMiniDTO } from '../../../models/owns/partQuantity';
 import { useTranslation } from 'react-i18next';
 import { useContext } from 'react';
@@ -40,57 +40,18 @@ export default function PartQuantitiesList({
       {partQuantities.map((partQuantity, index) => (
         <ListItem
           key={partQuantity.part.id}
-          secondaryAction={
-            <Box display="flex" flexDirection="row" alignItems="center">
-              <TextField
-                label={t('quantity')}
-                variant="outlined"
-                sx={{ mr: 1 }}
-                type="number"
-                disabled={disabled}
-                inputProps={{
-                  min: '0'
-                }}
-                size="small"
-                onChange={(event) => onChange(event.target.value, partQuantity)}
-                defaultValue={partQuantity.quantity}
-              />
-              <Typography variant="h6">
-                {' * '}
-                {getFormattedCostPerUnit(
-                  partQuantity.part.cost,
-                  partQuantity.part.unit,
-                  getFormattedCurrency
-                )}
-              </Typography>
-              {!(disabled || deleteDisabled) && (
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    if (onDelete) {
-                      onDelete(partQuantity);
-                    } else {
-                      if (window.confirm(t('confirm_delete_row'))) {
-                        dispatch(deletePartQuantity(partQuantity.id));
-                      }
-                    }
-                  }}
-                >
-                  <DeleteTwoToneIcon fontSize="small" color="error" />
-                </IconButton>
-              )}
-            </Box>
-          }
+          sx={{
+            alignItems: { xs: 'stretch', sm: 'center' },
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            py: 1.5
+          }}
         >
           <ListItemText
+            sx={{ minWidth: 0, my: 0 }}
             primary={
-              <div
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  width: '18rem'
-                }}
-              >
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <Link
                   target="_blank"
                   rel="noopener noreferrer"
@@ -104,17 +65,60 @@ export default function PartQuantitiesList({
               </div>
             }
             secondary={
-              <div
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  width: '11rem'
-                }}
-              >
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <Typography noWrap>{partQuantity.part.description}</Typography>
               </div>
             }
           />
+          <Box
+            display="flex"
+            flexDirection="row"
+            alignItems="center"
+            justifyContent="flex-end"
+            sx={{ width: { xs: '100%', sm: 'auto' }, flexShrink: 0, gap: 0.5 }}
+          >
+            <TextField
+              label={t('quantity')}
+              variant="outlined"
+              sx={{ width: { xs: 108, sm: 120 } }}
+              type="number"
+              disabled={disabled}
+              inputProps={{
+                min: '0'
+              }}
+              size="small"
+              onChange={(event) => onChange(event.target.value, partQuantity)}
+              defaultValue={partQuantity.quantity}
+            />
+            <Typography variant="h6">
+              {' * '}
+              {getFormattedCostPerUnit(
+                partQuantity.part.cost,
+                partQuantity.part.unit,
+                getFormattedCurrency
+              )}
+            </Typography>
+            {!(disabled || deleteDisabled) && (
+              <IconButton
+                size="small"
+                sx={{
+                  minWidth: { xs: 48, sm: 40 },
+                  minHeight: { xs: 48, sm: 40 }
+                }}
+                onClick={() => {
+                  if (onDelete) {
+                    onDelete(partQuantity);
+                  } else {
+                    if (window.confirm(t('confirm_delete_row'))) {
+                      dispatch(deletePartQuantity(partQuantity.id));
+                    }
+                  }
+                }}
+              >
+                <DeleteOutlinedIcon fontSize="small" color="error" />
+              </IconButton>
+            )}
+          </Box>
         </ListItem>
       ))}
       <ListItem

@@ -102,8 +102,8 @@ android {
         applicationId 'com.atlas.cmms'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 41
-        versionName "1.0.58"
+        versionCode 42
+        versionName "1.0.59"
     }
     signingConfigs {
         release {

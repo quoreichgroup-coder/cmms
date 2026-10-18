@@ -8,7 +8,7 @@ import {
   styled
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import UploadTwoToneIcon from '@mui/icons-material/UploadTwoTone';
+import UploadOutlinedIcon from '@mui/icons-material/UploadOutlined';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
 import { Company } from '../../../models/owns/company';
@@ -83,7 +83,7 @@ const CompanyCover: FC<CompanyCoverProps> = ({ image, canEdit }) => {
                 changingPicture ? (
                   <CircularProgress size="1rem" />
                 ) : (
-                  <UploadTwoToneIcon />
+                  <UploadOutlinedIcon />
                 )
               }
               variant="contained"

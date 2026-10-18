@@ -134,10 +134,22 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteVendor(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteVendor(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setIsVendorDetailsOpen(true);
+        onDeleteFailure(new Error('Vendor deletion was not confirmed'));
+      }
+    } catch (err) {
+      setOpenDelete(false);
+      setIsVendorDetailsOpen(true);
+      onDeleteFailure(err);
+    }
   };
   const onCreationSuccess = () => {
     handleCloseModal();

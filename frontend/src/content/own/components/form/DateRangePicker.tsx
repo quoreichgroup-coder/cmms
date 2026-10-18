@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import en from 'date-fns/locale/en-US';
 
 interface OwnProps {
+  name?: string;
   value?: [Date, Date];
   onChange: (range: [Date, Date]) => void;
   fullWidth?: boolean;
@@ -19,6 +20,7 @@ interface OwnProps {
 }
 
 export default function DateRangePicker({
+  name,
   value,
   onChange,
   fullWidth = false,
@@ -66,6 +68,7 @@ export default function DateRangePicker({
     <>
       <div ref={anchorRef}>
         <TextField
+          name={name}
           value={
             value?.[0] && value?.[1]
               ? `${displayStartDate} ${t('to')} ${displayEndDate}`

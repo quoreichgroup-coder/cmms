@@ -22,6 +22,7 @@ import { addToUnscheduled } from './workload';
 import type { WorkloadWorkOrderDTO } from 'src/models/owns/workload';
 
 const basePath = 'work-orders';
+let latestSingleWorkOrderLoad = 0;
 let calendarRequestId = 0;
 
 export interface CalendarEvent<T extends WorkOrderBase> {
@@ -39,6 +40,9 @@ interface WorkOrderState {
   singleWorkOrder: WorkOrder;
   urgentCount: number;
   loadingGet: boolean;
+  workOrdersError: string | null;
+  singleWorkOrderLoading: boolean;
+  singleWorkOrderError: string | null;
   calendar: {
     loading: boolean;
     error: string | null;
@@ -54,6 +58,9 @@ const initialState: WorkOrderState = {
   singleWorkOrder: null,
   urgentCount: 0,
   loadingGet: false,
+  workOrdersError: null,
+  singleWorkOrderLoading: false,
+  singleWorkOrderError: null,
   workOrdersMini: getInitialPage<WorkOrderBaseMiniDTO>(),
   calendar: {
     loading: false,
@@ -88,6 +95,21 @@ const slice = createSlice({
     ) {
       const { workOrder } = action.payload;
       state.singleWorkOrder = workOrder;
+      state.singleWorkOrderError = null;
+    },
+    startSingleWorkOrder(state: WorkOrderState) {
+      state.singleWorkOrder = null;
+      state.singleWorkOrderLoading = true;
+      state.singleWorkOrderError = null;
+    },
+    finishSingleWorkOrder(state: WorkOrderState) {
+      state.singleWorkOrderLoading = false;
+    },
+    setSingleWorkOrderError(
+      state: WorkOrderState,
+      action: PayloadAction<string>
+    ) {
+      state.singleWorkOrderError = action.payload;
     },
     addWorkOrder(
       state: WorkOrderState,
@@ -222,6 +244,12 @@ const slice = createSlice({
       const { loading } = action.payload;
       state.loadingGet = loading;
     },
+    setWorkOrdersError(
+      state: WorkOrderState,
+      action: PayloadAction<string | null>
+    ) {
+      state.workOrdersError = action.payload;
+    },
     getUrgentWorkOrdersCount(
       state: WorkOrderState,
       action: PayloadAction<{ count: number }>
@@ -256,14 +284,19 @@ const findWorkOrder = (all: WorkOrderState, id: number): WorkOrder | null =>
 export const getWorkOrders =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
-    await cancellableFetch(
-      dispatch,
-      'getWorkOrders',
-      (signal) =>
-        api.post<Page<WorkOrder>>(`${basePath}/search`, criteria, { signal }),
-      (workOrders) => dispatch(slice.actions.getWorkOrders({ workOrders })),
-      (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
-    );
+    dispatch(slice.actions.setWorkOrdersError(null));
+    try {
+      await cancellableFetch(
+        dispatch,
+        'getWorkOrders',
+        (signal) =>
+          api.post<Page<WorkOrder>>(`${basePath}/search`, criteria, { signal }),
+        (workOrders) => dispatch(slice.actions.getWorkOrders({ workOrders })),
+        (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
+      );
+    } catch (error) {
+      dispatch(slice.actions.setWorkOrdersError(getErrorMessage(error)));
+    }
   };
 
 export const getWorkOrdersMini =
@@ -284,10 +317,22 @@ export const getWorkOrdersMini =
 export const getSingleWorkOrder =
   (id: number): AppThunk =>
   async (dispatch) => {
+    const loadId = ++latestSingleWorkOrderLoad;
+    dispatch(slice.actions.startSingleWorkOrder());
     dispatch(slice.actions.setLoadingGet({ loading: true }));
-    const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
-    dispatch(slice.actions.getSingleWorkOrder({ workOrder }));
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+    try {
+      const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
+      if (loadId !== latestSingleWorkOrderLoad) return;
+      dispatch(slice.actions.getSingleWorkOrder({ workOrder }));
+    } catch (error) {
+      if (loadId === latestSingleWorkOrderLoad)
+        dispatch(slice.actions.setSingleWorkOrderError(getErrorMessage(error)));
+    } finally {
+      if (loadId === latestSingleWorkOrderLoad) {
+        dispatch(slice.actions.finishSingleWorkOrder());
+        dispatch(slice.actions.setLoadingGet({ loading: false }));
+      }
+    }
   };
 export const addWorkOrder =
   (workOrder): AppThunk =>
@@ -390,6 +435,7 @@ export const deleteWorkOrder =
       dispatch(slice.actions.deleteWorkOrder({ id }));
       if (wasUrgent) dispatch(slice.actions.decrementUrgentCount());
     }
+    return success;
   };
 
 export const getWorkOrdersByLocation =

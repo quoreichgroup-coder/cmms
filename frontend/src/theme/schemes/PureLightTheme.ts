@@ -1,10 +1,11 @@
 import { alpha, createTheme, lighten, darken } from '@mui/material';
 import '@mui/lab/themeAugmentation';
+import { qpmBrandTokens, qpmNavigationTokens } from '../tokens';
 import { customColors } from '../../config';
 import i18n from 'src/i18n/i18n';
 
 const themeColors = {
-  primary: '#5569ff',
+  primary: qpmBrandTokens.primary,
   secondary: '#6E759F',
   success: '#57CA22',
   warning: '#FFA319',
@@ -41,8 +42,10 @@ const colors = {
     error:
       '0px 1px 4px rgba(255, 25, 67, 0.25), 0px 3px 12px 2px rgba(255, 25, 67, 0.35)',
     info: '0px 1px 4px rgba(51, 194, 255, 0.25), 0px 3px 12px 2px rgba(51, 194, 255, 0.35)',
-    primary:
-      '0px 1px 4px rgba(85, 105, 255, 0.25), 0px 3px 12px 2px rgba(85, 105, 255, 0.35)',
+    primary: `0px 1px 4px ${alpha(
+      themeColors.primary,
+      0.25
+    )}, 0px 3px 12px 2px ${alpha(themeColors.primary, 0.35)}`,
     warning:
       '0px 1px 4px rgba(255, 163, 25, 0.25), 0px 3px 12px 2px rgba(255, 163, 25, 0.35)',
     card: '0px 9px 16px rgba(159, 162, 191, .18), 0px 2px 2px rgba(159, 162, 191, 0.32)',
@@ -53,19 +56,19 @@ const colors = {
   },
   layout: {
     general: {
-      bodyBg: '#f2f5f9'
+      bodyBg: qpmBrandTokens.canvas
     },
     sidebar: {
-      background: themeColors.white,
-      textColor: themeColors.secondary,
-      dividerBg: '#f2f5f9',
-      menuItemColor: '#242E6F',
-      menuItemColorActive: themeColors.primary,
-      menuItemBg: themeColors.white,
-      menuItemBgActive: '#f2f5f9',
-      menuItemIconColor: lighten(themeColors.secondary, 0.3),
-      menuItemIconColorActive: themeColors.primary,
-      menuItemHeadingColor: darken(themeColors.secondary, 0.3)
+      background: qpmNavigationTokens.sidebar,
+      textColor: qpmNavigationTokens.text,
+      dividerBg: qpmNavigationTokens.divider,
+      menuItemColor: qpmNavigationTokens.text,
+      menuItemColorActive: qpmNavigationTokens.activeText,
+      menuItemBg: qpmNavigationTokens.hover,
+      menuItemBgActive: qpmNavigationTokens.active,
+      menuItemIconColor: qpmNavigationTokens.mutedText,
+      menuItemIconColorActive: qpmNavigationTokens.activeText,
+      menuItemHeadingColor: qpmNavigationTokens.mutedText
     }
   },
   alpha: {
@@ -243,7 +246,7 @@ export const PureLightTheme = createTheme({
     menuItemHeadingColor: colors.layout.sidebar.menuItemHeadingColor,
     boxShadow:
       '2px 0 3px rgba(159, 162, 191, .18), 1px 0 1px rgba(159, 162, 191, 0.32)',
-    width: '290px'
+    width: '224px'
   },
   header: {
     height: '80px',
@@ -1169,7 +1172,7 @@ export const PureLightTheme = createTheme({
   },
   typography: {
     fontFamily:
-      '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+      '"IBM Plex Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
     h1: {
       fontWeight: 700,
       fontSize: 35
@@ -1186,17 +1189,23 @@ export const PureLightTheme = createTheme({
     },
     h4: {
       fontWeight: 700,
-      fontSize: 16
+      fontSize: 20,
+      lineHeight: 1.3,
+      letterSpacing: '-0.015em'
     },
     h5: {
       fontWeight: 700,
-      fontSize: 14
+      fontSize: 18,
+      lineHeight: 1.35
     },
     h6: {
-      fontSize: 15
+      fontWeight: 600,
+      fontSize: 16,
+      lineHeight: 1.4
     },
     body1: {
-      fontSize: 14
+      fontSize: 15,
+      lineHeight: 1.55
     },
     body2: {
       fontSize: 14

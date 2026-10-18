@@ -1,5 +1,5 @@
 import { Card, Stack, Tooltip as TooltipMUI, Typography } from '@mui/material';
-import InfoTwoToneIcon from '@mui/icons-material/InfoTwoTone';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useTranslation } from 'react-i18next';
 import { ReactNode } from 'react';
 
@@ -33,7 +33,7 @@ export default function AnalyticsCard({
         </Typography>
         {description && (
           <TooltipMUI title={t(description)}>
-            <InfoTwoToneIcon />
+            <InfoOutlinedIcon />
           </TooltipMUI>
         )}
       </Stack>

@@ -17,7 +17,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import SaveTwoToneIcon from '@mui/icons-material/SaveTwoTone';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
@@ -240,7 +240,7 @@ function SubscriptionCatalog() {
                             saving ? (
                               <CircularProgress size={18} color="inherit" />
                             ) : (
-                              <SaveTwoToneIcon />
+                              <SaveOutlinedIcon />
                             )
                           }
                           disabled={!dirty || saving}

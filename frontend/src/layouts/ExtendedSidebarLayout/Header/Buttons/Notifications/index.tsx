@@ -27,10 +27,10 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Scrollbar from 'src/components/Scrollbar';
-import NotificationsNoneTwoToneIcon from '@mui/icons-material/NotificationsNoneTwoTone';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import Text from 'src/components/Text';
 
-import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../../../../store';
 import {
@@ -54,14 +54,14 @@ import {
   getWorkOrderUrl
 } from '../../../../../utils/urlPaths';
 import { CompanySettingsContext } from '../../../../../contexts/CompanySettingsContext';
-import AssignmentTwoToneIcon from '@mui/icons-material/AssignmentTwoTone';
-import MoveToInboxTwoToneIcon from '@mui/icons-material/MoveToInboxTwoTone';
-import Inventory2TwoToneIcon from '@mui/icons-material/Inventory2TwoTone';
-import LocationOnTwoToneIcon from '@mui/icons-material/LocationOnTwoTone';
-import HandymanTwoToneIcon from '@mui/icons-material/HandymanTwoTone';
-import SpeedTwoToneIcon from '@mui/icons-material/SpeedTwoTone';
-import { People } from '@mui/icons-material';
-import ReceiptTwoToneIcon from '@mui/icons-material/ReceiptTwoTone';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import MoveToInboxOutlinedIcon from '@mui/icons-material/MoveToInboxOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import { SearchCriteria } from '../../../../../models/owns/page';
 import SockJS from 'sockjs-client';
 import { apiUrl } from 'src/config';
@@ -233,15 +233,15 @@ function HeaderNotifications() {
         .finally(handleClose);
   };
   const notificationIcons: Record<NotificationType, ReactElement> = {
-    ASSET: <Inventory2TwoToneIcon />,
-    LOCATION: <LocationOnTwoToneIcon />,
-    METER: <SpeedTwoToneIcon />,
-    PART: <HandymanTwoToneIcon />,
-    REQUEST: <MoveToInboxTwoToneIcon />,
-    TEAM: <People />,
-    WORK_ORDER: <AssignmentTwoToneIcon />,
-    INFO: <NotificationsNoneTwoToneIcon />,
-    PURCHASE_ORDER: <ReceiptTwoToneIcon />
+    ASSET: <Inventory2OutlinedIcon />,
+    LOCATION: <LocationOnOutlinedIcon />,
+    METER: <SpeedOutlinedIcon />,
+    PART: <HandymanOutlinedIcon />,
+    REQUEST: <MoveToInboxOutlinedIcon />,
+    TEAM: <PeopleOutlineIcon />,
+    WORK_ORDER: <AssignmentOutlinedIcon />,
+    INFO: <NotificationsNoneOutlinedIcon />,
+    PURCHASE_ORDER: <ReceiptOutlinedIcon />
   };
   // TODO It is not triggered
   const onScroll = (e) => {
@@ -287,7 +287,7 @@ function HeaderNotifications() {
             ref={ref}
             onClick={handleOpen}
           >
-            <NotificationsActiveTwoToneIcon fontSize="small" />
+            <NotificationsActiveOutlinedIcon fontSize="small" />
           </IconButtonWrapper>
         </Badge>
       </Tooltip>

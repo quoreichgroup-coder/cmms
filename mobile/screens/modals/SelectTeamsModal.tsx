@@ -1,7 +1,6 @@
 import {
+  FlatList,
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   TouchableOpacity
 } from 'react-native';
@@ -9,12 +8,13 @@ import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getTeamsMini } from '../../slices/team';
 import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function SelectTeamsModal({
   navigation,
@@ -24,9 +24,11 @@ export default function SelectTeamsModal({
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { teamsMini, loadingGet } = useSelector((state) => state.teams);
+  const { teamsMini } = useSelector((state) => state.teams);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const selectedTeams = React.useMemo(
     () =>
@@ -58,9 +60,21 @@ export default function SelectTeamsModal({
       });
   }, [selectedTeams, navigation, onChange, t]);
 
+  const loadTeams = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await dispatch(getTeamsMini());
+    } catch (_error) {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
-    dispatch(getTeamsMini());
-  }, []);
+    void loadTeams();
+  }, [loadTeams]);
 
   const toggle = (id: number) => {
     if (multiple) {
@@ -87,90 +101,106 @@ export default function SelectTeamsModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}
       />
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={loadingGet}
-            onRefresh={() => dispatch(getTeamsMini())}
-          />
+      <FlatList
+        data={filteredTeams}
+        keyExtractor={(team) => String(team.id)}
+        refreshing={loading}
+        onRefresh={loadTeams}
+        ListHeaderComponent={
+          loadError && teamsMini.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('an_error_occured')}
+              onRetry={() => void loadTeams()}
+            />
+          ) : null
         }
         style={{
           flex: 1,
           backgroundColor: theme.colors.background
         }}
-      >
-        {loadingGet && !teamsMini.length ? (
-          <ActivityIndicator
-            animating
-            accessibilityLabel={t('loading')}
-            style={{ marginTop: 24 }}
-          />
-        ) : (
-          filteredTeams.map((team) => (
-            <TouchableOpacity
-              onPress={() => {
-                toggle(team.id);
-              }}
-              accessibilityRole={multiple ? 'checkbox' : 'button'}
-              accessibilityLabel={team.name}
-              accessibilityState={
-                multiple
-                  ? { checked: selectedIds.includes(team.id) }
-                  : undefined
-              }
-              key={team.id}
+        renderItem={({ item: team }) => (
+          <TouchableOpacity
+            onPress={() => {
+              toggle(team.id);
+            }}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityLabel={team.name}
+            accessibilityState={
+              multiple ? { checked: selectedIds.includes(team.id) } : undefined
+            }
+            key={team.id}
+          >
+            <View
+              style={[styles.card, { backgroundColor: theme.colors.surface }]}
             >
-              <View
-                style={[styles.card, { backgroundColor: theme.colors.surface }]}
-              >
-                <View style={styles.cardRow}>
-                  <Avatar.Icon
-                    size={50}
-                    icon="account-group-outline"
-                    style={{ backgroundColor: theme.colors.primaryContainer }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {team.name}
-                        </Text>
-                        <Text
-                          variant={'bodySmall'}
-                          style={{ color: theme.colors.onSurfaceVariant }}
-                        >{`#${team.id}`}</Text>
-                      </View>
-                      {multiple && (
-                        <SelectionIndicator
-                          checked={selectedIds.includes(team.id)}
-                          color={theme.colors.primary}
-                          uncheckedColor={theme.colors.controlOutline}
-                        />
-                      )}
+              <View style={styles.cardRow}>
+                <Avatar.Icon
+                  size={50}
+                  icon="account-group-outline"
+                  style={{ backgroundColor: theme.colors.primaryContainer }}
+                />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="titleMedium" style={styles.cardTitle}>
+                        {team.name}
+                      </Text>
+                      <Text
+                        variant={'bodySmall'}
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >{`#${team.id}`}</Text>
                     </View>
+                    {multiple && (
+                      <SelectionIndicator
+                        checked={selectedIds.includes(team.id)}
+                        color={theme.colors.primary}
+                        uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
                   </View>
                 </View>
               </View>
-            </TouchableOpacity>
-          ))
+            </View>
+          </TouchableOpacity>
         )}
-        {!loadingGet && filteredTeams.length === 0 && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              textAlign: 'center',
-              marginTop: 24,
-              color: theme.colors.onSurfaceVariant
-            }}
-          >
-            {teamsMini.length ? t('no_results_found') : t('no_teams_available')}
-          </Text>
-        )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            teamsMini.length ? null : (
+              <ActivityIndicator
+                animating
+                accessibilityLabel={t('loading')}
+                style={{ marginTop: 24 }}
+              />
+            )
+          ) : loadError && teamsMini.length === 0 ? (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('an_error_occured')}
+              onRetry={() => void loadTeams()}
+            />
+          ) : (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                textAlign: 'center',
+                marginTop: 24,
+                color: theme.colors.onSurfaceVariant
+              }}
+            >
+              {teamsMini.length
+                ? t('no_results_found')
+                : t('no_teams_available')}
+            </Text>
+          )
+        }
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 }

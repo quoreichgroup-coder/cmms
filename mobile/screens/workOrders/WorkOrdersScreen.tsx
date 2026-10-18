@@ -41,6 +41,7 @@ import QuickFilter from './components/QuickFilter';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { getUserInitials } from '../../utils/displayers';
 import { UserMiniDTO } from '../../models/user';
+import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
 
 export default function WorkOrdersScreen({
   navigation,
@@ -60,6 +61,8 @@ export default function WorkOrdersScreen({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const nextPageRequestInProgress = useRef(false);
   const firstPageRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
+  const refreshRequestSequence = useRef(0);
   const fromHomeInit = useRef<boolean>(false);
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
@@ -108,33 +111,43 @@ export default function WorkOrdersScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  const fetchFirstPage = useCallback(async () => {
-    const requestSequence = ++firstPageRequestSequence.current;
-    setLoadError(false);
-    setLoadMoreError(false);
-    try {
-      await dispatch(
-        getWorkOrders({
-          ...criteria,
-          pageSize: 10,
-          pageNum: 0,
-          direction: 'DESC'
-        })
-      );
-    } catch (_error) {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setLoadError(true);
+  const fetchFirstPage = useCallback(
+    async (isRefresh = false) => {
+      const requestSequence = beginRequest(firstPageRequestSequence);
+      beginRequest(paginationRequestSequence);
+      nextPageRequestInProgress.current = false;
+      setLoadMoreError(false);
+      if (!isRefresh) {
+        refreshRequestSequence.current += 1;
+        setRefreshing(false);
       }
-    } finally {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setHasLoadedFirstPage(true);
+      setLoadError(false);
+      setLoadMoreError(false);
+      try {
+        await dispatch(
+          getWorkOrders({
+            ...criteria,
+            pageSize: 10,
+            pageNum: 0,
+            direction: 'DESC'
+          })
+        );
+      } catch (_error) {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadError(true);
+        }
+      } finally {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setHasLoadedFirstPage(true);
+        }
       }
-    }
-  }, [criteria, dispatch]);
+    },
+    [criteria, dispatch]
+  );
 
   const fetchNextPage = useCallback(
     async (retry = false) => {
-      const requestSequence = firstPageRequestSequence.current;
+      const firstPageSequence = firstPageRequestSequence.current;
       if (
         nextPageRequestInProgress.current ||
         loadingGet ||
@@ -142,16 +155,25 @@ export default function WorkOrdersScreen({
         (loadMoreError && !retry)
       )
         return;
+      const paginationSequence = beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = true;
       setLoadMoreError(false);
       try {
         await dispatch(getMoreWorkOrders(criteria, currentPageNum + 1));
       } catch (_error) {
-        if (requestSequence === firstPageRequestSequence.current) {
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
           setLoadMoreError(true);
         }
       } finally {
-        nextPageRequestInProgress.current = false;
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          nextPageRequestInProgress.current = false;
+        }
       }
     },
     [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
@@ -177,13 +199,16 @@ export default function WorkOrdersScreen({
   }, [route]);
 
   const onRefresh = async () => {
+    const requestSequence = beginRequest(refreshRequestSequence);
     setRefreshing(true);
     try {
-      await fetchFirstPage();
+      await fetchFirstPage(true);
     } catch (_error) {
       // The API error handler displays the failure message globally.
     } finally {
-      setRefreshing(false);
+      if (isCurrentRequest(requestSequence, refreshRequestSequence)) {
+        setRefreshing(false);
+      }
     }
   };
   const onFilterChange = (newFilters: FilterField[]) => {
@@ -200,7 +225,9 @@ export default function WorkOrdersScreen({
   );
   const hasActiveSearch = searchQuery.trim().length > 0;
   const clearSearchAndFilters = () => {
-    setStartedSearch(false);
+    // Keep debounced search enabled while the Searchbar remains focused so
+    // the next query is applied without requiring a blur/refocus cycle.
+    setStartedSearch(true);
     setSearchQuery('');
     setCriteria(getCriteriaFromFilterFields([]));
   };
@@ -234,6 +261,7 @@ export default function WorkOrdersScreen({
       <>
         <Searchbar
           placeholder={t('search')}
+          accessibilityLabel={t('search')}
           onFocus={() => setStartedSearch(true)}
           onChangeText={setSearchQuery}
           value={searchQuery}
@@ -278,6 +306,14 @@ export default function WorkOrdersScreen({
                 workOrder.status !== 'COMPLETE' &&
                 (isPastDue || dayDiff(dueDate, new Date()) <= 2)
             );
+            const dueDateColor =
+              workOrder.status === 'COMPLETE'
+                ? theme.colors.onSurfaceVariant
+                : isPastDue
+                ? theme.colors.error
+                : hasHighlightedDueDate
+                ? theme.colors.warning
+                : theme.colors.onSurfaceVariant;
 
             return (
               <TouchableOpacity
@@ -396,19 +432,25 @@ export default function WorkOrdersScreen({
                         {workOrder.dueDate && (
                           <View style={styles.dueDateContainer}>
                             <IconWithLabel
-                              color={
-                                (dayDiff(
-                                  new Date(workOrder.dueDate),
-                                  new Date()
-                                ) <= 2 ||
-                                  new Date() > new Date(workOrder.dueDate)) &&
-                                workOrder.status !== 'COMPLETE'
-                                  ? theme.colors.error
-                                  : theme.colors.onSurfaceVariant
-                              }
+                              color={dueDateColor}
                               label={getFormattedDate(workOrder.dueDate)}
                               icon="clock-alert-outline"
                             />
+                            {hasHighlightedDueDate && (
+                              <Tag
+                                text={t(isPastDue ? 'past_due' : 'due_soon')}
+                                color={
+                                  isPastDue
+                                    ? theme.colors.onError
+                                    : theme.colors.onWarning
+                                }
+                                backgroundColor={
+                                  isPastDue
+                                    ? theme.colors.error
+                                    : theme.colors.warning
+                                }
+                              />
+                            )}
                           </View>
                         )}
                         {allUsers.length > 0 && (
@@ -466,7 +508,11 @@ export default function WorkOrdersScreen({
                   >
                     {t('work_orders_load_error')}
                   </Text>
-                  <Button compact onPress={() => void fetchFirstPage()}>
+                  <Button
+                    compact
+                    onPress={() => void fetchFirstPage()}
+                    style={styles.retryButton}
+                  >
                     {t('retry')}
                   </Button>
                 </View>
@@ -492,9 +538,18 @@ export default function WorkOrdersScreen({
                       criteria.filterFields,
                       defaultFilterFields
                     )
-                      ? theme.colors.background
-                      : theme.colors.primary
+                      ? theme.colors.surface
+                      : theme.colors.primary,
+                    borderWidth: 1,
+                    borderColor: hasActiveFilters
+                      ? theme.colors.primary
+                      : theme.colors.controlOutline,
+                    width: qpmLayoutTokens.touchTarget.minimum,
+                    height: qpmLayoutTokens.touchTarget.minimum
                   }}
+                  mode="outlined"
+                  accessibilityState={{ selected: hasActiveFilters }}
+                  accessibilityRole="button"
                   accessibilityLabel={
                     hasActiveFilters
                       ? `${t('to_filter')}, ${t('filters_applied')}`
@@ -516,6 +571,7 @@ export default function WorkOrdersScreen({
                       operation: 'eq',
                       value: user.id
                     }}
+                    accessibilityLabel={t('only_assigned_to_me')}
                     onChange={onFilterChange}
                   />
                 )}
@@ -545,7 +601,14 @@ export default function WorkOrdersScreen({
                     icon="close"
                     iconColor={theme.colors.error}
                     accessibilityLabel={t('reset_filters')}
-                    style={{ backgroundColor: theme.colors.background }}
+                    mode="outlined"
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderWidth: 1,
+                      borderColor: theme.colors.controlOutline,
+                      width: qpmLayoutTokens.touchTarget.minimum,
+                      height: qpmLayoutTokens.touchTarget.minimum
+                    }}
                     onPress={() => onFilterChange(defaultFilterFields)}
                   />
                 )}
@@ -581,7 +644,11 @@ export default function WorkOrdersScreen({
                 >
                   {t('work_orders_load_error')}
                 </Text>
-                <Button mode="contained" onPress={() => void fetchFirstPage()}>
+                <Button
+                  mode="contained"
+                  onPress={() => void fetchFirstPage()}
+                  style={styles.retryButton}
+                >
                   {t('retry')}
                 </Button>
               </View>
@@ -629,7 +696,11 @@ export default function WorkOrdersScreen({
                 <Text style={{ color: theme.colors.error }}>
                   {t('work_orders_load_error')}
                 </Text>
-                <Button compact onPress={() => void fetchNextPage(true)}>
+                <Button
+                  compact
+                  onPress={() => void fetchNextPage(true)}
+                  style={styles.retryButton}
+                >
                   {t('retry')}
                 </Button>
               </View>
@@ -702,6 +773,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4
   },
+  retryButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
+  },
   searchbar: {
     marginHorizontal: 12,
     marginTop: 8,
@@ -745,7 +820,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10
   },
-  dueDateContainer: { flex: 1, minWidth: 0, marginRight: 8 },
+  dueDateContainer: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+    gap: qpmLayoutTokens.space.xs
+  },
   assigneeContainer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import { FlatList, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Dialog, IconButton, Portal, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -29,9 +29,11 @@ export default function AttachmentList({
     (FileMiniDTO & { type?: FileType }) | null
   >(null);
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   const confirmDelete = async () => {
-    if (!deletingFile || deleting) return;
+    if (!deletingFile || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     try {
       await onDelete(deletingFile.id);
@@ -40,6 +42,7 @@ export default function AttachmentList({
     } catch (error) {
       showSnackBar(getErrorMessage(error) || t('error'), 'error');
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   };
@@ -70,6 +73,7 @@ export default function AttachmentList({
             <Button
               loading={deleting}
               disabled={deleting}
+              accessibilityState={{ disabled: deleting, busy: deleting }}
               onPress={confirmDelete}
             >
               {t('to_delete')}
@@ -151,10 +155,11 @@ export default function AttachmentList({
               { borderColor: theme.colors.outlineVariant }
             ]}
           >
-            <IconButton
-              icon="file-outline"
-              iconColor={theme.colors.onSurfaceVariant}
+            <MaterialCommunityIcons
+              name="file-outline"
+              color={theme.colors.onSurfaceVariant}
               size={28}
+              accessible={false}
             />
             <Text
               variant="bodyMedium"

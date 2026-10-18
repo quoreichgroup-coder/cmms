@@ -35,7 +35,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useTranslation } from 'react-i18next';
 import { getLicenseValidity } from '../slices/license';
-import { useDispatch } from '../store';
+import { persistor, useDispatch } from '../store';
+import { clearPersistedAppState } from '../utils/clearPersistedAppState';
 import { revertAll } from '../utils/redux';
 import { getApiUrl } from '../config';
 import { newReceivedNotification } from '../slices/notification';
@@ -276,7 +277,10 @@ const initialAuthState: AuthState = {
   reviewEligible: false
 };
 
-const setSession = async (accessToken: string | null, refreshToken: string | null): Promise<void> => {
+const setSession = async (
+  accessToken: string | null,
+  refreshToken: string | null
+): Promise<void> => {
   if (accessToken) await AsyncStorage.setItem('accessToken', accessToken);
   else await AsyncStorage.multiRemove(['accessToken', 'companyId']);
   if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);
@@ -638,7 +642,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
 
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } else {
-        Alert.alert(t('push_notification_requires_device'));
+      Alert.alert(t('push_notification_requires_device'));
     }
 
     if (Platform.OS === 'android') {
@@ -698,14 +702,15 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     companySettings: CompanySettings
   ) => {
     switchLanguage({
-      lng:
-        getPreferredLanguage(
-          user.language,
-          companySettings?.generalPreferences?.language
-        )
+      lng: getPreferredLanguage(
+        user.language,
+        companySettings?.generalPreferences?.language
+      )
     });
     if (Constants.expoConfig?.extra?.eas?.projectId) {
-      checkPushNotificationState().catch((error) => console.warn('Notifications indisponibles:', error.message));
+      checkPushNotificationState().catch((error) =>
+        console.warn('Notifications indisponibles:', error.message)
+      );
     }
     await globalDispatch(getLicenseValidity()).catch(() => {
       // Keep unverified entitlements disabled; the licence screen offers a retry.
@@ -850,6 +855,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       // Always clear the local session, even when the server is unreachable
       // (offline / dead zone) — otherwise the user is stuck logged in.
       await setSession(null, null);
+      await clearPersistedAppState(globalDispatch, () => persistor.flush());
       Sentry.setUser(null);
       dispatch({ type: 'LOGOUT' });
     }
@@ -1066,15 +1072,22 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return state.user.role.viewOtherPermissions.includes(permissionEntity);
   };
   const hasCreatePermission = (permissionEntity: PermissionEntity) => {
-    return state.user.role.roleType === 'ROLE_CLIENT'
-      && state.user.superAccountRelations.length === 0
-      && state.user.role.createPermissions.includes(permissionEntity);
+    return (
+      state.user.role.roleType === 'ROLE_CLIENT' &&
+      state.user.superAccountRelations.length === 0 &&
+      state.user.role.createPermissions.includes(permissionEntity)
+    );
   };
   const hasEditPermission = <Entity extends Audit>(
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT' || state.user.superAccountRelations.length > 0) return false;
+    if (
+      !entity ||
+      state.user.role.roleType !== 'ROLE_CLIENT' ||
+      state.user.superAccountRelations.length > 0
+    )
+      return false;
     if (permissionEntity === PermissionEntity.PEOPLE_AND_TEAMS) {
       return (
         state.user.id === entity.id ||
@@ -1203,7 +1216,12 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     permissionEntity: PermissionEntity,
     entity: Entity
   ) => {
-    if (!entity || state.user.role.roleType !== 'ROLE_CLIENT' || state.user.superAccountRelations.length > 0) return false;
+    if (
+      !entity ||
+      state.user.role.roleType !== 'ROLE_CLIENT' ||
+      state.user.superAccountRelations.length > 0
+    )
+      return false;
     return (
       state.user.id === entity.createdBy ||
       state.user.role.deleteOtherPermissions.includes(permissionEntity)

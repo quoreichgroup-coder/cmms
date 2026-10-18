@@ -5,6 +5,12 @@ import { apiUrl } from 'src/config';
 import api from 'src/utils/api';
 import useAuth from './useAuth';
 import { waitForStompMessage } from './stompResponse';
+import {
+  closePendingWindow,
+  navigatePendingWindow,
+  openPendingWindow
+} from 'src/utils/asyncWindow';
+import { useTranslation } from 'react-i18next';
 
 interface UseExportReturn {
   exportEntity: (entity: ExportEntityType) => Promise<void>;
@@ -40,6 +46,7 @@ export const useExport = (): UseExportReturn => {
   });
   const [stompClient, setStompClient] = useState(null);
   const { user } = useAuth();
+  const { t } = useTranslation();
   // Initialize WebSocket connection
   useEffect(() => {
     const socket = new SockJS(`${apiUrl}ws`);
@@ -62,6 +69,13 @@ export const useExport = (): UseExportReturn => {
       }
       if (!user?.email) throw new Error('Utilisateur non authentifié.');
 
+      // Open synchronously from the click handler; browsers block popups opened
+      // only after the export has finished over HTTP/WebSocket.
+      const resultWindow = openPendingWindow(
+        t('allow_popups_to_export'),
+        t('preparing_export')
+      );
+
       const uuid = crypto.randomUUID();
       const pendingMessage = waitForStompMessage(
         stompClient,
@@ -80,15 +94,20 @@ export const useExport = (): UseExportReturn => {
             message.body.split('error: ').pop() || 'Export échoué.'
           );
         }
-        window.open(message.body, '_blank');
+        navigatePendingWindow(
+          resultWindow,
+          message.body,
+          t('invalid_export_download_url')
+        );
       } catch (error) {
         pendingMessage.cancel();
+        closePendingWindow(resultWindow);
         throw error;
       } finally {
         setLoadingExport((prev) => ({ ...prev, [entity]: false }));
       }
     },
-    [stompClient, user?.email]
+    [stompClient, user?.email, t]
   );
 
   return {

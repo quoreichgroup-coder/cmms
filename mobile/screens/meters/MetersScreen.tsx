@@ -36,7 +36,7 @@ export default function MetersScreen({
 }: RootStackScreenProps<'Meters'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
-  const { meters, loadingGet, currentPageNum, lastPage } = useSelector(
+  const { meters, listLoading, currentPageNum, lastPage } = useSelector(
     (state) => state.meters
   );
   const theme = useAppTheme();
@@ -105,7 +105,7 @@ export default function MetersScreen({
   const loadMore = async (retry = false) => {
     if (
       nextPageRequestInProgress.current ||
-      loadingGet ||
+      listLoading ||
       lastPage ||
       (loadMoreError && !retry)
     )
@@ -143,6 +143,7 @@ export default function MetersScreen({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
@@ -287,7 +288,7 @@ export default function MetersScreen({
               </Text>
               <Button onPress={loadMeters}>{t('retry')}</Button>
             </View>
-          ) : loadingGet || (canView && !hasLoadedList) ? (
+          ) : listLoading || (canView && !hasLoadedList) ? (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -313,7 +314,7 @@ export default function MetersScreen({
           )
         }
         ListFooterComponent={
-          loadingGet && !refreshing && meters.content.length > 0 ? (
+          listLoading && !refreshing && meters.content.length > 0 ? (
             <ActivityIndicator
               color={theme.colors.primary}
               style={styles.loadingFooter}

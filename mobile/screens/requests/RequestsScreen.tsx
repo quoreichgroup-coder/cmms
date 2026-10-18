@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -31,11 +30,13 @@ import { RootTabScreenProps } from '../../types';
 import Tag from '../../components/Tag';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { dayDiff } from '../../utils/dates';
-import { getNotifications } from '../../slices/notification';
+import { getUnreadNotificationCount } from '../../slices/notification';
 import _ from 'lodash';
 import EnumFilter from '../workOrders/components/EnumFilter';
 import { IconWithLabel } from '../../components/IconWithLabel';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function RequestsScreen({
   navigation
@@ -47,7 +48,8 @@ export default function RequestsScreen({
   );
   const theme = useAppTheme();
   const dispatch = useDispatch();
-  const { notifications } = useSelector((state) => state.notifications);
+  const { unreadCount } = useSelector((state) => state.notifications);
+  const unreadNotificationCount = unreadCount ?? 0;
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [hasLoadedFirstPage, setHasLoadedFirstPage] = useState(false);
@@ -55,13 +57,10 @@ export default function RequestsScreen({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const nextPageRequestInProgress = useRef(false);
   const firstPageRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
+  const refreshRequestSequence = useRef(0);
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const notificationsCriteria: SearchCriteria = {
-    filterFields: [],
-    pageSize: 15,
-    pageNum: 0,
-    direction: 'DESC'
-  };
+  const isFocused = useIsFocused();
   const { hasViewPermission, user } = useAuth();
   const defaultFilterFields: FilterField[] = [
     {
@@ -101,32 +100,41 @@ export default function RequestsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  const fetchFirstPage = useCallback(async () => {
-    const requestSequence = ++firstPageRequestSequence.current;
-    setLoadError(false);
-    setLoadMoreError(false);
-    try {
-      await dispatch(
-        getRequests({
-          ...criteria,
-          pageSize: 10,
-          pageNum: 0,
-          direction: 'DESC'
-        })
-      );
-    } catch (_error) {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setLoadError(true);
+  const fetchFirstPage = useCallback(
+    async (isRefresh = false) => {
+      const requestSequence = beginRequest(firstPageRequestSequence);
+      beginRequest(paginationRequestSequence);
+      nextPageRequestInProgress.current = false;
+      setLoadError(false);
+      setLoadMoreError(false);
+      if (!isRefresh) {
+        refreshRequestSequence.current += 1;
+        setRefreshing(false);
       }
-    } finally {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setHasLoadedFirstPage(true);
+      try {
+        await dispatch(
+          getRequests({
+            ...criteria,
+            pageSize: 10,
+            pageNum: 0,
+            direction: 'DESC'
+          })
+        );
+      } catch (_error) {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadError(true);
+        }
+      } finally {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setHasLoadedFirstPage(true);
+        }
       }
-    }
-  }, [criteria, dispatch]);
+    },
+    [criteria, dispatch]
+  );
   const fetchNextPage = useCallback(
     async (retry = false) => {
-      const requestSequence = firstPageRequestSequence.current;
+      const firstPageSequence = firstPageRequestSequence.current;
       if (
         nextPageRequestInProgress.current ||
         loadingGet ||
@@ -134,16 +142,25 @@ export default function RequestsScreen({
         (loadMoreError && !retry)
       )
         return;
+      const paginationSequence = beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = true;
       setLoadMoreError(false);
       try {
         await dispatch(getMoreRequests(criteria, currentPageNum + 1));
       } catch (_error) {
-        if (requestSequence === firstPageRequestSequence.current) {
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
           setLoadMoreError(true);
         }
       } finally {
-        nextPageRequestInProgress.current = false;
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          nextPageRequestInProgress.current = false;
+        }
       }
     },
     [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
@@ -166,60 +183,66 @@ export default function RequestsScreen({
               flexDirection: 'row'
             }}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('notifications')}
-              onPress={() => navigation.navigate('Notifications')}
-              style={{ position: 'relative' }}
-            >
-              <IconButton icon={'bell-outline'} />
+            <View style={{ position: 'relative' }}>
+              <IconButton
+                icon="bell-outline"
+                accessibilityLabel={
+                  unreadCount === null
+                    ? t('notifications')
+                    : `${t('notifications')}, ${t(
+                        'unread_notifications_count',
+                        { count: unreadNotificationCount }
+                      )}`
+                }
+                onPress={() => navigation.navigate('Notifications')}
+              />
               <Badge
+                accessible={false}
+                pointerEvents="none"
                 style={{
                   position: 'absolute',
                   bottom: 0,
                   right: 0,
                   backgroundColor: theme.colors.error
                 }}
-                visible={
-                  notifications.content.filter(
-                    (notification) => !notification.seen
-                  ).length > 0
-                }
+                visible={unreadNotificationCount > 0}
               >
-                {
-                  notifications.content.filter(
-                    (notification) => !notification.seen
-                  ).length
-                }
+                {unreadNotificationCount}
               </Badge>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
+            </View>
+            <IconButton
+              icon="cog-outline"
               accessibilityLabel={t('settings')}
-              onPress={() => {
-                navigation.navigate('Settings');
-              }}
-            >
-              <IconButton icon="cog-outline" />
-            </Pressable>
+              onPress={() => navigation.navigate('Settings')}
+            />
           </View>
         )
       });
-  }, []);
+  }, [
+    navigation,
+    t,
+    theme.colors.error,
+    unreadNotificationCount,
+    user.role.code
+  ]);
 
   useEffect(() => {
-    if (user.role.code === 'REQUESTER')
-      dispatch(getNotifications(notificationsCriteria));
-  }, []);
+    if (user.role.code === 'REQUESTER' && isFocused) {
+      dispatch(getUnreadNotificationCount());
+    }
+  }, [dispatch, isFocused, user.role.code]);
 
   const onRefresh = async () => {
+    const requestSequence = beginRequest(refreshRequestSequence);
     setRefreshing(true);
     try {
-      await fetchFirstPage();
+      await fetchFirstPage(true);
     } catch (_error) {
       // The API error handler displays the failure message globally.
     } finally {
-      setRefreshing(false);
+      if (isCurrentRequest(requestSequence, refreshRequestSequence)) {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -243,7 +266,9 @@ export default function RequestsScreen({
   );
   const hasActiveSearch = searchQuery.trim().length > 0;
   const clearSearchAndFilters = () => {
-    setStartedSearch(false);
+    // Keep debounced search enabled while the Searchbar remains focused so
+    // the next query is applied without requiring a blur/refocus cycle.
+    setStartedSearch(true);
     setSearchQuery('');
     setCriteria(getCriteriaFromFilterFields([]));
   };
@@ -439,7 +464,11 @@ export default function RequestsScreen({
                     >
                       {t('requests_load_error')}
                     </Text>
-                    <Button compact onPress={() => void fetchFirstPage()}>
+                    <Button
+                      compact
+                      onPress={() => void fetchFirstPage()}
+                      style={styles.retryButton}
+                    >
                       {t('retry')}
                     </Button>
                   </View>
@@ -473,7 +502,15 @@ export default function RequestsScreen({
                       icon="close"
                       iconColor={theme.colors.error}
                       accessibilityLabel={t('reset_filters')}
-                      style={{ backgroundColor: theme.colors.background }}
+                      accessibilityRole="button"
+                      mode="outlined"
+                      style={{
+                        backgroundColor: theme.colors.surface,
+                        borderWidth: 1,
+                        borderColor: theme.colors.controlOutline,
+                        width: qpmLayoutTokens.touchTarget.minimum,
+                        height: qpmLayoutTokens.touchTarget.minimum
+                      }}
                       onPress={() => onFilterChange(defaultFilterFields)}
                     />
                   )}
@@ -517,6 +554,7 @@ export default function RequestsScreen({
                   <Button
                     mode="contained"
                     onPress={() => void fetchFirstPage()}
+                    style={styles.retryButton}
                   >
                     {t('retry')}
                   </Button>
@@ -571,7 +609,11 @@ export default function RequestsScreen({
                   <Text style={{ color: theme.colors.error }}>
                     {t('requests_load_error')}
                   </Text>
-                  <Button compact onPress={() => void fetchNextPage(true)}>
+                  <Button
+                    compact
+                    onPress={() => void fetchNextPage(true)}
+                    style={styles.retryButton}
+                  >
                     {t('retry')}
                   </Button>
                 </View>
@@ -661,6 +703,10 @@ const styles = StyleSheet.create({
     gap: 12
   },
   loadMoreError: { margin: 16, alignItems: 'center', gap: 4 },
+  retryButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
+  },
   row: {
     display: 'flex',
     flexDirection: 'row',

@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
-import { useSelector } from '../../store';
+import { useDispatch, useSelector } from '../../store';
 import { SearchOperator } from '../../models/page';
 import {
   FilterFieldType,
@@ -16,6 +16,7 @@ import Form from '../../components/form';
 import * as Yup from 'yup';
 import { Button } from 'react-native-paper';
 import { useEffect } from 'react';
+import { getLocationsMini } from '../../slices/location';
 
 export default function WorkOrderFilters({
   navigation,
@@ -23,12 +24,19 @@ export default function WorkOrderFilters({
 }: RootStackScreenProps<'WorkOrderFilters'>) {
   const { t }: { t: any } = useTranslation();
   const { filterFields, onFilterChange, onReset } = route.params;
+  const dispatch = useDispatch();
   const { customersMini } = useSelector((state) => state.customers);
   const { locationsMini } = useSelector((state) => state.locations);
   const { categories } = useSelector((state) => state.categories);
   const { usersMini } = useSelector((state) => state.users);
   const { assetsMini } = useSelector((state) => state.assets);
   const { teamsMini } = useSelector((state) => state.teams);
+
+  useEffect(() => {
+    if (!locationsMini.length) {
+      void dispatch(getLocationsMini()).catch(() => {});
+    }
+  }, [dispatch, locationsMini.length]);
 
   const filtersConfig: {
     accessor: string;

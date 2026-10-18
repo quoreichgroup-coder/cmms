@@ -7,6 +7,7 @@ import {
   View
 } from 'react-native';
 import { useRef, useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IField, IHash } from '../../models/form';
 import * as Yup from 'yup';
 import { ObjectSchema } from 'yup';
@@ -43,12 +44,14 @@ import {
 import DateRangePicker from './DateRangePicker';
 import AudioRecorder from './AudioRecorder';
 import SignaturePad from './SignaturePad';
+import ScanIdentifierField from './ScanIdentifierField';
 import { SheetManager } from 'react-native-actions-sheet';
 import File, { IFile } from '../../models/file';
 import mime from 'mime';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createAsyncActionLock } from '../../utils/asyncActionLock';
+import { isNfcSupportedOnPlatform } from '../../utils/nfc';
 import {
   hasActiveAudioRecording,
   updateActiveAudioRecordingFields
@@ -99,8 +102,8 @@ export default function Form(props: OwnProps) {
   };
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  // Disable NFC-related form inputs on iOS (barcode only).
-  const isNfcEnabled = Platform.OS !== 'ios';
+  // NFC requires native support; barcode remains available on every platform.
+  const isNfcEnabled = isNfcSupportedOnPlatform(Platform.OS);
   props.fields.forEach((f) => {
     shape[f.name] = Yup.string();
     if (f.required) {
@@ -218,9 +221,11 @@ export default function Form(props: OwnProps) {
             }}
           >
             <Text>{getFieldLabel(field)}</Text>
-            <IconButton
-              iconColor={theme.colors.primary}
-              icon={selectedValue ? 'check-circle' : 'plus-circle'}
+            <MaterialCommunityIcons
+              name={selectedValue ? 'check-circle' : 'plus-circle'}
+              color={theme.colors.primary}
+              size={24}
+              accessible={false}
             />
           </View>
           {selectedValue && (
@@ -444,10 +449,11 @@ export default function Form(props: OwnProps) {
           >
             <Text>{getFieldLabel(field)}</Text>
             {(!values || (Array.isArray(values) && values.length === 0)) && (
-              <IconButton
-                disabled={formik.isSubmitting}
-                iconColor={theme.colors.primary}
-                icon={'plus-circle'}
+              <MaterialCommunityIcons
+                name="plus-circle"
+                color={theme.colors.primary}
+                size={24}
+                accessible={false}
               />
             )}
           </View>
@@ -502,10 +508,11 @@ export default function Form(props: OwnProps) {
           >
             <Text>{getFieldLabel(field)}</Text>
             {(!values || (Array.isArray(values) && values.length === 0)) && (
-              <IconButton
-                disabled={formik.isSubmitting}
-                iconColor={theme.colors.primary}
-                icon={'plus-circle'}
+              <MaterialCommunityIcons
+                name="plus-circle"
+                color={theme.colors.primary}
+                size={24}
+                accessible={false}
               />
             )}
           </View>
@@ -655,7 +662,10 @@ export default function Form(props: OwnProps) {
                   >
                     {field.type === 'text' ? (
                       <TextInput
-                        style={{ width: '100%' }}
+                        style={[
+                          styles.textInput,
+                          field.multiple && styles.multilineTextInput
+                        ]}
                         mode="outlined"
                         error={!!formik.errors[field.name] || field.error}
                         label={getFieldLabel(field)}
@@ -667,6 +677,7 @@ export default function Form(props: OwnProps) {
                         value={formik.values[field.name]}
                         disabled={formik.isSubmitting}
                         multiline={field.multiple}
+                        numberOfLines={field.multiple ? 4 : undefined}
                       />
                     ) : field.type === 'number' ? (
                       <NumberInput
@@ -772,41 +783,37 @@ export default function Form(props: OwnProps) {
                       </View>
                     ) : field.type === 'nfc' ? (
                       <View style={{ opacity: formik.isSubmitting ? 0.55 : 1 }}>
-                        <TouchableOpacity
+                        <ScanIdentifierField
+                          kind="nfc"
+                          label={getFieldLabel(field)}
+                          value={formik.values[field.name]}
+                          hint={t('nfc_hold_near_device')}
                           disabled={formik.isSubmitting}
                           onPress={() =>
                             props.navigation.navigate('SelectNfc', {
                               onChange: (value) => {
                                 handleChange(formik, field.name, value);
-                                props.navigation.goBack();
                               }
                             })
                           }
-                        >
-                          <Text>{getFieldLabel(field)}</Text>
-                        </TouchableOpacity>
-                        <Text style={{ color: theme.colors.primary }}>
-                          {formik.values[field.name]}
-                        </Text>
+                        />
                       </View>
                     ) : field.type === 'barcode' ? (
                       <View style={{ opacity: formik.isSubmitting ? 0.55 : 1 }}>
-                        <TouchableOpacity
+                        <ScanIdentifierField
+                          kind="barcode"
+                          label={getFieldLabel(field)}
+                          value={formik.values[field.name]}
+                          hint={t('scan_barcode_hint')}
                           disabled={formik.isSubmitting}
                           onPress={() =>
                             props.navigation.navigate('SelectBarcode', {
                               onChange: (value) => {
                                 handleChange(formik, field.name, value);
-                                props.navigation.goBack();
                               }
                             })
                           }
-                        >
-                          <Text>{getFieldLabel(field)}</Text>
-                        </TouchableOpacity>
-                        <Text style={{ color: theme.colors.primary }}>
-                          {formik.values[field.name]}
-                        </Text>
+                        />
                       </View>
                     ) : field.type === 'audio' ? (
                       <AudioRecorder
@@ -884,6 +891,8 @@ const styles = StyleSheet.create({
     flex: 1
   },
   formContent: { paddingHorizontal: 12, paddingTop: 8 },
+  textInput: { width: '100%' },
+  multilineTextInput: { minHeight: 112 },
   fieldCard: {
     width: '100%',
     marginTop: 8,
@@ -902,7 +911,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: { fontWeight: '700' },
   submitButton: {
-    minHeight: 50,
+    minHeight: qpmLayoutTokens.touchTarget.prominent,
     justifyContent: 'center',
     marginHorizontal: 2,
     marginTop: 18,

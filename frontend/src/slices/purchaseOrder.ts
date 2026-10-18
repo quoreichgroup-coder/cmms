@@ -171,6 +171,7 @@ export const deletePurchaseOrder =
     if (success) {
       dispatch(slice.actions.deletePurchaseOrder({ id }));
     }
+    return success;
   };
 
 export const clearSinglePurchaseOrder = (): AppThunk => async (dispatch) => {

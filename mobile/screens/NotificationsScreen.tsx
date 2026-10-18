@@ -1,8 +1,8 @@
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet
 } from 'react-native';
 import { View } from '../components/Themed';
@@ -12,9 +12,10 @@ import {
   editNotification,
   getNotifications,
   getMoreNotifications,
-  readAllNotifications
+  readAllNotifications,
+  getUnreadNotificationCount
 } from '../slices/notification';
-import { RootStackParamList, RootStackScreenProps } from '../types';
+import { RootStackScreenProps } from '../types';
 import { useDispatch, useSelector } from '../store';
 import { getNotificationUrl } from '../utils/urlPaths';
 import { List, Text, useTheme } from 'react-native-paper';
@@ -23,11 +24,11 @@ import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { CompanySettingsContext } from '../contexts/CompanySettingsContext';
 import { useTranslation } from 'react-i18next';
 import { SearchCriteria } from '../models/page';
-import { isCloseToBottom } from '../utils/overall';
 import AsyncStateFeedback from '../components/AsyncStateFeedback';
 import { getErrorMessage } from '../utils/api';
 import DirectoryPaginationFooter from '../components/DirectoryPaginationFooter';
 import { qpmLayoutTokens } from '../custom-theme';
+import { beginRequest, isCurrentRequest } from '../utils/requestSequence';
 
 const notificationsCriteria: SearchCriteria = {
   filterFields: [],
@@ -36,13 +37,30 @@ const notificationsCriteria: SearchCriteria = {
   direction: 'DESC'
 };
 
+const notificationIcons: Record<NotificationType, IconSource> = {
+  ASSET: 'package-variant-closed',
+  LOCATION: 'map-marker-outline',
+  METER: 'gauge',
+  PART: 'archive-outline',
+  REQUEST: 'inbox-arrow-down-outline',
+  TEAM: 'account-outline',
+  WORK_ORDER: 'clipboard-text-outline',
+  INFO: 'information',
+  PURCHASE_ORDER: 'comma-circle-outline'
+};
+
 export default function NotificationsScreen({
   navigation
 }: RootStackScreenProps<'Notifications'>) {
   const dispatch = useDispatch();
-  const { notifications, loadingGet, lastPage, currentPageNum } = useSelector(
-    (state) => state.notifications
-  );
+  const {
+    notifications,
+    loadingGet,
+    lastPage,
+    currentPageNum,
+    unreadCount,
+    unreadCountError
+  } = useSelector((state) => state.notifications);
   const [loadError, setLoadError] = useState('');
   const [mutationError, setMutationError] = useState('');
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -55,29 +73,54 @@ export default function NotificationsScreen({
   >([]);
   const loadingMoreRef = useRef(false);
   const markAllLoadingRef = useRef(false);
+  const firstPageRequestSequence = useRef(0);
+  const refreshRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
   const pendingNotificationIdsRef = useRef(new Set<number>());
   const theme = useTheme();
   const { t } = useTranslation();
   const { getFormattedDate } = useContext(CompanySettingsContext);
 
+  const refreshUnreadCount = useCallback(
+    () => dispatch(getUnreadNotificationCount()),
+    [dispatch]
+  );
+
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [refreshUnreadCount]);
+
   const loadNotifications = useCallback(() => {
+    const requestSequence = beginRequest(firstPageRequestSequence);
+    beginRequest(paginationRequestSequence);
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
     setLoadError('');
     setLoadMoreError('');
     return dispatch(getNotifications(notificationsCriteria))
       .catch((error) => {
-        setLoadError(getErrorMessage(error));
+        if (requestSequence === firstPageRequestSequence.current) {
+          setLoadError(getErrorMessage(error));
+        }
       })
-      .finally(() => setHasLoaded(true));
+      .finally(() => {
+        if (requestSequence === firstPageRequestSequence.current) {
+          setHasLoaded(true);
+        }
+      });
   }, [dispatch]);
 
   const refreshNotifications = useCallback(async () => {
+    const requestSequence = beginRequest(refreshRequestSequence);
     setRefreshing(true);
     try {
-      await loadNotifications();
+      await Promise.all([loadNotifications(), refreshUnreadCount()]);
     } finally {
-      setRefreshing(false);
+      if (isCurrentRequest(requestSequence, refreshRequestSequence)) {
+        setRefreshing(false);
+      }
     }
-  }, [loadNotifications]);
+  }, [loadNotifications, refreshUnreadCount]);
 
   const markAllAsSeen = useCallback(async () => {
     if (markAllLoadingRef.current) return;
@@ -86,13 +129,14 @@ export default function NotificationsScreen({
     setMarkAllLoading(true);
     try {
       await dispatch(readAllNotifications());
+      await refreshUnreadCount();
     } catch (error) {
       setMutationError(getErrorMessage(error));
     } finally {
       markAllLoadingRef.current = false;
       setMarkAllLoading(false);
     }
-  }, [dispatch]);
+  }, [dispatch, refreshUnreadCount]);
 
   const loadMore = useCallback(
     async (retry = false) => {
@@ -104,6 +148,8 @@ export default function NotificationsScreen({
       )
         return;
 
+      const requestSequence = firstPageRequestSequence.current;
+      const paginationSequence = beginRequest(paginationRequestSequence);
       loadingMoreRef.current = true;
       setLoadingMore(true);
       setLoadMoreError('');
@@ -112,10 +158,20 @@ export default function NotificationsScreen({
           getMoreNotifications(notificationsCriteria, currentPageNum + 1)
         );
       } catch (error) {
-        setLoadMoreError(getErrorMessage(error));
+        if (
+          isCurrentRequest(requestSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          setLoadMoreError(getErrorMessage(error));
+        }
       } finally {
-        loadingMoreRef.current = false;
-        setLoadingMore(false);
+        if (
+          isCurrentRequest(requestSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          loadingMoreRef.current = false;
+          setLoadingMore(false);
+        }
       }
     },
     [currentPageNum, dispatch, lastPage, loadingGet, loadMoreError]
@@ -126,9 +182,9 @@ export default function NotificationsScreen({
   }, [loadNotifications]);
 
   useEffect(() => {
-    const hasUnreadNotifications = notifications.content.some(
-      (notification) => !notification.seen
-    );
+    const hasUnreadNotifications =
+      (unreadCount ?? 0) > 0 ||
+      notifications.content.some((notification) => !notification.seen);
     navigation.setOptions({
       headerRight: hasUnreadNotifications
         ? () => (
@@ -143,7 +199,12 @@ export default function NotificationsScreen({
               }}
               style={({ pressed }) => ({
                 opacity: markAllLoading ? 0.5 : pressed ? 0.65 : 1,
-                padding: 8
+                minWidth: qpmLayoutTokens.touchTarget.minimum,
+                minHeight: qpmLayoutTokens.touchTarget.minimum,
+                paddingHorizontal: qpmLayoutTokens.space.sm,
+                borderRadius: qpmLayoutTokens.radius.control,
+                alignItems: 'center' as const,
+                justifyContent: 'center' as const
               })}
             >
               {markAllLoading ? (
@@ -166,25 +227,31 @@ export default function NotificationsScreen({
     navigation,
     notifications.content,
     t,
+    unreadCount,
     theme.colors.primary
   ]);
 
-  const onReadNotification = async (notification: Notification) => {
-    let url: { route: keyof RootStackParamList; params: {} };
-    const id = notification.resourceId;
-    url = getNotificationUrl(notification.notificationType, id);
-    if (notification.seen) {
-      if (url) {
-        // @ts-ignore
-        navigation.navigate(url.route, url.params);
+  const onReadNotification = useCallback(
+    async (notification: Notification) => {
+      const url = getNotificationUrl(
+        notification.notificationType,
+        notification.resourceId
+      );
+      if (notification.seen) {
+        if (url) {
+          // @ts-ignore
+          navigation.navigate(url.route, url.params);
+        }
+        return;
       }
-    } else {
+
       if (pendingNotificationIdsRef.current.has(notification.id)) return;
       pendingNotificationIdsRef.current.add(notification.id);
       setPendingNotificationIds([...pendingNotificationIdsRef.current]);
       setMutationError('');
       try {
         await dispatch(editNotification(notification.id, { seen: true }));
+        await refreshUnreadCount();
         if (url) {
           // @ts-ignore
           navigation.navigate(url.route, url.params);
@@ -195,36 +262,98 @@ export default function NotificationsScreen({
         pendingNotificationIdsRef.current.delete(notification.id);
         setPendingNotificationIds([...pendingNotificationIdsRef.current]);
       }
-    }
-  };
-  const notificationIcons: Record<NotificationType, IconSource> = {
-    ASSET: 'package-variant-closed',
-    LOCATION: 'map-marker-outline',
-    METER: 'gauge',
-    PART: 'archive-outline',
-    REQUEST: 'inbox-arrow-down-outline',
-    TEAM: 'account-outline',
-    WORK_ORDER: 'clipboard-text-outline',
-    INFO: 'information',
-    PURCHASE_ORDER: 'comma-circle-outline'
-  };
+    },
+    [dispatch, navigation, refreshUnreadCount]
+  );
 
-  return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      refreshControl={
-        <RefreshControl
-          onRefresh={() => void refreshNotifications()}
-          refreshing={refreshing}
-          colors={[theme.colors.primary]}
-          progressBackgroundColor={theme.colors.surface}
+  const renderNotification = useCallback(
+    ({ item: notification }: { item: Notification }) => {
+      const notificationUrl = getNotificationUrl(
+        notification.notificationType,
+        notification.resourceId
+      );
+      const isPending = pendingNotificationIds.includes(notification.id);
+
+      return (
+        <List.Item
+          title={notification.message}
+          titleNumberOfLines={3}
+          titleStyle={{
+            color: theme.colors.onSurface,
+            fontWeight: notification.seen ? '400' : '700'
+          }}
+          description={getFormattedDate(notification.createdAt)}
+          descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+          left={(props) => (
+            <List.Icon
+              {...props}
+              icon={notificationIcons[notification.notificationType]}
+              color={
+                notification.seen
+                  ? theme.colors.onSurfaceVariant
+                  : theme.colors.primary
+              }
+            />
+          )}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.outlineVariant,
+            borderLeftColor: notification.seen
+              ? theme.colors.outlineVariant
+              : theme.colors.primary,
+            borderWidth: 1,
+            borderLeftWidth: notification.seen ? 1 : 4,
+            borderRadius: qpmLayoutTokens.radius.cardLarge,
+            marginHorizontal: qpmLayoutTokens.space.lg,
+            marginBottom: qpmLayoutTokens.space.sm,
+            overflow: 'hidden',
+            paddingVertical: qpmLayoutTokens.space.xs
+          }}
+          accessibilityLabel={`${notification.message}, ${getFormattedDate(
+            notification.createdAt
+          )}, ${t(
+            notification.seen
+              ? 'notification_status_read'
+              : 'notification_status_unread'
+          )}`}
+          accessibilityHint={t(
+            notificationUrl
+              ? 'notification_open_related_hint'
+              : 'notification_mark_read_hint'
+          )}
+          accessibilityRole="button"
+          accessibilityState={{ busy: isPending, disabled: isPending }}
+          right={() =>
+            isPending ? (
+              <ActivityIndicator color={theme.colors.primary} />
+            ) : null
+          }
+          onPress={() => void onReadNotification(notification)}
         />
-      }
-      onScroll={({ nativeEvent }) => {
-        if (isCloseToBottom(nativeEvent)) void loadMore();
-      }}
-      scrollEventThrottle={400}
-    >
+      );
+    },
+    [
+      getFormattedDate,
+      onReadNotification,
+      pendingNotificationIds,
+      t,
+      theme.colors.onSurface,
+      theme.colors.onSurfaceVariant,
+      theme.colors.outlineVariant,
+      theme.colors.primary,
+      theme.colors.surface
+    ]
+  );
+
+  const listHeader = (
+    <>
+      {unreadCountError && (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('notifications_load_error')}
+          onRetry={() => void refreshUnreadCount()}
+        />
+      )}
       {loadError && notifications.content.length > 0 && (
         <AsyncStateFeedback
           mode="banner"
@@ -235,127 +364,87 @@ export default function NotificationsScreen({
       {mutationError && (
         <AsyncStateFeedback mode="banner" message={mutationError} />
       )}
-      {Boolean(notifications.content.length) ? (
-        <List.Section>
-          {notifications.content.map((notification) => (
-            <React.Fragment key={notification.id}>
-              {/* @ts-ignore */}
-              <List.Item
-                title={notification.message}
-                titleNumberOfLines={3}
-                titleStyle={{
-                  color: theme.colors.onSurface,
-                  fontWeight: notification.seen ? '400' : '700'
-                }}
-                description={getFormattedDate(notification.createdAt)}
-                descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
-                left={(props) => (
-                  <List.Icon
-                    {...props}
-                    icon={notificationIcons[notification.notificationType]}
-                    color={
-                      notification.seen
-                        ? theme.colors.onSurfaceVariant
-                        : theme.colors.primary
-                    }
-                  />
-                )}
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineVariant,
-                  borderLeftColor: notification.seen
-                    ? theme.colors.outlineVariant
-                    : theme.colors.primary,
-                  borderWidth: 1,
-                  borderLeftWidth: notification.seen ? 1 : 4,
-                  borderRadius: qpmLayoutTokens.radius.cardLarge,
-                  marginHorizontal: qpmLayoutTokens.space.lg,
-                  marginBottom: qpmLayoutTokens.space.sm,
-                  overflow: 'hidden',
-                  paddingVertical: qpmLayoutTokens.space.xs
-                }}
-                accessibilityLabel={`${
-                  notification.message
-                }, ${getFormattedDate(notification.createdAt)}, ${t(
-                  notification.seen
-                    ? 'notification_status_read'
-                    : 'notification_status_unread'
-                )}`}
-                accessibilityHint={t(
-                  getNotificationUrl(
-                    notification.notificationType,
-                    notification.resourceId
-                  )
-                    ? 'notification_open_related_hint'
-                    : 'notification_mark_read_hint'
-                )}
-                accessibilityRole="button"
-                accessibilityState={{
-                  busy: pendingNotificationIds.includes(notification.id),
-                  disabled: pendingNotificationIds.includes(notification.id)
-                }}
-                right={() =>
-                  pendingNotificationIds.includes(notification.id) ? (
-                    <ActivityIndicator color={theme.colors.primary} />
-                  ) : null
-                }
-                onPress={() => void onReadNotification(notification)}
-              />
-            </React.Fragment>
-          ))}
-        </List.Section>
-      ) : loadingGet || !hasLoaded ? (
-        <AsyncStateFeedback mode="loading" message={t('please_wait')} />
-      ) : loadError ? (
-        <AsyncStateFeedback
-          mode="error"
-          message={loadError}
-          onRetry={loadNotifications}
-        />
-      ) : (
-        <View
+    </>
+  );
+
+  const listEmpty =
+    loadingGet || !hasLoaded ? (
+      <AsyncStateFeedback mode="loading" message={t('please_wait')} />
+    ) : loadError ? (
+      <AsyncStateFeedback
+        mode="error"
+        message={loadError}
+        onRetry={loadNotifications}
+      />
+    ) : (
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.outlineVariant,
+          padding: qpmLayoutTokens.space.xl,
+          alignItems: 'center',
+          borderWidth: 1,
+          borderRadius: qpmLayoutTokens.radius.cardLarge,
+          margin: qpmLayoutTokens.space.lg,
+          gap: qpmLayoutTokens.space.xs
+        }}
+      >
+        <Text
+          variant="titleMedium"
+          style={{ fontWeight: 'bold', color: theme.colors.onSurface }}
+        >
+          {t('no_notification')}
+        </Text>
+        <Text
+          variant="bodyMedium"
           style={{
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.outlineVariant,
-            padding: qpmLayoutTokens.space.xl,
-            alignItems: 'center',
-            borderWidth: 1,
-            borderRadius: qpmLayoutTokens.radius.cardLarge,
-            margin: qpmLayoutTokens.space.lg,
-            gap: qpmLayoutTokens.space.xs
+            color: theme.colors.onSurfaceVariant,
+            textAlign: 'center'
           }}
         >
-          <Text
-            variant="titleMedium"
-            style={{ fontWeight: 'bold', color: theme.colors.onSurface }}
-          >
-            {t('no_notification')}
-          </Text>
-          <Text
-            variant="bodyMedium"
-            style={{
-              color: theme.colors.onSurfaceVariant,
-              textAlign: 'center'
-            }}
-          >
-            {t('no_notification_message')}
-          </Text>
-        </View>
-      )}
-      {!!notifications.content.length && !lastPage && (
-        <DirectoryPaginationFooter
-          loading={loadingMore}
-          error={!!loadMoreError}
-          errorMessage={loadMoreError}
-          onRetry={() => void loadMore(true)}
+          {t('no_notification_message')}
+        </Text>
+      </View>
+    );
+
+  const listFooter =
+    notifications.content.length > 0 && !lastPage ? (
+      <DirectoryPaginationFooter
+        loading={loadingMore}
+        error={Boolean(loadMoreError)}
+        errorMessage={loadMoreError}
+        onRetry={() => void loadMore(true)}
+      />
+    ) : null;
+
+  return (
+    <FlatList<Notification>
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.contentContainer}
+      data={notifications.content}
+      keyExtractor={(notification) => String(notification.id)}
+      renderItem={renderNotification}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={listEmpty}
+      ListFooterComponent={listFooter}
+      onEndReached={() => void loadMore()}
+      onEndReachedThreshold={0.35}
+      refreshControl={
+        <RefreshControl
+          onRefresh={() => void refreshNotifications()}
+          refreshing={refreshing}
+          colors={[theme.colors.primary]}
+          progressBackgroundColor={theme.colors.surface}
         />
-      )}
-    </ScrollView>
+      }
+      progressViewOffset={0}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  contentContainer: { paddingBottom: 100 },
   title: {
     fontSize: 20,
     fontWeight: 'bold'

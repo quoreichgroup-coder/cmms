@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { RootStackScreenProps } from '../types';
 import { getAssetByBarcode, getAssetByNfc } from '../slices/asset';
 import { useDispatch } from '../store';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { getLicenseValidity } from '../slices/license';
 import { useLicenseEntitlement } from '../hooks/useLicenseEntitlement';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
@@ -14,6 +14,8 @@ import useAuth from '../hooks/useAuth';
 import { PermissionEntity } from '../models/role';
 import { getErrorMessage } from '../utils/api';
 import AsyncStateFeedback from '../components/AsyncStateFeedback';
+import { isNfcSupportedOnPlatform } from '../utils/nfc';
+import { shouldOfferAssetCreationAfterScan } from '../utils/assetScan';
 
 export default function ScanAssetScreen({
   navigation,
@@ -25,11 +27,29 @@ export default function ScanAssetScreen({
   const { onChange } = route.params || {};
   const [isResolving, setIsResolving] = useState(false);
   const resolvingRef = useRef(false);
+  const [isCheckingLicense, setIsCheckingLicense] = useState(true);
+  const [licenseLoadError, setLicenseLoadError] = useState(false);
+  const licenseCheckRef = useRef(false);
   const { hasCreatePermission } = useAuth();
   const hasBarcodeNfcEntitlement = useLicenseEntitlement('NFC_BARCODE');
-  // NFC scanning must remain disabled on iOS; keep barcode only there.
-  const isNfcEnabled = Platform.select({ ios: false, default: true });
+  // NFC requires native support; keep barcode available on every platform.
+  const isNfcEnabled = isNfcSupportedOnPlatform(Platform.OS);
   const { showSnackBar } = useContext(CustomSnackBarContext);
+
+  const loadLicense = useCallback(async () => {
+    if (licenseCheckRef.current) return;
+    licenseCheckRef.current = true;
+    setIsCheckingLicense(true);
+    setLicenseLoadError(false);
+    try {
+      await dispatch(getLicenseValidity());
+    } catch (_error) {
+      setLicenseLoadError(true);
+    } finally {
+      licenseCheckRef.current = false;
+      setIsCheckingLicense(false);
+    }
+  }, [dispatch]);
 
   const showLicenseError = () => {
     showSnackBar(t('you_need_a_license'), 'error');
@@ -61,7 +81,12 @@ export default function ScanAssetScreen({
     // A create prompt is valid only when the server confirms the identifier is
     // unknown. Network, license, and authorization failures must not be treated
     // as evidence that the scanned equipment does not exist.
-    if (error?.status === 404 && hasCreatePermission(PermissionEntity.ASSETS)) {
+    if (
+      shouldOfferAssetCreationAfterScan(
+        error?.status,
+        hasCreatePermission(PermissionEntity.ASSETS)
+      )
+    ) {
       Alert.alert(t('error'), missingMessage, [
         { text: t('no'), onPress: () => navigation.goBack() },
         {
@@ -100,8 +125,20 @@ export default function ScanAssetScreen({
   };
 
   useEffect(() => {
-    dispatch(getLicenseValidity());
-  }, []);
+    void loadLicense();
+  }, [loadLicense]);
+
+  if (isCheckingLicense)
+    return <AsyncStateFeedback mode="loading" message={t('loading')} />;
+
+  if (licenseLoadError)
+    return (
+      <AsyncStateFeedback
+        mode="error"
+        message={t('license_load_error')}
+        onRetry={() => void loadLicense()}
+      />
+    );
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -113,6 +150,11 @@ export default function ScanAssetScreen({
             <>
               <List.Item
                 title={t('NFC')}
+                description={t('nfc_hold_near_device')}
+                left={(props) => <List.Icon {...props} icon="nfc" />}
+                accessibilityRole="button"
+                accessibilityLabel={t('NFC')}
+                accessibilityHint={t('nfc_hold_near_device')}
                 onPress={() => {
                   if (hasBarcodeNfcEntitlement)
                     navigation.navigate('SelectNfc', {
@@ -131,6 +173,11 @@ export default function ScanAssetScreen({
           )}
           <List.Item
             title={t('barcode') + '/QR code'}
+            description={t('scan_barcode_hint')}
+            left={(props) => <List.Icon {...props} icon="barcode-scan" />}
+            accessibilityRole="button"
+            accessibilityLabel={t('barcode') + '/QR code'}
+            accessibilityHint={t('scan_barcode_hint')}
             onPress={() => {
               if (hasBarcodeNfcEntitlement)
                 navigation.navigate('SelectBarcode', {

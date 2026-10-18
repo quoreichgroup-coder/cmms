@@ -10,7 +10,9 @@ import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import * as React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../../custom-theme';
-import { useDispatch } from '../../store';
+import { persistor, useDispatch } from '../../store';
+import { clearServerSessionState } from '../../utils/clearServerSessionState';
+import { getServerUrlValidationError } from '../../utils/serverUrlValidation';
 import { getApiUrl, normalizeApiUrl } from '../../config';
 import { revertAll } from '../../utils/redux';
 import { getInstanceConfig } from '../../slices/instanceConfig';
@@ -58,7 +60,21 @@ export default function CustomServerScreen({
           }}
           enableReinitialize
           validationSchema={Yup.object().shape({
-            serverUrl: Yup.string().required(t('required_url'))
+            serverUrl: Yup.string()
+              .required(t('required_url'))
+              .test(
+                'valid-server-url',
+                t('invalid_server_url_scheme'),
+                function (value) {
+                  const errorMessage = getServerUrlValidationError(value, t);
+                  if (errorMessage) {
+                    return this.createError({
+                      message: errorMessage
+                    });
+                  }
+                  return true;
+                }
+              )
           })}
           onSubmit={async (
             values,
@@ -85,12 +101,16 @@ export default function CustomServerScreen({
               }
               const previous = await AsyncStorage.getItem('customApiUrl');
               if (previous !== url) {
-                await AsyncStorage.multiRemove([
-                  'accessToken',
-                  'refreshToken',
-                  'companyId'
-                ]);
-                dispatch(revertAll());
+                await clearServerSessionState(
+                  () =>
+                    AsyncStorage.multiRemove([
+                      'accessToken',
+                      'refreshToken',
+                      'companyId'
+                    ]),
+                  dispatch,
+                  () => persistor.flush()
+                );
               }
               await AsyncStorage.setItem('customApiUrl', url);
               setCurrentUrl(url);
@@ -132,6 +152,9 @@ export default function CustomServerScreen({
                 mode="outlined"
                 style={{ marginBottom: 10 }}
                 autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                accessibilityLabel={t('server_url')}
                 placeholder="https://your-server-url.com"
               />
               {Boolean(touched.serverUrl && errors.serverUrl) && (
@@ -168,7 +191,18 @@ export default function CustomServerScreen({
                     resettingRef.current = true;
                     setIsResetting(true);
                     try {
-                      await AsyncStorage.removeItem('customApiUrl');
+                      await clearServerSessionState(
+                        async () => {
+                          await AsyncStorage.multiRemove([
+                            'accessToken',
+                            'refreshToken',
+                            'companyId'
+                          ]);
+                          await AsyncStorage.removeItem('customApiUrl');
+                        },
+                        dispatch,
+                        () => persistor.flush()
+                      );
                       setCurrentUrl(await getApiUrl());
                       setHasCustomUrl(false);
                       await dispatch(getInstanceConfig());

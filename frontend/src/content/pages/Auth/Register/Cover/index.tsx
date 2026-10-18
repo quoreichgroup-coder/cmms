@@ -16,15 +16,15 @@ import {
 import { Helmet } from 'react-helmet-async';
 import JWTRegister from '../RegisterJWT';
 import { useTranslation } from 'react-i18next';
-import CheckCircleOutlineTwoToneIcon from '@mui/icons-material/CheckCircleOutlineTwoTone';
+import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import Scrollbar from 'src/components/Scrollbar';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
-import ChevronLeftTwoToneIcon from '@mui/icons-material/ChevronLeftTwoTone';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
+import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
 import { useBrand } from '../../../../../hooks/useBrand';
 import CompanyLogos from 'src/components/CompanyLogos';
 import { isCloudVersion } from '../../../../../config';
@@ -206,10 +206,10 @@ function RegisterCover() {
             <SidebarContent>
               <Box mb={2} display="flex" justifyContent="center">
                 <SwipeIndicator className="MuiSwipe-root MuiSwipe-left">
-                  <ChevronLeftTwoToneIcon fontSize="large" />
+                  <ChevronLeftOutlinedIcon fontSize="large" />
                 </SwipeIndicator>
                 <SwipeIndicator className="MuiSwipe-root MuiSwipe-right">
-                  <ChevronRightTwoToneIcon fontSize="large" />
+                  <ChevronRightOutlinedIcon fontSize="large" />
                 </SwipeIndicator>
               </Box>
               <TypographyPrimary
@@ -291,7 +291,7 @@ function RegisterCover() {
                     >
                       <ListItem disableGutters>
                         <ListItemIconWrapper>
-                          <CheckCircleOutlineTwoToneIcon />
+                          <CheckCircleOutlineOutlinedIcon />
                         </ListItemIconWrapper>
                         <ListItemTextWrapper
                           primaryTypographyProps={{ variant: 'h6' }}
@@ -300,7 +300,7 @@ function RegisterCover() {
                       </ListItem>
                       <ListItem disableGutters>
                         <ListItemIconWrapper>
-                          <CheckCircleOutlineTwoToneIcon />
+                          <CheckCircleOutlineOutlinedIcon />
                         </ListItemIconWrapper>
                         <ListItemTextWrapper
                           primaryTypographyProps={{ variant: 'h6' }}

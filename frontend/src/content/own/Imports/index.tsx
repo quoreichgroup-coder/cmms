@@ -2,7 +2,7 @@ import { Helmet } from 'react-helmet-async';
 import useAuth from 'src/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { PermissionEntity } from 'src/models/owns/role';
-import DownloadTwoToneIcon from '@mui/icons-material/DownloadTwoTone';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import {
   Box,
   Button,
@@ -32,7 +32,7 @@ import Spreadsheet, { CellBase, Matrix } from 'react-spreadsheet';
 import { arrayToAoA } from 'src/utils/overall';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getOwnHeadersConfig } from 'src/utils/states';
-import InfoTwoToneIcon from '@mui/icons-material/InfoTwoTone';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { closestMatch, distance } from 'closest-match';
 import {
   ImportDTO,
@@ -341,7 +341,7 @@ const Import = ({}: OwnProps) => {
                     : t('no_match_yet')}
                 </Typography>
                 <Stack direction="row" spacing={1}>
-                  <InfoTwoToneIcon />
+                  <InfoOutlinedIcon />
                   <Typography>
                     {t('percent_rows_have_value', {
                       percent: getPercent().toFixed(0)
@@ -561,7 +561,7 @@ const Import = ({}: OwnProps) => {
                       sx={{ mt: 2 }}
                       onClick={downloadTemplate}
                     >
-                      <DownloadTwoToneIcon color={'primary'} />
+                      <DownloadOutlinedIcon color={'primary'} />
                       <Typography
                         color={'primary'}
                         style={{ cursor: 'pointer' }}

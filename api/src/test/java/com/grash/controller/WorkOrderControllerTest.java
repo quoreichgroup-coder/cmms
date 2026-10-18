@@ -570,6 +570,64 @@ class WorkOrderControllerTest extends AbstractControllerTest {
     }
 
     @Nested
+    class LifecycleEndpoints {
+
+        @Test
+        void reopen_requiresNonBlankReason() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+
+            mockMvc.perform(post("/work-orders/1/reopen")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"reason\":\"  \"}"))
+                    .andExpect(status().isBadRequest());
+
+            verify(workOrderService, never()).reopen(anyLong(), anyString(), any());
+        }
+
+        @Test
+        void reopen_delegatesReasonAndReturnsWorkOrder() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            WorkOrder reopened = new WorkOrder();
+            reopened.setId(1L);
+            when(workOrderService.reopen(1L, "Correct completion data", clientUser)).thenReturn(reopened);
+            when(workOrderMapper.toShowDto(reopened)).thenReturn(showDto);
+
+            mockMvc.perform(post("/work-orders/1/reopen")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"reason\":\"Correct completion data\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(1));
+
+            verify(workOrderService).reopen(1L, "Correct completion data", clientUser);
+        }
+
+        @Test
+        void lifecycleEvents_returnsOnlyTheEventsFromAuthorizedServiceQuery() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            WorkOrderLifecycleEvent event = mock(WorkOrderLifecycleEvent.class);
+            when(event.getId()).thenReturn(7L);
+            when(event.getPreviousStatus()).thenReturn(Status.IN_PROGRESS);
+            when(event.getNewStatus()).thenReturn(Status.COMPLETE);
+            when(event.getActorUserId()).thenReturn(2L);
+            when(event.getActorName()).thenReturn("Technician");
+            when(event.getOccurredAt()).thenReturn(new Date(1_760_000_000_000L));
+            when(workOrderService.getLifecycleEvents(1L, clientUser)).thenReturn(Collections.singletonList(event));
+
+            mockMvc.perform(get("/work-orders/1/lifecycle-events"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].id").value(7))
+                    .andExpect(jsonPath("$[0].previousStatus").value("IN_PROGRESS"))
+                    .andExpect(jsonPath("$[0].newStatus").value("COMPLETE"))
+                    .andExpect(jsonPath("$[0].actorName").value("Technician"));
+
+            verify(workOrderService).getLifecycleEvents(1L, clientUser);
+        }
+    }
+
+    @Nested
     class RoutingAndSerialization {
 
         @Test

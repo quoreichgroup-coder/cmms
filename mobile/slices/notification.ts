@@ -14,13 +14,23 @@ interface NotificationState {
   currentPageNum: number;
   lastPage: boolean;
   loadingGet: boolean;
+  latestListRequestId: number;
+  unreadCount: number | null;
+  unreadCountLoading: boolean;
+  unreadCountError: boolean;
+  unreadCountRequestId: number;
 }
 
 const initialState: NotificationState = {
   notifications: getInitialPage<Notification>(),
   currentPageNum: 0,
   lastPage: true,
-  loadingGet: false
+  loadingGet: false,
+  latestListRequestId: 0,
+  unreadCount: null,
+  unreadCountLoading: false,
+  unreadCountError: false,
+  unreadCountRequestId: 0
 };
 
 const slice = createSlice({
@@ -30,18 +40,26 @@ const slice = createSlice({
   reducers: {
     getNotifications(
       state: NotificationState,
-      action: PayloadAction<{ notifications: Page<Notification> }>
+      action: PayloadAction<{
+        notifications: Page<Notification>;
+        requestId: number;
+      }>
     ) {
-      const { notifications } = action.payload;
+      const { notifications, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.notifications = notifications;
       state.currentPageNum = 0;
       state.lastPage = notifications.last;
     },
     getMoreNotifications(
       state: NotificationState,
-      action: PayloadAction<{ notifications: Page<Notification> }>
+      action: PayloadAction<{
+        notifications: Page<Notification>;
+        requestId: number;
+      }>
     ) {
-      const { notifications } = action.payload;
+      const { notifications, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.notifications.content = state.notifications.content.concat(
         notifications.content
       );
@@ -53,9 +71,7 @@ const slice = createSlice({
       action: PayloadAction<{ notification: Notification }>
     ) {
       const { notification } = action.payload;
-      state.notifications.content.unshift(
-        notification
-      );
+      state.notifications.content.unshift(notification);
     },
     editNotification(
       state: NotificationState,
@@ -71,10 +87,7 @@ const slice = createSlice({
         }
       );
     },
-    readAll(
-      state: NotificationState,
-      action: PayloadAction<{}>
-    ) {
+    readAll(state: NotificationState, action: PayloadAction<{}>) {
       state.notifications.content = state.notifications.content.map(
         (notification1) => {
           return { ...notification1, seen: true };
@@ -87,72 +100,135 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: NotificationState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.loadingGet = true;
+    },
+    finishListRequest(state: NotificationState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.loadingGet = false;
+      }
+    },
+    beginUnreadCountRequest(
+      state: NotificationState,
+      action: PayloadAction<number>
+    ) {
+      state.unreadCountRequestId = action.payload;
+      state.unreadCountLoading = true;
+      state.unreadCountError = false;
+    },
+    receiveUnreadCount(
+      state: NotificationState,
+      action: PayloadAction<{ count: number; requestId: number }>
+    ) {
+      if (action.payload.requestId !== state.unreadCountRequestId) return;
+      state.unreadCount = action.payload.count;
+    },
+    failUnreadCountRequest(
+      state: NotificationState,
+      action: PayloadAction<number>
+    ) {
+      if (action.payload !== state.unreadCountRequestId) return;
+      state.unreadCount = null;
+      state.unreadCountError = true;
+    },
+    finishUnreadCountRequest(
+      state: NotificationState,
+      action: PayloadAction<number>
+    ) {
+      if (action.payload === state.unreadCountRequestId) {
+        state.unreadCountLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+let unreadCountRequestSequence = 0;
+
+export const getUnreadNotificationCount = (): AppThunk => async (dispatch) => {
+  const requestId = ++unreadCountRequestSequence;
+  dispatch(slice.actions.beginUnreadCountRequest(requestId));
+  try {
+    const page = await api.post<Page<Notification>>(`${basePath}/search`, {
+      filterFields: [{ field: 'seen', operation: 'eq', value: false }],
+      pageSize: 1,
+      pageNum: 0,
+      direction: 'DESC'
+    });
+    dispatch(
+      slice.actions.receiveUnreadCount({ count: page.totalElements, requestId })
+    );
+  } catch (_error) {
+    dispatch(slice.actions.failUnreadCountRequest(requestId));
+  } finally {
+    dispatch(slice.actions.finishUnreadCountRequest(requestId));
+  }
+};
+
 export const getNotifications =
   (criteria: SearchCriteria): AppThunk =>
-    async (dispatch) => {
-      try {
-        dispatch(slice.actions.setLoadingGet({ loading: true }));
-        const notifications = await api.post<Page<Notification>>(
-          `${basePath}/search`,
-          criteria
-        );
-        dispatch(slice.actions.getNotifications({ notifications }));
-      } finally {
-        dispatch(slice.actions.setLoadingGet({ loading: false }));
-      }
-    };
+  async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
+    try {
+      const notifications = await api.post<Page<Notification>>(
+        `${basePath}/search`,
+        criteria
+      );
+      dispatch(slice.actions.getNotifications({ notifications, requestId }));
+    } finally {
+      dispatch(slice.actions.finishListRequest(requestId));
+    }
+  };
 
 export const getMoreNotifications =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
-    async (dispatch) => {
-      criteria = { ...criteria, pageNum };
-      try {
-        dispatch(slice.actions.setLoadingGet({ loading: true }));
-        const notifications = await api.post<Page<Notification>>(
-          `${basePath}/search`,
-          criteria
-        );
-        dispatch(slice.actions.getMoreNotifications({ notifications }));
-      } finally {
-        dispatch(slice.actions.setLoadingGet({ loading: false }));
-      }
-    };
+  async (dispatch) => {
+    criteria = { ...criteria, pageNum };
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
+    try {
+      const notifications = await api.post<Page<Notification>>(
+        `${basePath}/search`,
+        criteria
+      );
+      dispatch(
+        slice.actions.getMoreNotifications({ notifications, requestId })
+      );
+    } finally {
+      dispatch(slice.actions.finishListRequest(requestId));
+    }
+  };
 export const editNotification =
   (id: number, notification): AppThunk =>
-    async (dispatch) => {
-      const notificationResponse = await api.patch<Notification>(
-        `${basePath}/${id}`,
-        notification
-      );
-      dispatch(
-        slice.actions.editNotification({ notification: notificationResponse })
-      );
-    };
+  async (dispatch) => {
+    const notificationResponse = await api.patch<Notification>(
+      `${basePath}/${id}`,
+      notification
+    );
+    dispatch(
+      slice.actions.editNotification({ notification: notificationResponse })
+    );
+  };
 export const readAllNotifications =
   (): AppThunk =>
-    async (dispatch) => {
-      const notificationResponse = await api.get<{ success: boolean }>(
-        `${basePath}/read-all`
-      );
-      if (notificationResponse.success)
-        dispatch(
-          slice.actions.readAll({})
-        );
-    };
+  async (dispatch) => {
+    const notificationResponse = await api.get<{ success: boolean }>(
+      `${basePath}/read-all`
+    );
+    if (notificationResponse.success) dispatch(slice.actions.readAll({}));
+  };
 export const newReceivedNotification =
   (notification: Notification): AppThunk =>
-    async (dispatch) => {
+  async (dispatch) => {
+    dispatch(slice.actions.newReceivedNotification({ notification }));
+    if (notification.notificationType === 'WORK_ORDER')
       dispatch(
-        slice.actions.newReceivedNotification({ notification })
-      );
-      if (notification.notificationType === 'WORK_ORDER')
-        dispatch(getWorkOrders({
+        getWorkOrders({
           filterFields: [
             {
               field: 'priority',
@@ -177,6 +253,7 @@ export const newReceivedNotification =
           pageSize: 10,
           pageNum: 0,
           direction: 'DESC'
-        }));
-    };
+        })
+      );
+  };
 export default slice;

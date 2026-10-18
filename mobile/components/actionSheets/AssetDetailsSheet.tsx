@@ -8,6 +8,7 @@ import { AssetDTO } from '../../models/asset';
 import CustomActionSheet, {
   CustomActionSheetOption
 } from './CustomActionSheet';
+import { getAssetDetailsActionVisibility } from '../../utils/assetDetailsAccess';
 
 export default function AssetDetailsSheet(
   props: SheetProps<{
@@ -24,31 +25,43 @@ export default function AssetDetailsSheet(
   const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
     useAuth();
   const theme = useTheme();
+  const actionVisibility = getAssetDetailsActionVisibility({
+    canEditAsset: hasEditPermission(
+      PermissionEntity.ASSETS,
+      props.payload.asset
+    ),
+    canCreateWorkOrder: hasCreatePermission(PermissionEntity.WORK_ORDERS),
+    canCreateChildAsset: hasCreatePermission(PermissionEntity.ASSETS),
+    canDeleteAsset: hasDeletePermission(
+      PermissionEntity.ASSETS,
+      props.payload.asset
+    )
+  });
   const options: CustomActionSheetOption[] = [
     {
       title: t('edit'),
       icon: 'pencil',
       onPress: props.payload.onEdit,
-      visible: hasEditPermission(PermissionEntity.ASSETS, props.payload.asset)
+      visible: actionVisibility.canEditAsset
     },
     {
       title: t('create_work_order'),
       icon: 'clipboard-text-outline',
       onPress: props.payload.onCreateWorkOrder,
-      visible: hasCreatePermission(PermissionEntity.WORK_ORDERS)
+      visible: actionVisibility.canCreateWorkOrder
     },
     {
       title: t('create_child_asset'),
       icon: 'package-variant-closed',
       onPress: props.payload.onCreateChildAsset,
-      visible: hasCreatePermission(PermissionEntity.ASSETS)
+      visible: actionVisibility.canCreateChildAsset
     },
     {
       title: t('to_delete'),
       icon: 'delete-outline',
       onPress: props.payload.onDelete,
       color: theme.colors.error,
-      visible: hasDeletePermission(PermissionEntity.ASSETS, props.payload.asset)
+      visible: actionVisibility.canDeleteAsset
     }
   ];
 

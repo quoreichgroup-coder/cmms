@@ -22,11 +22,11 @@ import {
   useTheme
 } from '@mui/material';
 import Text from 'src/components/Text';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
-import ArrowForwardTwoToneIcon from '@mui/icons-material/ArrowForwardTwoTone';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Scrollbar from 'src/components/Scrollbar';
-import ForumTwoToneIcon from '@mui/icons-material/ForumTwoTone';
-import MarkChatReadTwoToneIcon from '@mui/icons-material/MarkChatReadTwoTone';
+import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
+import MarkChatReadOutlinedIcon from '@mui/icons-material/MarkChatReadOutlined';
 
 import { useTranslation } from 'react-i18next';
 
@@ -161,7 +161,7 @@ function Chat() {
               }
             }}
           >
-            <ForumTwoToneIcon fontSize="small" />
+            <ForumOutlinedIcon fontSize="small" />
           </IconButtonWrapper>
         </Badge>
       </Tooltip>
@@ -192,7 +192,7 @@ function Chat() {
             <Button
               size="small"
               color="primary"
-              startIcon={<MarkChatReadTwoToneIcon />}
+              startIcon={<MarkChatReadOutlinedIcon />}
               sx={{
                 fontSize: theme.typography.pxToRem(12)
               }}
@@ -226,7 +226,7 @@ function Chat() {
                 placeholder={t('Search messages...')}
                 startAdornment={
                   <InputAdornment position="start">
-                    <SearchTwoToneIcon />
+                    <SearchOutlinedIcon />
                   </InputAdornment>
                 }
               />
@@ -343,7 +343,7 @@ function Chat() {
               size="small"
               color="primary"
               variant="contained"
-              endIcon={<ArrowForwardTwoToneIcon />}
+              endIcon={<ArrowForwardIcon />}
             >
               {t('View all participants')}
             </Button>

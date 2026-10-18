@@ -93,11 +93,13 @@ import {
   canUseWorkOrderTimer,
   getPrimaryWorkOrderLabor
 } from '../../utils/workOrderTimer';
+import { canReopenCompletedWorkOrder } from '../../utils/workOrderLifecycle';
 import {
   getWorkOrderCompletionBlockers,
   getWorkOrderCompletionLoadIssues,
   getWorkOrderCompletionNextStep
 } from '../../utils/workOrderCompletion';
+import { isWorkOrderTaskExecutionReadOnly } from '../../utils/workOrderTaskAccess';
 
 const getRemainingTasksLength = (tasks: Task[]): number =>
   tasks.filter((task) => !isTaskComplete(task)).length;
@@ -127,9 +129,7 @@ export default function WODetailsScreen({
   route
 }: RootStackScreenProps<'WODetails'>) {
   const { id, workOrderProp } = route.params;
-  const { workOrderInfos, loadingGet } = useSelector(
-    (state) => state.workOrders
-  );
+  const { workOrderInfos } = useSelector((state) => state.workOrders);
   const workOrder = workOrderInfos[id]?.workOrder ?? workOrderProp;
   const { t } = useTranslation();
   const {
@@ -410,14 +410,12 @@ export default function WODetailsScreen({
     void loadLifecycleEvents();
   }, [loadLifecycleEvents]);
 
-  const canReopenWorkOrder = Boolean(
-    workOrder?.status === 'COMPLETE' &&
-      user.role?.roleType === 'ROLE_CLIENT' &&
-      user.superAccountRelations?.length === 0 &&
-      user.role?.editOtherPermissions?.includes(
-        PermissionEntity.REOPEN_WORK_ORDERS
-      )
-  );
+  const canReopenWorkOrder = canReopenCompletedWorkOrder({
+    status: workOrder?.status,
+    roleType: user.role?.roleType,
+    superAccountRelationCount: user.superAccountRelations?.length,
+    editOtherPermissions: user.role?.editOtherPermissions
+  });
 
   const submitReopenWorkOrder = async () => {
     if (reopeningRef.current) return;
@@ -691,6 +689,11 @@ export default function WODetailsScreen({
       if (completionStep === 'collect-details') {
         navigation.navigate('CompleteWorkOrder', {
           onComplete: onCompleteWO,
+          workOrderContext: {
+            identifier: workOrder.customId || String(workOrder.id),
+            title: workOrder.title,
+            assetName: workOrder.asset?.name
+          },
           fieldsConfig: {
             feedback: generalPreferences.askFeedBackOnWOClosed,
             signature: workOrder?.requiredSignature
@@ -774,7 +777,11 @@ export default function WODetailsScreen({
     }
     return (
       <View style={[surfaceCardStyle, { marginTop: 16 }]}>
-        <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+        <Text
+          variant="titleMedium"
+          style={{ marginBottom: 8 }}
+          accessibilityRole="header"
+        >
           {t('work_order_lifecycle_history')}
         </Text>
         {lifecycleEventsError ? (
@@ -1113,8 +1120,31 @@ export default function WODetailsScreen({
       >
         <Dialog.Title>{t('confirmation')}</Dialog.Title>
         <Dialog.Content>
-          <Text variant="bodyMedium">
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {`${t('work_order')} · ${workOrder.customId || workOrder.id}`}
+          </Text>
+          <Text variant="titleSmall" style={{ marginTop: 4 }}>
+            {workOrder.title}
+          </Text>
+          {workOrder.asset?.name ? (
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}
+            >
+              {`${t('asset_name')}: ${workOrder.asset.name}`}
+            </Text>
+          ) : null}
+          <Text variant="bodyMedium" style={{ marginTop: 12 }}>
             {t('complete_work_order_confirm', { title: workOrder.title })}
+          </Text>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}
+          >
+            {t('work_order_completion_read_only_notice')}
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
@@ -1370,7 +1400,11 @@ export default function WODetailsScreen({
                 )}
                 {workOrder.audioDescription && (
                   <View style={[surfaceCardStyle, styles.audioCard]}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                    <Text
+                      variant="titleMedium"
+                      style={styles.sectionTitle}
+                      accessibilityRole="header"
+                    >
                       {t('audio_description')}
                     </Text>
                     <AudioPlayer url={workOrder.audioDescription.url} />
@@ -1463,34 +1497,49 @@ export default function WODetailsScreen({
                     permissionEntity={PermissionEntity.PEOPLE_AND_TEAMS}
                   />
                 )}
-                {!!workOrder.assignedTo.length && (
+                {(workOrder.assignedTo.length > 0 ||
+                  workOrder.customers.length > 0) && (
                   <View style={{ marginTop: 20 }}>
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color: theme.colors.onSurfaceVariant
-                      }}
-                    >
-                      {t('assigned_to')}
-                    </Text>
-                    {workOrder.assignedTo.map((user) => (
-                      <TouchableOpacity key={user.id} style={{ marginTop: 5 }}>
+                    {workOrder.assignedTo.length > 0 && (
+                      <View>
                         <Text
-                          variant="bodyLarge"
-                          style={{ marginTop: 15 }}
-                        >{`${user.firstName} ${user.lastName}`}</Text>
-                      </TouchableOpacity>
-                    ))}
-                    {workOrder.customers.map((customer) => (
-                      <TouchableOpacity
-                        key={customer.id}
-                        style={{ marginTop: 5 }}
-                      >
-                        <Text variant="bodyLarge" style={{ marginTop: 15 }}>
-                          {customer.name}
+                          style={{
+                            fontSize: 14,
+                            color: theme.colors.onSurfaceVariant
+                          }}
+                        >
+                          {t('assigned_to')}
                         </Text>
-                      </TouchableOpacity>
-                    ))}
+                        {workOrder.assignedTo.map((user) => (
+                          <Text
+                            key={user.id}
+                            variant="bodyLarge"
+                            style={{ marginTop: 10 }}
+                          >{`${user.firstName} ${user.lastName}`}</Text>
+                        ))}
+                      </View>
+                    )}
+                    {workOrder.customers.length > 0 && (
+                      <View style={{ marginTop: 14 }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: theme.colors.onSurfaceVariant
+                          }}
+                        >
+                          {t('assigned_customers')}
+                        </Text>
+                        {workOrder.customers.map((customer) => (
+                          <Text
+                            key={customer.id}
+                            variant="bodyLarge"
+                            style={{ marginTop: 10 }}
+                          >
+                            {customer.name}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 )}
                 {!generalPreferences.simplifiedWorkOrder && (
@@ -1612,7 +1661,14 @@ export default function WODetailsScreen({
                       onPress={() =>
                         navigation.navigate('Tasks', {
                           workOrderId: id,
-                          tasksProps: tasks
+                          tasksProps: tasks,
+                          isReadOnly: isWorkOrderTaskExecutionReadOnly(
+                            workOrder,
+                            hasEditPermission(
+                              PermissionEntity.WORK_ORDERS,
+                              workOrder
+                            )
+                          )
                         })
                       }
                     >
@@ -1801,7 +1857,8 @@ export default function WODetailsScreen({
                                     backgroundColor: theme.colors.surface,
                                     borderColor: theme.colors.outlineVariant,
                                     borderWidth: 1,
-                                    borderRadius: 8,
+                                    borderRadius:
+                                      qpmLayoutTokens.radius.control,
                                     elevation: 5,
                                     shadowColor: theme.colors.shadow,
                                     shadowOffset: { width: 0, height: 2 },
@@ -1865,7 +1922,8 @@ export default function WODetailsScreen({
                                     flexDirection: 'row',
                                     alignItems: 'flex-start',
                                     backgroundColor: theme.colors.background,
-                                    borderRadius: 4,
+                                    borderRadius:
+                                      qpmLayoutTokens.radius.control,
                                     paddingHorizontal: 8,
                                     marginBottom: 4
                                   }}

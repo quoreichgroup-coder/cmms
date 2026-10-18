@@ -11,11 +11,11 @@ import {
   useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import SetType from '../../../models/owns/setType';
-import HandymanTwoToneIcon from '@mui/icons-material/HandymanTwoTone';
-import AttachMoneyTwoToneIcon from '@mui/icons-material/AttachMoneyTwoTone';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import { useContext } from 'react';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
@@ -58,12 +58,12 @@ export default function SetDetails(props: PartDetailsProps) {
         <Box>
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, set) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.PARTS_AND_MULTIPARTS, set) && (
             <IconButton onClick={handleOpenDelete}>
-              <DeleteTwoToneIcon color="error" />
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
         </Box>
@@ -71,7 +71,7 @@ export default function SetDetails(props: PartDetailsProps) {
       <Divider />
       <Grid item xs={12}>
         <Box display="flex" flexDirection="row">
-          <HandymanTwoToneIcon />
+          <HandymanOutlinedIcon />
           <Typography sx={{ mb: 1, ml: 1 }} variant="h4">
             {`${set?.parts.length} ${t('parts')}`}
           </Typography>
@@ -94,7 +94,7 @@ export default function SetDetails(props: PartDetailsProps) {
         </List>
         <Box display="flex" flexDirection="row" justifyContent="space-between">
           <Box display="flex" flexDirection="row">
-            <AttachMoneyTwoToneIcon />
+            <AttachMoneyOutlinedIcon />
             <Typography sx={{ mb: 1, ml: 1 }} variant="h4">
               {t('total_cost')}
             </Typography>

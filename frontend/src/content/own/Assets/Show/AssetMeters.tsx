@@ -5,7 +5,9 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControl,
   Grid,
+  InputLabel,
   MenuItem,
   Select,
   Stack,
@@ -22,7 +24,7 @@ import { useContext, useEffect, useState } from 'react';
 import Meter from '../../../../models/owns/meter';
 import { createReading, getReadings } from '../../../../slices/reading';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../../components/form';
 import * as Yup from 'yup';
 import { IField } from '../../type';
@@ -30,6 +32,7 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import { canAddReading } from '../../../../utils/overall';
 import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
+import ContentState from '../../components/ContentState';
 
 interface PropsType {
   asset: AssetDTO;
@@ -55,9 +58,19 @@ const AssetMeters = ({ asset }: PropsType) => {
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [canAddReadingInternal, setCanAddReadingInternal] =
     useState<boolean>(true);
+  const [metersLoadError, setMetersLoadError] = useState(false);
   useEffect(() => {
-    if (asset) dispatch(getMetersByAsset(asset?.id));
-  }, [asset?.id]);
+    let active = true;
+    setMetersLoadError(false);
+    if (asset) {
+      Promise.resolve(dispatch(getMetersByAsset(asset.id))).catch(() => {
+        if (active) setMetersLoadError(true);
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [asset?.id, dispatch]);
 
   useEffect(() => {
     if (meters.length) {
@@ -151,20 +164,29 @@ const AssetMeters = ({ asset }: PropsType) => {
     </Dialog>
   );
   return (
-    <Box sx={{ px: 4 }}>
+    <Box sx={{ px: { xs: 0, sm: 1, md: 2 } }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Card sx={{ p: 2 }}>
-            <Box sx={{ height: 600, width: '95%' }}>
+            <Box sx={{ width: '100%' }}>
               {!!meters.length && (
-                <Stack direction="row" justifyContent="space-between">
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ my: 2, alignItems: 'center' }}
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  justifyContent="space-between"
+                  alignItems={{ xs: 'stretch', sm: 'center' }}
+                  sx={{ mb: 2 }}
+                >
+                  <FormControl
+                    size="small"
+                    sx={{ width: { xs: '100%', sm: 320 } }}
                   >
-                    <Typography variant="h5">{t('select_meter')}</Typography>
+                    <InputLabel id="asset-meter-select-label">
+                      {t('select_meter')}
+                    </InputLabel>
                     <Select
+                      labelId="asset-meter-select-label"
+                      label={t('select_meter')}
                       value={selectedMeter?.id ?? ''}
                       onChange={(event) => {
                         setSelectedMeter(
@@ -174,20 +196,22 @@ const AssetMeters = ({ asset }: PropsType) => {
                         );
                       }}
                     >
-                      <MenuItem value={''}>{t('select_meter')}</MenuItem>
                       {meters.map((meter) => (
                         <MenuItem key={meter.id} value={meter.id}>
                           {meter.name}
                         </MenuItem>
                       ))}
                     </Select>
-                  </Stack>
+                  </FormControl>
 
                   {hasEditPermission(PermissionEntity.ASSETS, asset) && (
                     <Button
-                      startIcon={<AddTwoToneIcon />}
+                      startIcon={<AddOutlinedIcon />}
                       variant="contained"
-                      sx={{ my: 3 }}
+                      sx={{
+                        minHeight: 40,
+                        alignSelf: { xs: 'flex-start', sm: 'auto' }
+                      }}
                       disabled={
                         !(canAddReading(selectedMeter) && canAddReadingInternal)
                       }
@@ -198,20 +222,42 @@ const AssetMeters = ({ asset }: PropsType) => {
                   )}
                 </Stack>
               )}
-              <CustomDataGrid
-                columns={columns}
-                rows={readings}
-                components={{
-                  Toolbar: GridToolbar
-                }}
-                loading={loadingMeters || loadingGet}
-                onRowClick={(params: GridRowParams<Meter>) => null}
-                initialState={{
-                  columns: {
-                    columnVisibilityModel: {}
-                  }
-                }}
-              />
+              {metersLoadError ? (
+                <ContentState
+                  variant="error"
+                  message={t('an_error_occured')}
+                  actionLabel={t('retry')}
+                  onAction={() => {
+                    setMetersLoadError(false);
+                    Promise.resolve(dispatch(getMetersByAsset(asset.id))).catch(
+                      () => setMetersLoadError(true)
+                    );
+                  }}
+                />
+              ) : meters.length ? (
+                <Box
+                  sx={{ height: { xs: 440, sm: 500, md: 560 }, width: '100%' }}
+                >
+                  <CustomDataGrid
+                    columns={columns}
+                    rows={readings}
+                    components={{
+                      Toolbar: GridToolbar
+                    }}
+                    loading={loadingMeters || loadingGet}
+                    onRowClick={(params: GridRowParams<Meter>) => null}
+                    initialState={{
+                      columns: {
+                        columnVisibilityModel: {}
+                      }
+                    }}
+                  />
+                </Box>
+              ) : loadingMeters ? (
+                <ContentState variant="loading" message={t('loading')} />
+              ) : (
+                <ContentState variant="empty" message={t('asset_no_meters')} />
+              )}
             </Box>
           </Card>
         </Grid>

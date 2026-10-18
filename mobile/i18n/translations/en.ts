@@ -144,6 +144,8 @@ const locale = {
   related_asset_open_hint: 'Opens the asset details.',
   view_children_for_asset: 'View child equipment for {{asset}}',
   view_child_assets_hint: 'Opens the child equipment list.',
+  view_children_for_location: 'View child locations for {{location}}',
+  view_child_locations_hint: 'Opens the child locations list.',
   pm_calls_loading: 'Loading maintenance calls.',
   pm_work_orders_loading: 'Loading related work orders.',
   pm_mobile_read_only_description:
@@ -425,6 +427,8 @@ const locale = {
   location: 'Location',
   location_details_load_error:
     'Could not load this location. Check your connection and retry.',
+  locations_load_error:
+    'Could not load locations. Check your connection and retry.',
   asset: 'Asset',
   team: 'Team',
   created_at: 'Date created',
@@ -439,6 +443,8 @@ const locale = {
   wo_update_failure: "The Work Order couldn't be edited",
   wo_delete_success: 'The Work Order has been deleted successfully',
   wo_complete_success: 'The work order was completed successfully',
+  work_order_completion_read_only_notice:
+    'After completion, this work order becomes read-only. Reopening requires the specific permission and a recorded reason; the completion remains in its history.',
   work_order_reopen_title: 'Reopen completed work order',
   work_order_reopen_description:
     'Reopening returns this work order to Open. Enter a reason; the completion record remains in its history.',
@@ -576,6 +582,7 @@ const locale = {
   categories: 'Categories',
   settings: 'Settings',
   notifications: 'Notifications',
+  unread_notifications_count: '{{count}} unread notifications',
   //request
   cancelled: 'Cancelled',
   reject: 'Reject',
@@ -1309,6 +1316,7 @@ const locale = {
   limited_technical_role: 'Limited Technical',
   requester_role: 'Requester',
   view_only_role: 'View-Only',
+  work_order_tasks_read_only: 'Tasks for this work order are read-only.',
   how_will_you_be_billed: 'How would you like to be billed?',
   which_plan_fits_you: 'Which plan fits you best?',
   per_user_month: 'per user/month',
@@ -1571,6 +1579,8 @@ const locale = {
   API_ACCESS_feature: 'API Access',
   WEBHOOK_feature: 'Webhooks',
   add_new_option: 'Add new Option',
+  task_option_number: 'Option {{number}}',
+  remove_task_option: 'Remove option {{number}}',
   edit_company: 'Edit company',
   fill_fields_below: 'Fill in the fields below',
   IMPORT_CSV_feature: 'CSV Importing',
@@ -1593,6 +1603,7 @@ const locale = {
   signature_required_feature_unavailable:
     'This Work Order requires a signature, but signatures are not available in your current plan.',
   no_parts: 'No parts',
+  no_part_sets_available: 'No sets of parts available',
   edit_quantity: 'Edit quantity',
   remaining_tasks: '{{count}} remaining tasks',
   complete_tasks_percent: '{{percent}}% completed',
@@ -1623,12 +1634,18 @@ const locale = {
     'Could not load work orders. Check your connection and retry.',
   dashboard_settings_load_error:
     'Could not load your dashboard settings. Check your connection and retry.',
+  notifications_load_error:
+    'Could not load notifications. Check your connection and retry.',
   work_order_details_load_error:
     'Could not load this work order. Check your connection and retry.',
   requests_load_error:
     'Could not load requests. Check your connection and retry.',
   parts_load_error:
     'Could not load inventory parts. Check your connection and retry.',
+  part_details_load_error:
+    'Could not load this part. Check your connection and retry.',
+  multi_parts_load_error:
+    'Could not load sets of parts. Check your connection and retry.',
   parts_page_loading: 'Loading more parts.',
   part_below_minimum_stock: 'Below minimum stock level',
   part_open_details_hint: 'Opens part details.',
@@ -1653,7 +1670,14 @@ const locale = {
   this_week: 'This week',
   all_time: 'All time',
   compliant_work_orders: 'Compliant Work Orders',
+  compliance_rate_no_data: 'No completed work orders',
   stats: 'Stats',
+  maintenance_dashboard: 'Maintenance dashboard',
+  maintenance_dashboard_subtitle: 'Workload and work-order status at a glance.',
+  all_work_orders: 'All work orders',
+  work_order_distribution: 'Work-order distribution',
+  work_order_distribution_hint: 'Compare the reported volume for each status.',
+  open_filtered_work_orders: 'Opens the matching work-order list',
   vendors_and_customers: 'Vendors & Contractors',
   no_notification_message:
     'Important updates will appear here to help you follow the progress of your work',
@@ -1693,11 +1717,17 @@ const locale = {
   error: 'Error',
   tag_not_found: 'Tag not found',
   'no nfc support': 'No NFC Support',
+  nfc_disabled: 'Turn on NFC in your device settings, then try again.',
+  nfc_hold_near_device:
+    'Hold your phone close to the NFC tag and keep it still until it is read.',
+  scan_barcode_hint: 'Open the camera to scan a barcode or QR code.',
   remaining_parts: '{{quantity}} remaining',
   team_members_count: '{{count}} members',
   no_asset_found_nfc:
     'No Asset found with this NFC Tag. Do you want to create it?',
   no_access_to_camera: 'No access to camera',
+  camera_permission_explanation:
+    'Camera access is needed to scan a barcode or QR code. You can retry or enable it in your device settings.',
   no_asset_found_barcode:
     'No Asset found with this barcode. Do you want to create it?',
   remove_blank_meter_tasks: 'Please select a meter',
@@ -1721,6 +1751,9 @@ const locale = {
   camera_permission_error: 'Camera permission could not be requested.',
   camera_settings_error: 'Camera settings could not be opened.',
   camera_capture_error: 'The photo could not be taken. Please try again.',
+  camera_preview_loading: 'Starting camera…',
+  camera_preview_error:
+    'The camera could not start. Check that no other app is using it, then retry.',
   switch_camera: 'Switch camera',
   take_photo: 'Take photo',
   media_library: 'Media Library',
@@ -1785,13 +1818,21 @@ const locale = {
   no_vendors_available: 'No vendors available',
   no_customers_available: 'No customers available',
   no_checklists_available: 'No checklists available',
+  checklists_load_error:
+    'Could not load checklists. Check your connection and retry.',
   no_meters_available: 'No meters available',
+  meters_load_error: 'Could not load meters. Check your connection and retry.',
   no_locations_available: 'No locations available',
+  no_categories: 'No categories available',
+  category_load_failed:
+    'Categories could not be loaded. Check your connection and try again.',
   category_create_failed:
     'Could not create the category. Your entry is still here; please try again.',
   no_sub_assets: 'No sub-assets',
   no_assets_available: 'No assets available',
   you_need_a_license: 'You need a license to access this feature',
+  license_load_error:
+    'The license could not be checked. Check your connection and try again.',
   file_upload_unavailable:
     'Your role or subscription plan does not allow file uploads.',
   file_pick_error: 'The file could not be selected. Please try again.',
@@ -1811,7 +1852,7 @@ const locale = {
   confirm_delete_comment: 'Are you sure you want to delete this comment?',
   add_comment_placeholder: 'Add a comment...',
   id_required: 'ID is required',
-  create_category: 'Create Category',
+  create_category: 'Create category',
   delete_row_confirm_message: 'Are you sure you want to delete this row?',
   review_prompt_title: 'Are you enjoying QPM?',
   feedback_title: 'Help Us Improve',

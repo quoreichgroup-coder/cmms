@@ -15,15 +15,15 @@ import {
   IconButton
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import WarningTwoToneIcon from '@mui/icons-material/WarningTwoTone';
+import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import { useDropzone } from 'react-dropzone';
-import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
-import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { useSnackbar } from 'notistack';
 
-const WarningTwoToneIconWrapper = styled(WarningTwoToneIcon)(
+const WarningOutlinedIconWrapper = styled(WarningOutlinedIcon)(
   ({ theme }) => `
     color: ${theme.colors.warning.main};
 `
@@ -206,7 +206,7 @@ function FileUpload(props: FileUploadProps) {
         }}
         sx={{ color: theme.colors.error.main, ml: 1 }}
       >
-        <DeleteTwoToneIcon fontSize="small" />
+        <DeleteOutlinedIcon fontSize="small" />
       </IconButton>
       <DividerContrast />
     </ListItem>
@@ -226,7 +226,7 @@ function FileUpload(props: FileUploadProps) {
         {isDragAccept && (
           <>
             <AvatarSuccess variant="rounded">
-              <CheckTwoToneIcon />
+              <CheckOutlinedIcon />
             </AvatarSuccess>
             <TypographyPrimary
               sx={{
@@ -240,7 +240,7 @@ function FileUpload(props: FileUploadProps) {
         {isDragReject && (
           <>
             <AvatarDanger variant="rounded">
-              <CloseTwoToneIcon />
+              <CloseOutlinedIcon />
             </AvatarDanger>
             <TypographyPrimary
               sx={{
@@ -254,7 +254,7 @@ function FileUpload(props: FileUploadProps) {
         {!isDragActive && (
           <>
             <AvatarWrapper variant="rounded">
-              <CloudUploadTwoToneIcon />
+              <CloudUploadOutlinedIcon />
             </AvatarWrapper>
             <TypographyPrimary
               sx={{

@@ -21,7 +21,7 @@ import { Field, Form, Formik, FormikConfig, FormikValues } from 'formik';
 import { CheckboxWithLabel, TextField } from 'formik-mui';
 import * as Yup from 'yup';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
@@ -287,7 +287,7 @@ function RegisterWizard() {
                 <Box px={4} py={8}>
                   <Container maxWidth="sm">
                     <AvatarSuccess>
-                      <CheckTwoToneIcon />
+                      <CheckOutlinedIcon />
                     </AvatarSuccess>
                     <Collapse in={openAlert}>
                       <Alert

@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -17,8 +18,10 @@ import {
   Tab,
   Tabs,
   Tooltip,
-  Typography
+  Typography,
+  useMediaQuery
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import {
   getCustomFieldsIFields,
@@ -27,25 +30,19 @@ import {
 } from '../type';
 import WorkOrder from '../../../models/owns/workOrder';
 import * as React from 'react';
-import {
-  ChangeEvent,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import { ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { TitleContext } from '../../../contexts/TitleContext';
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../components/CustomDatagrid2';
 import { createColumnHelper } from '@tanstack/react-table';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../components/form';
 import UserAvatars from '../components/UserAvatars';
 import * as Yup from 'yup';
 import { isNumeric } from '../../../utils/validators';
 import WorkOrderDetails from './Details/WorkOrderDetails';
+import WorkOrderStatusChip from './WorkOrderStatusChip';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   formatCustomFields,
@@ -73,9 +70,9 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import {
   fireGa4Event,
   getImageAndFiles,
-  handleFileUpload,
-  onSearchQueryChange
+  handleFileUpload
 } from '../../../utils/overall';
+import { buildFirstPageSearchCriteria } from '../../../utils/listSearch';
 import { getSingleLocation } from '../../../slices/location';
 import { getSingleAsset } from '../../../slices/asset';
 import { dayDiff } from '../../../utils/dates';
@@ -83,20 +80,22 @@ import { FilterField, SearchCriteria } from '../../../models/owns/page';
 import { loadFilterFields, saveFilterFields } from '../../../utils/filter';
 import WorkOrderCalendar from './Calendar';
 import WorkloadView from './WorkloadView';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
-import FilterAltTwoToneIcon from '@mui/icons-material/FilterAltTwoTone';
+import WorkOrderColumnView from './ColumnView';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import MoreFilters from './Filters/MoreFilters';
 import EnumFilter from './Filters/EnumFilter';
 import CompanyFilter from './Filters/CompanyFilter';
-import SignalCellularAltTwoToneIcon from '@mui/icons-material/SignalCellularAltTwoTone';
-import CircleTwoToneIcon from '@mui/icons-material/CircleTwoTone';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
+import SignalCellularAltOutlinedIcon from '@mui/icons-material/SignalCellularAltOutlined';
+import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import _ from 'lodash';
 import SearchInput from '../components/SearchInput';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { getPreventiveMaintenanceUrl } from 'src/utils/urlPaths';
 import { getErrorMessage } from '../../../utils/api';
 import SplitButton from '../components/SplitButton';
+import ContentState from '../components/ContentState';
 import useTableState from '../../../hooks/useTableState';
 import { assetStatuses } from '../../../models/owns/asset';
 import { ExportEntityType, useExport } from '../../../hooks/useExport';
@@ -158,10 +157,17 @@ const getInitialFilterFields = (): FilterField[] =>
   loadFilterFields(FILTERS_STORAGE_KEY, DEFAULT_FILTER_FIELDS);
 function WorkOrders() {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
+  const isCompactDialog = useMediaQuery(theme.breakpoints.down('sm'));
   const [currentTab, setCurrentTab] = useState<string>('list');
-  const { workOrders, loadingGet, singleWorkOrder } = useSelector(
-    (state) => state.workOrders
-  );
+  const {
+    workOrders,
+    loadingGet,
+    singleWorkOrder,
+    workOrdersError,
+    singleWorkOrderLoading,
+    singleWorkOrderError
+  } = useSelector((state) => state.workOrders);
   const { exportEntity, loadingExport } = useExport();
   const [searchParams, setSearchParams] = useSearchParams();
   const locationParam = searchParams.get('location');
@@ -213,7 +219,7 @@ function WorkOrders() {
     {
       value: 'column',
       label: t('column_view'),
-      disabled: true
+      disabled: !hasViewPermission(PermissionEntity.WORK_ORDERS)
     }
   ];
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
@@ -233,13 +239,18 @@ function WorkOrders() {
     null
   );
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
+  const [openUpdateDiscardDialog, setOpenUpdateDiscardDialog] =
+    useState<boolean>(false);
+  const [isUpdateFormDirty, setIsUpdateFormDirty] = useState<boolean>(false);
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [openFilterDrawer, setOpenFilterDrawer] = useState<boolean>(false);
-  const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState<number>(0);
+  const [calendarRefreshTrigger, setCalendarRefreshTrigger] =
+    useState<number>(0);
   const { setTitle } = useContext(TitleContext);
   const { workOrderId } = useParams();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [currentWorkOrder, setCurrentWorkOrder] = useState<WorkOrder>();
+  const [requestedWorkOrderId, setRequestedWorkOrderId] = useState<number>();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const { tasksByWorkOrder } = useSelector((state) => state.tasks);
   const { locations, locationsHierarchy } = useSelector(
@@ -306,11 +317,25 @@ function WorkOrders() {
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
-  const handleDelete = (id: number) => {
-    dispatch(deleteWorkOrder(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteWorkOrder(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Work order deletion was not confirmed'));
+      }
+    } catch (error) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(error);
+    }
   };
   const handleCopyWorkOrder = (workOrder: WorkOrder) => {
+    setIsFormDirty(false);
     setCopyWorkOrderData(workOrder);
     setOpenAddModal(true);
   };
@@ -321,6 +346,7 @@ function WorkOrders() {
         workOrders.content.find((workOrder) => workOrder.id === id)
       );
     }
+    setIsUpdateFormDirty(false);
     setOpenUpdateModal(true);
   };
   const handleOpenDelete = (id: number) => {
@@ -334,6 +360,7 @@ function WorkOrders() {
   };
   const handleOpenDrawer = (workOrder: WorkOrder) => {
     setCurrentWorkOrder(workOrder);
+    setRequestedWorkOrderId(undefined);
     window.history.replaceState(
       null,
       'WorkOrder details',
@@ -351,6 +378,9 @@ function WorkOrders() {
     } else {
       setOpenDrawerFromUrl(false);
       setOpenDrawerForSingleWO(true);
+      setRequestedWorkOrderId(id);
+      setCurrentWorkOrder(undefined);
+      setOpenDrawer(true);
       dispatch(getSingleWorkOrder(id));
     }
   };
@@ -358,6 +388,8 @@ function WorkOrders() {
     window.history.replaceState(null, 'WorkOrder', `/app/work-orders`);
     setOpenDrawer(false);
     setOpenDrawerForSingleWO(false);
+    setOpenDrawerFromUrl(false);
+    setRequestedWorkOrderId(undefined);
   };
   const handleCloseFilterDrawer = () => setOpenFilterDrawer(false);
   useEffect(() => {
@@ -371,20 +403,33 @@ function WorkOrders() {
   }, [currentTab]);
 
   const onFilterChange = (newFilters: FilterField[]) => {
-    const newCriteria = { ...criteria };
-    newCriteria.filterFields = newFilters;
-    setCriteria(newCriteria);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    setCriteria((current) => ({
+      ...current,
+      filterFields: newFilters,
+      pageNum: 0
+    }));
     saveFilterFields(FILTERS_STORAGE_KEY, newFilters, QUERY_SEARCH_FIELDS);
   };
   useEffect(() => {
     if (workOrderId && isNumeric(workOrderId)) {
       setOpenDrawerForSingleWO(true);
+      setRequestedWorkOrderId(Number(workOrderId));
+      setCurrentWorkOrder(undefined);
+      setOpenDrawer(true);
       dispatch(getSingleWorkOrder(Number(workOrderId)));
     }
   }, [workOrderId]);
 
   //see changes in ui on edit
   useEffect(() => {
+    if (
+      openDrawerForSingleWO &&
+      requestedWorkOrderId == null &&
+      !openDrawerFromUrl
+    ) {
+      return;
+    }
     if (singleWorkOrder || workOrders.content.length) {
       const currentInContent = workOrders.content.find(
         (workOrder) => workOrder.id === currentWorkOrder?.id
@@ -401,7 +446,13 @@ function WorkOrders() {
         }
       }
     }
-  }, [singleWorkOrder, workOrders.content]);
+  }, [
+    singleWorkOrder,
+    workOrders.content,
+    openDrawerForSingleWO,
+    openDrawerFromUrl,
+    requestedWorkOrderId
+  ]);
 
   useEffect(() => {
     if (locationParam || assetParam) {
@@ -417,6 +468,9 @@ function WorkOrders() {
     }
     if (viewParam === 'workload') {
       setCurrentTab('workload');
+    }
+    if (viewParam === 'column') {
+      setCurrentTab('column');
     }
   }, []);
 
@@ -460,6 +514,7 @@ function WorkOrders() {
   };
   const onCreationSuccess = (newWorkOrder: WorkOrder) => {
     setOpenAddModal(false);
+    setIsFormDirty(false);
     if (copyWorkOrderData) handleOpenDetails(newWorkOrder.id);
     setCopyWorkOrderData(null);
     setCalendarRefreshTrigger((trigger) => trigger + 1);
@@ -469,6 +524,7 @@ function WorkOrders() {
     showSnackBar(getErrorMessage(err, t('wo_create_failure')), 'error');
   const onEditSuccess = () => {
     setOpenUpdateModal(false);
+    setIsUpdateFormDirty(false);
     setCalendarRefreshTrigger((trigger) => trigger + 1);
     showSnackBar(t('changes_saved_success'), 'success');
   };
@@ -479,16 +535,15 @@ function WorkOrders() {
   const onDeleteFailure = (err) =>
     showSnackBar(t('wo_delete_failure'), 'error');
 
-  const criteriaRef = useRef(criteria);
-  criteriaRef.current = criteria;
   const debouncedQueryChange = useMemo(
     () =>
       debounce((event) => {
-        onSearchQueryChange<WorkOrder>(
-          event,
-          criteriaRef.current,
-          setCriteria,
-          [...QUERY_SEARCH_FIELDS.values()]
+        const query = event.target.value;
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+        setCriteria((current) =>
+          buildFirstPageSearchCriteria(current, query, [
+            ...QUERY_SEARCH_FIELDS.values()
+          ])
         );
       }, 1300),
     []
@@ -515,23 +570,7 @@ function WorkOrders() {
     columnHelper.accessor('status', {
       id: 'status',
       header: () => t('status'),
-      cell: (info) => (
-        <Box display="flex" flexDirection="row">
-          <CircleTwoToneIcon
-            fontSize="small"
-            color={
-              info.getValue() === 'IN_PROGRESS'
-                ? 'success'
-                : info.getValue() === 'ON_HOLD'
-                ? 'warning'
-                : info.getValue() === 'COMPLETE'
-                ? 'info'
-                : 'secondary'
-            }
-          />
-          <Typography sx={{ ml: 1 }}>{t(info.getValue())}</Typography>
-        </Box>
-      ),
+      cell: (info) => <WorkOrderStatusChip status={info.getValue()} />,
       size: 150
     }),
     columnHelper.accessor('title', {
@@ -791,19 +830,23 @@ function WorkOrders() {
     <Dialog
       fullWidth
       maxWidth="md"
+      fullScreen={isCompactDialog}
       open={openAddModal}
+      aria-labelledby="work-order-create-title"
       onClose={() => {
         if (isFormDirty) {
           setOpenDiscardDialog(true);
         } else {
           setOpenAddModal(false);
           setCopyWorkOrderData(null);
+          setIsFormDirty(false);
         }
       }}
     >
       <DialogTitle
+        id="work-order-create-title"
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -814,11 +857,13 @@ function WorkOrders() {
       <DialogContent
         dividers
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Box>
           <Form
+            stickyActions
+            onDirtyChange={setIsFormDirty}
             fields={getFieldsAndShapes()[0]}
             validation={Yup.object().shape(getFieldsAndShapes()[1])}
             submitText={t('add')}
@@ -852,9 +897,7 @@ function WorkOrders() {
                     estimatedDuration: 1
                   }
             }
-            onChange={() => setIsFormDirty(true)}
             onSubmit={async (values) => {
-              setIsFormDirty(false);
               if (workOrders.totalElements === 0)
                 fireGa4Event('first_wo_creation');
               let formattedValues = formatValues(values);
@@ -901,12 +944,21 @@ function WorkOrders() {
     <Dialog
       fullWidth
       maxWidth="md"
+      fullScreen={isCompactDialog}
       open={openUpdateModal}
-      onClose={() => setOpenUpdateModal(false)}
+      aria-labelledby="work-order-edit-title"
+      onClose={() => {
+        if (isUpdateFormDirty) {
+          setOpenUpdateDiscardDialog(true);
+        } else {
+          setOpenUpdateModal(false);
+        }
+      }}
     >
       <DialogTitle
+        id="work-order-edit-title"
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -919,11 +971,13 @@ function WorkOrders() {
       <DialogContent
         dividers
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Box>
           <Form
+            stickyActions
+            onDirtyChange={setIsUpdateFormDirty}
             fields={getFieldsAndShapes()[0]}
             validation={Yup.object().shape(getFieldsAndShapes()[1])}
             submitText={t('save')}
@@ -932,7 +986,6 @@ function WorkOrders() {
               tasks,
               ...getWOBaseValues(t, currentWorkOrder)
             }}
-            onChange={({ field, e }) => {}}
             onSubmit={async (values) => {
               let formattedValues = formatValues(values);
 
@@ -979,6 +1032,17 @@ function WorkOrders() {
           />
         </Box>
       </DialogContent>
+      <ConfirmDialog
+        open={openUpdateDiscardDialog}
+        onCancel={() => setOpenUpdateDiscardDialog(false)}
+        onConfirm={() => {
+          setOpenUpdateDiscardDialog(false);
+          setOpenUpdateModal(false);
+          setIsUpdateFormDirty(false);
+        }}
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
     </Dialog>
   );
   const exportMenuItems: { key: ExportEntityType; label: string }[] = [
@@ -1004,7 +1068,10 @@ function WorkOrders() {
               try {
                 await exportEntity(item.key);
               } catch (error) {
-                showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
+                showSnackBar(
+                  getErrorMessage(error, t('Export failed')),
+                  'error'
+                );
               }
               handleCloseMenu();
             }}
@@ -1022,13 +1089,18 @@ function WorkOrders() {
       <Helmet>
         <title>{t('work_orders')}</title>
       </Helmet>
-      <Box justifyContent="center" alignItems="stretch" paddingX={4}>
+      <Box
+        justifyContent="center"
+        alignItems="stretch"
+        sx={{ px: { xs: 1.5, sm: 2.5, xl: 4 }, pb: 3 }}
+      >
         <Box
-          my={1}
+          my={{ xs: 1.5, md: 2 }}
           display="flex"
-          flexDirection="row"
+          flexDirection={{ xs: 'column', md: 'row' }}
           justifyContent="space-between"
-          alignItems="center"
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          gap={1.5}
         >
           <Tabs
             onChange={handleTabsChange}
@@ -1037,6 +1109,10 @@ function WorkOrders() {
             scrollButtons="auto"
             textColor="primary"
             indicatorColor="primary"
+            sx={{
+              minHeight: 44,
+              '& .MuiTab-root': { minHeight: 44, textTransform: 'none' }
+            }}
           >
             {tabs
               .filter((tab) => !tab.hidden)
@@ -1062,15 +1138,28 @@ function WorkOrders() {
                 )
               )}
           </Tabs>
-          <Stack direction={'row'} alignItems="center" spacing={1}>
-            <IconButton onClick={handleOpenMenu} color="primary">
-              <MoreVertTwoToneIcon />
-            </IconButton>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent={{ xs: 'space-between', md: 'flex-end' }}
+            spacing={1}
+            sx={{ flexShrink: 0 }}
+          >
+            <Tooltip title={t('actions')}>
+              <IconButton
+                onClick={handleOpenMenu}
+                color="primary"
+                aria-label={t('actions')}
+                sx={{ minWidth: 40, minHeight: 40 }}
+              >
+                <MoreVertOutlinedIcon />
+              </IconButton>
+            </Tooltip>
             {hasCreatePermission(PermissionEntity.WORK_ORDERS) && (
               <SplitButton
                 onMainClick={() => setOpenAddModal(true)}
-                startIcon={<AddTwoToneIcon />}
-                sx={{ mx: 6, my: 1 }}
+                startIcon={<AddOutlinedIcon />}
+                sx={{ my: 0, borderRadius: 2 }}
                 label={t('work_order')}
                 menuItems={
                   hasViewPermission(PermissionEntity.SETTINGS) &&
@@ -1089,88 +1178,145 @@ function WorkOrders() {
         </Box>
         <Card
           sx={{
-            py: 2,
+            py: { xs: 1, sm: 2 },
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'stretch',
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 3,
+            boxShadow: 'none',
+            overflow: 'hidden'
           }}
         >
           {currentTab === 'list' && (
-            <Stack
-              sx={{ ml: 1 }}
-              direction="row"
-              spacing={1}
-              justifyContent={'flex-start'}
-              width={'95%'}
-            >
-              <Button
-                onClick={() => setOpenFilterDrawer(true)}
-                sx={{
-                  '& .MuiButton-startIcon': { margin: '0px' },
-                  minWidth: 0
-                }}
-                variant={
-                  _.isEqual(
-                    normalizeFields(criteria.filterFields),
-                    normalizeFields(DEFAULT_FILTER_FIELDS)
-                  )
-                    ? 'outlined'
-                    : 'contained'
+            <Box
+              component="section"
+              aria-label={t('filters')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: 1,
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1,
+                '& .MuiButton-root': {
+                  minHeight: 40,
+                  borderRadius: 2,
+                  textTransform: 'none'
                 }
-                startIcon={<FilterAltTwoToneIcon />}
-              />
+              }}
+            >
+              <Tooltip title={t('more_filters')}>
+                <Button
+                  onClick={() => setOpenFilterDrawer(true)}
+                  aria-label={t('more_filters')}
+                  sx={{
+                    '& .MuiButton-startIcon': { margin: 0 },
+                    minWidth: 40,
+                    px: 1
+                  }}
+                  variant={
+                    _.isEqual(
+                      normalizeFields(criteria.filterFields),
+                      normalizeFields(DEFAULT_FILTER_FIELDS)
+                    )
+                      ? 'outlined'
+                      : 'contained'
+                  }
+                  startIcon={<FilterAltOutlinedIcon />}
+                />
+              </Tooltip>
               <EnumFilter
                 filterFields={criteria.filterFields}
                 onChange={onFilterChange}
                 completeOptions={['NONE', 'LOW', 'MEDIUM', 'HIGH']}
                 fieldName="priority"
-                icon={<SignalCellularAltTwoToneIcon />}
+                icon={<SignalCellularAltOutlinedIcon />}
               />
               <EnumFilter
                 filterFields={criteria.filterFields}
                 onChange={onFilterChange}
                 completeOptions={['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETE']}
                 fieldName="status"
-                icon={<CircleTwoToneIcon />}
+                icon={<CircleOutlinedIcon />}
               />
               {user.superAccountRelations.length > 0 && (
                 <CompanyFilter
                   filterFields={criteria.filterFields}
                   onChange={onFilterChange}
                   superAccountRelations={user.superAccountRelations}
-                  icon={<BusinessTwoToneIcon />}
+                  icon={<BusinessOutlinedIcon />}
                 />
               )}
-              <SearchInput onChange={debouncedQueryChange} />
-            </Stack>
+              <Box
+                sx={{
+                  flex: { xs: '1 1 100%', md: '0 1 280px' },
+                  minWidth: { xs: '100%', md: 220 },
+                  ml: { md: 'auto' },
+                  '& .MuiFormControl-root': { width: '100%' },
+                  '& .MuiOutlinedInput-root': { borderRadius: 2 }
+                }}
+              >
+                <SearchInput onChange={debouncedQueryChange} />
+              </Box>
+            </Box>
           )}
-          <Divider sx={{ mt: 1 }} />
-          <Box sx={{ width: '95%' }}>
+          {currentTab === 'list' && <Divider />}
+          <Box sx={{ width: '100%', minWidth: 0 }}>
             {currentTab === 'list' ? (
-              <CustomDatagrid2
-                columns={columns}
-                data={workOrders.content}
-                loading={loadingGet}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                totalRows={workOrders.totalElements}
-                pageSizeOptions={[10, 20, 50]}
-                sorting={sorting}
-                onSortingChange={setSorting}
-                columnOrder={columnOrder}
-                onColumnOrderChange={setColumnOrder}
-                columnSizing={columnSizing}
-                onColumnSizingChange={setColumnSizing}
-                columnVisibility={columnVisibility}
-                onColumnVisibilityChange={setColumnVisibility}
-                onRowClick={(row) => handleOpenDetails(row.id)}
-                noRowsMessage={t('noRows.wo.message')}
-                noRowsAction={t('noRows.wo.action')}
-                enableColumnReordering
-                enableColumnResizing
-                pinnedColumns={pinnedColumns}
-                onPinnedColumnsChange={setPinnedColumns}
-              />
+              <>
+                {workOrdersError && workOrders.content.length > 0 && (
+                  <Alert
+                    severity="error"
+                    sx={{ mb: 2 }}
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => dispatch(getWorkOrders(criteria))}
+                      >
+                        {t('retry')}
+                      </Button>
+                    }
+                  >
+                    {workOrdersError}
+                  </Alert>
+                )}
+                {workOrdersError && workOrders.content.length === 0 ? (
+                  <ContentState
+                    variant="error"
+                    message={workOrdersError}
+                    actionLabel={t('retry')}
+                    onAction={() => dispatch(getWorkOrders(criteria))}
+                  />
+                ) : (
+                  <CustomDatagrid2
+                    columns={columns}
+                    data={workOrders.content}
+                    loading={loadingGet}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    totalRows={workOrders.totalElements}
+                    pageSizeOptions={[10, 20, 50]}
+                    sorting={sorting}
+                    onSortingChange={setSorting}
+                    columnOrder={columnOrder}
+                    onColumnOrderChange={setColumnOrder}
+                    columnSizing={columnSizing}
+                    onColumnSizingChange={setColumnSizing}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
+                    onRowClick={(row) => handleOpenDetails(row.id)}
+                    noRowsMessage={t('noRows.wo.message')}
+                    noRowsAction={t('noRows.wo.action')}
+                    enableColumnReordering
+                    enableColumnResizing
+                    pinnedColumns={pinnedColumns}
+                    onPinnedColumnsChange={setPinnedColumns}
+                  />
+                )}
+              </>
             ) : currentTab === 'calendar' ? (
               <WorkOrderCalendar
                 handleAddWorkOrder={(date: Date) => {
@@ -1187,14 +1333,28 @@ function WorkOrders() {
                 }
                 eventsRefreshTrigger={calendarRefreshTrigger}
               />
-            ) : (
+            ) : currentTab === 'workload' ? (
               <WorkloadView
                 handleOpenDetails={(id, type) => {
                   if (type === 'WORK_ORDER') handleOpenDetails(id);
                   else navigate(getPreventiveMaintenanceUrl(id));
                 }}
               />
-            )}
+            ) : currentTab === 'column' ? (
+              <WorkOrderColumnView
+                workOrders={workOrders.content}
+                loading={loadingGet}
+                error={workOrdersError}
+                totalRows={workOrders.totalElements}
+                pageIndex={pagination.pageIndex}
+                pageSize={pagination.pageSize}
+                onPageChange={(pageIndex) =>
+                  setPagination((current) => ({ ...current, pageIndex }))
+                }
+                onRetry={() => dispatch(getWorkOrders(criteria))}
+                onOpenDetails={handleOpenDetails}
+              />
+            ) : null}
           </Box>
         </Card>
       </Box>
@@ -1208,14 +1368,30 @@ function WorkOrders() {
           sx: { width: { xs: '90%', sm: '70%', md: '50%' } }
         }}
       >
-        <WorkOrderDetails
-          workOrder={currentWorkOrder}
-          onEdit={handleOpenUpdate}
-          tasks={tasks}
-          onDelete={handleOpenDelete}
-          onCopy={handleCopyWorkOrder}
-          onClose={handleCloseDetails}
-        />
+        {currentWorkOrder ? (
+          <WorkOrderDetails
+            workOrder={currentWorkOrder}
+            onEdit={handleOpenUpdate}
+            tasks={tasks}
+            onDelete={handleOpenDelete}
+            onCopy={handleCopyWorkOrder}
+            onClose={handleCloseDetails}
+          />
+        ) : singleWorkOrderLoading ? (
+          <ContentState variant="loading" message={t('loading')} />
+        ) : singleWorkOrderError ? (
+          <ContentState
+            variant="error"
+            message={singleWorkOrderError}
+            actionLabel={t('retry')}
+            onAction={() => {
+              if (requestedWorkOrderId != null)
+                dispatch(getSingleWorkOrder(requestedWorkOrderId));
+            }}
+          />
+        ) : (
+          <ContentState variant="loading" message={t('loading')} />
+        )}
       </Drawer>
       <Drawer
         anchor="left"

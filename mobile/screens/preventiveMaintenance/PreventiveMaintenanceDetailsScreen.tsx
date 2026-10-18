@@ -2,10 +2,11 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -28,6 +29,16 @@ import { PermissionEntity } from '../../models/role';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 const PAGE_SIZE = 10;
+
+type PMDetailsRow =
+  | { kind: 'call'; value: PreventiveMaintenanceCall }
+  | { kind: 'workOrder'; value: WorkOrderMini };
+
+type PMDetailsSection = {
+  key: 'calls' | 'workOrders';
+  kind: 'calls' | 'workOrders';
+  data: PMDetailsRow[];
+};
 
 export default function PreventiveMaintenanceDetailsScreen({
   navigation,
@@ -195,37 +206,27 @@ export default function PreventiveMaintenanceDetailsScreen({
         pm?.schedule?.frequency ?? '—'
       }`;
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={pmLoading || callsLoading || workOrdersLoading}
-          onRefresh={onRefresh}
-          colors={[theme.colors.primary]}
-        />
+  const sections = useMemo<PMDetailsSection[]>(
+    () => [
+      {
+        key: 'calls',
+        kind: 'calls',
+        data: calls.map((value) => ({ kind: 'call', value }))
+      },
+      {
+        key: 'workOrders',
+        kind: 'workOrders',
+        data: workOrders.map((value) => ({ kind: 'workOrder', value }))
       }
-    >
-      {pmLoading && !pm && (
-        <AsyncStateFeedback mode="loading" message={t('please_wait')} />
-      )}
-      {pmError && !pm && (
-        <AsyncStateFeedback
-          mode="error"
-          message={t('pm_load_error')}
-          onRetry={loadPM}
-        />
-      )}
-      {pmError && pm && (
-        <AsyncStateFeedback
-          mode="banner"
-          message={t('pm_load_error')}
-          onRetry={loadPM}
-        />
-      )}
-      {pm && (
-        <>
+    ],
+    [calls, workOrders]
+  );
+
+  const renderRow = useCallback(
+    ({ item }: { item: PMDetailsRow }) => {
+      if (item.kind === 'call') {
+        const call = item.value;
+        return (
           <Card
             style={[
               styles.card,
@@ -236,327 +237,207 @@ export default function PreventiveMaintenanceDetailsScreen({
             ]}
           >
             <Card.Content>
-              <Text variant="headlineSmall" style={styles.pmName}>
-                {pm.name}
+              <Text variant="titleSmall">
+                {call.dueDate
+                  ? `${t('pm_call_due_date')}: ${getFormattedDate(
+                      call.rescheduledFor || call.dueDate
+                    )}`
+                  : `${t('pm_next_threshold')}: ${call.dueValue ?? '—'} ${
+                      call.unit ?? ''
+                    }`.trim()}
               </Text>
-              <Text variant="titleMedium" style={styles.title}>
-                {pm.title}
-              </Text>
-              {pm.customId ? (
-                <Text
-                  variant="bodySmall"
-                  style={[
-                    styles.identifier,
-                    { color: theme.colors.onSurfaceVariant }
-                  ]}
-                >
-                  {pm.customId}
-                </Text>
-              ) : null}
               <Chip
                 compact
-                icon={meterBased ? 'speedometer' : 'calendar-month'}
                 style={[
-                  styles.triggerChip,
-                  { backgroundColor: theme.colors.primaryContainer }
-                ]}
-                textStyle={{ color: theme.colors.onPrimaryContainer }}
-              >
-                {t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
-              </Chip>
-              <Divider style={styles.divider} />
-              <Info label={t('priority')} value={t(pm.priority)} />
-              <Info label={t('asset_name')} value={pm.asset?.name || '—'} />
-              <Info
-                label={t('location_name')}
-                value={pm.location?.name || '—'}
-              />
-              <Info
-                label={t('pm_trigger_type')}
-                value={t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
-              />
-              <Info label={t('pm_schedule')} value={scheduleLabel} />
-              {meterBased ? (
-                <>
-                  <Info
-                    label={t('pm_next_threshold')}
-                    value={
-                      pm.schedule.nextMeterValue == null
-                        ? '—'
-                        : `${pm.schedule.nextMeterValue} ${
-                            pm.schedule.meterUnit ?? ''
-                          }`.trim()
-                    }
-                  />
-                  {pm.schedule.meterEndValue != null && (
-                    <Info
-                      label={t('pm_end_reading')}
-                      value={`${pm.schedule.meterEndValue} ${
-                        pm.schedule.meterUnit ?? ''
-                      }`.trim()}
-                    />
-                  )}
-                </>
-              ) : (
-                <>
-                  <Info
-                    label={t('starts_on')}
-                    value={
-                      pm.schedule?.startsOn
-                        ? getFormattedDate(pm.schedule.startsOn, true)
-                        : '—'
-                    }
-                  />
-                  {pm.schedule?.endsOn && (
-                    <Info
-                      label={t('ends_on')}
-                      value={getFormattedDate(pm.schedule.endsOn, true)}
-                    />
-                  )}
-                  <Info
-                    label={t('pm_next_occurrence')}
-                    value={
-                      pm.nextWorkOrderDate
-                        ? getFormattedDate(pm.nextWorkOrderDate, true)
-                        : t('pm_no_next_occurrence')
-                    }
-                  />
-                </>
-              )}
-              {pm.schedule?.planConfiguration?.mode === 'STRATEGY' &&
-                pm.schedule.planConfiguration.packages?.map((item) => (
-                  <Info
-                    key={item.code}
-                    label={item.name || item.code}
-                    value={t('pm_every_base_cycles_mobile', {
-                      count: item.everyBaseCycles
-                    })}
-                  />
-                ))}
-              {pm.schedule?.planConfiguration?.mode === 'MULTI_COUNTER' && (
-                <>
-                  <Info
-                    label={t('pm_multi_counter_rule_label')}
-                    value={
-                      pm.schedule.planConfiguration.combination
-                        ? t(
-                            pm.schedule.planConfiguration.combination === 'AND'
-                              ? 'pm_all_meter_cycles_due'
-                              : 'pm_any_meter_cycle_due'
-                          )
-                        : '—'
-                    }
-                  />
-                  {pm.schedule.planConfiguration.cycles?.map((cycle) => (
-                    <Info
-                      key={cycle.code}
-                      label={cycle.name || cycle.code}
-                      value={`${cycle.interval} · ${t('pm_meter')} #${
-                        cycle.meterId ?? '—'
-                      }`}
-                    />
-                  ))}
-                </>
-              )}
-              {pm.description ? (
-                <Text variant="bodyMedium" style={styles.description}>
-                  {pm.description}
-                </Text>
-              ) : null}
-            </Card.Content>
-          </Card>
-
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            {t('pm_call_register')}
-          </Text>
-          {callsError && (
-            <AsyncStateFeedback
-              mode="banner"
-              message={t('pm_call_history_load_error')}
-              onRetry={retryCalls}
-            />
-          )}
-          {calls.map((call) => (
-            <Card
-              key={call.id}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineVariant
-                }
-              ]}
-            >
-              <Card.Content>
-                <Text variant="titleSmall">
-                  {call.dueDate
-                    ? `${t('pm_call_due_date')}: ${getFormattedDate(
-                        call.rescheduledFor || call.dueDate
-                      )}`
-                    : `${t('pm_next_threshold')}: ${call.dueValue ?? '—'} ${
-                        call.unit ?? ''
-                      }`.trim()}
-                </Text>
-                <Chip
-                  compact
-                  style={[
-                    styles.statusChip,
-                    {
-                      backgroundColor:
-                        call.status === 'DUE'
-                          ? theme.colors.errorContainer
-                          : call.status === 'GENERATED' ||
-                            call.status === 'COMPLETED'
-                          ? theme.colors.success
-                          : theme.colors.surfaceVariant
-                    }
-                  ]}
-                  textStyle={{
-                    color:
+                  styles.statusChip,
+                  {
+                    backgroundColor:
                       call.status === 'DUE'
-                        ? theme.colors.onErrorContainer
+                        ? theme.colors.errorContainer
                         : call.status === 'GENERATED' ||
                           call.status === 'COMPLETED'
-                        ? theme.colors.onSuccess
-                        : theme.colors.onSurfaceVariant
-                  }}
-                >
-                  {t(`pm_call_status_${call.status.toLowerCase()}`)}
-                </Chip>
-                {call.readingValue != null && (
-                  <Text variant="bodySmall">
-                    {t('reading')}: {call.readingValue} {call.unit ?? ''}
-                  </Text>
-                )}
-                {!!call.triggeredCycleCodes?.length && (
-                  <Text variant="bodySmall">
-                    {t('pm_triggered_cycles')}:{' '}
-                    {call.triggeredCycleCodes.join(', ')}
-                  </Text>
-                )}
-                {call.rescheduleHistory?.map((event) => (
-                  <Text
-                    key={`${call.id}-${event.createdAt}`}
-                    variant="bodySmall"
-                    style={[
-                      styles.muted,
-                      { color: theme.colors.onSurfaceVariant }
-                    ]}
-                  >
-                    {t('pm_call_reschedule_audit', {
-                      from: getFormattedDate(event.previousDueDate),
-                      to: getFormattedDate(event.rescheduledFor),
-                      actor: event.actorName,
-                      reason: event.reason
-                    })}
-                  </Text>
-                ))}
-                {call.workOrder && (
-                  <Button
-                    compact
-                    accessibilityHint={t('pm_open_related_work_order_hint')}
-                    onPress={() =>
-                      navigation.push('WODetails', { id: call.workOrder.id })
-                    }
-                  >
-                    {`${
-                      call.workOrder.customId
-                        ? `${call.workOrder.customId} · `
-                        : ''
-                    }${call.workOrder.title}`}
-                  </Button>
-                )}
-              </Card.Content>
-            </Card>
-          ))}
-          {!callsLoading && !callsError && calls.length === 0 && (
-            <Text
-              style={[styles.muted, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {t('pm_empty_calls')}
-            </Text>
-          )}
-          {callsLoading && (
-            <View
-              style={styles.loadingState}
-              accessibilityRole="progressbar"
-              accessibilityLabel={t('pm_calls_loading')}
-            >
-              <ActivityIndicator color={theme.colors.primary} />
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                {t('pm_calls_loading')}
-              </Text>
-            </View>
-          )}
-          {!lastCallPage && !callsLoading && !callsError && (
-            <Button onPress={() => loadCalls(callPage + 1, true)}>
-              {t('load_more')}
-            </Button>
-          )}
-
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            {t('recent_work_orders')}
-          </Text>
-          {workOrdersError && (
-            <AsyncStateFeedback
-              mode="banner"
-              message={t('pm_work_order_history_load_error')}
-              onRetry={retryWorkOrders}
-            />
-          )}
-          {workOrders.map((workOrder) => (
-            <Card
-              key={workOrder.id}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineVariant
-                }
-              ]}
-              onPress={() => navigation.push('WODetails', { id: workOrder.id })}
-              accessibilityRole="button"
-              accessibilityLabel={[
-                workOrder.customId,
-                workOrder.title,
-                t(workOrder.status),
-                workOrder.dueDate
-                  ? getFormattedDate(workOrder.dueDate)
-                  : undefined
-              ]
-                .filter(Boolean)
-                .join(', ')}
-              accessibilityHint={t('pm_open_related_work_order_hint')}
-            >
-              <Card.Content>
-                <Text variant="titleSmall">{`${
-                  workOrder.customId ? `${workOrder.customId} · ` : ''
-                }${workOrder.title}`}</Text>
+                        ? theme.colors.success
+                        : theme.colors.surfaceVariant
+                  }
+                ]}
+                textStyle={{
+                  color:
+                    call.status === 'DUE'
+                      ? theme.colors.onErrorContainer
+                      : call.status === 'GENERATED' ||
+                        call.status === 'COMPLETED'
+                      ? theme.colors.onSuccess
+                      : theme.colors.onSurfaceVariant
+                }}
+              >
+                {t(`pm_call_status_${call.status.toLowerCase()}`)}
+              </Chip>
+              {call.readingValue != null && (
+                <Text variant="bodySmall">
+                  {t('reading')}: {call.readingValue} {call.unit ?? ''}
+                </Text>
+              )}
+              {!!call.triggeredCycleCodes?.length && (
+                <Text variant="bodySmall">
+                  {t('pm_triggered_cycles')}:{' '}
+                  {call.triggeredCycleCodes.join(', ')}
+                </Text>
+              )}
+              {call.rescheduleHistory?.map((event) => (
                 <Text
+                  key={`${call.id}-${event.createdAt}`}
                   variant="bodySmall"
                   style={[
                     styles.muted,
                     { color: theme.colors.onSurfaceVariant }
                   ]}
                 >
-                  {t(workOrder.status)}
-                  {workOrder.dueDate
-                    ? ` · ${getFormattedDate(workOrder.dueDate)}`
-                    : ''}
+                  {t('pm_call_reschedule_audit', {
+                    from: getFormattedDate(event.previousDueDate),
+                    to: getFormattedDate(event.rescheduledFor),
+                    actor: event.actorName,
+                    reason: event.reason
+                  })}
                 </Text>
-              </Card.Content>
-            </Card>
-          ))}
-          {!workOrdersLoading &&
-            !workOrdersError &&
-            workOrders.length === 0 && (
+              ))}
+              {call.workOrder && (
+                <Button
+                  compact
+                  style={styles.relatedWorkOrderButton}
+                  accessibilityHint={t('pm_open_related_work_order_hint')}
+                  onPress={() =>
+                    navigation.push('WODetails', { id: call.workOrder!.id })
+                  }
+                >
+                  {`${
+                    call.workOrder.customId
+                      ? `${call.workOrder.customId} · `
+                      : ''
+                  }${call.workOrder.title}`}
+                </Button>
+              )}
+            </Card.Content>
+          </Card>
+        );
+      }
+
+      const workOrder = item.value;
+      return (
+        <Card
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outlineVariant
+            }
+          ]}
+          onPress={() => navigation.push('WODetails', { id: workOrder.id })}
+          accessibilityRole="button"
+          accessibilityLabel={[
+            workOrder.customId,
+            workOrder.title,
+            t(workOrder.status),
+            workOrder.dueDate ? getFormattedDate(workOrder.dueDate) : undefined
+          ]
+            .filter(Boolean)
+            .join(', ')}
+          accessibilityHint={t('pm_open_related_work_order_hint')}
+        >
+          <Card.Content>
+            <Text variant="titleSmall">{`${
+              workOrder.customId ? `${workOrder.customId} · ` : ''
+            }${workOrder.title}`}</Text>
+            <Text
+              variant="bodySmall"
+              style={[styles.muted, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {t(workOrder.status)}
+              {workOrder.dueDate
+                ? ` · ${getFormattedDate(workOrder.dueDate)}`
+                : ''}
+            </Text>
+          </Card.Content>
+        </Card>
+      );
+    },
+    [getFormattedDate, navigation, t, theme.colors]
+  );
+
+  const renderSectionFooter = useCallback(
+    ({ section }: { section: PMDetailsSection }) => {
+      if (section.kind === 'calls') {
+        return (
+          <View>
+            {callsError && calls.length > 0 && (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('pm_call_history_load_error')}
+                onRetry={retryCalls}
+              />
+            )}
+            {callsError && calls.length === 0 && (
+              <AsyncStateFeedback
+                mode="error"
+                message={t('pm_call_history_load_error')}
+                onRetry={retryCalls}
+              />
+            )}
+            {callsLoading && calls.length > 0 && (
+              <View
+                style={styles.loadingState}
+                accessibilityRole="progressbar"
+                accessibilityLabel={t('pm_calls_loading')}
+              >
+                <ActivityIndicator color={theme.colors.primary} />
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('pm_calls_loading')}
+                </Text>
+              </View>
+            )}
+            {callsLoading && calls.length === 0 && (
+              <View
+                style={styles.loadingState}
+                accessibilityRole="progressbar"
+                accessibilityLabel={t('pm_calls_loading')}
+              >
+                <ActivityIndicator color={theme.colors.primary} />
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('pm_calls_loading')}
+                </Text>
+              </View>
+            )}
+            {!callsLoading && !callsError && calls.length === 0 && (
               <Text
                 style={[styles.muted, { color: theme.colors.onSurfaceVariant }]}
               >
-                {t('no_recent_work_orders')}
+                {t('pm_empty_calls')}
               </Text>
             )}
-          {workOrdersLoading && (
+            {!lastCallPage && !callsLoading && !callsError && (
+              <Button
+                style={styles.loadMoreButton}
+                accessibilityLabel={`${t('load_more')} ${t(
+                  'pm_call_register'
+                )}`}
+                onPress={() => loadCalls(callPage + 1, true)}
+              >
+                {t('load_more')}
+              </Button>
+            )}
+          </View>
+        );
+      }
+
+      return (
+        <View>
+          {workOrdersError && workOrders.length > 0 && (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('pm_work_order_history_load_error')}
+              onRetry={retryWorkOrders}
+            />
+          )}
+          {workOrdersLoading && workOrders.length > 0 && (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -568,14 +449,266 @@ export default function PreventiveMaintenanceDetailsScreen({
               </Text>
             </View>
           )}
+          {!workOrdersLoading &&
+            !workOrdersError &&
+            workOrders.length === 0 && (
+              <Text
+                style={[styles.muted, { color: theme.colors.onSurfaceVariant }]}
+              >
+                {t('no_recent_work_orders')}
+              </Text>
+            )}
+          {workOrdersLoading && workOrders.length === 0 && (
+            <View
+              style={styles.loadingState}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('pm_work_orders_loading')}
+            >
+              <ActivityIndicator color={theme.colors.primary} />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('pm_work_orders_loading')}
+              </Text>
+            </View>
+          )}
+          {workOrdersError && workOrders.length === 0 && (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('pm_work_order_history_load_error')}
+              onRetry={retryWorkOrders}
+            />
+          )}
           {!lastWorkOrderPage && !workOrdersLoading && !workOrdersError && (
-            <Button onPress={() => loadWorkOrders(workOrderPage + 1, true)}>
+            <Button
+              style={styles.loadMoreButton}
+              accessibilityLabel={`${t('load_more')} ${t(
+                'recent_work_orders'
+              )}`}
+              onPress={() => loadWorkOrders(workOrderPage + 1, true)}
+            >
               {t('load_more')}
             </Button>
           )}
-        </>
+        </View>
+      );
+    },
+    [
+      calls.length,
+      callsError,
+      callsLoading,
+      callPage,
+      lastCallPage,
+      lastWorkOrderPage,
+      loadCalls,
+      loadWorkOrders,
+      retryCalls,
+      retryWorkOrders,
+      t,
+      theme.colors.onSurfaceVariant,
+      theme.colors.primary,
+      workOrderPage,
+      workOrders.length,
+      workOrdersError,
+      workOrdersLoading
+    ]
+  );
+
+  return (
+    <SectionList<PMDetailsRow, PMDetailsSection>
+      style={{ backgroundColor: theme.colors.background }}
+      contentContainerStyle={styles.content}
+      sections={sections}
+      keyExtractor={(item) => `${item.kind}:${item.value.id}`}
+      renderItem={renderRow}
+      renderSectionHeader={({ section }) => (
+        <Text
+          variant="titleLarge"
+          style={styles.sectionTitle}
+          accessibilityRole="header"
+        >
+          {t(
+            section.kind === 'calls' ? 'pm_call_register' : 'recent_work_orders'
+          )}
+        </Text>
       )}
-    </ScrollView>
+      renderSectionFooter={renderSectionFooter}
+      stickySectionHeadersEnabled={false}
+      initialNumToRender={8}
+      windowSize={7}
+      ListHeaderComponent={
+        <>
+          {pmLoading && !pm && (
+            <AsyncStateFeedback mode="loading" message={t('please_wait')} />
+          )}
+          {pmError && !pm && (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('pm_load_error')}
+              onRetry={loadPM}
+            />
+          )}
+          {pmError && pm && (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('pm_load_error')}
+              onRetry={loadPM}
+            />
+          )}
+          {pm && (
+            <Card
+              style={[
+                styles.card,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Card.Content>
+                <Text
+                  variant="headlineSmall"
+                  style={styles.pmName}
+                  accessibilityRole="header"
+                >
+                  {pm.name}
+                </Text>
+                <Text variant="titleMedium" style={styles.title}>
+                  {pm.title}
+                </Text>
+                {pm.customId ? (
+                  <Text
+                    variant="bodySmall"
+                    style={[
+                      styles.identifier,
+                      { color: theme.colors.onSurfaceVariant }
+                    ]}
+                  >
+                    {pm.customId}
+                  </Text>
+                ) : null}
+                <Chip
+                  compact
+                  icon={meterBased ? 'speedometer' : 'calendar-month'}
+                  style={[
+                    styles.triggerChip,
+                    { backgroundColor: theme.colors.primaryContainer }
+                  ]}
+                  textStyle={{ color: theme.colors.onPrimaryContainer }}
+                >
+                  {t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
+                </Chip>
+                <Divider style={styles.divider} />
+                <Info label={t('priority')} value={t(pm.priority)} />
+                <Info label={t('asset_name')} value={pm.asset?.name || '—'} />
+                <Info
+                  label={t('location_name')}
+                  value={pm.location?.name || '—'}
+                />
+                <Info
+                  label={t('pm_trigger_type')}
+                  value={t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
+                />
+                <Info label={t('pm_schedule')} value={scheduleLabel} />
+                {meterBased ? (
+                  <>
+                    <Info
+                      label={t('pm_next_threshold')}
+                      value={
+                        pm.schedule.nextMeterValue == null
+                          ? '—'
+                          : `${pm.schedule.nextMeterValue} ${
+                              pm.schedule.meterUnit ?? ''
+                            }`.trim()
+                      }
+                    />
+                    {pm.schedule.meterEndValue != null && (
+                      <Info
+                        label={t('pm_end_reading')}
+                        value={`${pm.schedule.meterEndValue} ${
+                          pm.schedule.meterUnit ?? ''
+                        }`.trim()}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Info
+                      label={t('starts_on')}
+                      value={
+                        pm.schedule?.startsOn
+                          ? getFormattedDate(pm.schedule.startsOn, true)
+                          : '—'
+                      }
+                    />
+                    {pm.schedule?.endsOn && (
+                      <Info
+                        label={t('ends_on')}
+                        value={getFormattedDate(pm.schedule.endsOn, true)}
+                      />
+                    )}
+                    <Info
+                      label={t('pm_next_occurrence')}
+                      value={
+                        pm.nextWorkOrderDate
+                          ? getFormattedDate(pm.nextWorkOrderDate, true)
+                          : t('pm_no_next_occurrence')
+                      }
+                    />
+                  </>
+                )}
+                {pm.schedule?.planConfiguration?.mode === 'STRATEGY' &&
+                  pm.schedule.planConfiguration.packages?.map((item) => (
+                    <Info
+                      key={item.code}
+                      label={item.name || item.code}
+                      value={t('pm_every_base_cycles_mobile', {
+                        count: item.everyBaseCycles
+                      })}
+                    />
+                  ))}
+                {pm.schedule?.planConfiguration?.mode === 'MULTI_COUNTER' && (
+                  <>
+                    <Info
+                      label={t('pm_multi_counter_rule_label')}
+                      value={
+                        pm.schedule.planConfiguration.combination
+                          ? t(
+                              pm.schedule.planConfiguration.combination ===
+                                'AND'
+                                ? 'pm_all_meter_cycles_due'
+                                : 'pm_any_meter_cycle_due'
+                            )
+                          : '—'
+                      }
+                    />
+                    {pm.schedule.planConfiguration.cycles?.map((cycle) => (
+                      <Info
+                        key={cycle.code}
+                        label={cycle.name || cycle.code}
+                        value={`${cycle.interval} · ${t('pm_meter')} #${
+                          cycle.meterId ?? '—'
+                        }`}
+                      />
+                    ))}
+                  </>
+                )}
+                {pm.description ? (
+                  <Text variant="bodyMedium" style={styles.description}>
+                    {pm.description}
+                  </Text>
+                ) : null}
+              </Card.Content>
+            </Card>
+          )}
+        </>
+      }
+      refreshControl={
+        <RefreshControl
+          refreshing={pmLoading || callsLoading || workOrdersLoading}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+        />
+      }
+    />
   );
 }
 
@@ -615,6 +748,14 @@ const styles = StyleSheet.create({
   identifier: { marginTop: 4 },
   triggerChip: { alignSelf: 'flex-start', marginTop: 12 },
   statusChip: { alignSelf: 'flex-start', marginTop: 8, marginBottom: 4 },
+  relatedWorkOrderButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    alignSelf: 'flex-start'
+  },
+  loadMoreButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
+  },
   description: { marginTop: 12 },
   divider: { marginVertical: 10 },
   infoRow: {

@@ -1,4 +1,4 @@
-import { Checkbox, Dialog, Portal, Text } from 'react-native-paper';
+import { Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { FilterField } from '../../../models/page';
 import { useTranslation } from 'react-i18next';
 import { TouchableOpacity } from 'react-native';
@@ -9,6 +9,7 @@ import _ from 'lodash';
 import { useAppTheme } from '../../../custom-theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getEnumFilterStatuses } from '../../../utils/filter';
+import { qpmLayoutTokens } from '../../../theme/tokens';
 
 interface OwnProps {
   filterFields: FilterField[];
@@ -32,7 +33,9 @@ export default function EnumFilter({
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [newFilterFields, setNewFilterFields] =
     useState<FilterField[]>(filterFields);
-  const [statuses, setStatuses] = useState<boolean[]>([]);
+  const [statuses, setStatuses] = useState<boolean[]>(() =>
+    getEnumFilterStatuses(filterFields, fieldName, completeOptions)
+  );
   //do not trigger change if statuses didn't change
   const [statusesJustOnOpen, setStatusesJustOnOpen] = useState<boolean[]>(null);
   const isSelected = !_.isEqual(
@@ -102,13 +105,21 @@ export default function EnumFilter({
                   minHeight: 48,
                   padding: 10,
                   display: 'flex',
-                  borderRadius: 5,
+                  borderRadius: qpmLayoutTokens.radius.control,
                   flexDirection: 'row',
                   alignItems: 'center'
                 }}
                 onPress={() => switchValue(index, option)}
               >
-                <Checkbox status={statuses[index] ? 'checked' : 'unchecked'} />
+                <Icon
+                  source={
+                    statuses[index]
+                      ? 'checkbox-marked'
+                      : 'checkbox-blank-outline'
+                  }
+                  size={24}
+                  color={theme.colors.primary}
+                />
                 <Text>{t(option)}</Text>
               </TouchableOpacity>
             ))}
@@ -129,13 +140,17 @@ export default function EnumFilter({
       style={{
         backgroundColor: isSelected
           ? theme.colors.primary
-          : theme.colors.background,
+          : theme.colors.surface,
+        borderWidth: 1,
+        borderColor: isSelected
+          ? theme.colors.primary
+          : theme.colors.controlOutline,
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 44,
-        borderRadius: 20,
+        minHeight: qpmLayoutTokens.touchTarget.minimum,
+        borderRadius: qpmLayoutTokens.radius.pill,
         paddingHorizontal: 12,
         margin: 5
       }}

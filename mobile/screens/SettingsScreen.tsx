@@ -5,7 +5,6 @@ import {
   Avatar,
   Button,
   Dialog,
-  IconButton,
   List,
   Portal,
   SegmentedButtons,
@@ -134,9 +133,21 @@ export default function SettingsScreen({
               );
             }}
             buttons={[
-              { value: 'system', label: t('appearance_system') },
-              { value: 'light', label: t('appearance_light') },
-              { value: 'dark', label: t('appearance_dark') }
+              {
+                value: 'system',
+                label: t('appearance_system'),
+                style: styles.appearanceOption
+              },
+              {
+                value: 'light',
+                label: t('appearance_light'),
+                style: styles.appearanceOption
+              },
+              {
+                value: 'dark',
+                label: t('appearance_dark'),
+                style: styles.appearanceOption
+              }
             ]}
           />
           {preference !== 'system' && (
@@ -250,7 +261,7 @@ export default function SettingsScreen({
                 borderColor: theme.colors.outlineVariant
               }
             ]}
-            left={(props) => <IconButton icon={'swap-horizontal'} />}
+            left={(props) => <List.Icon {...props} icon="swap-horizontal" />}
             title={t('switch_to_super_user')}
             right={(props) =>
               switchingAccount ? (
@@ -271,7 +282,7 @@ export default function SettingsScreen({
             }
           ]}
           left={(props) => (
-            <IconButton iconColor={theme.colors.error} icon={'logout'} />
+            <List.Icon {...props} color={theme.colors.error} icon="logout" />
           )}
           title={t('Sign out')}
           titleStyle={{ color: theme.colors.error }}
@@ -286,7 +297,7 @@ export default function SettingsScreen({
             }
           ]}
           title={t('company_license')}
-          left={() => <IconButton icon="license" />}
+          left={(props) => <List.Icon {...props} icon="license" />}
           onPress={() => navigation.navigate('License')}
         />
         {canViewCompanySettings && (
@@ -300,7 +311,7 @@ export default function SettingsScreen({
             ]}
             title={t('company_profile')}
             description={t('company_profile_mobile_description')}
-            left={() => <IconButton icon="domain" />}
+            left={(props) => <List.Icon {...props} icon="domain" />}
             onPress={() => navigation.navigate('CompanyProfile')}
           />
         )}
@@ -319,7 +330,7 @@ export default function SettingsScreen({
               borderColor: theme.colors.outlineVariant
             }
           ]}
-          left={(props) => <IconButton icon={'information-outline'} />}
+          left={(props) => <List.Icon {...props} icon="information-outline" />}
           title={t('Version')}
           description={Constants.expoConfig.version}
         />
@@ -341,6 +352,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderRadius: qpmLayoutTokens.radius.cardLarge
+  },
+  appearanceOption: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
   },
   appearanceTitle: { marginBottom: 4 },
   resetAppearance: { alignSelf: 'flex-start', marginTop: 4, marginLeft: -8 },

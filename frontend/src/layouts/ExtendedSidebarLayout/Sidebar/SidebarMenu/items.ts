@@ -1,29 +1,20 @@
 import type { ReactNode } from 'react';
 
-import AnalyticsTwoToneIcon from '@mui/icons-material/AnalyticsTwoTone';
-import InsertChartTwoToneIcon from '@mui/icons-material/InsertChartTwoTone';
-import HealthAndSafetyTwoToneIcon from '@mui/icons-material/HealthAndSafetyTwoTone';
-import AssignmentIndTwoToneIcon from '@mui/icons-material/AssignmentIndTwoTone';
-import AccountTreeTwoToneIcon from '@mui/icons-material/AccountTreeTwoTone';
-import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
-import VpnKeyTwoToneIcon from '@mui/icons-material/VpnKeyTwoTone';
-import ErrorTwoToneIcon from '@mui/icons-material/ErrorTwoTone';
-import DesignServicesTwoToneIcon from '@mui/icons-material/DesignServicesTwoTone';
-import SupportTwoToneIcon from '@mui/icons-material/SupportTwoTone';
-import ReceiptTwoToneIcon from '@mui/icons-material/ReceiptTwoTone';
-import BackupTableTwoToneIcon from '@mui/icons-material/BackupTableTwoTone';
-import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
-import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
-import CategoryTwoToneIcon from '@mui/icons-material/CategoryTwoTone';
-import AttachFileTwoToneIcon from '@mui/icons-material/AttachFileTwoTone';
-import { GroupsTwoTone, People } from '@mui/icons-material';
-import LocationOnTwoToneIcon from '@mui/icons-material/LocationOnTwoTone';
-import Inventory2TwoToneIcon from '@mui/icons-material/Inventory2TwoTone';
-import HandymanTwoToneIcon from '@mui/icons-material/HandymanTwoTone';
-import SpeedTwoToneIcon from '@mui/icons-material/SpeedTwoTone';
-import MoveToInboxTwoToneIcon from '@mui/icons-material/MoveToInboxTwoTone';
-import AssignmentTwoToneIcon from '@mui/icons-material/AssignmentTwoTone';
-import PendingActionsTwoToneIcon from '@mui/icons-material/PendingActionsTwoTone';
+import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
+import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
+import MoveToInboxOutlinedIcon from '@mui/icons-material/MoveToInboxOutlined';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import { IS_LOCALHOST } from '../../../../config';
@@ -53,25 +44,32 @@ const ownMenuItems: MenuItems[] = [
     heading: '',
     items: [
       {
+        name: 'maintenance_dashboard',
+        link: '/app/dashboard',
+        icon: DashboardOutlinedIcon,
+        permission: PermissionEntity.ANALYTICS,
+        planFeature: PlanFeature.ANALYTICS
+      },
+      {
         name: 'work_orders',
         link: '/app/work-orders',
-        icon: AssignmentTwoToneIcon
+        icon: AssignmentOutlinedIcon
       },
       {
         name: 'preventive_maintenance',
         link: '/app/preventive-maintenances',
-        icon: PendingActionsTwoToneIcon,
+        icon: PendingActionsOutlinedIcon,
         permission: PermissionEntity.PREVENTIVE_MAINTENANCES
       },
       {
         name: 'Statistics',
-        icon: InsertChartTwoToneIcon,
+        icon: InsertChartOutlinedIcon,
         permission: PermissionEntity.ANALYTICS,
         planFeature: PlanFeature.ANALYTICS,
         items: [
           {
             name: 'work_orders',
-            icon: AssignmentTwoToneIcon,
+            icon: AssignmentOutlinedIcon,
             items: [
               {
                 name: 'status_report',
@@ -93,7 +91,7 @@ const ownMenuItems: MenuItems[] = [
           },
           {
             name: 'assets',
-            icon: Inventory2TwoToneIcon,
+            icon: Inventory2OutlinedIcon,
             items: [
               {
                 name: 'reliability_dashboard',
@@ -111,7 +109,7 @@ const ownMenuItems: MenuItems[] = [
           },
           {
             name: 'parts',
-            icon: HandymanTwoToneIcon,
+            icon: HandymanOutlinedIcon,
             items: [
               {
                 name: 'parts_consumption',
@@ -121,7 +119,7 @@ const ownMenuItems: MenuItems[] = [
           },
           {
             name: 'requests',
-            icon: MoveToInboxTwoToneIcon,
+            icon: MoveToInboxOutlinedIcon,
             items: [
               {
                 name: 'requests_analysis',
@@ -134,27 +132,27 @@ const ownMenuItems: MenuItems[] = [
       {
         name: 'requests',
         link: '/app/requests',
-        icon: MoveToInboxTwoToneIcon,
+        icon: MoveToInboxOutlinedIcon,
         permission: PermissionEntity.REQUESTS,
         uiConfigKey: 'requests'
       },
       {
         name: 'assets',
         link: '/app/assets',
-        icon: Inventory2TwoToneIcon,
+        icon: Inventory2OutlinedIcon,
         permission: PermissionEntity.ASSETS
       },
       {
         name: 'locations',
         link: '/app/locations',
-        icon: LocationOnTwoToneIcon,
+        icon: LocationOnOutlinedIcon,
         permission: PermissionEntity.LOCATIONS,
         uiConfigKey: 'locations'
       },
       {
         name: 'parts_and_inventory',
         link: '/app/inventory',
-        icon: HandymanTwoToneIcon,
+        icon: HandymanOutlinedIcon,
         permission: PermissionEntity.PARTS_AND_MULTIPARTS,
         items: [
           {
@@ -170,14 +168,14 @@ const ownMenuItems: MenuItems[] = [
       {
         name: 'purchase_orders',
         link: '/app/purchase-orders',
-        icon: ReceiptTwoToneIcon,
+        icon: ReceiptOutlinedIcon,
         permission: PermissionEntity.PURCHASE_ORDERS,
         planFeature: PlanFeature.PURCHASE_ORDER
       },
       {
         name: 'meters',
         link: '/app/meters',
-        icon: SpeedTwoToneIcon,
+        icon: SpeedOutlinedIcon,
         permission: PermissionEntity.METERS,
         planFeature: PlanFeature.METER,
         uiConfigKey: 'meters'
@@ -185,7 +183,7 @@ const ownMenuItems: MenuItems[] = [
       {
         name: 'people_teams',
         link: '/app/people-teams',
-        icon: People,
+        icon: PeopleOutlineIcon,
         permission: PermissionEntity.PEOPLE_AND_TEAMS,
         items: [
           {
@@ -201,7 +199,7 @@ const ownMenuItems: MenuItems[] = [
       {
         name: 'vendors_customers',
         link: '/app/vendors-customers/vendors',
-        icon: GroupsTwoTone,
+        icon: GroupsOutlinedIcon,
         permission: PermissionEntity.VENDORS_AND_CUSTOMERS,
         uiConfigKey: 'vendorsAndCustomers',
         items: [
@@ -218,20 +216,20 @@ const ownMenuItems: MenuItems[] = [
       {
         name: 'categories',
         link: '/app/categories',
-        icon: CategoryTwoToneIcon,
+        icon: CategoryOutlinedIcon,
         permission: PermissionEntity.CATEGORIES
       },
       {
         name: 'files',
         link: '/app/files',
-        icon: AttachFileTwoToneIcon,
+        icon: AttachFileOutlinedIcon,
         permission: PermissionEntity.FILES,
         planFeature: PlanFeature.FILE
       },
       {
         name: 'settings',
         link: '/app/settings',
-        icon: SettingsTwoToneIcon,
+        icon: SettingsOutlinedIcon,
         permission: PermissionEntity.SETTINGS
       }
     ]

@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { SheetManager } from 'react-native-actions-sheet';
-import { useAppTheme } from '../../custom-theme';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { AuthStackScreenProps } from '../../types';
 import useAuth from '../../hooks/useAuth';
 import { useDispatch, useSelector } from '../../store';
@@ -878,8 +878,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2
   },
   languageTag: {
-    minWidth: 44,
-    height: 44,
+    minWidth: qpmLayoutTokens.touchTarget.minimum,
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 9,

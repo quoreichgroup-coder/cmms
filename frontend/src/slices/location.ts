@@ -225,6 +225,7 @@ export const deleteLocation =
     if (success) {
       dispatch(slice.actions.deleteLocation({ id }));
     }
+    return success;
   };
 
 export const getLocationChildrenPaginated =

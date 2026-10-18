@@ -118,9 +118,16 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
     setCriteria({ ...criteria, pageNum: number });
   };
 
-  const handleDelete = (id: number) => {
-    dispatch(deleteTeam(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteTeam(id));
+      setOpenDelete(false);
+      if (deleted) onDeleteSuccess();
+      else onDeleteFailure(new Error('Team deletion was not confirmed'));
+    } catch (err) {
+      setOpenDelete(false);
+      onDeleteFailure(err);
+    }
   };
   const onCreationSuccess = () => {
     handleCloseModal();

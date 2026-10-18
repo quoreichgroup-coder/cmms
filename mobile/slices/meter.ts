@@ -15,6 +15,8 @@ interface MeterState {
   currentPageNum: number;
   lastPage: boolean;
   metersMini: MeterMiniDTO[];
+  listLoading: boolean;
+  latestListRequestId: number;
   loadingGet: boolean;
 }
 
@@ -25,6 +27,8 @@ const initialState: MeterState = {
   currentPageNum: 0,
   lastPage: true,
   metersMini: [],
+  listLoading: false,
+  latestListRequestId: 0,
   loadingGet: false
 };
 
@@ -35,18 +39,20 @@ const slice = createSlice({
   reducers: {
     getMeters(
       state: MeterState,
-      action: PayloadAction<{ meters: Page<Meter> }>
+      action: PayloadAction<{ meters: Page<Meter>; requestId: number }>
     ) {
-      const { meters } = action.payload;
+      const { meters, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.meters = meters;
       state.currentPageNum = 0;
       state.lastPage = meters.last;
     },
     getMoreMeters(
       state: MeterState,
-      action: PayloadAction<{ meters: Page<Meter> }>
+      action: PayloadAction<{ meters: Page<Meter>; requestId: number }>
     ) {
-      const { meters } = action.payload;
+      const { meters, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.meters.content = state.meters.content.concat(meters.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = meters.last;
@@ -100,7 +106,14 @@ const slice = createSlice({
       const meterIndex = state.meters.content.findIndex(
         (meter) => meter.id === id
       );
-      state.meters.content.splice(meterIndex, 1);
+      if (meterIndex !== -1) state.meters.content.splice(meterIndex, 1);
+      state.metersMini = state.metersMini.filter((meter) => meter.id !== id);
+      delete state.meterInfos[id];
+      Object.keys(state.metersByAsset).forEach((assetId) => {
+        state.metersByAsset[Number(assetId)] = state.metersByAsset[
+          Number(assetId)
+        ].filter((meter) => meter.id !== id);
+      });
     },
     setLoadingGet(
       state: MeterState,
@@ -108,39 +121,52 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: MeterState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: MeterState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getMeters =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const meters = await api.post<Page<Meter>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getMeters({ meters }));
+      dispatch(slice.actions.getMeters({ meters, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreMeters =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const meters = await api.post<Page<Meter>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getMoreMeters({ meters }));
+      dispatch(slice.actions.getMoreMeters({ meters, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMetersMini = (): AppThunk => async (dispatch) => {
@@ -152,15 +178,13 @@ export const getMeterDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const meter = await api.get<Meter>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getMeterDetails({
-        id,
-        meter
-      })
-    );
-
+      const meter = await api.get<Meter>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getMeterDetails({
+          id,
+          meter
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }

@@ -1,8 +1,9 @@
 import File from '../../../models/owns/file';
 import { IconButton, Link, List, ListItem, ListItemText } from '@mui/material';
-import DoDisturbOnTwoToneIcon from '@mui/icons-material/DoDisturbOnTwoTone';
+import DoDisturbOnOutlinedIcon from '@mui/icons-material/DoDisturbOnOutlined';
 import { useContext } from 'react';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
+import { getSafeHttpUrl } from '../../../utils/safeWindow';
 
 interface FilesListProps {
   files: File[];
@@ -20,35 +21,47 @@ export default function FilesList({
 
   return (
     <List>
-      {files.map((file) => (
-        <ListItem
-          key={file.id}
-          secondaryAction={
-            removeDisabled ? null : (
-              <IconButton
-                edge="end"
-                aria-label="delete"
-                onClick={() => {
-                  if (window.confirm(confirmMessage)) {
-                    onRemove(file.id);
-                  }
-                }}
-              >
-                <DoDisturbOnTwoToneIcon color="error" />
-              </IconButton>
-            )
-          }
-        >
-          <ListItemText
-            primary={
-              <Link href={file.url} variant="h6">
-                {file.name}
-              </Link>
+      {files.map((file) => {
+        const safeUrl = getSafeHttpUrl(file.url);
+        return (
+          <ListItem
+            key={file.id}
+            secondaryAction={
+              removeDisabled ? null : (
+                <IconButton
+                  edge="end"
+                  aria-label="delete"
+                  onClick={() => {
+                    if (window.confirm(confirmMessage)) {
+                      onRemove(file.id);
+                    }
+                  }}
+                >
+                  <DoDisturbOnOutlinedIcon color="error" />
+                </IconButton>
+              )
             }
-            secondary={getFormattedDate(file.createdAt)}
-          />
-        </ListItem>
-      ))}
+          >
+            <ListItemText
+              primary={
+                safeUrl ? (
+                  <Link
+                    href={safeUrl}
+                    variant="h6"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {file.name}
+                  </Link>
+                ) : (
+                  file.name
+                )
+              }
+              secondary={getFormattedDate(file.createdAt)}
+            />
+          </ListItem>
+        );
+      })}
     </List>
   );
 }

@@ -40,6 +40,7 @@ export interface AssetDTO extends Audit {
   serialNumber: string;
   status: AssetStatus;
   barCode: string;
+  nfcId?: string;
   category: Category;
   description: string;
   primaryUser: UserMiniDTO;

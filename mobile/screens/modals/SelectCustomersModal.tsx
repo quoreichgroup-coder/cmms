@@ -1,7 +1,6 @@
 import {
+  FlatList,
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   TouchableOpacity
 } from 'react-native';
@@ -9,12 +8,13 @@ import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getCustomersMini } from '../../slices/customer';
 import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function SelectCustomersModal({
   navigation,
@@ -24,9 +24,11 @@ export default function SelectCustomersModal({
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { customersMini, loadingGet } = useSelector((state) => state.customers);
+  const { customersMini } = useSelector((state) => state.customers);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const selectedCustomers = React.useMemo(
     () =>
       selectedIds.flatMap((id) =>
@@ -59,9 +61,21 @@ export default function SelectCustomersModal({
       });
   }, [selectedCustomers, navigation, onChange, t]);
 
+  const loadCustomers = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await dispatch(getCustomersMini());
+    } catch (_error) {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
-    dispatch(getCustomersMini());
-  }, []);
+    void loadCustomers();
+  }, [loadCustomers]);
 
   const toggle = (id: number) => {
     if (multiple) {
@@ -88,92 +102,108 @@ export default function SelectCustomersModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}
       />
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={loadingGet}
-            onRefresh={() => dispatch(getCustomersMini())}
-          />
+      <FlatList
+        data={filteredCustomers}
+        keyExtractor={(customer) => String(customer.id)}
+        refreshing={loading}
+        onRefresh={loadCustomers}
+        ListHeaderComponent={
+          loadError && customersMini.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('an_error_occured')}
+              onRetry={() => void loadCustomers()}
+            />
+          ) : null
         }
         style={{
           flex: 1,
           backgroundColor: theme.colors.background
         }}
-      >
-        {loadingGet && !customersMini.length ? (
-          <ActivityIndicator
-            animating
-            accessibilityLabel={t('loading')}
-            style={{ marginTop: 24 }}
-          />
-        ) : (
-          filteredCustomers.map((customer) => (
-            <TouchableOpacity
-              onPress={() => {
-                toggle(customer.id);
-              }}
-              accessibilityRole={multiple ? 'checkbox' : 'button'}
-              accessibilityLabel={customer.name}
-              accessibilityState={
-                multiple
-                  ? { checked: selectedIds.includes(customer.id) }
-                  : undefined
-              }
-              key={customer.id}
+        renderItem={({ item: customer }) => (
+          <TouchableOpacity
+            onPress={() => {
+              toggle(customer.id);
+            }}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityLabel={customer.name}
+            accessibilityState={
+              multiple
+                ? { checked: selectedIds.includes(customer.id) }
+                : undefined
+            }
+            key={customer.id}
+          >
+            <View
+              style={[styles.card, { backgroundColor: theme.colors.surface }]}
             >
-              <View
-                style={[styles.card, { backgroundColor: theme.colors.surface }]}
-              >
-                <View style={styles.cardRow}>
-                  <Avatar.Icon
-                    size={50}
-                    icon="account-tie-outline"
-                    style={{ backgroundColor: theme.colors.primaryContainer }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {customer.name}
-                        </Text>
-                        <Text
-                          variant={'bodySmall'}
-                          style={{ color: theme.colors.onSurfaceVariant }}
-                        >{`#${customer.id}`}</Text>
-                      </View>
-                      {multiple && (
-                        <SelectionIndicator
-                          checked={selectedIds.includes(customer.id)}
-                          color={theme.colors.primary}
-                          uncheckedColor={theme.colors.controlOutline}
-                        />
-                      )}
+              <View style={styles.cardRow}>
+                <Avatar.Icon
+                  size={50}
+                  icon="account-tie-outline"
+                  style={{ backgroundColor: theme.colors.primaryContainer }}
+                />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="titleMedium" style={styles.cardTitle}>
+                        {customer.name}
+                      </Text>
+                      <Text
+                        variant={'bodySmall'}
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >{`#${customer.id}`}</Text>
                     </View>
+                    {multiple && (
+                      <SelectionIndicator
+                        checked={selectedIds.includes(customer.id)}
+                        color={theme.colors.primary}
+                        uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
                   </View>
                 </View>
               </View>
-            </TouchableOpacity>
-          ))
+            </View>
+          </TouchableOpacity>
         )}
-        {!loadingGet && filteredCustomers.length === 0 && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              textAlign: 'center',
-              marginTop: 24,
-              color: theme.colors.onSurfaceVariant
-            }}
-          >
-            {customersMini.length
-              ? t('no_results_found')
-              : t('no_customers_available')}
-          </Text>
-        )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            customersMini.length ? null : (
+              <ActivityIndicator
+                animating
+                accessibilityLabel={t('loading')}
+                style={{ marginTop: 24 }}
+              />
+            )
+          ) : loadError && customersMini.length === 0 ? (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('an_error_occured')}
+              onRetry={() => void loadCustomers()}
+            />
+          ) : (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                textAlign: 'center',
+                marginTop: 24,
+                color: theme.colors.onSurfaceVariant
+              }}
+            >
+              {customersMini.length
+                ? t('no_results_found')
+                : t('no_customers_available')}
+            </Text>
+          )
+        }
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 }

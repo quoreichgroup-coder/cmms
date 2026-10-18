@@ -9,27 +9,39 @@ import { RootTabScreenProps } from '../types';
 import {
   ActivityIndicator,
   Badge,
+  Button,
   Icon,
   IconButton,
   Switch,
   Text
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { ExtendedWorkOrderStatus, getStatusColor } from '../utils/overall';
+import {
+  ExtendedWorkOrderStatus,
+  getStatusColor,
+  getStatusContainerColor
+} from '../utils/overall';
 import { FilterField, SearchCriteria } from '../models/page';
 import useAuth from '../hooks/useAuth';
 import * as React from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { getMobileOverviewStats } from '../slices/analytics/workOrder';
 import { useDispatch, useSelector } from '../store';
-import { getNotifications } from '../slices/notification';
+import { getUnreadNotificationCount } from '../slices/notification';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../models/role';
 import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
 import { useIsFocused } from '@react-navigation/native';
 import { formatDashboardDate, getUtcDayRange } from '../utils/dashboardDates';
+import { createAsyncActionLock } from '../utils/asyncActionLock';
+import {
+  canNavigateDashboardWorkOrders,
+  getDashboardWorkOrderScope,
+  withDashboardWorkOrderScope
+} from '../utils/analytics';
 import AsyncStateFeedback from '../components/AsyncStateFeedback';
+import { canAttemptOnlineAction } from '../utils/networkAvailability';
 
 export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
   const theme = useAppTheme();
@@ -46,10 +58,15 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     user
   } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { notifications } = useSelector((state) => state.notifications);
-  const unreadNotificationCount = notifications.content.filter(
-    (notification) => !notification.seen
-  ).length;
+  const canViewWorkOrders = hasViewPermission(PermissionEntity.WORK_ORDERS);
+  const canViewOtherWorkOrders = hasViewOtherPermission(
+    PermissionEntity.WORK_ORDERS
+  );
+  const {
+    unreadCount: unreadNotificationCount,
+    unreadCountLoading: notificationsLoading,
+    unreadCountError: notificationsLoadError
+  } = useSelector((state) => state.notifications);
   const { mobileOverview, mobileOverviewLoaded, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
@@ -59,12 +76,35 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     ...styles.iconButton,
     backgroundColor: theme.colors.background
   };
+  const scanAsset = () => {
+    if (canAttemptOnlineAction(netInfo)) {
+      navigation.navigate('ScanAsset');
+    } else {
+      showSnackBar(t('no_internet_connection'), 'error');
+    }
+  };
   const [assignedToMe, setAssignedToMe] = useState<boolean>(
     Boolean(userSettings?.statsForAssignedWorkOrders)
   );
   const [savingAssignmentPreference, setSavingAssignmentPreference] =
     useState(false);
+  const saveAssignmentPreference = React.useRef(
+    createAsyncActionLock()
+  ).current;
+  const workOrderScope = getDashboardWorkOrderScope(
+    canViewWorkOrders,
+    canViewOtherWorkOrders,
+    userSettings?.statsForAssignedWorkOrders
+  );
+  const canOpenWorkOrderList = canNavigateDashboardWorkOrders(
+    workOrderScope,
+    user?.id
+  );
   const [todayStart, tomorrowStart] = getUtcDayRange();
+
+  const loadUnreadNotificationCount = React.useCallback(() => {
+    return dispatch(getUnreadNotificationCount());
+  }, [dispatch]);
 
   const loadDashboardSettings = async () => {
     setSettingsLoading(true);
@@ -83,46 +123,41 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
   }, []);
 
   useEffect(() => {
-    if (isFocused && userSettings?.statsForAssignedWorkOrders !== undefined) {
-      dispatch(getMobileOverviewStats(userSettings.statsForAssignedWorkOrders));
-      setAssignedToMe(userSettings.statsForAssignedWorkOrders);
+    if (isFocused && workOrderScope !== null) {
+      dispatch(getMobileOverviewStats(workOrderScope));
+      setAssignedToMe(workOrderScope);
     }
-  }, [dispatch, isFocused, userSettings?.statsForAssignedWorkOrders]);
+  }, [dispatch, isFocused, workOrderScope]);
 
   useEffect(() => {
-    if (isFocused)
-      dispatch(
-        getNotifications({
-          filterFields: [],
-          pageSize: 15,
-          pageNum: 0,
-          direction: 'DESC'
-        })
-      );
-  }, [dispatch, isFocused]);
+    if (isFocused) void loadUnreadNotificationCount();
+  }, [isFocused, loadUnreadNotificationCount]);
 
   const onRefresh = () => {
+    void loadUnreadNotificationCount();
     if (settingsError || !userSettings) {
       void loadDashboardSettings();
-    } else {
-      dispatch(getMobileOverviewStats(userSettings.statsForAssignedWorkOrders));
+    } else if (workOrderScope !== null) {
+      dispatch(getMobileOverviewStats(workOrderScope));
     }
   };
 
-  const updateAssignmentPreference = async (value: boolean) => {
-    if (!userSettings || savingAssignmentPreference) return;
-    setSavingAssignmentPreference(true);
-    try {
-      const updatedSettings = await patchUserSettings({
-        ...userSettings,
-        statsForAssignedWorkOrders: value
-      });
-      setAssignedToMe(Boolean(updatedSettings.statsForAssignedWorkOrders));
-    } catch (_error) {
-      showSnackBar(t('an_error_occured'), 'error');
-    } finally {
-      setSavingAssignmentPreference(false);
-    }
+  const updateAssignmentPreference = (value: boolean) => {
+    if (!canViewOtherWorkOrders || !userSettings) return;
+    void saveAssignmentPreference(async () => {
+      setSavingAssignmentPreference(true);
+      try {
+        const updatedSettings = await patchUserSettings({
+          ...userSettings,
+          statsForAssignedWorkOrders: value
+        });
+        setAssignedToMe(Boolean(updatedSettings.statsForAssignedWorkOrders));
+      } catch (_error) {
+        showSnackBar(t('an_error_occured'), 'error');
+      } finally {
+        setSavingAssignmentPreference(false);
+      }
+    });
   };
 
   const stats: {
@@ -228,21 +263,33 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
       style={{ ...styles.container, backgroundColor: theme.colors.background }}
       refreshControl={
         <RefreshControl
-          refreshing={settingsLoading || loading.mobileOverview}
+          refreshing={
+            settingsLoading || loading.mobileOverview || notificationsLoading
+          }
           colors={[theme.colors.primary]}
           onRefresh={onRefresh}
         />
       }
     >
-      {(settingsError || errors.mobileOverview) && (
+      {settingsError && (
         <AsyncStateFeedback
           mode="banner"
-          message={t(
-            settingsError
-              ? 'dashboard_settings_load_error'
-              : 'work_orders_load_error'
-          )}
+          message={t('dashboard_settings_load_error')}
           onRetry={onRefresh}
+        />
+      )}
+      {canViewWorkOrders && errors.mobileOverview && (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('work_orders_load_error')}
+          onRetry={onRefresh}
+        />
+      )}
+      {notificationsLoadError && (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('notifications_load_error')}
+          onRetry={() => void loadUnreadNotificationCount()}
         />
       )}
       <View
@@ -279,83 +326,101 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
             ? `${t('good_day')}, ${user.firstName}`
             : t('good_day')}
         </Text>
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onBrandHeader }}
-        >
-          {mobileOverviewLoaded
-            ? `${mobileOverview.open + mobileOverview.inProgress} ${t(
-                'work_orders'
-              ).toLowerCase()}`
-            : settingsLoading || loading.mobileOverview
-            ? t('loading')
-            : '—'}
-        </Text>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t('work_orders')}
-          style={[styles.heroAction, { backgroundColor: theme.colors.surface }]}
-          onPress={() =>
-            navigation.navigate('WorkOrders', {
-              filterFields: [],
-              fromHome: true
-            })
-          }
-        >
-          <Text
-            variant="labelLarge"
-            style={[styles.heroActionText, { color: theme.colors.primary }]}
-          >
-            {t('work_orders')}
-          </Text>
-          <Text
-            style={[styles.heroActionArrow, { color: theme.colors.primary }]}
-          >
-            →
-          </Text>
-        </TouchableOpacity>
+        {canViewWorkOrders && (
+          <>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onBrandHeader }}
+            >
+              {mobileOverviewLoaded
+                ? `${mobileOverview.open + mobileOverview.inProgress} ${t(
+                    'work_orders'
+                  ).toLowerCase()}`
+                : settingsLoading || loading.mobileOverview
+                ? t('loading')
+                : '—'}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('work_orders')}
+              accessibilityState={{ disabled: !canOpenWorkOrderList }}
+              style={[
+                styles.heroAction,
+                { backgroundColor: theme.colors.surface }
+              ]}
+              disabled={!canOpenWorkOrderList}
+              onPress={() => {
+                if (!canOpenWorkOrderList) return;
+                navigation.navigate('WorkOrders', {
+                  filterFields: withDashboardWorkOrderScope(
+                    [],
+                    workOrderScope === true,
+                    user?.id
+                  ),
+                  fromHome: true
+                });
+              }}
+            >
+              <Text
+                variant="labelLarge"
+                style={[styles.heroActionText, { color: theme.colors.primary }]}
+              >
+                {t('work_orders')}
+              </Text>
+              <Text
+                style={[
+                  styles.heroActionArrow,
+                  { color: theme.colors.primary }
+                ]}
+              >
+                →
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
       <View style={styles.quickActions}>
         {hasViewPermission(PermissionEntity.ASSETS) && (
+          <Button
+            mode="contained"
+            icon="magnify-scan"
+            accessibilityLabel={t('to_scan')}
+            style={styles.scanButton}
+            onPress={scanAsset}
+          >
+            {t('to_scan')}
+          </Button>
+        )}
+        {canViewWorkOrders && (
           <IconButton
             style={iconButtonStyle}
-            icon={'magnify-scan'}
-            accessibilityLabel={t('to_scan')}
-            onPress={() => {
-              if (netInfo.isInternetReachable) {
-                navigation.navigate('ScanAsset');
-              } else {
-                showSnackBar(t('no_internet_connection'), 'error');
-              }
-            }}
+            icon={'poll'}
+            accessibilityLabel={t('stats')}
+            onPress={() => navigation.navigate('WorkOrderStats')}
           />
         )}
-        <IconButton
-          style={iconButtonStyle}
-          icon={'poll'}
-          accessibilityLabel={t('stats')}
-          onPress={() => {
-            navigation.navigate('WorkOrderStats');
-          }}
-        />
         <View style={{ ...iconButtonStyle, position: 'relative' }}>
           <IconButton
             icon={'bell-outline'}
-            accessibilityLabel={`${t(
-              'notifications'
-            )}: ${unreadNotificationCount}`}
+            accessibilityLabel={
+              unreadNotificationCount === null
+                ? t('notifications')
+                : `${t('notifications')}: ${unreadNotificationCount}`
+            }
             onPress={() => navigation.navigate('Notifications')}
           />
           <Badge
+            accessible={false}
+            pointerEvents="none"
             style={{
               position: 'absolute',
               bottom: 0,
               right: 0,
               backgroundColor: theme.colors.error
             }}
-            visible={unreadNotificationCount > 0}
+            visible={(unreadNotificationCount ?? 0) > 0}
           >
-            {unreadNotificationCount}
+            {unreadNotificationCount ?? 0}
           </Badge>
         </View>
         {hasViewPermission(PermissionEntity.ASSETS) && (
@@ -367,7 +432,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
           />
         )}
       </View>
-      {hasViewOtherPermission(PermissionEntity.WORK_ORDERS) && (
+      {canViewWorkOrders && canViewOtherWorkOrders && (
         <View
           style={[
             styles.assignedCard,
@@ -406,81 +471,115 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
           </View>
         </View>
       )}
-      <View style={styles.statsHeading}>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          {t('work_orders')}
-        </Text>
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {loading.mobileOverview ? t('loading') : ''}
-        </Text>
-      </View>
-      <View style={styles.statsGrid}>
-        {stats.map((stat) => (
-          <TouchableOpacity
-            key={stat.label}
-            accessibilityRole="button"
-            accessibilityLabel={`${t(stat.label)}: ${
-              mobileOverviewLoaded
-                ? stat.value
-                : settingsError || errors.mobileOverview
-                ? t('an_error_occured')
-                : settingsLoading || loading.mobileOverview
-                ? t('loading')
-                : '—'
-            }`}
-            accessibilityState={{
-              disabled: !userSettings,
-              busy: settingsLoading || loading.mobileOverview
-            }}
-            style={[
-              styles.statCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant,
-                borderTopColor: getStatusColor(stat.label, theme)
-              }
-            ]}
-            onPress={() => {
-              if (userSettings) {
-                const filterFields = [...stat.filterFields];
-                if (userSettings.statsForAssignedWorkOrders) {
-                  filterFields.push({
-                    field: 'assignedToUser',
-                    operation: 'eq',
-                    value: user.id
-                  });
-                }
-                navigation.navigate('WorkOrders', {
-                  filterFields,
-                  fromHome: true
-                });
-              }
-            }}
-            disabled={!userSettings}
-          >
-            <View style={styles.statCardTop}>
-              <Text
-                variant="titleSmall"
-                numberOfLines={2}
-                style={styles.statLabel}
-              >
-                {t(stat.label)}
-              </Text>
-              <Icon
-                source="arrow-top-right"
-                size={18}
-                color={getStatusColor(stat.label, theme)}
-              />
-            </View>
-            <Text variant="headlineMedium" style={styles.statValue}>
-              {mobileOverviewLoaded ? stat.value : '—'}
+      {canViewWorkOrders && (
+        <>
+          <View style={styles.statsHeading}>
+            <Text
+              variant="titleLarge"
+              style={styles.sectionTitle}
+              accessibilityRole="header"
+            >
+              {t('work_orders')}
             </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {loading.mobileOverview ? t('loading') : ''}
+            </Text>
+          </View>
+          <View style={styles.statsGrid}>
+            {stats.map((stat) => {
+              const statusIcons: Record<ExtendedWorkOrderStatus, string> = {
+                OPEN: 'wrench-outline',
+                ON_HOLD: 'pause-circle-outline',
+                IN_PROGRESS: 'progress-clock',
+                COMPLETE: 'check-circle-outline',
+                LATE_WO: 'alert-circle-outline',
+                TODAY_WO: 'calendar-today',
+                HIGH_WO: 'alert-circle-outline'
+              };
+              const iconContainerColor = getStatusContainerColor(
+                stat.label,
+                theme
+              );
+
+              return (
+                <TouchableOpacity
+                  key={stat.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t(stat.label)}: ${
+                    mobileOverviewLoaded
+                      ? stat.value
+                      : settingsError || errors.mobileOverview
+                      ? t('an_error_occured')
+                      : settingsLoading || loading.mobileOverview
+                      ? t('loading')
+                      : '—'
+                  }`}
+                  accessibilityState={{
+                    disabled: !canOpenWorkOrderList,
+                    busy: settingsLoading || loading.mobileOverview
+                  }}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outlineVariant,
+                      borderTopColor: getStatusColor(stat.label, theme)
+                    }
+                  ]}
+                  onPress={() => {
+                    if (!canOpenWorkOrderList) return;
+                    navigation.navigate('WorkOrders', {
+                      filterFields: withDashboardWorkOrderScope(
+                        stat.filterFields,
+                        workOrderScope === true,
+                        user?.id
+                      ),
+                      fromHome: true
+                    });
+                  }}
+                  disabled={!canOpenWorkOrderList}
+                >
+                  <View style={styles.statCardTop}>
+                    <View
+                      accessible={false}
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: iconContainerColor }
+                      ]}
+                    >
+                      <Icon
+                        source={statusIcons[stat.label]}
+                        size={18}
+                        color={getStatusColor(stat.label, theme)}
+                      />
+                    </View>
+                    <Icon
+                      source="arrow-top-right"
+                      size={18}
+                      color={getStatusColor(stat.label, theme)}
+                    />
+                  </View>
+                  <Text variant="headlineMedium" style={styles.statValue}>
+                    {mobileOverviewLoaded ? stat.value : '—'}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={[
+                      styles.statLabel,
+                      { color: theme.colors.onSurfaceVariant }
+                    ]}
+                  >
+                    {t(stat.label)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -508,7 +607,7 @@ const styles = StyleSheet.create({
   heroAction: {
     marginTop: 16,
     alignSelf: 'flex-start',
-    minHeight: 44,
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
     paddingHorizontal: 14,
     borderRadius: qpmLayoutTokens.radius.control,
     flexDirection: 'row',
@@ -521,7 +620,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    rowGap: 8
+  },
+  scanButton: {
+    minHeight: qpmLayoutTokens.touchTarget.prominent,
+    justifyContent: 'center',
+    borderRadius: qpmLayoutTokens.radius.control
   },
   assignedCard: {
     marginHorizontal: 16,
@@ -561,7 +667,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    minHeight: 106,
+    minHeight: 124,
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 11,
@@ -571,12 +677,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   statCardTop: {
-    minHeight: 36,
+    minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  statLabel: { flex: 1, fontWeight: '600', paddingRight: 2 },
+  statIconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  statLabel: { fontWeight: '600' },
   statArrow: { margin: 0, width: 34, height: 34 },
   statValue: { fontWeight: '700' }
 });

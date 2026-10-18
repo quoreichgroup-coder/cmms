@@ -8,7 +8,7 @@ import Sets from './Sets';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import SplitButton from '../components/SplitButton';
 import * as React from 'react';
@@ -53,7 +53,7 @@ const Inventory = ({}: PropsType) => {
                 ? action
                 : null
             }
-            startIcon={<AddTwoToneIcon />}
+            startIcon={<AddOutlinedIcon />}
             label={tabs[tabIndex].label}
             menuItems={
               tabIndex === 0 &&

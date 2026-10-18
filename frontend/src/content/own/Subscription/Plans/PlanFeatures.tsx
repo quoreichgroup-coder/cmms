@@ -1,6 +1,6 @@
 import { Card, Grid, Stack, Typography, useTheme } from '@mui/material';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
-import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { splitToChunks } from '../../../../utils/array';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import { useTranslation } from 'react-i18next';
@@ -57,9 +57,9 @@ function PlanFeatures(props: PlanFeatureProps) {
               >
                 {feature.isBasic ||
                 features.includes(feature.name as PlanFeature) ? (
-                  <CheckTwoToneIcon />
+                  <CheckOutlinedIcon />
                 ) : (
-                  <CloseTwoToneIcon color="error" />
+                  <CloseOutlinedIcon color="error" />
                 )}
                 <Typography>{t(`${feature.name}_feature`)}</Typography>
               </Stack>

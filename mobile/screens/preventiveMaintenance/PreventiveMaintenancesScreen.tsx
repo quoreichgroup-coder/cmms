@@ -17,6 +17,7 @@ import { RootStackScreenProps } from '../../types';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { useContext } from 'react';
+import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
 
 const PAGE_SIZE = 10;
 
@@ -40,19 +41,28 @@ export default function PreventiveMaintenancesScreen({
     append: boolean;
   } | null>(null);
   const pageRequestInProgress = useRef(false);
+  const pageRequestSequence = useRef(0);
 
   const loadPage = useCallback(
     async (pageNum: number, append: boolean) => {
-      if (!canView || pageRequestInProgress.current) return;
+      if (!canView || (append && pageRequestInProgress.current)) return;
+      const requestId = beginRequest(pageRequestSequence);
       pageRequestInProgress.current = true;
       setError(false);
       setFailedRequest(null);
-      append ? setLoading(true) : setRefreshing(true);
+      if (append) {
+        setLoading(true);
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+        setRefreshing(true);
+      }
       try {
         const result = await api.post<Page<PreventiveMaintenance>>(
           'preventive-maintenances/search',
           { filterFields: [], direction: 'DESC', pageNum, pageSize: PAGE_SIZE }
         );
+        if (!isCurrentRequest(requestId, pageRequestSequence)) return;
         setItems((current) =>
           append
             ? [
@@ -67,13 +77,16 @@ export default function PreventiveMaintenancesScreen({
         setLastPage(result.last);
       } catch (loadError) {
         console.warn('Could not load preventive maintenances:', loadError);
+        if (!isCurrentRequest(requestId, pageRequestSequence)) return;
         setError(true);
         setFailedRequest({ pageNum, append });
       } finally {
-        pageRequestInProgress.current = false;
-        setLoading(false);
-        setRefreshing(false);
-        setHasLoaded(true);
+        if (isCurrentRequest(requestId, pageRequestSequence)) {
+          pageRequestInProgress.current = false;
+          setLoading(false);
+          setRefreshing(false);
+          setHasLoaded(true);
+        }
       }
     },
     [canView]

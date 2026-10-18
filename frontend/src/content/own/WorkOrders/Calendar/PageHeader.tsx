@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Typography, Button, Grid } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EventTwoToneIcon from '@mui/icons-material/EventTwoTone';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import PropTypes from 'prop-types';
 
 interface PageHeaderProps {
@@ -29,7 +29,7 @@ const PageHeader: FC<PageHeaderProps> = ({ handleCreateEvent }) => {
           onClick={handleCreateEvent}
           variant="contained"
           color="primary"
-          startIcon={<EventTwoToneIcon fontSize="small" />}
+          startIcon={<EventOutlinedIcon fontSize="small" />}
         >
           {t('Add meeting')}
         </Button>

@@ -8,6 +8,7 @@ import type {
   WorkloadWorkOrderDTO
 } from '../models/owns/workload';
 import { updateWorkOrderInContent } from './workOrder';
+import { getErrorMessage } from '../utils/api';
 
 const basePath = 'workload';
 
@@ -16,13 +17,17 @@ interface WorkloadState {
   unscheduled: UnscheduledWorkOrdersDTO | null;
   loadingOverview: boolean;
   loadingUnscheduled: boolean;
+  overviewError: string | null;
+  unscheduledError: string | null;
 }
 
 const initialState: WorkloadState = {
   overview: null,
   unscheduled: null,
   loadingOverview: false,
-  loadingUnscheduled: false
+  loadingUnscheduled: false,
+  overviewError: null,
+  unscheduledError: null
 };
 
 const slice = createSlice({
@@ -35,6 +40,7 @@ const slice = createSlice({
     ) {
       const { overview } = action.payload;
       state.overview = overview;
+      state.overviewError = null;
     },
     getUnscheduled(
       state: WorkloadState,
@@ -42,6 +48,19 @@ const slice = createSlice({
     ) {
       const { unscheduled } = action.payload;
       state.unscheduled = unscheduled;
+      state.unscheduledError = null;
+    },
+    setOverviewError(
+      state: WorkloadState,
+      action: PayloadAction<{ error: string | null }>
+    ) {
+      state.overviewError = action.payload.error;
+    },
+    setUnscheduledError(
+      state: WorkloadState,
+      action: PayloadAction<{ error: string | null }>
+    ) {
+      state.unscheduledError = action.payload.error;
     },
     removeFromUnscheduled(
       state: WorkloadState,
@@ -143,6 +162,7 @@ export const reducer = slice.reducer;
 export const getOverview =
   (startDate: string, endDate: string, userIds?: number[]): AppThunk =>
   async (dispatch) => {
+    dispatch(slice.actions.setOverviewError({ error: null }));
     dispatch(slice.actions.setLoadingOverview({ loading: true }));
     try {
       const params = new URLSearchParams({ startDate, endDate });
@@ -153,6 +173,10 @@ export const getOverview =
         `${basePath}/overview?${params}`
       );
       dispatch(slice.actions.getOverview({ overview }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setOverviewError({ error: getErrorMessage(error) })
+      );
     } finally {
       dispatch(slice.actions.setLoadingOverview({ loading: false }));
     }
@@ -161,6 +185,7 @@ export const getOverview =
 export const getUnscheduled =
   (statuses?: string[]): AppThunk =>
   async (dispatch) => {
+    dispatch(slice.actions.setUnscheduledError({ error: null }));
     dispatch(slice.actions.setLoadingUnscheduled({ loading: true }));
     try {
       const params = new URLSearchParams();
@@ -172,6 +197,10 @@ export const getUnscheduled =
         `${basePath}/unscheduled${query ? `?${query}` : ''}`
       );
       dispatch(slice.actions.getUnscheduled({ unscheduled }));
+    } catch (error) {
+      dispatch(
+        slice.actions.setUnscheduledError({ error: getErrorMessage(error) })
+      );
     } finally {
       dispatch(slice.actions.setLoadingUnscheduled({ loading: false }));
     }

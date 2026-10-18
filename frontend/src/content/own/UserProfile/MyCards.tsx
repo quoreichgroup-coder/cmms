@@ -19,8 +19,8 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 
 const AvatarAddWrapper = styled(Avatar)(
   ({ theme }) => `
@@ -166,7 +166,7 @@ function MyCards() {
                 />
                 <Tooltip arrow title={t('Remove this card')}>
                   <IconButtonError onClick={() => handleDelete()}>
-                    <DeleteTwoToneIcon fontSize="small" />
+                    <DeleteOutlinedIcon fontSize="small" />
                   </IconButtonError>
                 </Tooltip>
               </Box>
@@ -218,7 +218,7 @@ function MyCards() {
                 />
                 <Tooltip arrow title={t('Remove this card')}>
                   <IconButtonError onClick={() => handleDelete()}>
-                    <DeleteTwoToneIcon fontSize="small" />
+                    <DeleteOutlinedIcon fontSize="small" />
                   </IconButtonError>
                 </Tooltip>
               </Box>
@@ -234,7 +234,7 @@ function MyCards() {
                 >
                   <CardContent>
                     <AvatarAddWrapper>
-                      <AddTwoToneIcon fontSize="large" />
+                      <AddOutlinedIcon fontSize="large" />
                     </AvatarAddWrapper>
                   </CardContent>
                 </CardActionArea>

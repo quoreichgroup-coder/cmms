@@ -150,6 +150,7 @@ export const deleteMeter =
     if (success) {
       dispatch(slice.actions.deleteMeter({ id }));
     }
+    return success;
   };
 
 export const getMetersByAsset =

@@ -15,13 +15,13 @@ import {
   Typography
 } from '@mui/material';
 import { makeStyles } from '@mui/styles';
-import DragIndicatorTwoToneIcon from '@mui/icons-material/DragIndicatorTwoTone';
+import DragIndicatorOutlinedIcon from '@mui/icons-material/DragIndicatorOutlined';
 import { Task, TaskOption, TaskType } from '../../../../../models/owns/tasks';
 import { useTranslation } from 'react-i18next';
-import DoDisturbOnTwoToneIcon from '@mui/icons-material/DoDisturbOnTwoTone';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import DoDisturbOnOutlinedIcon from '@mui/icons-material/DoDisturbOnOutlined';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { randomInt } from '../../../../../utils/generators';
 import { AssetMiniDTO } from '../../../../../models/owns/asset';
 import { UserMiniDTO } from '../../../../../models/user';
@@ -131,11 +131,11 @@ const DraggableListItem = ({
       }}
     >
       <MenuItem onClick={() => setOpenAssignUser(!openAssignUser)}>
-        {openAssignUser && <CheckTwoToneIcon />}
+        {openAssignUser && <CheckOutlinedIcon />}
         {t('assign_user')}
       </MenuItem>
       <MenuItem onClick={() => setOpenAssignAsset(!openAssignAsset)}>
-        {openAssignAsset && <CheckTwoToneIcon />}
+        {openAssignAsset && <CheckOutlinedIcon />}
         {t('assign_asset')}
       </MenuItem>
     </Menu>
@@ -153,7 +153,7 @@ const DraggableListItem = ({
         >
           {renderMenu()}
           <Box sx={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
-            <DragIndicatorTwoToneIcon />
+            <DragIndicatorOutlinedIcon />
             <Box
               sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}
             >
@@ -195,10 +195,10 @@ const DraggableListItem = ({
                 </Select>
                 <Box>
                   <IconButton onClick={() => onRemove(task.id)}>
-                    <DoDisturbOnTwoToneIcon color="error" />
+                    <DoDisturbOnOutlinedIcon color="error" />
                   </IconButton>
                   <IconButton onClick={handleOpenMenu}>
-                    <MoreVertTwoToneIcon />
+                    <MoreVertOutlinedIcon />
                   </IconButton>
                 </Box>
               </Box>
@@ -311,14 +311,14 @@ const DraggableListItem = ({
                               sx={{ ml: 2 }}
                               onClick={() => handleRemoveOption(index)}
                             >
-                              <DoDisturbOnTwoToneIcon color="error" />
+                              <DoDisturbOnOutlinedIcon color="error" />
                             </IconButton>
                           )}
                         </Box>
                       ))}
                       <Button
                         onClick={handleAddOption}
-                        startIcon={<AddTwoToneIcon />}
+                        startIcon={<AddOutlinedIcon />}
                         sx={{ mt: 1 }}
                       >
                         {t('add_new_option')}

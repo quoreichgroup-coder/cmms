@@ -3,7 +3,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   View,
   StyleSheet
 } from 'react-native';
@@ -22,7 +21,7 @@ import {
   assetStatuses,
   getAssetStatusConfig
 } from '../../models/asset';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import Tag from '../../components/Tag';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
@@ -161,6 +160,7 @@ export default function AssetsScreen({
   const {
     assets,
     assetsHierarchy,
+    listLoading,
     loadingGet,
     currentPageNum,
     lastPage,
@@ -178,6 +178,7 @@ export default function AssetsScreen({
   const [hierarchyLoadError, setHierarchyLoadError] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
   const listPageRequestInProgress = useRef(false);
+  const hierarchyPageRequestInProgress = useRef(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -221,7 +222,7 @@ export default function AssetsScreen({
     async (retry = false) => {
       if (
         listPageRequestInProgress.current ||
-        loadingGet ||
+        listLoading ||
         lastPage ||
         (loadMoreError && !retry)
       )
@@ -238,12 +239,13 @@ export default function AssetsScreen({
         listPageRequestInProgress.current = false;
       }
     },
-    [criteria, currentPageNum, dispatch, lastPage, loadMoreError, loadingGet]
+    [criteria, currentPageNum, dispatch, lastPage, listLoading, loadMoreError]
   );
 
   const loadAssetChildren = useCallback(
     async (pageNum = 0) => {
-      if (!canView) return;
+      if (!canView || hierarchyPageRequestInProgress.current) return;
+      hierarchyPageRequestInProgress.current = true;
       setHierarchyLoadError(false);
       setLoadMoreError(false);
       try {
@@ -258,9 +260,34 @@ export default function AssetsScreen({
         console.warn('Could not load asset hierarchy:', error);
         if (pageNum === 0) setHierarchyLoadError(true);
         else setLoadMoreError(true);
+      } finally {
+        hierarchyPageRequestInProgress.current = false;
       }
     },
     [canView, dispatch, route.params?.hierarchy, route.params?.id]
+  );
+
+  const loadNextHierarchyPage = useCallback(
+    (retry = false) => {
+      const parentId = route.params?.id ?? 0;
+      if (
+        hierarchyPageRequestInProgress.current ||
+        loadingGet ||
+        assetChildrenLastPage[parentId] ||
+        (loadMoreError && !retry)
+      )
+        return;
+
+      void loadAssetChildren((assetChildrenPageNum[parentId] ?? 0) + 1);
+    },
+    [
+      assetChildrenLastPage,
+      assetChildrenPageNum,
+      loadAssetChildren,
+      loadMoreError,
+      loadingGet,
+      route.params?.id
+    ]
   );
 
   useEffect(() => {
@@ -346,6 +373,7 @@ export default function AssetsScreen({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
@@ -366,7 +394,7 @@ export default function AssetsScreen({
           windowSize={7}
           refreshControl={
             <RefreshControl
-              refreshing={loadingGet}
+              refreshing={listLoading}
               onRefresh={onRefresh}
               colors={[theme.colors.primary]}
             />
@@ -388,7 +416,7 @@ export default function AssetsScreen({
                   permission: t('assets')
                 })}
               />
-            ) : loadingGet || !hasLoadedList ? (
+            ) : listLoading || !hasLoadedList ? (
               <View
                 style={styles.loadingState}
                 accessibilityRole="progressbar"
@@ -444,7 +472,7 @@ export default function AssetsScreen({
                 message={t('asset_list_load_error')}
                 onRetry={() => void loadNextAssetPage(true)}
               />
-            ) : loadingGet && assets.content.length > 0 ? (
+            ) : listLoading && assets.content.length > 0 ? (
               <ActivityIndicator
                 color={theme.colors.primary}
                 style={styles.loadingFooter}
@@ -453,90 +481,48 @@ export default function AssetsScreen({
           }
         />
       ) : (
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
-          onScroll={({ nativeEvent }) => {
-            if (isCloseToBottom(nativeEvent)) {
-              if (
-                !loadingGet &&
-                !assetChildrenLastPage[route.params?.id ?? 0]
-              ) {
-                loadAssetChildren(
-                  (assetChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
-                );
-              }
-            }
-          }}
-          scrollEventThrottle={400}
+          contentContainerStyle={styles.listContent}
+          data={canView ? currentAssets : []}
+          keyExtractor={(asset) => String(asset.id)}
+          renderItem={({ item }) => (
+            <AssetCard
+              asset={item}
+              navigation={navigation}
+              showChildrenButton={true}
+              onViewChildren={() => handleViewChildren(item)}
+            />
+          )}
+          onEndReached={() => loadNextHierarchyPage()}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={8}
+          windowSize={7}
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
-              onRefresh={() => loadAssetChildren(0)}
+              onRefresh={onRefresh}
               colors={[theme.colors.primary]}
             />
           }
-        >
-          {!canView && (
-            <AsyncStateFeedback
-              mode="permissionDenied"
-              message={t('permission_denied_message', {
-                permission: t('assets')
-              })}
-            />
-          )}
-          {canView && hierarchyLoadError && currentAssets.length > 0 && (
-            <AsyncStateFeedback
-              mode="banner"
-              message={t('asset_list_load_error')}
-              onRetry={() => loadAssetChildren(0)}
-            />
-          )}
-          {canView && loadMoreError && view === 'hierarchy' && (
-            <AsyncStateFeedback
-              mode="banner"
-              message={t('asset_list_load_error')}
-              onRetry={() =>
-                loadAssetChildren(
-                  (assetChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
-                )
-              }
-            />
-          )}
-          {canView && hierarchyLoadError && currentAssets.length === 0 && (
-            <View
-              style={[
-                styles.emptyState,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineVariant
-                }
-              ]}
-              accessibilityRole="alert"
-            >
-              <Text
-                variant="titleMedium"
-                style={{ color: theme.colors.onSurface }}
-              >
-                {t('asset_list_load_error')}
-              </Text>
-              <Button onPress={() => loadAssetChildren(0)}>{t('retry')}</Button>
-            </View>
-          )}
-          {canView &&
-            !!currentAssets.length &&
-            currentAssets.map((asset) => (
-              <AssetCard
-                key={asset.id}
-                asset={asset}
-                navigation={navigation}
-                showChildrenButton={true}
-                onViewChildren={() => handleViewChildren(asset)}
+          ListHeaderComponent={
+            canView && hierarchyLoadError && currentAssets.length > 0 ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={() => loadAssetChildren(0)}
               />
-            ))}
-          {canView &&
-            !currentAssets.length &&
-            loadingGet &&
-            !hierarchyLoadError && (
+            ) : null
+          }
+          ListEmptyComponent={
+            !canView ? (
+              <AsyncStateFeedback
+                mode="permissionDenied"
+                message={t('permission_denied_message', {
+                  permission: t('assets')
+                })}
+              />
+            ) : loadingGet ? (
               <View
                 style={styles.loadingState}
                 accessibilityRole="progressbar"
@@ -547,11 +533,28 @@ export default function AssetsScreen({
                   {t('loading')}
                 </Text>
               </View>
-            )}
-          {canView &&
-            !currentAssets.length &&
-            !loadingGet &&
-            !hierarchyLoadError && (
+            ) : hierarchyLoadError ? (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+                accessibilityRole="alert"
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('asset_list_load_error')}
+                </Text>
+                <Button onPress={() => loadAssetChildren(0)}>
+                  {t('retry')}
+                </Button>
+              </View>
+            ) : (
               <View
                 style={[
                   styles.emptyState,
@@ -568,8 +571,23 @@ export default function AssetsScreen({
                   {t('no_assets_available')}
                 </Text>
               </View>
-            )}
-        </ScrollView>
+            )
+          }
+          ListFooterComponent={
+            loadMoreError ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={() => loadNextHierarchyPage(true)}
+              />
+            ) : loadingGet && currentAssets.length > 0 ? (
+              <ActivityIndicator
+                color={theme.colors.primary}
+                style={styles.loadingFooter}
+              />
+            ) : null
+          }
+        />
       )}
     </View>
   );

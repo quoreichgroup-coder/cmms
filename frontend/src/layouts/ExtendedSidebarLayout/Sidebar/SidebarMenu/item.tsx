@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState, useContext } from 'react';
+import { FC, ReactNode, useState, useContext, useEffect } from 'react';
 import { NavLink as RouterLink } from 'react-router-dom';
 import clsx from 'clsx';
 import { SidebarContext } from 'src/contexts/SidebarContext';
@@ -12,11 +12,12 @@ import {
   ListItem,
   TooltipProps,
   tooltipClasses,
-  styled
+  styled,
+  Popover
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import ExpandLessTwoToneIcon from '@mui/icons-material/ExpandLessTwoTone';
-import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 interface SidebarMenuItemProps {
   children?: ReactNode;
@@ -27,6 +28,7 @@ interface SidebarMenuItemProps {
   open?: boolean;
   active?: boolean;
   name: string;
+  inPopover?: boolean;
 }
 
 const TooltipWrapper = styled(({ className, ...props }: TooltipProps) => (
@@ -55,26 +57,113 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
   open: openParent,
   active,
   name,
+  inPopover = false,
   ...rest
 }) => {
   const [menuToggle, setMenuToggle] = useState<boolean>(openParent);
+  const submenuId = `sidebar-submenu-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   const { t }: { t: any } = useTranslation();
-  const { closeSidebar } = useContext(SidebarContext);
+  const { closeSidebar, desktopSidebarCollapsed } = useContext(SidebarContext);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const collapsedRail = desktopSidebarCollapsed && !inPopover;
+
+  useEffect(() => {
+    if (active) setMenuToggle(true);
+  }, [active]);
 
   const toggleMenu = (): void => {
     setMenuToggle((Open) => !Open);
   };
 
   if (children) {
+    if (collapsedRail) {
+      return (
+        <ListItem component="div" key={name} {...rest}>
+          <TooltipWrapper
+            title={badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)}
+            arrow
+            placement="right"
+          >
+            <Button
+              aria-label={
+                badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)
+              }
+              aria-expanded={Boolean(anchorEl)}
+              aria-controls={`${submenuId}-popover`}
+              onClick={(event) => setAnchorEl(event.currentTarget)}
+              startIcon={
+                Icon &&
+                (badge !== undefined && badge !== null ? (
+                  <Badge
+                    color="primary"
+                    badgeContent={badge === '' ? undefined : badge}
+                    variant={badge === '' ? 'dot' : 'standard'}
+                  >
+                    <Icon />
+                  </Badge>
+                ) : (
+                  <Icon />
+                ))
+              }
+              sx={{
+                width: '100%',
+                minWidth: 0,
+                minHeight: 44,
+                justifyContent: 'center',
+                px: 0,
+                '& .MuiButton-startIcon': { m: 0 },
+                '& .MuiButton-endIcon': { display: 'none' }
+              }}
+            />
+          </TooltipWrapper>
+          <Popover
+            id={`${submenuId}-popover`}
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            PaperProps={{
+              sx: { minWidth: 240, maxHeight: '75vh', overflowY: 'auto' }
+            }}
+          >
+            <div
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('a')) {
+                  setAnchorEl(null);
+                }
+              }}
+            >
+              {children}
+            </div>
+          </Popover>
+        </ListItem>
+      );
+    }
+
     return (
       <ListItem component="div" className="Mui-children" key={name} {...rest}>
         <Button
           className={clsx({ active: menuToggle })}
-          startIcon={Icon && <Icon />}
-          endIcon={
-            menuToggle ? <ExpandLessTwoToneIcon /> : <ExpandMoreTwoToneIcon />
+          aria-label={t(name)}
+          startIcon={
+            Icon &&
+            (badge !== undefined && badge !== null ? (
+              <Badge
+                color="primary"
+                badgeContent={badge === '' ? undefined : badge}
+                variant={badge === '' ? 'dot' : 'standard'}
+              >
+                <Icon />
+              </Badge>
+            ) : (
+              <Icon />
+            ))
           }
+          endIcon={menuToggle ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           onClick={toggleMenu}
+          aria-expanded={menuToggle}
+          aria-controls={submenuId}
           sx={{ textAlign: 'start' }}
         >
           {badgeTooltip ? (
@@ -92,22 +181,58 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
           )}
           {t(name)}
         </Button>
-        <Collapse in={menuToggle}>{children}</Collapse>
+        <Collapse id={submenuId} in={menuToggle}>
+          {children}
+        </Collapse>
       </ListItem>
     );
   }
 
-  return (
-    <ListItem component="div" key={name} {...rest}>
-      <Button
-        disableRipple
-        component={RouterLink}
-        onClick={closeSidebar}
-        to={link}
-        startIcon={Icon && <Icon />}
-      >
-        {t(name)}
-        {badgeTooltip ? (
+  const button = (
+    <Button
+      disableRipple
+      className={clsx({ active })}
+      component={RouterLink}
+      aria-current={active ? 'page' : undefined}
+      aria-label={
+        collapsedRail
+          ? badgeTooltip
+            ? `${t(name)}: ${badgeTooltip}`
+            : t(name)
+          : undefined
+      }
+      onClick={closeSidebar}
+      to={link}
+      startIcon={
+        Icon &&
+        (collapsedRail && badge !== undefined && badge !== null ? (
+          <Badge
+            color="primary"
+            badgeContent={badge === '' ? undefined : badge}
+            variant={badge === '' ? 'dot' : 'standard'}
+          >
+            <Icon />
+          </Badge>
+        ) : (
+          <Icon />
+        ))
+      }
+      sx={
+        collapsedRail
+          ? {
+              width: '100%',
+              minWidth: 0,
+              minHeight: 44,
+              justifyContent: 'center',
+              px: 0,
+              '& .MuiButton-startIcon': { m: 0 }
+            }
+          : undefined
+      }
+    >
+      {!collapsedRail && t(name)}
+      {!collapsedRail &&
+        (badgeTooltip ? (
           <TooltipWrapper title={badgeTooltip} arrow placement="right">
             {badge === '' ? (
               <Badge color="primary" variant="dot" />
@@ -119,8 +244,23 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
           <Badge color="primary" variant="dot" />
         ) : (
           <Badge badgeContent={badge} />
-        )}
-      </Button>
+        ))}
+    </Button>
+  );
+
+  return (
+    <ListItem component="div" key={name} {...rest}>
+      {collapsedRail ? (
+        <TooltipWrapper
+          title={badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)}
+          arrow
+          placement="right"
+        >
+          {button}
+        </TooltipWrapper>
+      ) : (
+        button
+      )}
     </ListItem>
   );
 };
@@ -128,6 +268,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
 SidebarMenuItem.propTypes = {
   children: PropTypes.node,
   active: PropTypes.bool,
+  inPopover: PropTypes.bool,
   link: PropTypes.string,
   icon: PropTypes.elementType,
   badge: PropTypes.string,

@@ -42,7 +42,7 @@ import {
   SortDirection
 } from '../../../models/owns/page';
 import { loadFilterFields, saveFilterFields } from '../../../utils/filter';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../components/form';
 import * as Yup from 'yup';
 import { IField } from '../type';
@@ -83,8 +83,8 @@ import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import CompanyFilter from '../WorkOrders/Filters/CompanyFilter';
 import EnumFilter from '../WorkOrders/Filters/EnumFilter';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
-import SignalCellularAltTwoToneIcon from '@mui/icons-material/SignalCellularAltTwoTone';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import SignalCellularAltOutlinedIcon from '@mui/icons-material/SignalCellularAltOutlined';
 import SearchInput from '../components/SearchInput';
 import WorkOrder from '../../../models/owns/workOrder';
 import { getWeekdays } from '../../../utils/dates';
@@ -95,7 +95,7 @@ import {
 } from '../../../i18n/i18n';
 import i18n from 'i18next';
 import Schedule from '../../../models/owns/schedule';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import { useExport } from '../../../hooks/useExport';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { getErrorMessage } from '../../../utils/api';
@@ -337,12 +337,22 @@ function PMs() {
     setOpenDrawer(true);
   };
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deletePreventiveMaintenance(id))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deletePreventiveMaintenance(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Preventive maintenance deletion was not confirmed'));
+      }
+    } catch (error) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(error);
+    }
   };
   const handleOpenUpdate = () => {
     setOpenUpdateModal(true);
@@ -1060,12 +1070,12 @@ function PMs() {
         >
           <Stack direction={'row'} alignSelf={'flex-end'} spacing={1} mt={1}>
             <IconButton onClick={handleOpenMenu} color="primary">
-              <MoreVertTwoToneIcon />
+              <MoreVertOutlinedIcon />
             </IconButton>
             {hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) && (
               <SplitButton
                 label={t('create_trigger')}
-                startIcon={<AddTwoToneIcon />}
+                startIcon={<AddOutlinedIcon />}
                 onMainClick={() => setOpenAddModal(true)}
                 sx={{ mt: 1, alignSelf: 'flex-end' }}
                 menuItems={[
@@ -1114,14 +1124,14 @@ function PMs() {
                   onChange={onFilterChange}
                   completeOptions={['NONE', 'LOW', 'MEDIUM', 'HIGH']}
                   fieldName="priority"
-                  icon={<SignalCellularAltTwoToneIcon />}
+                  icon={<SignalCellularAltOutlinedIcon />}
                 />
                 {user?.superAccountRelations?.length > 0 && (
                   <CompanyFilter
                     filterFields={criteria.filterFields}
                     onChange={onFilterChange}
                     superAccountRelations={user.superAccountRelations}
-                    icon={<BusinessTwoToneIcon />}
+                    icon={<BusinessOutlinedIcon />}
                   />
                 )}
                 <SearchInput onChange={debouncedQueryChange} />

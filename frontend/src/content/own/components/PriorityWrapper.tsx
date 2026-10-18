@@ -1,6 +1,7 @@
-import { Box, styled, Typography, useTheme } from '@mui/material';
+import { Box, styled, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { getPriorityLabel } from '../../../utils/formatters';
+import { qpmPriorityTokens } from '../../../theme/tokens';
 
 const LabelWrapper = styled(Box)(
   ({ theme }) => `
@@ -19,24 +20,15 @@ export default function PriorityWrapper(props: {
 }) {
   const { priority, withSuffix } = props;
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   if (!priority) return null;
+  const tokens = qpmPriorityTokens[priority] ?? qpmPriorityTokens.DEFAULT;
   return priority === 'NONE' ? (
     <Typography>{getPriorityLabel(priority, t)}</Typography>
   ) : (
     <LabelWrapper
       sx={{
-        background:
-          priority === 'LOW'
-            ? `${theme.colors.info.main}`
-            : priority === 'HIGH'
-            ? `${theme.colors.error.main}`
-            : `${theme.colors.warning.main}`,
-        color: `${theme.palette.getContrastText(
-          priority === 'HIGH'
-            ? theme.colors.info.dark
-            : theme.colors.success.dark
-        )}`
+        backgroundColor: tokens.background,
+        color: tokens.foreground
       }}
     >
       {t(priority)} {withSuffix ? t('priority') : null}

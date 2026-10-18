@@ -17,15 +17,15 @@ import {
   Typography,
   useTheme,
   CircularProgress,
-  ListItemIcon,
+  ListItemIcon
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import LockOpenTwoToneIcon from '@mui/icons-material/LockOpenTwoTone';
-import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
+import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { ApexOptions } from 'apexcharts';
-import PersonOutlineTwoToneIcon from '@mui/icons-material/PersonOutlineTwoTone';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
-import SwitchLeftTwoToneIcon from '@mui/icons-material/SwitchLeftTwoTone';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import SwitchLeftOutlinedIcon from '@mui/icons-material/SwitchLeftOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const DotLegend = styled('span')(
@@ -133,7 +133,6 @@ function HeaderUserbox() {
   const handleClose = (): void => {
     setOpen(false);
   };
-
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -266,7 +265,7 @@ function HeaderUserbox() {
               }}
             >
               <ListItemIcon>
-                <PersonOutlineTwoToneIcon />
+                <PersonOutlineIcon />
               </ListItemIcon>
               <ListItemText
                 primaryTypographyProps={{
@@ -274,7 +273,7 @@ function HeaderUserbox() {
                 }}
                 primary={t('my_account')}
               />
-              <ChevronRightTwoToneIcon
+              <ChevronRightIcon
                 sx={{
                   color: `${theme.colors.alpha.black[30]}`,
                   opacity: 0.8
@@ -295,7 +294,7 @@ function HeaderUserbox() {
               }}
             >
               <ListItemIcon>
-                <SwitchLeftTwoToneIcon />
+                <SwitchLeftOutlinedIcon />
               </ListItemIcon>
               <ListItemText
                 primaryTypographyProps={{
@@ -306,7 +305,7 @@ function HeaderUserbox() {
               {switchingAccount ? (
                 <CircularProgress size="1rem" />
               ) : (
-                <ChevronRightTwoToneIcon
+                <ChevronRightIcon
                   sx={{
                     color: `${theme.colors.alpha.black[30]}`,
                     opacity: 0.8
@@ -323,7 +322,7 @@ function HeaderUserbox() {
               }}
             >
               <ListItemIcon>
-                <SwitchLeftTwoToneIcon />
+                <SwitchLeftOutlinedIcon />
               </ListItemIcon>
               <ListItemText
                 primaryTypographyProps={{
@@ -341,7 +340,7 @@ function HeaderUserbox() {
               }}
             >
               <ListItemIcon>
-                <BusinessTwoToneIcon />
+                <BusinessOutlinedIcon />
               </ListItemIcon>
               <ListItemText
                 primaryTypographyProps={{
@@ -350,7 +349,7 @@ function HeaderUserbox() {
                 primary={t('my_company')}
               />
               <Box display="flex" alignItems="center">
-                <ChevronRightTwoToneIcon
+                <ChevronRightIcon
                   sx={{
                     ml: 1,
                     color: `${theme.colors.alpha.black[30]}`,
@@ -373,7 +372,7 @@ function HeaderUserbox() {
               primaryTypographyProps={{ variant: 'h5' }}
               primary={t('open_source_notices')}
             />
-            <ChevronRightTwoToneIcon
+            <ChevronRightIcon
               sx={{ color: `${theme.colors.alpha.black[30]}`, opacity: 0.8 }}
             />
           </MenuItem>
@@ -382,7 +381,6 @@ function HeaderUserbox() {
         {/*<Box m={1}>*/}
         {/*  <Box px={2} pt={1} pb={0.5} display="flex" alignItems="flex-start">*/}
         {/*    <Text color="warning">*/}
-        {/*      <MonetizationOnTwoToneIcon fontSize="large" />*/}
         {/*    </Text>*/}
         {/*    <Box ml={1}>*/}
         {/*      <Typography variant="h3">$14,264</Typography>*/}
@@ -401,7 +399,7 @@ function HeaderUserbox() {
         {/*<Divider />*/}
         <Box m={1}>
           <Button color="primary" fullWidth onClick={handleLogout}>
-            <LockOpenTwoToneIcon
+            <LockOpenOutlinedIcon
               sx={{
                 mr: 1
               }}

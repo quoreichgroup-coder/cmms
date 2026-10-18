@@ -13,8 +13,8 @@ import {
 } from '@mui/material';
 import { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import Meter from '../../../models/owns/meter';
 import Reading from '../../../models/owns/reading';
 import Form from '../components/form';
@@ -100,12 +100,12 @@ export default function MeterReadingHistory({
                   <Stack spacing={1} direction="row">
                     {hasEditPermission(PermissionEntity.METERS, meter) && (
                       <IconButton onClick={() => setEditingReading(reading)}>
-                        <EditTwoToneIcon color={'primary'} />
+                        <EditOutlinedIcon color={'primary'} />
                       </IconButton>
                     )}
                     {hasDeletePermission(PermissionEntity.METERS, meter) && (
                       <IconButton onClick={() => setDeletingReading(reading)}>
-                        <DeleteTwoToneIcon color="error" />
+                        <DeleteOutlinedIcon color="error" />
                       </IconButton>
                     )}
                   </Stack>

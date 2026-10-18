@@ -1,7 +1,6 @@
 import {
+  FlatList,
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   TouchableOpacity
 } from 'react-native';
@@ -9,7 +8,7 @@ import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getUsersMini } from '../../slices/user';
 import {
@@ -23,6 +22,7 @@ import {
 import { useAppTheme } from '../../custom-theme';
 import { getUserInitials } from '../../utils/displayers';
 import SelectionIndicator from '../../components/SelectionIndicator';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function SelectUsersModal({
   navigation,
@@ -32,9 +32,11 @@ export default function SelectUsersModal({
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { usersMini, loadingGet } = useSelector((state) => state.users);
+  const { usersMini } = useSelector((state) => state.users);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const selectedUsers = React.useMemo(
     () =>
@@ -66,9 +68,21 @@ export default function SelectUsersModal({
       });
   }, [selectedUsers, navigation, onChange, t]);
 
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await dispatch(getUsersMini());
+    } catch (_error) {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
-    dispatch(getUsersMini());
-  }, []);
+    void loadUsers();
+  }, [loadUsers]);
 
   const toggle = (id: number) => {
     if (multiple) {
@@ -97,106 +111,125 @@ export default function SelectUsersModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}
       />
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={loadingGet}
-            onRefresh={() => dispatch(getUsersMini())}
-          />
+      <FlatList
+        data={filteredUsers}
+        keyExtractor={(user) => String(user.id)}
+        refreshing={loading}
+        onRefresh={loadUsers}
+        ListHeaderComponent={
+          loadError && usersMini.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('an_error_occured')}
+              onRetry={() => void loadUsers()}
+            />
+          ) : null
         }
         style={{
           flex: 1,
           backgroundColor: theme.colors.background
         }}
-      >
-        {loadingGet && !usersMini.length ? (
-          <ActivityIndicator
-            animating
-            accessibilityLabel={t('loading')}
-            style={{ marginTop: 24 }}
-          />
-        ) : (
-          filteredUsers.map((user) => (
-            <TouchableOpacity
-              onPress={() => {
-                toggle(user.id);
-              }}
-              accessibilityRole={multiple ? 'checkbox' : 'button'}
-              accessibilityLabel={`${user.firstName} ${user.lastName}`}
-              accessibilityState={
-                multiple
-                  ? { checked: selectedIds.includes(user.id) }
-                  : undefined
-              }
-              key={user.id}
+        renderItem={({ item: user }) => (
+          <TouchableOpacity
+            onPress={() => {
+              toggle(user.id);
+            }}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityLabel={`${user.firstName} ${user.lastName}`}
+            accessibilityState={
+              multiple ? { checked: selectedIds.includes(user.id) } : undefined
+            }
+          >
+            <View
+              style={[styles.card, { backgroundColor: theme.colors.surface }]}
             >
-              <View
-                style={[styles.card, { backgroundColor: theme.colors.surface }]}
-              >
-                <View style={styles.cardRow}>
-                  {user.image ? (
-                    <Avatar.Image size={50} source={{ uri: user.image.url }} />
-                  ) : (
-                    <Avatar.Text
-                      size={50}
-                      label={getUserInitials(user)}
-                      style={{ backgroundColor: theme.colors.primaryContainer }}
-                    />
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="titleMedium" style={styles.cardTitle}>
-                          {`${user.firstName} ${user.lastName}`}
-                        </Text>
-                        <Text
-                          variant={'bodySmall'}
-                          style={{ color: theme.colors.onSurfaceVariant }}
-                        >{`#${user.id}`}</Text>
-                      </View>
-                      {multiple && (
-                        <SelectionIndicator
-                          checked={selectedIds.includes(user.id)}
-                          color={theme.colors.primary}
-                          uncheckedColor={theme.colors.controlOutline}
-                        />
-                      )}
+              <View style={styles.cardRow}>
+                {user.image ? (
+                  <Avatar.Image size={50} source={{ uri: user.image.url }} />
+                ) : (
+                  <Avatar.Text
+                    size={50}
+                    label={getUserInitials(user)}
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                  />
+                )}
+                <View style={{ flex: 1 }}>
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="titleMedium" style={styles.cardTitle}>
+                        {`${user.firstName} ${user.lastName}`}
+                      </Text>
+                      <Text
+                        variant={'bodySmall'}
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >{`#${user.id}`}</Text>
                     </View>
+                    {multiple && (
+                      <SelectionIndicator
+                        checked={selectedIds.includes(user.id)}
+                        color={theme.colors.primary}
+                        uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
                   </View>
                 </View>
               </View>
-            </TouchableOpacity>
-          ))
+            </View>
+          </TouchableOpacity>
         )}
-        {!loadingGet && filteredUsers.length === 0 && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              textAlign: 'center',
-              marginTop: 24,
-              color: theme.colors.onSurfaceVariant
-            }}
-          >
-            {usersMini.length ? t('no_results_found') : t('no_users_available')}
-          </Text>
-        )}
-        <Divider />
-        <Button
-          icon={'plus-circle'}
-          style={{ margin: 20 }}
-          mode={'contained'}
-          accessibilityLabel={t('invite_users')}
-          onPress={() => {
-            navigation.navigate('AddUser', { openedFromSelector: true });
-          }}
-        >
-          {t('invite_users')}
-        </Button>
-      </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            usersMini.length ? null : (
+              <ActivityIndicator
+                animating
+                accessibilityLabel={t('loading')}
+                style={{ marginTop: 24 }}
+              />
+            )
+          ) : loadError && usersMini.length === 0 ? (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('an_error_occured')}
+              onRetry={() => void loadUsers()}
+            />
+          ) : (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                textAlign: 'center',
+                marginTop: 24,
+                color: theme.colors.onSurfaceVariant
+              }}
+            >
+              {usersMini.length
+                ? t('no_results_found')
+                : t('no_users_available')}
+            </Text>
+          )
+        }
+        ListFooterComponent={
+          <>
+            <Divider />
+            <Button
+              icon={'plus-circle'}
+              style={{ margin: 20 }}
+              mode={'contained'}
+              accessibilityLabel={t('invite_users')}
+              onPress={() => {
+                navigation.navigate('AddUser', { openedFromSelector: true });
+              }}
+            >
+              {t('invite_users')}
+            </Button>
+          </>
+        }
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 }

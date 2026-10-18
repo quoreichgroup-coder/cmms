@@ -12,6 +12,7 @@ import {
 import {
   ActivityIndicator,
   Avatar,
+  Icon,
   IconButton,
   useTheme,
   Button
@@ -31,6 +32,7 @@ import { useMentions } from 'react-native-controlled-mentions';
 import { TriggersConfig } from 'react-native-controlled-mentions/dist/types/types';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../utils/api';
+import { qpmLayoutTokens } from '../theme/tokens';
 
 interface CommentItemProps {
   comment: Comment;
@@ -195,7 +197,7 @@ export default function CommentItem({
     <View
       style={{
         padding: 12,
-        borderRadius: 8,
+        borderRadius: qpmLayoutTokens.radius.card,
         backgroundColor: theme.colors.surface,
         borderWidth: highlighted ? 2 : 1,
         borderColor: highlighted
@@ -286,7 +288,7 @@ export default function CommentItem({
                     <View
                       style={{
                         backgroundColor: theme.colors.surface,
-                        borderRadius: 8,
+                        borderRadius: qpmLayoutTokens.radius.control,
                         elevation: 5,
                         shadowColor: theme.colors.shadow,
                         shadowOffset: { width: 0, height: 2 },
@@ -322,7 +324,7 @@ export default function CommentItem({
                     style={{
                       borderWidth: 1,
                       borderColor: theme.colors.outline,
-                      borderRadius: 4,
+                      borderRadius: qpmLayoutTokens.radius.control,
                       backgroundColor: theme.colors.surface,
                       color: theme.colors.onSurface
                     }}
@@ -385,7 +387,7 @@ export default function CommentItem({
                         style={{
                           width: 80,
                           height: 80,
-                          borderRadius: 4,
+                          borderRadius: qpmLayoutTokens.radius.control,
                           marginRight: 8
                         }}
                       />
@@ -403,12 +405,25 @@ export default function CommentItem({
                     alignItems: 'flex-start',
                     padding: 2,
                     backgroundColor: theme.colors.background,
-                    borderRadius: 4,
+                    borderRadius: qpmLayoutTokens.radius.control,
                     marginBottom: 4
                   }}
                   onPress={() => downloadFile(file.url, file.name)}
                 >
-                  <IconButton icon="file" size={20} />
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Icon
+                      source="file"
+                      size={20}
+                      color={theme.colors.onSurfaceVariant}
+                    />
+                  </View>
                   <Text style={{ flex: 1, minWidth: 0 }} numberOfLines={2}>
                     {file.name}
                   </Text>

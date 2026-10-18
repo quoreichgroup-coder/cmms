@@ -1,15 +1,15 @@
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 
 import { View } from '../../../components/Themed';
 import { RootStackScreenProps } from '../../../types';
 import { useDispatch, useSelector } from '../../../store';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Button, Dialog, IconButton, Portal, Text } from 'react-native-paper';
 import { SheetManager } from 'react-native-actions-sheet';
 import { deletePart, getPartDetails } from '../../../slices/part';
-import LoadingDialog from '../../../components/LoadingDialog';
+import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
 import PartDetails from './PartDetails';
 import { TabBar, TabView } from 'react-native-tab-view';
 import PartWorkOrders from './PartWorkOrders';
@@ -17,6 +17,8 @@ import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import PartAssets from './PartAssets';
 import PartFiles from './PartFiles';
 import { useAppTheme } from '../../../custom-theme';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
 
 export default function PartDetailsHome({
   navigation,
@@ -25,13 +27,21 @@ export default function PartDetailsHome({
   const { id, partProp } = route.params;
 
   const { t } = useTranslation();
-  const { partInfos, loadingGet } = useSelector((state) => state.parts);
+  const { partInfos } = useSelector((state) => state.parts);
   const part = partInfos[id]?.part ?? partProp;
   const dispatch = useDispatch();
   const theme = useAppTheme();
+  const { hasEditPermission, hasDeletePermission } = useAuth();
+  const canOpenPartActions = Boolean(
+    part &&
+      (hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) ||
+        hasDeletePermission(PermissionEntity.PARTS_AND_MULTIPARTS, part))
+  );
   const layout = useWindowDimensions();
   const [tabIndex, setTabIndex] = useState(0);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
+  const [loadingPart, setLoadingPart] = useState(!partProp);
+  const [partLoadError, setPartLoadError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -62,31 +72,43 @@ export default function PartDetailsHome({
     />
   );
 
+  const loadPart = useCallback(async () => {
+    if (partProp) return;
+    setLoadingPart(true);
+    setPartLoadError(false);
+    try {
+      await dispatch(getPartDetails(id));
+    } catch (_error) {
+      setPartLoadError(true);
+    } finally {
+      setLoadingPart(false);
+    }
+  }, [dispatch, id, partProp]);
+
   useEffect(() => {
-    if (!partProp) dispatch(getPartDetails(id));
-  }, [partProp]);
+    if (!partProp) void loadPart();
+  }, [loadPart, partProp]);
   useEffect(() => {
     navigation.setOptions({
       title: part?.name ?? t('loading'),
-      headerRight: () => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('more_options')}
-          onPress={() => {
-            SheetManager.show('part-details-sheet', {
-              payload: {
-                onEdit: () => navigation.navigate('EditPart', { part: part }),
-                onDelete: () => setOpenDelete(true),
-                part
-              }
-            });
-          }}
-        >
-          <IconButton icon="dots-vertical" />
-        </Pressable>
-      )
+      headerRight: () =>
+        canOpenPartActions && part ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('part-details-sheet', {
+                payload: {
+                  onEdit: () => navigation.navigate('EditPart', { part }),
+                  onDelete: () => setOpenDelete(true),
+                  part
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [part]);
+  }, [canOpenPartActions, navigation, part, t]);
 
   const onDeleteSuccess = () => {
     showSnackBar(t('part_delete_success'), 'success');
@@ -141,6 +163,13 @@ export default function PartDetailsHome({
     return (
       <View style={styles.container}>
         {renderConfirmDelete()}
+        {partLoadError && (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('part_details_load_error')}
+            onRetry={() => void loadPart()}
+          />
+        )}
         <TabView
           renderTabBar={renderTabBar}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -150,7 +179,16 @@ export default function PartDetailsHome({
         />
       </View>
     );
-  else return <LoadingDialog visible={true} />;
+  else if (loadingPart)
+    return <AsyncStateFeedback mode="loading" message={t('please_wait')} />;
+  else
+    return (
+      <AsyncStateFeedback
+        mode="error"
+        message={t('part_details_load_error')}
+        onRetry={() => void loadPart()}
+      />
+    );
 }
 
 const styles = StyleSheet.create({

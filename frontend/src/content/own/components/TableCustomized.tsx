@@ -30,7 +30,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import BulkActions, { BulkAction } from '../Settings/Roles/BulkActions';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { useSnackbar } from 'notistack';
 import { TableCustomizedColumnType, TableCustomizedDataType } from '../type';
 import { OverridableStringUnion } from '@mui/types';
@@ -254,7 +254,7 @@ const TableCustomized: FC<TableCustomizedProps> = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchTwoToneIcon />
+                  <SearchOutlinedIcon />
                 </InputAdornment>
               )
             }}

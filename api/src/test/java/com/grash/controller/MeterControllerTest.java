@@ -351,7 +351,7 @@ class MeterControllerTest extends AbstractControllerTest {
         void getByAsset_withoutMeterPermission_returns403BeforeReadingMeters() throws Exception {
             User assetsOnlyUser = new User();
             assetsOnlyUser.setId(4L);
-            assetsOnlyUser.setCompany(company);
+            assetsOnlyUser.setCompany(clientUser.getCompany());
             assetsOnlyUser.setRole(Role.builder()
                     .id(4L)
                     .roleType(RoleType.ROLE_CLIENT)

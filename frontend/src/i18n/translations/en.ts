@@ -307,8 +307,12 @@ const locale = {
   list_view: 'List View',
   calendar_view: 'Calendar View',
   column_view: 'Column View',
+  column_view_page_scope:
+    'Column counts reflect the displayed page ({{from}}–{{to}} of {{count}} work orders).',
   wo_create_success: 'The Work Order has been created successfully',
   wo_create_failure: "The Work Order couldn't be created",
+  wo_close_success: 'The Work Order was closed successfully',
+  wo_status_change_success: 'The Work Order status was updated',
   changes_saved_success: 'The changes have been saved',
   wo_update_failure: "The Work Order couldn't be edited",
   wo_delete_success: 'The Work Order has been deleted successfully',
@@ -434,6 +438,9 @@ const locale = {
   cancelled: 'Cancelled',
   reject: 'Reject',
   approve: 'Approve',
+  confirm_request_approval: 'Approve this request?',
+  confirm_request_approval_message:
+    'A work order will be created from this request. Continue?',
   request_create_success: 'Work Order successfully requested',
   request_create_failure: "The Work Request couldn't be created",
   request_edit_failure: "The Request couldn't be edited",
@@ -471,6 +478,12 @@ const locale = {
   down: 'Down',
   area: 'Area',
   barcode: 'Barcode',
+  nfc_tag: 'NFC Tag',
+  nfc_web_assignment_help:
+    'Enter the tag identifier read by the mobile app. Web browsers cannot read NFC tags directly.',
+  download_asset_qr: 'Download equipment QR code',
+  print_asset_label: 'Print asset label',
+  asset_label_scan_hint: 'Scan with the QPM mobile app to open this asset.',
   placed_in_service: 'Placed in Service',
   warranty_expiration: 'Warranty expiration',
   asset_information: 'Asset Information',
@@ -480,6 +493,8 @@ const locale = {
   create_downtime_success: 'The Downtime has been added successfully',
   create_downtime_failure: "The Downtime couldn't be added",
   edit_downtime_success: 'The Downtime has been edited successfully',
+  downtime_delete_success: 'The Downtime has been removed successfully',
+  downtime_delete_failure: "The Downtime couldn't be removed",
   started_on: 'Started On',
   required_startsOn: 'The start date is required',
   reading_create_success: 'The Reading has been added successfully',
@@ -676,6 +691,8 @@ const locale = {
   po_create_success: 'The Purchase Request has been created successfully',
   select_one_part: 'Select at least 1 part ',
   po_create_failure: "The Purchase Request couldn't be created",
+  po_create_partial_failure:
+    'The purchase order was created, but saving its parts or approval failed. Review the order and complete the missing step.',
   approve_while_submitting: 'Approve while submitting',
   invalid_fax: 'The fax number is invalid',
   submit: 'Submit',
@@ -1350,6 +1367,8 @@ const locale = {
   'noRows.asset.action': "Press the '+' button to create a new Asset.",
   reset_filters: 'Reset Filters',
   toggle_menu: 'Toggle Menu',
+  collapse_sidebar: 'Collapse sidebar',
+  expand_sidebar: 'Expand sidebar',
   no_results: 'No results found',
   an_error_occured: 'An error occurred.',
   density: 'Density',
@@ -1566,6 +1585,10 @@ const locale = {
   import_error: "The import didn't succeed",
   request_upgrade: 'Request upgrade',
   operation_success: 'The operation is a success',
+  purchase_order_approved: 'Purchase order approved successfully',
+  purchase_order_rejected: 'Purchase order rejected successfully',
+  po_edit_partial_failure:
+    'Purchase order details were saved, but its part quantities were not. Review the lines before leaving this page.',
   CANCELLED: 'Rejected',
   uptime_hours: 'Uptime(h)',
   downtime_hours: 'Downtime(h)',
@@ -1648,6 +1671,7 @@ const locale = {
   EMERGENCY_SHUTDOWN: 'Emergency Shutdown',
   select_asset_status: 'Select asset status',
   asset_status: 'Asset status',
+  view_request_image: 'View request image',
   ui_configuration: 'UI configuration',
   password_leave_empty_if_you_dont_want_to_change:
     "Password - leave empty if you don't want to change it",
@@ -2002,6 +2026,86 @@ const locale = {
   api_keys: 'API Keys',
   connectors: 'Connectors',
   webhooks: 'Webhooks',
+  connectors_overview_description:
+    'Manage the integration methods currently available in QPM. This overview does not imply that an external system is connected.',
+  connector_api_keys_description:
+    'Create and manage API credentials for authorized systems that need to access QPM.',
+  connector_webhooks_description:
+    'Configure webhook endpoints and select the QPM events they should receive.',
+  integration_available: 'Available in QPM',
+  manage_integration: 'Manage',
+  integration_hub_description:
+    'Connect QPM maintenance events to the tools your teams already use, with a clear path from notification to controlled write-back.',
+  integration_hub_security_note:
+    'QPM does not store external tool credentials here. API keys inherit the permissions of their owner account and have no independent scopes. Do not use an administrator key in an external workflow.',
+  integration_external_workflows: 'External workflows',
+  integration_external_workflows_description:
+    'Start with guided recipes using QPM webhooks and the existing API.',
+  integration_recipes_title: 'Maintenance workflow recipes',
+  integration_recipes_description:
+    'Choose an actual QPM event, then configure its destination in your external workflow tool.',
+  integration_recipe_work_orders_title: 'Work order updates',
+  integration_recipe_work_orders_description:
+    'Notify a team when a work order is created or its status changes. The notification does not approve or close the order.',
+  integration_recipe_requests_title: 'Request triage',
+  integration_recipe_requests_description:
+    'Send new requests and decision changes to an external triage queue while keeping approval in QPM.',
+  integration_recipe_parts_title: 'Part changes',
+  integration_recipe_parts_description:
+    'Notify the storeroom when a part quantity or record changes. This flow does not automatically place a purchase.',
+  integration_recipe_configure: 'Configure QPM events',
+  integration_recipes_security_note:
+    'Before automating, verify the webhook HMAC signature in the receiving tool. Do not treat an event as authorization to approve, close, or purchase.',
+  integration_available_via_webhooks: 'Configure with QPM webhooks',
+  integration_recipe_available: 'Setup guide',
+  integration_planned: 'Roadmap',
+  integration_power_automate_title: 'Power Automate and Teams',
+  integration_power_automate_description:
+    'Route work order alerts and maintenance requests to Teams through a Power Automate workflow.',
+  integration_n8n_title: 'n8n',
+  integration_n8n_description:
+    'Build self-hosted maintenance workflows from signed QPM events and authorized API actions.',
+  integration_sap_title: 'SAP EAM / PM',
+  integration_sap_description:
+    'A SAP pilot can start with read-only discovery through your company middleware; QPM does not yet provide a direct connector.',
+  integration_calendar_title: 'Microsoft and Google Calendar',
+  integration_calendar_description:
+    'Calendar publishing needs OAuth, server-side token storage and sync handling.',
+  integration_open_setup: 'Open setup guide',
+  integration_backend_prerequisite:
+    'Direct connection requires a future backend integration.',
+  integration_qpm_tools_title: 'QPM integration tools',
+  integration_qpm_tools_description:
+    'Manage the API credentials and event subscriptions used by integrations.',
+  integration_tools_not_provider_connections:
+    'QPM tools · not provider connections',
+  integration_setup_title: 'Set up {{provider}}',
+  integration_step_external: 'Prepare tool',
+  integration_step_qpm: 'Configure QPM',
+  integration_step_verify: 'Verify flow',
+  integration_step_external_desc:
+    'Create a workflow in the external platform with an HTTPS webhook trigger. Choose the maintenance events and channel or destination that match your team process.',
+  integration_step_external_n8n_note:
+    'n8n provides separate test and production webhook URLs. Use the production URL after activating the workflow; keep credentials in n8n.',
+  integration_open_provider_docs: 'Read the provider documentation',
+  integration_step_qpm_desc:
+    'Create a QPM webhook endpoint for the workflow URL and select only the events it needs. QPM signs webhook deliveries; keep the signing secret private.',
+  integration_step_qpm_note:
+    'Use a dedicated endpoint and limit subscriptions to required events. The receiver must verify the HMAC signature before processing. Teams Workflows does not verify QPM signatures automatically, so add a verification step. Do not place sensitive data in public channels.',
+  integration_step_verify_desc:
+    'Trigger a real, non-critical QPM event and check the receiving workflow execution history. Confirm that the expected fields arrive and are handled safely.',
+  integration_step_verify_note:
+    'QPM currently does not expose a durable delivery history, retry or replay action on this page. This guide does not mark a connection as verified.',
+  integration_writeback_title: 'When the workflow must update QPM',
+  integration_writeback_desc:
+    'A QPM API key inherits its owner account permissions and cannot have a narrower independent scope. If your identity policy allows it, use an integration account with the narrowest available role, set an expiry, and keep the key in the external tool credential vault. Never expose it in browser code or shared logs.',
+  webhook_event_dispatch_note:
+    'Only events currently emitted by QPM are listed. Events without an active dispatcher cannot send deliveries.',
+  integration_create_webhook: 'Configure QPM webhook',
+  integration_create_api_key: 'Manage API keys',
+  integration_previous: 'Back',
+  integration_continue: 'Continue',
+  integration_done: 'Done',
   create_api_key: 'Create API Key',
   api_key_label: 'API Key Label',
   api_key_created_success: 'API Key created successfully',
@@ -2025,6 +2129,8 @@ const locale = {
   expired: 'Expired',
   revoked: 'Revoked',
   upgrade_api: 'Upgrade to get access to the API, connectors, and webhooks',
+  license_authority_unavailable:
+    'The licensing service is unavailable. Try again in a moment.',
   // Webhooks
   webhook_endpoints: 'Webhook Endpoints',
   create_webhook_endpoint: 'Create Webhook Endpoint',
@@ -2054,6 +2160,10 @@ const locale = {
   webhook_endpoint_rotate_secret: 'Rotate Secret',
   webhook_endpoint_secret_rotated: 'Secret rotated successfully',
   webhook_endpoint_secret_copied: 'Secret copied to clipboard',
+  webhook_endpoint_secret_view_once:
+    'Store this signing secret securely now. It will not be shown again.',
+  webhook_endpoint_rotate_confirm:
+    'Rotating this secret immediately invalidates the current one. Update your receiving service after rotation.',
   webhook_endpoint_last_triggered: 'Last Triggered',
   webhook_endpoint_never_triggered: 'Never triggered',
   webhook_endpoint_type: 'Type',
@@ -2131,6 +2241,13 @@ const locale = {
   view_other: 'View other',
   view_other_hint: '"View other" means view something created by someone else',
   go_to_billing: 'Go to Billing',
+  allow_popups_to_export: 'Allow pop-ups to download the export.',
+  preparing_export: 'Preparing your export…',
+  invalid_export_download_url: 'The export returned an invalid download link.',
+  allow_popups_to_continue: 'Allow pop-ups to open the billing portal.',
+  opening_billing_portal: 'Opening the billing portal…',
+  invalid_billing_portal_url: 'The billing portal returned an invalid link.',
+  billing_portal_open_error: 'Could not open the billing portal.',
   import_from_spreadsheet: 'Import from a spreadsheet or CSV',
   reset: 'Reset',
   confirm_delete_row: 'Are you sure you want to delete this row?',
@@ -2160,6 +2277,8 @@ const locale = {
   all_users: 'All Users',
   all_companies: 'All Companies',
   team_member: 'Team Member',
+  workload_edit_shift_aria: 'Edit shift configuration for {{user}}',
+  workload_open_order_aria: 'Open {{customId}}: {{title}}',
   no_data: 'No data',
   hours_left: 'left',
   export_cost_and_time: 'Export cost and time',
@@ -2301,7 +2420,56 @@ const locale = {
     'preventive maintenance reminder days',
   'configuration_field.autoGenerateAssetBarcode': 'automatic asset barcode',
   'configuration_field.csvSeparator': 'CSV separator',
-  'configuration_field.profile': 'profile'
+  'configuration_field.profile': 'profile',
+  first_page: 'First page',
+  previous_page: 'Previous page',
+  next_page: 'Next page',
+  last_page: 'Last page',
+  pagination_displayed_rows: '{{from}}–{{to}} of {{count}}',
+  pagination_displayed_rows_unknown: '{{from}}–{{to}} of more than {{to}}',
+  pagination: 'Pagination',
+  maintenance_dashboard: 'Maintenance dashboard',
+  maintenance_dashboard_subtitle:
+    'Operational performance from the work-order analytics currently available.',
+  current_iso_week: 'Current ISO week',
+  last_30_days: 'Last 30 days',
+  dashboard_data_scoped_to_permissions:
+    'Results follow your account permissions and selected company.',
+  work_orders_in_period: 'Work orders in period',
+  created_in_selected_period: 'Created in selected period',
+  work_order_completion_ratio: 'Work-order completion ratio',
+  completed_over_created_in_period:
+    '{{complete}} completed of {{total}} created',
+  completed_work_order_compliance: 'Completed work-order compliance',
+  compliant_orders_count: '{{compliant}} compliant of {{complete}} completed',
+  open_work_order_backlog: 'Open work-order backlog',
+  average_age_days: 'Average age: {{age}} days',
+  work_order_status_trend: 'Work-order status trend',
+  status_trend_selected_period: 'Status counts across the selected period',
+  dashboard_status_chart_accessible_summary:
+    'Latest displayed sample: {{date}}. Open {{open}}, in progress {{inProgress}}, on hold {{onHold}}, complete {{complete}}.',
+  no_data_for_period: 'No data is available for this period.',
+  maintenance_cost: 'Maintenance cost',
+  completed_work_orders_created_in_period:
+    'Completed orders created in the selected period',
+  maintenance_cost_trend: 'Maintenance cost trend',
+  dashboard_cost_chart_accessible_summary:
+    'Total across {{periodCount}} displayed dates: {{total}}.',
+  labor_cost: 'Labor',
+  parts_cost: 'Parts',
+  additional_cost: 'Additional',
+  labor_hours: 'Labor hours',
+  estimated_vs_recorded_hours: 'Estimated time compared with recorded time',
+  recorded_hours: 'Recorded hours',
+  not_capacity_utilization_note:
+    'Recorded hours are not the same as workforce capacity utilization.',
+  dashboard_data_boundaries_title: 'KPI data boundaries',
+  dashboard_data_boundaries_body:
+    'The current APIs do not provide frozen-plan deadlines, release-date classification, maintenance-plan compliance, shift capacity, notification backlog, budget targets or work-center dimensions. No values are estimated for those measures. Backlog aging color is based on the returned average age only ({{aging}}).',
+  critical: 'over 30 days',
+  attention: '8–30 days',
+  within_target: '0–7 days',
+  open_work_order_analytics: 'Open work-order analytics'
 };
 
 export default locale;

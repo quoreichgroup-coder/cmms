@@ -1,4 +1,4 @@
-import { Linking, ScrollView, StyleSheet } from 'react-native';
+import { FlatList, Linking, StyleSheet } from 'react-native';
 import LoadingDialog from '../../components/LoadingDialog';
 import * as React from 'react';
 import { useCallback, useContext, useEffect, useState } from 'react';
@@ -138,82 +138,86 @@ export default function TeamDetails({
     );
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.content}
-    >
+    <>
       {renderConfirmDelete()}
-      <View
-        style={[
-          styles.teamSummary,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.outlineVariant
-          }
-        ]}
-      >
-        <Text
-          variant="titleLarge"
-          style={{ color: theme.colors.onSurface, fontWeight: '700' }}
-        >
-          {team.name}
-        </Text>
-        {team.description ? (
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
+      <FlatList
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+        contentContainerStyle={styles.content}
+        data={team.users ?? []}
+        keyExtractor={(user) => String(user.id)}
+        ListHeaderComponent={
+          <View
+            style={[
+              styles.teamSummary,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
           >
-            {team.description}
-          </Text>
-        ) : null}
-        <Text variant="labelLarge" style={{ color: theme.colors.primary }}>
-          {t('team_members_count', { count: team.users?.length ?? 0 })}
-        </Text>
-      </View>
-      {(team.users ?? []).map((user) => (
-        <DirectoryCard
-          key={user.id}
-          title={`${user.firstName} ${user.lastName}`}
-          icon="account-outline"
-          avatarSource={user.image ? { uri: user.image.url } : undefined}
-          accessibilityLabel={`${user.firstName} ${user.lastName}${
-            user.phone ? `, ${user.phone}` : ''
-          }`}
-          details={
-            user.phone
-              ? [{ label: user.phone, icon: 'phone-outline' as const }]
-              : []
-          }
-          trailingAction={
-            user.phone
-              ? {
-                  icon: 'phone' as const,
-                  label: `${t('phone')} ${user.firstName} ${user.lastName}`,
-                  onPress: () => Linking.openURL(`tel:${user.phone}`)
-                }
-              : undefined
-          }
-          onPress={() => {
-            navigation.push('UserDetails', { id: user.id });
-          }}
-        />
-      ))}
-      {!team.users?.length && (
-        <View
-          style={[
-            styles.emptyState,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineVariant
+            <Text
+              variant="titleLarge"
+              style={{ color: theme.colors.onSurface, fontWeight: '700' }}
+            >
+              {team.name}
+            </Text>
+            {team.description ? (
+              <Text
+                variant="bodyMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {team.description}
+              </Text>
+            ) : null}
+            <Text variant="labelLarge" style={{ color: theme.colors.primary }}>
+              {t('team_members_count', { count: team.users?.length ?? 0 })}
+            </Text>
+          </View>
+        }
+        renderItem={({ item: user }) => (
+          <DirectoryCard
+            title={`${user.firstName} ${user.lastName}`}
+            icon="account-outline"
+            avatarSource={user.image ? { uri: user.image.url } : undefined}
+            accessibilityLabel={`${user.firstName} ${user.lastName}${
+              user.phone ? `, ${user.phone}` : ''
+            }`}
+            details={
+              user.phone
+                ? [{ label: user.phone, icon: 'phone-outline' as const }]
+                : []
             }
-          ]}
-        >
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>
-            {t('no_element_match_criteria')}
-          </Text>
-        </View>
-      )}
-    </ScrollView>
+            trailingAction={
+              user.phone
+                ? {
+                    icon: 'phone' as const,
+                    label: `${t('phone')} ${user.firstName} ${user.lastName}`,
+                    onPress: () => Linking.openURL(`tel:${user.phone}`)
+                  }
+                : undefined
+            }
+            onPress={() => {
+              navigation.push('UserDetails', { id: user.id });
+            }}
+          />
+        )}
+        ListEmptyComponent={
+          <View
+            style={[
+              styles.emptyState,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineVariant
+              }
+            ]}
+          >
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+              {t('no_element_match_criteria')}
+            </Text>
+          </View>
+        }
+      />
+    </>
   );
 }
 

@@ -19,8 +19,8 @@ import {
   Typography,
   Zoom
 } from '@mui/material';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
-import PlaylistAddCheckTwoToneIcon from '@mui/icons-material/PlaylistAddCheckTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import PlaylistAddCheckOutlinedIcon from '@mui/icons-material/PlaylistAddCheckOutlined';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DropResult } from 'react-beautiful-dnd';
@@ -318,7 +318,7 @@ export default function SelectTasks({
               ))}
             </Tabs>
             <Box>
-              <Button onClick={addTask} startIcon={<AddTwoToneIcon />}>
+              <Button onClick={addTask} startIcon={<AddOutlinedIcon />}>
                 {action || saveAsChecklist
                   ? t('add_task_list_operation')
                   : t('task')}
@@ -333,7 +333,7 @@ export default function SelectTasks({
                 <span>
                   <Button
                     disabled={!hasFeature(PlanFeature.CHECKLIST)}
-                    startIcon={<AddTwoToneIcon />}
+                    startIcon={<AddOutlinedIcon />}
                     onClick={() => setOpenChecklist((current) => !current)}
                   >
                     {t('checklist')}
@@ -341,7 +341,7 @@ export default function SelectTasks({
                   {!action && hasFeature(PlanFeature.CHECKLIST) && (
                     <Button
                       color="secondary"
-                      startIcon={<PlaylistAddCheckTwoToneIcon />}
+                      startIcon={<PlaylistAddCheckOutlinedIcon />}
                       onClick={() => {
                         const next = !saveAsChecklist;
                         setSaveAsChecklist(next);

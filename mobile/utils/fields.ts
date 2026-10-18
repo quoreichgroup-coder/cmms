@@ -1,10 +1,6 @@
-import { Platform } from 'react-native';
 import { IField } from '../models/form';
 import { formatSelect, formatSelectMultiple } from './formatters';
 import { isTask } from '../models/tasks';
-
-// iOS build must ignore NFC-specific fields and logic.
-const isIos = Platform.OS === 'ios';
 
 export const getWorkOrderFields = (t): IField[] => {
   return [
@@ -219,15 +215,11 @@ export const getAssetFields = (t): Array<IField> => {
       type: 'barcode',
       label: t('barcode')
     },
-    ...(!isIos
-      ? [
-          {
-            name: 'nfcId',
-            type: 'nfc' as const,
-            label: t('nfc_tag')
-          }
-        ]
-      : []),
+    {
+      name: 'nfcId',
+      type: 'nfc',
+      label: t('nfc_tag')
+    },
     {
       name: 'category',
       midWidth: true,
@@ -268,7 +260,7 @@ export const getAssetFields = (t): Array<IField> => {
       type2: 'user',
       multiple: true,
       label: t('additional_workers'),
-      placeholder: 'additional_workers_description'
+      placeholder: t('additional_workers_description')
     },
     {
       name: 'teams',
@@ -276,7 +268,7 @@ export const getAssetFields = (t): Array<IField> => {
       type2: 'team',
       multiple: true,
       label: t('teams'),
-      placeholder: 'Select teams'
+      placeholder: t('select_teams')
     },
     {
       name: 'moreInfos',
@@ -289,7 +281,7 @@ export const getAssetFields = (t): Array<IField> => {
       type2: 'customer',
       multiple: true,
       label: t('customers'),
-      placeholder: 'customers_description'
+      placeholder: t('customers_description')
     },
     {
       name: 'vendors',
@@ -408,7 +400,7 @@ export const getLocationFields = (t): IField[] => {
       type: 'select',
       type2: 'team',
       label: t('teams'),
-      placeholder: 'Select teams'
+      placeholder: t('select_teams')
     },
     {
       name: 'vendors',
@@ -416,7 +408,7 @@ export const getLocationFields = (t): IField[] => {
       type: 'select',
       type2: 'vendor',
       label: t('vendors'),
-      placeholder: 'Select vendors'
+      placeholder: t('select_vendors')
     },
     {
       name: 'customers',
@@ -424,7 +416,7 @@ export const getLocationFields = (t): IField[] => {
       type: 'select',
       type2: 'customer',
       label: t('customers'),
-      placeholder: 'Select customers'
+      placeholder: t('select_customers')
     },
     {
       name: 'image',
@@ -600,7 +592,7 @@ export const getPartFields = (t): IField[] => {
       type2: 'user',
       multiple: true,
       label: t('workers'),
-      placeholder: 'Select Workers'
+      placeholder: t('select_workers')
     },
     {
       name: 'teams',
@@ -608,7 +600,7 @@ export const getPartFields = (t): IField[] => {
       type2: 'team',
       multiple: true,
       label: t('teams'),
-      placeholder: 'Select Teams'
+      placeholder: t('select_teams')
     },
     {
       name: 'vendors',
@@ -616,7 +608,7 @@ export const getPartFields = (t): IField[] => {
       type2: 'vendor',
       multiple: true,
       label: t('vendors'),
-      placeholder: 'Select Vendors'
+      placeholder: t('select_vendors')
     },
     {
       name: 'customers',
@@ -624,7 +616,7 @@ export const getPartFields = (t): IField[] => {
       type2: 'customer',
       multiple: true,
       label: t('customers'),
-      placeholder: 'Select Customers'
+      placeholder: t('select_customers')
     },
     {
       name: 'image',

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -18,8 +19,8 @@ import {
   GridValueGetterParams
 } from '@mui/x-data-grid';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { AssetDTO } from '../../../../models/owns/asset';
 import { useDispatch, useSelector } from '../../../../store';
 import { editAsset } from '../../../../slices/asset';
@@ -30,8 +31,8 @@ import {
   deleteAssetDowntime,
   getAssetDowntimes
 } from '../../../../slices/assetDowntime';
-import { useContext, useEffect, useState } from 'react';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import { useContext, useEffect, useRef, useState } from 'react';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import AssetStatusSelect from '../components/AssetStatusSelect';
 import Form from '../../components/form';
 import * as Yup from 'yup';
@@ -44,6 +45,7 @@ import {
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import AssetDowntime from '../../../../models/owns/assetDowntime';
 import { getErrorMessage } from '../../../../utils/api';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface PropsType {
   asset: AssetDTO;
@@ -58,19 +60,55 @@ const AssetDowntimes = ({ asset }: PropsType) => {
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
   const [openEditModal, setOpenEditModal] = useState<boolean>(false);
   const [currentDowntime, setCurrentDowntime] = useState<AssetDowntime>();
+  const [downtimeToDelete, setDowntimeToDelete] = useState<number | null>(null);
+  const deleteInProgressRef = useRef(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (asset) {
-      setLoading(true);
-      dispatch(getAssetDowntimes(asset.id)).finally(() => setLoading(false));
+    if (!asset?.id) return undefined;
+
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+    dispatch(getAssetDowntimes(asset.id))
+      .catch((error) => {
+        if (active) {
+          setLoadError(getErrorMessage(error, t('an_error_occured')));
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [asset?.id, dispatch, reloadKey, t]);
+  const handleDelete = async () => {
+    if (
+      downtimeToDelete === null ||
+      deleteInProgressRef.current ||
+      !hasDeletePermission(PermissionEntity.ASSETS, asset)
+    ) {
+      return;
     }
-  }, [asset]);
-  const handleDelete = (id: number) => {
-    if (window.confirm(t('confirm_delete_asset_downtime'))) {
-      dispatch(deleteAssetDowntime(asset.id, id));
+
+    deleteInProgressRef.current = true;
+    try {
+      await dispatch(deleteAssetDowntime(asset.id, downtimeToDelete));
+      setDowntimeToDelete(null);
+      showSnackBar(t('downtime_delete_success'), 'success');
+    } catch (error) {
+      showSnackBar(
+        getErrorMessage(error, t('downtime_delete_failure')),
+        'error'
+      );
+    } finally {
+      deleteInProgressRef.current = false;
     }
   };
   const onCreationSuccess = () => {
@@ -126,21 +164,27 @@ const AssetDowntimes = ({ asset }: PropsType) => {
       headerName: t('actions'),
       description: t('actions'),
       getActions: (params: GridRowParams) => {
-        let actions = [
-          <GridActionsCellItem
-            key="edit"
-            icon={<EditTwoToneIcon fontSize="small" color="primary" />}
-            onClick={() => handleEdit(Number(params.id))}
-            label={t('edit_downtime')}
-          />,
-          <GridActionsCellItem
-            key="delete"
-            icon={<DeleteTwoToneIcon fontSize="small" color="error" />}
-            onClick={() => handleDelete(Number(params.id))}
-            label={t('remove_downtime')}
-          />
-        ];
-        if (!hasEditPermission(PermissionEntity.ASSETS, asset)) actions = [];
+        const actions: JSX.Element[] = [];
+        if (hasEditPermission(PermissionEntity.ASSETS, asset)) {
+          actions.push(
+            <GridActionsCellItem
+              key="edit"
+              icon={<EditOutlinedIcon fontSize="small" color="primary" />}
+              onClick={() => handleEdit(Number(params.id))}
+              label={t('edit_downtime')}
+            />
+          );
+        }
+        if (hasDeletePermission(PermissionEntity.ASSETS, asset)) {
+          actions.push(
+            <GridActionsCellItem
+              key="delete"
+              icon={<DeleteOutlinedIcon fontSize="small" color="error" />}
+              onClick={() => setDowntimeToDelete(Number(params.id))}
+              label={t('remove_downtime')}
+            />
+          );
+        }
         return actions;
       }
     }
@@ -268,12 +312,24 @@ const AssetDowntimes = ({ asset }: PropsType) => {
     </Dialog>
   );
   return (
-    <Box sx={{ px: 4 }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 4 } }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Card sx={{ p: 2 }}>
-            <Box sx={{ height: 550, width: '95%' }}>
-              <Stack direction="row" justifyContent="space-between" py={3}>
+          <Card sx={{ p: { xs: 1, sm: 2 }, minWidth: 0 }}>
+            <Box
+              sx={{
+                height: { xs: 420, sm: 550 },
+                width: '100%',
+                minWidth: 0
+              }}
+            >
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                spacing={2}
+                justifyContent="space-between"
+                py={{ xs: 1, sm: 3 }}
+              >
                 <AssetStatusSelect
                   value={asset?.status ?? 'OPERATIONAL'}
                   onChange={(status) => {
@@ -288,7 +344,7 @@ const AssetDowntimes = ({ asset }: PropsType) => {
                 />
                 {hasEditPermission(PermissionEntity.ASSETS, asset) && (
                   <Button
-                    startIcon={<AddTwoToneIcon />}
+                    startIcon={<AddOutlinedIcon />}
                     variant="contained"
                     onClick={() => setOpenAddModal(true)}
                   >
@@ -296,26 +352,50 @@ const AssetDowntimes = ({ asset }: PropsType) => {
                   </Button>
                 )}
               </Stack>
-              <CustomDataGrid
-                columns={columns}
-                rows={downtimes.filter((downtime) => downtime.duration)}
-                components={{
-                  Toolbar: GridToolbar
-                }}
-                onRowClick={(params) => null}
-                initialState={{
-                  columns: {
-                    columnVisibilityModel: {}
+              {loadError ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => setReloadKey((key) => key + 1)}
+                    >
+                      {t('retry')}
+                    </Button>
                   }
-                }}
-                loading={loading}
-              />
+                >
+                  {loadError}
+                </Alert>
+              ) : (
+                <CustomDataGrid
+                  columns={columns}
+                  rows={downtimes.filter((downtime) => downtime.duration)}
+                  components={{
+                    Toolbar: GridToolbar
+                  }}
+                  onRowClick={(params) => null}
+                  initialState={{
+                    columns: {
+                      columnVisibilityModel: {}
+                    }
+                  }}
+                  loading={loading}
+                />
+              )}
             </Box>
           </Card>
         </Grid>
       </Grid>
       {renderAddModal()}
       {renderEditModal()}
+      <ConfirmDialog
+        open={downtimeToDelete !== null}
+        onCancel={() => setDowntimeToDelete(null)}
+        onConfirm={handleDelete}
+        confirmText={t('remove_downtime')}
+        question={t('confirm_delete_asset_downtime')}
+      />
     </Box>
   );
 };

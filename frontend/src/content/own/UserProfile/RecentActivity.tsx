@@ -10,7 +10,7 @@ import {
   useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import AssignmentTwoToneIcon from '@mui/icons-material/AssignmentTwoTone';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useDispatch, useSelector } from '../../../store';
 import { getUserWorkOrdersOverview } from '../../../slices/analytics/user';
 import { useEffect } from 'react';
@@ -41,7 +41,7 @@ function RecentActivity() {
       <Divider />
       <Box px={2} py={4} display="flex" alignItems="flex-start">
         <AvatarPrimary>
-          <AssignmentTwoToneIcon />
+          <AssignmentOutlinedIcon />
         </AvatarPrimary>
         <Box pl={2} flex={1}>
           <Typography variant="h3">{t('work_orders')}</Typography>

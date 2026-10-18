@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
-import MailTwoToneIcon from '@mui/icons-material/MailTwoTone';
+import MailOutlinedIcon from '@mui/icons-material/MailOutlined';
 
 const MainContent = styled(Box)(
   () => `
@@ -163,7 +163,7 @@ function StatusComingSoon() {
                   }
                   startAdornment={
                     <InputAdornment position="start">
-                      <MailTwoToneIcon />
+                      <MailOutlinedIcon />
                     </InputAdornment>
                   }
                 />

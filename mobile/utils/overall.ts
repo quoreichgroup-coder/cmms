@@ -105,7 +105,7 @@ export const onSearchQueryChange = <T>(
     // @ts-ignore
     (filterField) => !fieldsToSearch.includes(filterField.field)
   );
-  const firstField = fieldsToSearch.shift();
+  const [firstField, ...alternativeFields] = fieldsToSearch;
   setSearchQuery(query);
   if (query) {
     newFilterFields = [
@@ -114,7 +114,7 @@ export const onSearchQueryChange = <T>(
         field: firstField,
         value: query,
         operation: 'cn' as SearchOperator,
-        alternatives: fieldsToSearch.map((field) => ({
+        alternatives: alternativeFields.map((field) => ({
           field,
           operation: 'cn' as SearchOperator,
           value: query
@@ -140,7 +140,8 @@ export const getPriorityColor = (
       // @ts-ignore
       return theme.colors.warning;
     case 'HIGH':
-      return theme.colors.error;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.warning;
   }
 };
 
@@ -160,7 +161,7 @@ export const getPriorityForegroundColor = (
       return theme.colors.onWarning;
     case 'HIGH':
       // @ts-ignore QPM semantic palette extension
-      return theme.colors.onError;
+      return theme.colors.onWarning;
   }
 };
 
@@ -179,7 +180,7 @@ export const getStatusColor = (
       return theme.colors.neutral;
     case 'IN_PROGRESS':
       // @ts-ignore
-      return theme.colors.success;
+      return theme.colors.inProgress;
     case 'ON_HOLD':
       // @ts-ignore
       return theme.colors.warning;
@@ -188,10 +189,11 @@ export const getStatusColor = (
     case 'TODAY_WO':
       return theme.colors.primary;
     case 'HIGH_WO':
-      return theme.colors.error;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.warning;
     case 'COMPLETE':
-      // @ts-ignore
-      return theme.colors.complete;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.success;
   }
 };
 
@@ -205,19 +207,47 @@ export const getStatusForegroundColor = (
       return theme.colors.onNeutral;
     case 'IN_PROGRESS':
       // @ts-ignore QPM semantic palette extension
-      return theme.colors.onSuccess;
+      return theme.colors.onInProgress;
     case 'ON_HOLD':
       // @ts-ignore QPM semantic palette extension
       return theme.colors.onWarning;
     case 'LATE_WO':
-    case 'HIGH_WO':
       // @ts-ignore QPM semantic palette extension
       return theme.colors.onError;
+    case 'HIGH_WO':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.onWarning;
     case 'TODAY_WO':
       return theme.colors.onPrimary;
     case 'COMPLETE':
       // @ts-ignore QPM semantic palette extension
-      return theme.colors.onComplete;
+      return theme.colors.onSuccess;
+  }
+};
+
+export const getStatusContainerColor = (
+  status: ExtendedWorkOrderStatus,
+  theme: MD3Theme
+): string => {
+  switch (status) {
+    case 'OPEN':
+      return theme.colors.surfaceVariant;
+    case 'ON_HOLD':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.warningContainer;
+    case 'IN_PROGRESS':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.inProgressContainer;
+    case 'COMPLETE':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.successContainer;
+    case 'LATE_WO':
+      return theme.colors.errorContainer;
+    case 'HIGH_WO':
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.warningContainer;
+    case 'TODAY_WO':
+      return theme.colors.primaryContainer;
   }
 };
 

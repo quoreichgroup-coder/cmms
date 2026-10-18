@@ -16,27 +16,27 @@ import {
   Business,
   ElectricalServices,
   Engineering,
-  EngineeringTwoTone,
-  GroupsTwoTone,
+  EngineeringOutlined,
+  GroupsOutlined,
   Inventory,
   LocationOn,
   Settings,
-  WebAssetTwoTone
+  WebAssetOutlined
 } from '@mui/icons-material';
 import useAuth from '../../../../hooks/useAuth';
 import { Formik } from 'formik';
 import CustomSwitch from '../../components/form/CustomSwitch';
 import { UiConfiguration } from '../../../../models/owns/uiConfiguration';
-import AssignmentTwoToneIcon from '@mui/icons-material/AssignmentTwoTone';
-import MoveToInboxTwoToneIcon from '@mui/icons-material/MoveToInboxTwoTone';
-import Inventory2TwoToneIcon from '@mui/icons-material/Inventory2TwoTone';
-import LocationOnTwoToneIcon from '@mui/icons-material/LocationOnTwoTone';
-import HandymanTwoToneIcon from '@mui/icons-material/HandymanTwoTone';
-import SpeedTwoToneIcon from '@mui/icons-material/SpeedTwoTone';
-import AccountTreeTwoToneIcon from '@mui/icons-material/AccountTreeTwoTone';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import MoveToInboxOutlinedIcon from '@mui/icons-material/MoveToInboxOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 import { useContext, useEffect } from 'react';
 import { TitleContext } from '../../../../contexts/TitleContext';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 
 interface FeatureModule {
   id: string;
@@ -64,14 +64,14 @@ function FeaturesSettings() {
   const featureModules: FeatureModule[] = [
     {
       id: 'work-orders',
-      icon: AssignmentTwoToneIcon,
+      icon: AssignmentOutlinedIcon,
       titleKey: 'work_orders',
       descriptionKey: 'work_orders_settings_description',
       preferencesPath: '/app/settings/features/work-order'
     },
     {
       id: 'requests',
-      icon: MoveToInboxTwoToneIcon,
+      icon: MoveToInboxOutlinedIcon,
       titleKey: 'requests',
       descriptionKey: 'requests_settings_description',
       preferencesPath: '/app/settings/features/request',
@@ -79,14 +79,14 @@ function FeaturesSettings() {
     },
     {
       id: 'assets',
-      icon: Inventory2TwoToneIcon,
+      icon: Inventory2OutlinedIcon,
       titleKey: 'assets',
       descriptionKey: 'assets_settings_description',
       preferencesPath: '/app/settings/features/asset'
     },
     {
       id: 'locations',
-      icon: LocationOnTwoToneIcon,
+      icon: LocationOnOutlinedIcon,
       titleKey: 'locations',
       descriptionKey: 'locations_settings_description',
       preferencesPath: '/app/settings/features/location',
@@ -94,7 +94,7 @@ function FeaturesSettings() {
     },
     {
       id: 'request-portals',
-      icon: WebAssetTwoTone,
+      icon: WebAssetOutlined,
       titleKey: 'request_portals',
       preferencesTitleKey: 'go_to_request_portals',
       descriptionKey: 'request_portals_settings_description',
@@ -102,14 +102,14 @@ function FeaturesSettings() {
     },
     {
       id: 'parts-inventory',
-      icon: HandymanTwoToneIcon,
+      icon: HandymanOutlinedIcon,
       titleKey: 'parts_inventory',
       descriptionKey: 'parts_inventory_settings_description',
       preferencesPath: '/app/settings/features/parts'
     },
     {
       id: 'meters',
-      icon: SpeedTwoToneIcon,
+      icon: SpeedOutlinedIcon,
       titleKey: 'meters',
       descriptionKey: 'meters_settings_description',
       preferencesPath: '/app/settings/features/meters',
@@ -117,7 +117,7 @@ function FeaturesSettings() {
     },
     {
       id: 'contractors',
-      icon: EngineeringTwoTone,
+      icon: EngineeringOutlined,
       titleKey: 'customers',
       descriptionKey: 'customers_settings_description',
       preferencesPath: '/app/settings/features/contractors',
@@ -125,7 +125,7 @@ function FeaturesSettings() {
     },
     {
       id: 'vendors',
-      icon: BusinessTwoToneIcon,
+      icon: BusinessOutlinedIcon,
       titleKey: 'vendors',
       descriptionKey: 'vendors_settings_description',
       preferencesPath: '/app/settings/features/vendors',
@@ -133,7 +133,7 @@ function FeaturesSettings() {
     },
     {
       id: 'workflows',
-      icon: AccountTreeTwoToneIcon,
+      icon: AccountTreeOutlinedIcon,
       titleKey: 'workflows',
       descriptionKey: 'workflows_settings_description',
       preferencesPath: '/app/settings/features/workflows'

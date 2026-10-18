@@ -1,4 +1,4 @@
-import { Linking, Pressable, ScrollView, TouchableOpacity } from 'react-native';
+import { Linking, ScrollView, TouchableOpacity } from 'react-native';
 import * as React from 'react';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,8 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import BasicField from '../../../components/BasicField';
 import { getCustomFieldValuesForDetails } from '../../../models/form';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
 
 export default function CustomerDetailsScreen({
   navigation,
@@ -41,6 +43,12 @@ export default function CustomerDetailsScreen({
   const [deleting, setDeleting] = useState(false);
   const deletingRef = React.useRef(false);
   const [loadError, setLoadError] = useState(false);
+  const { hasEditPermission, hasDeletePermission } = useAuth();
+  const canOpenCustomerActions = Boolean(
+    customer &&
+      (hasEditPermission(PermissionEntity.VENDORS_AND_CUSTOMERS, customer) ||
+        hasDeletePermission(PermissionEntity.VENDORS_AND_CUSTOMERS, customer))
+  );
 
   const loadCustomer = useCallback(async () => {
     setLoadError(false);
@@ -58,28 +66,25 @@ export default function CustomerDetailsScreen({
   useEffect(() => {
     navigation.setOptions({
       title: customer?.name ?? t('loading'),
-      headerRight: customer
-        ? () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('more_options')}
-              onPress={() => {
-                SheetManager.show('customer-details-sheet', {
-                  payload: {
-                    onEdit: () =>
-                      navigation.navigate('EditCustomer', { customer }),
-                    onDelete: () => setOpenDelete(true),
-                    customer
-                  }
-                });
-              }}
-            >
-              <IconButton icon="dots-vertical" />
-            </Pressable>
-          )
-        : undefined
+      headerRight: () =>
+        canOpenCustomerActions && customer ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('customer-details-sheet', {
+                payload: {
+                  onEdit: () =>
+                    navigation.navigate('EditCustomer', { customer }),
+                  onDelete: () => setOpenDelete(true),
+                  customer
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [customer, navigation, t]);
+  }, [canOpenCustomerActions, customer, navigation, t]);
   const fieldsToRender: { label: string; value: string; isLink?: boolean }[] = [
     {
       label: t('address'),

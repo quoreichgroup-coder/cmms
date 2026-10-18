@@ -25,7 +25,7 @@ import {
   getCustomFieldsValues,
   IField
 } from '../type';
-import ReplayTwoToneIcon from '@mui/icons-material/ReplayTwoTone';
+import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
 import Location, { LocationRow } from '../../../models/owns/location';
 import * as React from 'react';
 import { ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
@@ -41,9 +41,9 @@ import {
 } from '../../../slices/location';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useDispatch, useSelector } from '../../../store';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../components/form';
 import * as Yup from 'yup';
 import { isNumeric } from '../../../utils/validators';
@@ -72,7 +72,7 @@ import {
 } from '../../../utils/overall';
 import { getLocationUrl } from '../../../utils/urlPaths';
 import { useExport } from '../../../hooks/useExport';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { Pageable, SearchCriteria, Sort } from '../../../models/owns/page';
 import { googleMapsConfig } from '../../../config';
@@ -226,10 +226,22 @@ function Locations() {
         locationsHierarchy.find((location) => location.id === id)
     );
   };
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteLocation(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteLocation(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Location deletion was not confirmed'));
+      }
+    } catch (err) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(err);
+    }
   };
   const handleCopyLocation = (location: Location) => {
     setCopyLocationData(location);
@@ -545,7 +557,7 @@ function Locations() {
                 handleOpenUpdate();
               }}
             >
-              <EditTwoToneIcon
+              <EditOutlinedIcon
                 fontSize="small"
                 color={
                   'depth' in location && location.depth === 0
@@ -567,7 +579,7 @@ function Locations() {
                 setOpenDelete(true);
               }}
             >
-              <DeleteTwoToneIcon fontSize="small" color="error" />
+              <DeleteOutlinedIcon fontSize="small" color="error" />
             </IconButton>
           );
         }
@@ -1052,15 +1064,15 @@ function Locations() {
             <Stack direction={'row'} alignItems="center" spacing={1}>
               <SearchInput onChange={debouncedQueryChange} />
               <IconButton onClick={() => handleReset(true)} color="primary">
-                <ReplayTwoToneIcon />
+                <ReplayOutlinedIcon />
               </IconButton>
               <IconButton onClick={handleOpenMenu} color="primary">
-                <MoreVertTwoToneIcon />
+                <MoreVertOutlinedIcon />
               </IconButton>
               {hasCreatePermission(PermissionEntity.LOCATIONS) && (
                 <SplitButton
                   onMainClick={() => setOpenAddModal(true)}
-                  startIcon={<AddTwoToneIcon />}
+                  startIcon={<AddOutlinedIcon />}
                   sx={{ mx: 6, my: 1 }}
                   label={t('location')}
                   menuItems={

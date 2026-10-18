@@ -53,18 +53,8 @@ const slice = createSlice({
       action: PayloadAction<{ loading: boolean }>
     ) {
       state.loadingGet = action.payload.loading;
-    },
-    rotateSecretInState(
-      state: WebhookEndpointState,
-      action: PayloadAction<{ id: number; newSecret: string }>
-    ) {
-      const endpoint = state.webhookEndpoints.find(
-        (e) => e.id === action.payload.id
-      );
-      if (endpoint) {
-        endpoint.secret = action.payload.newSecret;
-      }
     }
+    // Signing secrets are deliberately never retained in Redux state.
   }
 });
 
@@ -84,19 +74,19 @@ export const addWebhookEndpoint =
   (data: WebhookEndpointPostDTO): AppThunk =>
   async (dispatch) => {
     const endpoint = await api.post<WebhookEndpointShowDTO>(basePath, data);
-    dispatch(slice.actions.addWebhookEndpoint({ endpoint }));
+    const { secret: _secret, ...safeEndpoint } = endpoint;
+    dispatch(slice.actions.addWebhookEndpoint({ endpoint: safeEndpoint }));
     return endpoint;
   };
 
 export const deleteWebhookEndpoint =
   (id: number): AppThunk =>
   async (dispatch) => {
-    const result = await api.deletes<{ success: boolean }>(
-      `${basePath}/${id}`
-    );
+    const result = await api.deletes<{ success: boolean }>(`${basePath}/${id}`);
     if (result.success) {
       dispatch(slice.actions.removeWebhookEndpoint({ id }));
     }
+    return result.success;
   };
 
 export const rotateSecret =
@@ -107,12 +97,6 @@ export const rotateSecret =
       {}
     );
     if (result.success) {
-      dispatch(
-        slice.actions.rotateSecretInState({
-          id,
-          newSecret: result.message
-        })
-      );
       return result.message;
     }
     return null;

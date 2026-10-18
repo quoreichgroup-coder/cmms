@@ -43,11 +43,12 @@ import { AssetMiniDTO } from '../../../../../../models/owns/asset';
 import { useDispatch, useSelector } from '../../../../../../store';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
 import { Business } from '@mui/icons-material';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import LanguageIcon from '@mui/icons-material/Language';
 import { useSnackbar } from 'notistack';
 import { submitPublicRequest } from '../../../../../../slices/request';
 import api from '../../../../../../utils/api';
+import { openSafeWindow } from '../../../../../../utils/safeWindow';
 import { uploadToRequestPortal } from '../../../../../../slices/file';
 import { supportedLanguages } from '../../../../../../i18n/i18n';
 import { useBrand } from '../../../../../../hooks/useBrand';
@@ -406,7 +407,7 @@ export default function RequestPortalPublicPage() {
                   }
                 }}
                 onClick={() => {
-                  window.open(brandConfig.website, '_blank');
+                  openSafeWindow(brandConfig.website, { assumeHttps: true });
                 }}
               >
                 Powered by {brandConfig.name}
@@ -436,7 +437,7 @@ export default function RequestPortalPublicPage() {
                 }}
                 src={portal.companyLogo}
               >
-                <BusinessTwoToneIcon sx={{ fontSize: 70 }} />
+                <BusinessOutlinedIcon sx={{ fontSize: 70 }} />
               </Avatar>
               {isUnderMd && languageSwitcher}
             </Stack>

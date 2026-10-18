@@ -3,6 +3,7 @@ import NativeImageViewer from 'react-native-image-viewing';
 import { IconButton, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { ImageViewerProps } from './ImageViewer.types';
+import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function ImageViewer(props: ImageViewerProps) {
   const { t } = useTranslation();
@@ -42,8 +43,8 @@ export default function ImageViewer(props: ImageViewerProps) {
 const styles = StyleSheet.create({
   header: { alignItems: 'flex-end', paddingTop: 8, paddingRight: 8 },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: qpmLayoutTokens.touchTarget.minimum,
+    height: qpmLayoutTokens.touchTarget.minimum,
     backgroundColor: 'rgba(0, 0, 0, 0.47)'
   },
   footer: { alignItems: 'center', paddingBottom: 24 },

@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-table';
 import useTableStatePersist from './useTableStatePersist';
 import { SearchCriteria, SortDirection } from '../models/owns/page';
+import { restorePaginationState } from '../utils/tableState';
 
 export interface TableStateReturn {
   sorting: SortingState;
@@ -77,12 +78,9 @@ const useTableState = ({
       if (state.sorting && state.sorting.length > 0) {
         setSortingState(state.sorting);
       }
-      setPaginationState({
-        pageIndex: persistPageIndex
-          ? state.pageSize
-          : initialPagination.pageIndex,
-        pageSize: state.pageSize ?? initialPagination.pageSize
-      });
+      setPaginationState(
+        restorePaginationState(state, initialPagination, persistPageIndex)
+      );
       if (state.columnOrder && state.columnOrder.length > 0) {
         setColumnOrderState(state.columnOrder);
       }

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AssetDTO } from '../../../models/asset';
 import { editAsset } from '../../../slices/asset';
 import {
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   View as RNView
@@ -36,8 +36,9 @@ export default function AssetParts({
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const theme = useTheme();
-  const { hasEditPermission } = useAuth();
+  const { hasEditPermission, hasViewPermission } = useAuth();
   const canEditAsset = hasEditPermission(PermissionEntity.ASSETS, asset);
+  const canViewParts = hasViewPermission(PermissionEntity.PARTS_AND_MULTIPARTS);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const [deleting, setDeleting] = useState(false);
@@ -45,7 +46,13 @@ export default function AssetParts({
   const [currentPartId, setCurrentPartId] = useState<number>();
 
   const handleDelete = async () => {
-    if (deletingRef.current || currentPartId === undefined) return;
+    if (
+      deletingRef.current ||
+      !canViewParts ||
+      !canEditAsset ||
+      currentPartId === undefined
+    )
+      return;
     deletingRef.current = true;
     setDeleting(true);
     try {
@@ -95,12 +102,15 @@ export default function AssetParts({
     );
   };
   return (
-    <ScrollView
-      style={{ ...styles.container, backgroundColor: theme.colors.background }}
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {renderConfirmDialog()}
-      {asset.parts.map((part) => (
-        <RNView key={part.id}>
+      <FlatList
+        style={styles.list}
+        data={canViewParts ? asset.parts ?? [] : []}
+        keyExtractor={(part) => String(part.id)}
+        renderItem={({ item: part }) => (
           <RNView style={styles.partRow}>
             <TouchableOpacity
               style={styles.partLink}
@@ -129,15 +139,30 @@ export default function AssetParts({
               />
             )}
           </RNView>
-          <Divider />
-        </RNView>
-      ))}
-    </ScrollView>
+        )}
+        ItemSeparatorComponent={() => <Divider />}
+        ListEmptyComponent={
+          <View style={styles.emptyState} accessibilityRole="text">
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+              {t(canViewParts ? 'no_parts' : 'no_access_inventory')}
+            </Text>
+          </View>
+        }
+        initialNumToRender={8}
+        windowSize={7}
+      />
+    </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  list: { flex: 1 },
+  emptyState: {
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    alignItems: 'center'
   },
   partRow: {
     flexDirection: 'row',

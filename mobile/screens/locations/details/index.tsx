@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 
 import { View } from '../../../components/Themed';
 import { RootStackScreenProps } from '../../../types';
@@ -23,6 +23,8 @@ import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import LocationAssets from './LocationAssets';
 import LocationFiles from './LocationFiles';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
 
 export default function LocationDetailsHome({
   navigation,
@@ -43,6 +45,15 @@ export default function LocationDetailsHome({
   const [loadingLocation, setLoadingLocation] = useState(!location);
   const [locationLoadError, setLocationLoadError] = useState(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
+    useAuth();
+  const canOpenLocationActions = Boolean(
+    location &&
+      (hasEditPermission(PermissionEntity.LOCATIONS, location) ||
+        hasDeletePermission(PermissionEntity.LOCATIONS, location) ||
+        hasCreatePermission(PermissionEntity.WORK_ORDERS) ||
+        hasCreatePermission(PermissionEntity.ASSETS))
+  );
   const tabs = React.useMemo(
     () => [
       { key: 'details', title: t('details') },
@@ -100,28 +111,29 @@ export default function LocationDetailsHome({
       // Keep the compact location identifier in the app bar; the full name is
       // shown in the location details panel.
       title: location?.customId || t('location'),
-      headerRight: () => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('more_options')}
-          onPress={() => {
-            SheetManager.show('location-details-sheet', {
-              payload: {
-                onEdit: () => navigation.navigate('EditLocation', { location }),
-                onDelete: () => setOpenDelete(true),
-                onCreateWorkOrder: () =>
-                  navigation.push('AddWorkOrder', { location }),
-                onCreateAsset: () => navigation.push('AddAsset', { location }),
-                location
-              }
-            });
-          }}
-        >
-          <IconButton icon="dots-vertical" />
-        </Pressable>
-      )
+      headerRight: () =>
+        canOpenLocationActions && location ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('location-details-sheet', {
+                payload: {
+                  onEdit: () =>
+                    navigation.navigate('EditLocation', { location }),
+                  onDelete: () => setOpenDelete(true),
+                  onCreateWorkOrder: () =>
+                    navigation.push('AddWorkOrder', { location }),
+                  onCreateAsset: () =>
+                    navigation.push('AddAsset', { location }),
+                  location
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [location, navigation, t]);
+  }, [canOpenLocationActions, location, navigation, t]);
 
   const onDeleteSuccess = () => {
     showSnackBar(t('location_delete_success'), 'success');

@@ -55,7 +55,7 @@ const slice = createSlice({
       const workflowIndex = state.workflows.findIndex(
         (workflow) => workflow.id === id
       );
-      state.workflows.splice(workflowIndex, 1);
+      if (workflowIndex !== -1) state.workflows.splice(workflowIndex, 1);
     },
     setLoadingGet(
       state: WorkflowState,

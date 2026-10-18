@@ -11,6 +11,7 @@ import com.grash.model.WebhookEndpoint;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.security.CurrentUser;
 import com.grash.service.WebhookEndpointService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -27,7 +28,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/webhook-endpoints")
@@ -65,7 +65,7 @@ public class WebhookEndpointController {
                     Create a new webhook subscription to receive notifications for specific events.
                     
                     When creating a webhook, you'll receive a secret that should be securely stored on your end.
-                    This secret is essential for signature verification and can also be accessed later.
+                    The secret is returned only once during creation or rotation.
                     
                     **Supported Events:**
                     - `WORK_ORDER_STATUS_CHANGE` - Work order status changes
@@ -93,7 +93,7 @@ public class WebhookEndpointController {
     })
     public ResponseEntity<WebhookEndpointShowDTO> create(
             @Parameter(hidden = true) @CurrentUser User user,
-            @RequestBody WebhookEndpointPostDTO request) {
+            @Valid @RequestBody WebhookEndpointPostDTO request) {
         WebhookEndpoint endpoint = webhookEndpointService.create(request, user);
         return ResponseEntity.ok(webhookEndpointMapper.toShowDto(endpoint));
     }
@@ -119,6 +119,7 @@ public class WebhookEndpointController {
 
         return ResponseEntity.ok(endpoints.stream()
                 .map(webhookEndpointMapper::toShowDto)
+                .peek(dto -> dto.setSecret(null))
                 .toList());
     }
 
@@ -159,7 +160,9 @@ public class WebhookEndpointController {
             ) @RequestBody WebhookEndpointPatchDTO request) {
 
         WebhookEndpoint endpoint = webhookEndpointService.update(id, request, user);
-        return ResponseEntity.ok(webhookEndpointMapper.toShowDto(endpoint));
+        WebhookEndpointShowDTO response = webhookEndpointMapper.toShowDto(endpoint);
+        response.setSecret(null);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -183,12 +186,9 @@ public class WebhookEndpointController {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
-        Optional<WebhookEndpoint> optionalWebhookEndpoint = webhookEndpointService.findById(id);
-        if (optionalWebhookEndpoint.isPresent()) {
-            webhookEndpointService.delete(id);
-            return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
-                    HttpStatus.OK);
-        } else throw new CustomException("Webhook endpoint not found", HttpStatus.NOT_FOUND);
+        webhookEndpointService.delete(id, user);
+        return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
+                HttpStatus.OK);
     }
 
     @PatchMapping("/{id}/rotate-secret")

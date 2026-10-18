@@ -1,10 +1,11 @@
 import { alpha, createTheme, lighten, darken } from '@mui/material';
 import '@mui/lab/themeAugmentation';
+import { qpmBrandTokens, qpmNavigationTokens } from '../tokens';
 
 // import i18n from 'src/i18n/i18n';
 
 const themeColors = {
-  primary: '#9b52e1',
+  primary: qpmBrandTokens.primary,
   secondary: '#000',
   success: '#57CA22',
   warning: '#FFA319',
@@ -40,8 +41,10 @@ const colors = {
     error:
       '0px 1px 4px rgba(255, 25, 67, 0.25), 0px 3px 12px 2px rgba(255, 25, 67, 0.35)',
     info: '0px 1px 4px rgba(51, 194, 255, 0.25), 0px 3px 12px 2px rgba(51, 194, 255, 0.35)',
-    primary:
-      '0px 1px 4px rgba(85, 105, 255, 0.25), 0px 3px 12px 2px rgba(85, 105, 255, 0.35)',
+    primary: `0px 1px 4px ${alpha(
+      themeColors.primary,
+      0.25
+    )}, 0px 3px 12px 2px ${alpha(themeColors.primary, 0.35)}`,
     warning:
       '0px 1px 4px rgba(255, 163, 25, 0.25), 0px 3px 12px 2px rgba(255, 163, 25, 0.35)',
     card: '0px 0px 1px 1px #d5d0d6',
@@ -51,19 +54,19 @@ const colors = {
   },
   layout: {
     general: {
-      bodyBg: '#fff'
+      bodyBg: qpmBrandTokens.canvas
     },
     sidebar: {
-      background: '#fcfbfc',
-      textColor: themeColors.secondary,
-      dividerBg: '#f2f5f9',
-      menuItemColor: themeColors.black,
-      menuItemColorActive: '#00b795',
-      menuItemBg: '#fff',
-      menuItemBgActive: '#f2fbfa',
-      menuItemIconColor: lighten(themeColors.secondary, 0.5),
-      menuItemIconColorActive: '#00b795',
-      menuItemHeadingColor: themeColors.black
+      background: qpmNavigationTokens.sidebar,
+      textColor: qpmNavigationTokens.text,
+      dividerBg: qpmNavigationTokens.divider,
+      menuItemColor: qpmNavigationTokens.text,
+      menuItemColorActive: qpmNavigationTokens.activeText,
+      menuItemBg: qpmNavigationTokens.hover,
+      menuItemBgActive: qpmNavigationTokens.active,
+      menuItemIconColor: qpmNavigationTokens.mutedText,
+      menuItemIconColorActive: qpmNavigationTokens.activeText,
+      menuItemHeadingColor: qpmNavigationTokens.mutedText
     }
   },
   alpha: {
@@ -229,7 +232,7 @@ export const PurpleFlowTheme = createTheme({
     borderRadiusXl: '18px'
   },
   sidebar: {
-    background: '#fff',
+    background: colors.layout.sidebar.background,
     textColor: colors.layout.sidebar.textColor,
     dividerBg: colors.layout.sidebar.dividerBg,
     menuItemColor: colors.layout.sidebar.menuItemColor,
@@ -240,7 +243,7 @@ export const PurpleFlowTheme = createTheme({
     menuItemIconColorActive: colors.layout.sidebar.menuItemIconColorActive,
     menuItemHeadingColor: colors.layout.sidebar.menuItemHeadingColor,
     boxShadow: '1px 1px 1px 0 #e0e0e0',
-    width: '290px'
+    width: '224px'
   },
   header: {
     height: '80px',
@@ -1166,7 +1169,7 @@ export const PurpleFlowTheme = createTheme({
   },
   typography: {
     fontFamily:
-      '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+      '"IBM Plex Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
     h1: {
       fontWeight: 700,
       fontSize: 35
@@ -1183,17 +1186,23 @@ export const PurpleFlowTheme = createTheme({
     },
     h4: {
       fontWeight: 700,
-      fontSize: 16
+      fontSize: 20,
+      lineHeight: 1.3,
+      letterSpacing: '-0.015em'
     },
     h5: {
       fontWeight: 700,
-      fontSize: 14
+      fontSize: 18,
+      lineHeight: 1.35
     },
     h6: {
-      fontSize: 15
+      fontWeight: 600,
+      fontSize: 16,
+      lineHeight: 1.4
     },
     body1: {
-      fontSize: 14
+      fontSize: 15,
+      lineHeight: 1.55
     },
     body2: {
       fontSize: 14

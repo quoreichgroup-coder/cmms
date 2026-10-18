@@ -20,16 +20,23 @@ export const getLabelAndValue = <T extends { id: number }>(
   labelAccessor?: keyof T,
   formatter?: (value: T) => string
 ): { label: string; value: number }[] => {
-  return (
-    filterFields
-      .find((filterField) => filterField.field === fieldName)
-      ?.values?.map((id) => ({
-        label: formatter
-          ? formatter(minis.find((mini) => mini.id === id))
-          : minis.find((mini) => mini.id === id)[labelAccessor].toString(),
-        value: id
-      })) ?? null
-  );
+  const selectedIds = filterFields.find(
+    (filterField) => filterField.field === fieldName
+  )?.values;
+  if (!selectedIds?.length) return null;
+
+  const optionsById = new Map(minis.map((mini) => [mini.id, mini]));
+  return selectedIds.map((id) => {
+    const option = optionsById.get(id);
+    return {
+      label: option
+        ? formatter
+          ? formatter(option)
+          : option[labelAccessor].toString()
+        : `#${id}`,
+      value: id
+    };
+  });
 };
 export const getDateValue = (
   filterFields: FilterField[],

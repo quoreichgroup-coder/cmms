@@ -11,7 +11,7 @@ import {
   styled
 } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -96,7 +96,7 @@ function Status404() {
                   }
                   startAdornment={
                     <InputAdornment position="start">
-                      <SearchTwoToneIcon />
+                      <SearchOutlinedIcon />
                     </InputAdornment>
                   }
                 />

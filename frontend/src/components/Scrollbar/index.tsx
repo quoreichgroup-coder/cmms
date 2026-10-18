@@ -7,6 +7,7 @@ import { Box, useTheme } from '@mui/material';
 interface ScrollbarProps {
   className?: string;
   children?: ReactNode;
+  style?: React.CSSProperties;
 }
 
 const Scrollbar: FC<ScrollbarProps> = ({ className, children, ...rest }) => {

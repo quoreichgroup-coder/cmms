@@ -1,10 +1,10 @@
 import { ChangeEvent, ReactNode } from 'react';
 import { Helmet } from 'react-helmet-async';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { Box, Button, Card, Stack, styled, Tab, Tabs } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
 const TabsContainerWrapper = styled(Box)(
   ({ theme }) => `
@@ -173,7 +173,7 @@ function MultipleTabsLayout(props: SettingsLayoutProps) {
             {action && (
               <Button
                 startIcon={
-                  editAction ? <EditTwoToneIcon /> : <AddTwoToneIcon />
+                  editAction ? <EditOutlinedIcon /> : <AddOutlinedIcon />
                 }
                 variant="contained"
                 onClick={action}

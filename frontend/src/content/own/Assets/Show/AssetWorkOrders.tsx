@@ -1,12 +1,20 @@
 import Asset from '../../../../models/owns/asset';
-import { Box, Card, CircularProgress, Grid, Typography } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardActionArea,
+  Grid,
+  Stack,
+  Typography
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../../../store';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { getAssetWorkOrders } from '../../../../slices/asset';
 import { useNavigate } from 'react-router-dom';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
-import Loading from '../../Analytics/Loading';
+import WorkOrderStatusChip from '../../WorkOrders/WorkOrderStatusChip';
+import ContentState from '../../components/ContentState';
 
 interface PropsType {
   asset: Asset;
@@ -15,88 +23,121 @@ interface PropsType {
 const AssetWorkOrders = ({ asset }: PropsType) => {
   const { t }: { t: any } = useTranslation();
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const { assetInfos, loadingGet } = useSelector((state) => state.assets);
+  const { assetInfos } = useSelector((state) => state.assets);
   const workOrders = assetInfos[asset?.id]?.workOrders;
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadIndex, setReloadIndex] = useState(0);
 
   useEffect(() => {
-    if (asset) dispatch(getAssetWorkOrders(asset.id));
-  }, [asset]);
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
+    if (asset) {
+      Promise.resolve(dispatch(getAssetWorkOrders(asset.id)))
+        .catch(() => {
+          if (active) setLoadError(true);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [asset?.id, dispatch, reloadIndex]);
 
-  if (loadingGet)
+  if (loading)
     return (
-      <Box
-        sx={{
-          height: '50vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}
-      >
-        <Loading />
-      </Box>
+      <ContentState variant="loading" message={t('loading')} minHeight={240} />
+    );
+  if (loadError)
+    return (
+      <ContentState
+        variant="error"
+        message={t('an_error_occured')}
+        actionLabel={t('retry')}
+        onAction={() => setReloadIndex((index) => index + 1)}
+        minHeight={240}
+      />
     );
   return (
-    <Box sx={{ px: 4 }}>
+    <Box sx={{ px: { xs: 0, sm: 1, md: 2 } }}>
       <Grid container spacing={2}>
         {workOrders?.length ? (
           workOrders.map((workOrder) => (
             <Grid key={workOrder.id} item xs={12}>
-              <Card
-                sx={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/app/work-orders/${workOrder.id}`)}
-              >
-                <Box
-                  sx={{
-                    p: 2,
-                    flexDirection: 'row',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+              <Card variant="outlined">
+                <CardActionArea
+                  onClick={() => navigate(`/app/work-orders/${workOrder.id}`)}
+                  sx={{ p: { xs: 1.5, sm: 2 } }}
                 >
-                  <Box>
-                    <Typography variant="h4" gutterBottom>
-                      {workOrder.title}
-                    </Typography>
-                    <Typography variant="subtitle1">{`#${workOrder.id}`}</Typography>
-                  </Box>
-                  <Typography
-                    variant="h6"
-                    color={workOrder.dueDate ? 'error' : 'primary'}
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'minmax(0, 1fr) auto'
+                      },
+                      gap: { xs: 1.5, sm: 2 },
+                      alignItems: { sm: 'center' }
+                    }}
                   >
-                    {workOrder.dueDate
-                      ? t('due_at_date', {
-                          date: getFormattedDate(workOrder.dueDate)
-                        })
-                      : t('no_due_date')}
-                  </Typography>
-                  <Typography variant="h6">
-                    {workOrder.primaryUser
-                      ? `${workOrder.primaryUser.firstName} ${workOrder.primaryUser.lastName}`
-                      : t('no_primary_worker')}
-                  </Typography>
-                  <Typography variant="h6">{t(workOrder.status)}</Typography>
-                </Box>
+                    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{ overflowWrap: 'anywhere' }}
+                      >
+                        {workOrder.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {workOrder.customId || `#${workOrder.id}`}
+                      </Typography>
+                    </Stack>
+                    <Stack
+                      direction={{ xs: 'row', sm: 'column' }}
+                      spacing={{ xs: 1, sm: 0.75 }}
+                      alignItems={{ xs: 'center', sm: 'flex-end' }}
+                      justifyContent="space-between"
+                    >
+                      <WorkOrderStatusChip status={workOrder.status} />
+                      <Typography
+                        variant="body2"
+                        color={
+                          workOrder.dueDate &&
+                          workOrder.status !== 'COMPLETE' &&
+                          new Date(workOrder.dueDate).getTime() < Date.now()
+                            ? 'error.main'
+                            : 'text.secondary'
+                        }
+                      >
+                        {workOrder.dueDate
+                          ? t('due_at_date', {
+                              date: getFormattedDate(workOrder.dueDate)
+                            })
+                          : t('no_due_date')}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {workOrder.primaryUser
+                          ? `${workOrder.primaryUser.firstName} ${workOrder.primaryUser.lastName}`
+                          : t('no_primary_worker')}
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </CardActionArea>
               </Card>
             </Grid>
           ))
         ) : (
           <Grid item xs={12}>
-            <Card>
-              <Box
-                sx={{
-                  height: 500,
-                  p: 2,
-                  flexDirection: 'row',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
-                <Typography variant="h4">{t('no_wo_linked_asset')}</Typography>
-              </Box>
+            <Card variant="outlined">
+              <ContentState
+                variant="empty"
+                message={t('no_wo_linked_asset')}
+                minHeight={220}
+              />
             </Card>
           </Grid>
         )}

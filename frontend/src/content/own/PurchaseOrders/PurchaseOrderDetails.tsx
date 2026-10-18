@@ -14,8 +14,8 @@ import {
 } from '@mui/material';
 import { ChangeEvent, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import PurchaseOrder from '../../../models/owns/purchaseOrder';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
@@ -25,10 +25,11 @@ import { useDispatch } from '../../../store';
 import PartQuantitiesList from '../components/PartQuantitiesList';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import PartQuantity from 'src/models/owns/partQuantity';
-import ClearTwoToneIcon from '@mui/icons-material/ClearTwoTone';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import { respondPurchaseOrder } from '../../../slices/purchaseOrder';
 import BasicField from '../components/BasicField';
+import { getErrorMessage } from '../../../utils/api';
 
 interface PurchaseOrderDetailsProps {
   purchaseOrder: PurchaseOrder;
@@ -70,18 +71,25 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     () => debounce(onPartQuantityChange, 1500),
     []
   );
-  const onApprove = () => {
-    setApproving(true);
-    dispatch(respondPurchaseOrder(purchaseOrder.id, true)).finally(() =>
-      setApproving(false)
-    );
-  };
-
-  const onCancel = () => {
-    setCancelling(true);
-    dispatch(respondPurchaseOrder(purchaseOrder.id, false)).finally(() =>
-      setCancelling(false)
-    );
+  const onRespond = async (approved: boolean) => {
+    if (approving || cancelling) return;
+    if (approved) {
+      setApproving(true);
+    } else {
+      setCancelling(true);
+    }
+    try {
+      await dispatch(respondPurchaseOrder(purchaseOrder.id, approved));
+      showSnackBar(
+        t(approved ? 'purchase_order_approved' : 'purchase_order_rejected'),
+        'success'
+      );
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      setApproving(false);
+      setCancelling(false);
+    }
   };
   const detailsFieldsToRender = (
     purchaseOrder1: PurchaseOrder
@@ -200,7 +208,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             purchaseOrder
           ) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(
@@ -208,7 +216,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             purchaseOrder
           ) && (
             <IconButton onClick={handleDelete}>
-              <DeleteTwoToneIcon color="error" />
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
         </Box>
@@ -231,10 +239,11 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
                   cancelling ? (
                     <CircularProgress size="1rem" />
                   ) : (
-                    <ClearTwoToneIcon />
+                    <ClearOutlinedIcon />
                   )
                 }
-                onClick={onCancel}
+                onClick={() => onRespond(false)}
+                disabled={approving || cancelling}
                 variant="outlined"
               >
                 {t('reject')}
@@ -244,10 +253,11 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
                   approving ? (
                     <CircularProgress size="1rem" sx={{ color: 'white' }} />
                   ) : (
-                    <CheckTwoToneIcon />
+                    <CheckOutlinedIcon />
                   )
                 }
-                onClick={onApprove}
+                onClick={() => onRespond(true)}
+                disabled={approving || cancelling}
                 variant="contained"
               >
                 {t('approve')}

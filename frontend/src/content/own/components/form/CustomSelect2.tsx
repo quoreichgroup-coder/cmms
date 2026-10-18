@@ -19,15 +19,15 @@ import SelectForm from './SelectForm';
 import SelectParts from './SelectParts';
 import { useDispatch, useSelector } from '../../../../store';
 import SearchIcon from '@mui/icons-material/Search';
-import AddCircleTwoToneIcon from '@mui/icons-material/AddCircleTwoTone';
+import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import SelectTasksModal from './SelectTasks';
 import { getCustomersMini } from '../../../../slices/customer';
 import { getVendorsMini } from '../../../../slices/vendor';
 import { getUsersMini } from '../../../../slices/user';
 import { getAssetsMini } from '../../../../slices/asset';
 import { getTeamsMini } from '../../../../slices/team';
-import AssignmentTwoToneIcon from '@mui/icons-material/AssignmentTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { getPriorityLabel } from '../../../../utils/formatters';
 import { addCategory, getCategories } from '../../../../slices/category';
 import { getRoles } from '../../../../slices/role';
@@ -76,7 +76,9 @@ export const CustomSelect = ({
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
-  const [sites, setSites] = useState<{ id: number; name: string; code: string }[]>([]);
+  const [sites, setSites] = useState<
+    { id: number; name: string; code: string }[]
+  >([]);
   const [sitesLoaded, setSitesLoaded] = useState(false);
   const { t } = useTranslation();
   const formik = useFormikContext();
@@ -137,7 +139,9 @@ export const CustomSelect = ({
   const fetchSites = async () => {
     if (sitesLoaded) return;
     try {
-      const result = await api.get<{ id: number; name: string; code: string }[]>('sites');
+      const result = await api.get<
+        { id: number; name: string; code: string }[]
+      >('sites');
       setSites(result);
       setSitesLoaded(true);
     } catch (error) {
@@ -250,6 +254,7 @@ export const CustomSelect = ({
             renderInput={(params) => (
               <TextField
                 {...params}
+                name={field.name}
                 fullWidth={field.fullWidth || true}
                 variant="outlined"
                 required={field.required}
@@ -274,7 +279,7 @@ export const CustomSelect = ({
                           navigate('/app/people-teams/people?invite=true');
                         }}
                       >
-                        <AddCircleTwoToneIcon />
+                        <AddCircleOutlinedIcon />
                       </IconButton>
                     </InputAdornment>
                   )
@@ -338,7 +343,7 @@ export const CustomSelect = ({
                 >
                   {isInviteOption && (
                     <ListItemIcon sx={{ color: 'primary.main', minWidth: 36 }}>
-                      <AddCircleTwoToneIcon fontSize="small" />
+                      <AddCircleOutlinedIcon fontSize="small" />
                     </ListItemIcon>
                   )}
                   <Typography
@@ -358,7 +363,8 @@ export const CustomSelect = ({
                 selectedOption &&
                 (selectedOption as InviteUserOptionType).__inviteOption__
               ) {
-                const email = (selectedOption as InviteUserOptionType).__email__;
+                const email = (selectedOption as InviteUserOptionType)
+                  .__email__;
                 // Navigate to invite page with email if provided
                 if (email) {
                   navigate(
@@ -419,6 +425,7 @@ export const CustomSelect = ({
             renderInput={(params) => (
               <TextField
                 {...params}
+                name={field.name}
                 fullWidth={field.fullWidth || true}
                 variant="outlined"
                 required={field.required}
@@ -509,7 +516,7 @@ export const CustomSelect = ({
                 >
                   {isCreateOption && (
                     <ListItemIcon sx={{ color: 'primary.main', minWidth: 36 }}>
-                      <AddCircleTwoToneIcon fontSize="small" />
+                      <AddCircleOutlinedIcon fontSize="small" />
                     </ListItemIcon>
                   )}
                   <Typography
@@ -595,6 +602,7 @@ export const CustomSelect = ({
             renderInput={(params) => (
               <TextField
                 {...params}
+                name={field.name}
                 fullWidth={field.fullWidth || true}
                 variant="outlined"
                 required={field.required}
@@ -685,7 +693,7 @@ export const CustomSelect = ({
                 >
                   {isCreateOption && (
                     <ListItemIcon sx={{ color: 'primary.main', minWidth: 36 }}>
-                      <AddCircleTwoToneIcon fontSize="small" />
+                      <AddCircleOutlinedIcon fontSize="small" />
                     </ListItemIcon>
                   )}
                   <Typography
@@ -758,7 +766,10 @@ export const CustomSelect = ({
         ? formik.values[field.relatedFields[0].field]?.value
         : undefined;
       const meterOptions = metersMini
-        .filter((meter) => !selectedAssetId || meter.assetId === Number(selectedAssetId))
+        .filter(
+          (meter) =>
+            !selectedAssetId || meter.assetId === Number(selectedAssetId)
+        )
         .map((meter) => ({
           label: meter.unit ? `${meter.name} (${meter.unit})` : meter.name,
           value: meter.id,
@@ -771,18 +782,25 @@ export const CustomSelect = ({
           value={fieldValue ?? null}
           onOpen={fetchMeters}
           onChange={(_event, value) => handleChange(formik, field.name, value)}
-          isOptionEqualToValue={(option, value) => option.value === value?.value}
+          isOptionEqualToValue={(option, value) =>
+            option.value === value?.value
+          }
           getOptionLabel={(option) => option?.label ?? ''}
           renderInput={(params) => (
             <TextField
               {...params}
+              name={field.name}
               fullWidth
               variant="outlined"
               required={field.required}
               label={field.label}
               placeholder={field.placeholder}
               error={!!formik.errors[field.name] || field.error}
-              helperText={typeof formik.errors[field.name] === 'string' ? (formik.errors[field.name] as string) : ''}
+              helperText={
+                typeof formik.errors[field.name] === 'string'
+                  ? (formik.errors[field.name] as string)
+                  : ''
+              }
             />
           )}
           disabled={formik.isSubmitting}
@@ -814,6 +832,7 @@ export const CustomSelect = ({
             renderInput={(params) => (
               <TextField
                 {...params}
+                name={field.name}
                 fullWidth={field.fullWidth || true}
                 variant="outlined"
                 required={field.required}
@@ -845,7 +864,7 @@ export const CustomSelect = ({
                           }}
                           disabled={!params.inputProps.value}
                         >
-                          <AddCircleTwoToneIcon />
+                          <AddCircleOutlinedIcon />
                         </IconButton>
                       )}
                     </InputAdornment>
@@ -911,7 +930,7 @@ export const CustomSelect = ({
                 >
                   {isCreateOption && (
                     <ListItemIcon sx={{ color: 'primary.main', minWidth: 36 }}>
-                      <AddCircleTwoToneIcon fontSize="small" />
+                      <AddCircleOutlinedIcon fontSize="small" />
                     </ListItemIcon>
                   )}
                   <Typography
@@ -1005,7 +1024,7 @@ export const CustomSelect = ({
                 alignItems: 'center'
               }}
             >
-              <AssignmentTwoToneIcon />
+              <AssignmentOutlinedIcon />
               <Box>
                 <Typography variant="h4" color="primary">
                   {fieldValue ? fieldValue.length : null} {t('tasks')}
@@ -1014,17 +1033,28 @@ export const CustomSelect = ({
                   {t('assign_tasks_description')}
                 </Typography>
                 {!!fieldValue?.length && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {fieldValue.slice(0, 3).map((task) => task.taskBase?.label || t('task_without_name')).join(' · ')}
-                    {fieldValue.length > 3 ? ` · +${fieldValue.length - 3}` : ''}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    {fieldValue
+                      .slice(0, 3)
+                      .map(
+                        (task) => task.taskBase?.label || t('task_without_name')
+                      )
+                      .join(' · ')}
+                    {fieldValue.length > 3
+                      ? ` · +${fieldValue.length - 3}`
+                      : ''}
                   </Typography>
                 )}
               </Box>
               <IconButton>
                 {fieldValue?.length ? (
-                  <EditTwoToneIcon color="primary" />
+                  <EditOutlinedIcon color="primary" />
                 ) : (
-                  <AddCircleTwoToneIcon color="primary" />
+                  <AddCircleOutlinedIcon color="primary" />
                 )}
               </IconButton>
             </Box>
@@ -1036,6 +1066,7 @@ export const CustomSelect = ({
   }
   return (
     <SelectForm
+      name={field.name}
       options={options}
       value={fieldValue}
       label={field.label}

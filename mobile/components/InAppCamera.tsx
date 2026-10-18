@@ -1,5 +1,6 @@
 import React, { useContext, useRef, useState } from 'react';
 import {
+  AppState,
   Modal,
   StyleSheet,
   TouchableOpacity,
@@ -17,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../custom-theme';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
+import CameraPreviewError from './CameraPreviewError';
 
 interface Props {
   visible: boolean;
@@ -29,8 +31,16 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
   const [facing, setFacing] = useState<CameraType>('back');
   const [requestingPermission, setRequestingPermission] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [cameraMountError, setCameraMountError] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [isAppActive, setIsAppActive] = useState(
+    AppState.currentState === 'active'
+  );
   const captureInProgress = useRef(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const appIsActiveRef = useRef(AppState.currentState === 'active');
+  const openedSettingsRef = useRef(false);
+  const [permission, requestPermission, refreshPermission] =
+    useCameraPermissions();
   const { t } = useTranslation();
   const theme = useAppTheme();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -46,6 +56,14 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
     }
   };
 
+  const openCameraSettings = () => {
+    openedSettingsRef.current = true;
+    void Linking.openSettings().catch(() => {
+      openedSettingsRef.current = false;
+      showSnackBar(t('camera_settings_error'), 'error');
+    });
+  };
+
   React.useEffect(() => {
     if (
       visible &&
@@ -57,8 +75,59 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
     }
   }, [visible, permission?.granted]);
 
+  React.useEffect(() => {
+    if (visible) {
+      setCameraMountError(false);
+      setCameraReady(false);
+    }
+  }, [visible]);
+
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const isActive = nextState === 'active';
+      appIsActiveRef.current = isActive;
+      setIsAppActive(isActive);
+      if (!isActive) setCameraReady(false);
+
+      if (isActive && openedSettingsRef.current) {
+        openedSettingsRef.current = false;
+        void refreshPermission().catch(() => undefined);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [refreshPermission]);
+
+  React.useEffect(() => {
+    if (
+      !visible ||
+      !isAppActive ||
+      !permission?.granted ||
+      cameraMountError ||
+      cameraReady
+    ) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setCameraMountError(true), 12000);
+    return () => clearTimeout(timeout);
+  }, [
+    cameraMountError,
+    cameraReady,
+    isAppActive,
+    permission?.granted,
+    visible
+  ]);
+
   const handleCapture = async () => {
-    if (!cameraRef.current || captureInProgress.current) return;
+    if (
+      !cameraRef.current ||
+      captureInProgress.current ||
+      !cameraReady ||
+      !appIsActiveRef.current
+    ) {
+      return;
+    }
     captureInProgress.current = true;
     setCapturing(true);
     try {
@@ -77,51 +146,107 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       {permission?.granted ? (
-        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-          <SafeAreaView style={styles.overlay}>
-            <View style={styles.topBar}>
-              <IconButton
-                icon="close"
-                iconColor="white"
-                size={30}
-                onPress={onClose}
-                accessibilityLabel={t('go_back')}
-              />
-              <IconButton
-                icon="camera-flip-outline"
-                iconColor="white"
-                size={30}
-                onPress={() =>
-                  setFacing((f) => (f === 'back' ? 'front' : 'back'))
+        cameraMountError ? (
+          <CameraPreviewError
+            onRetry={() => {
+              setCameraReady(false);
+              setCameraMountError(false);
+            }}
+            onClose={onClose}
+          />
+        ) : visible && isAppActive ? (
+          <View style={styles.cameraContainer}>
+            <CameraView
+              ref={cameraRef}
+              style={StyleSheet.absoluteFillObject}
+              facing={facing}
+              active={visible && isAppActive}
+              onCameraReady={() => {
+                if (appIsActiveRef.current) setCameraReady(true);
+              }}
+              onMountError={() => {
+                if (appIsActiveRef.current) {
+                  setCameraReady(false);
+                  setCameraMountError(true);
                 }
-                accessibilityLabel={t('switch_camera')}
-              />
-            </View>
-            <View style={styles.captureRow}>
-              <TouchableOpacity
-                style={[
-                  styles.captureButton,
-                  capturing && styles.captureButtonBusy
-                ]}
-                onPress={handleCapture}
-                disabled={capturing}
-                accessibilityRole="button"
-                accessibilityLabel={t('take_photo')}
-                accessibilityState={{ busy: capturing, disabled: capturing }}
-              >
-                {capturing && (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.primary}
-                    accessibilityLabel={t('loading')}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </CameraView>
+              }}
+            />
+            <SafeAreaView style={styles.overlay}>
+              <View style={styles.topBar}>
+                <IconButton
+                  icon="close"
+                  iconColor="white"
+                  size={30}
+                  onPress={onClose}
+                  accessibilityLabel={t('go_back')}
+                />
+                <IconButton
+                  icon="camera-flip-outline"
+                  iconColor="white"
+                  size={30}
+                  onPress={() =>
+                    setFacing((f) => (f === 'back' ? 'front' : 'back'))
+                  }
+                  accessibilityLabel={t('switch_camera')}
+                />
+              </View>
+              {!cameraReady && (
+                <View
+                  pointerEvents="none"
+                  style={styles.cameraStarting}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel={t('camera_preview_loading')}
+                >
+                  <ActivityIndicator color="white" />
+                  <Text style={styles.cameraStartingText}>
+                    {t('camera_preview_loading')}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.captureRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.captureButton,
+                    capturing && styles.captureButtonBusy,
+                    !cameraReady && styles.captureButtonDisabled
+                  ]}
+                  onPress={handleCapture}
+                  disabled={capturing || !cameraReady}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('take_photo')}
+                  accessibilityState={{
+                    busy: capturing,
+                    disabled: capturing || !cameraReady
+                  }}
+                >
+                  {capturing && (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.primary}
+                      accessibilityLabel={t('loading')}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.cameraPaused,
+              { backgroundColor: theme.colors.background }
+            ]}
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('camera_preview_loading')}
+          />
+        )
       ) : permission ? (
         <View
           style={[
@@ -148,11 +273,7 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
           ) : (
             <Button
               mode="contained"
-              onPress={() =>
-                void Linking.openSettings().catch(() =>
-                  showSnackBar(t('camera_settings_error'), 'error')
-                )
-              }
+              onPress={openCameraSettings}
               style={styles.permissionAction}
             >
               {t('open_settings')}
@@ -182,11 +303,20 @@ export default function InAppCamera({ visible, onCapture, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  camera: { flex: 1 },
+  cameraContainer: { flex: 1 },
   overlay: {
     flex: 1,
     justifyContent: 'space-between'
   },
+  cameraStarting: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(13,18,32,0.55)'
+  },
+  cameraStartingText: { color: 'white' },
+  cameraPaused: { flex: 1 },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -210,6 +340,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+  captureButtonDisabled: { opacity: 0.65 },
   noAccess: {
     flex: 1,
     alignItems: 'center',

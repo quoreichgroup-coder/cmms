@@ -65,7 +65,10 @@ const slice = createSlice({
       const multiPartIndex = state.multiParts.findIndex(
         (multiPart) => multiPart.id === id
       );
-      state.multiParts.splice(multiPartIndex, 1);
+      if (multiPartIndex !== -1) state.multiParts.splice(multiPartIndex, 1);
+      state.miniMultiParts = state.miniMultiParts.filter(
+        (multiPart) => multiPart.id !== id
+      );
     },
     setLoadingGet(
       state: MultiPartState,
@@ -99,29 +102,29 @@ export const getMultiPartsMini = (): AppThunk => async (dispatch) => {
 };
 export const addMultiParts =
   (multiPart): AppThunk =>
-    async (dispatch) => {
-      const multiPartResponse = await api.post<SetType>(basePath, multiPart);
-      dispatch(slice.actions.addMultiParts({ multiPart: multiPartResponse }));
-    };
+  async (dispatch) => {
+    const multiPartResponse = await api.post<SetType>(basePath, multiPart);
+    dispatch(slice.actions.addMultiParts({ multiPart: multiPartResponse }));
+  };
 export const editMultiParts =
   (id: number, multiPart): AppThunk =>
-    async (dispatch) => {
-      const multiPartResponse = await api.patch<SetType>(
-        `${basePath}/${id}`,
-        multiPart
-      );
-      dispatch(slice.actions.editMultiParts({ multiPart: multiPartResponse }));
-    };
+  async (dispatch) => {
+    const multiPartResponse = await api.patch<SetType>(
+      `${basePath}/${id}`,
+      multiPart
+    );
+    dispatch(slice.actions.editMultiParts({ multiPart: multiPartResponse }));
+  };
 export const deleteMultiParts =
   (id: number): AppThunk =>
-    async (dispatch) => {
-      const multiPartResponse = await api.deletes<{ success: boolean }>(
-        `${basePath}/${id}`
-      );
-      const { success } = multiPartResponse;
-      if (success) {
-        dispatch(slice.actions.deleteMultiParts({ id }));
-      }
-    };
+  async (dispatch) => {
+    const multiPartResponse = await api.deletes<{ success: boolean }>(
+      `${basePath}/${id}`
+    );
+    const { success } = multiPartResponse;
+    if (success) {
+      dispatch(slice.actions.deleteMultiParts({ id }));
+    }
+  };
 
 export default slice;

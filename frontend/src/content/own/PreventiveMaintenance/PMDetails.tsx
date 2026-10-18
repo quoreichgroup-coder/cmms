@@ -14,10 +14,10 @@ import {
   useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
-import PlayArrowTwoToneIcon from '@mui/icons-material/PlayArrowTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
+import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
 import PreventiveMaintenance from '../../../models/owns/preventiveMaintenance';
 import { useDispatch } from '../../../store';
 import {
@@ -49,7 +49,7 @@ import { useNavigate } from 'react-router-dom';
 import useDateLocale from '../../../hooks/useDateLocale';
 import { getCustomFieldValuesForDetails } from '../type';
 import { getErrorMessage } from '../../../utils/api';
-import { ContentCopyTwoTone } from '@mui/icons-material';
+import { ContentCopyOutlined } from '@mui/icons-material';
 import { WorkOrderMini } from '../../../models/owns/workOrder';
 
 interface RequestDetailsProps {
@@ -197,7 +197,7 @@ export default function PMDetails({
           {(hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) ||
             hasCreatePermission(PermissionEntity.WORK_ORDERS)) && (
             <IconButton style={{ marginRight: 10 }} onClick={handleOpenMenu}>
-              <MoreVertTwoToneIcon />
+              <MoreVertOutlinedIcon />
             </IconButton>
           )}
           {hasEditPermission(
@@ -205,7 +205,7 @@ export default function PMDetails({
             preventiveMaintenance
           ) && (
             <IconButton style={{ marginRight: 10 }} onClick={handleOpenUpdate}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(
@@ -213,7 +213,7 @@ export default function PMDetails({
             preventiveMaintenance
           ) && (
             <IconButton onClick={handleOpenDelete}>
-              <DeleteTwoToneIcon color="error" />
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
         </Box>
@@ -547,7 +547,7 @@ export default function PMDetails({
           }}
         >
           <Stack spacing={2} direction="row">
-            <ContentCopyTwoTone />
+            <ContentCopyOutlined />
             <Typography variant="h6">{t('copy')}</Typography>
           </Stack>
         </MenuItem>
@@ -556,7 +556,7 @@ export default function PMDetails({
             {triggering ? (
               <CircularProgress size="1rem" />
             ) : (
-              <PlayArrowTwoToneIcon />
+              <PlayArrowOutlinedIcon />
             )}
             <Typography variant="h6">{t('trigger_work_order')}</Typography>
           </Stack>

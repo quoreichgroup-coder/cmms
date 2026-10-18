@@ -8,7 +8,7 @@ import {
   Typography
 } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
-import RefreshTwoToneIcon from '@mui/icons-material/RefreshTwoTone';
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 import { useTranslation } from 'react-i18next';
@@ -106,7 +106,7 @@ function Status500() {
                   loading={pending}
                   variant="outlined"
                   color="primary"
-                  startIcon={<RefreshTwoToneIcon />}
+                  startIcon={<RefreshOutlinedIcon />}
                 >
                   {t('Refresh view')}
                 </LoadingButton>

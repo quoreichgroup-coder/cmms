@@ -113,6 +113,7 @@ export const deleteApiKey =
     if (success) {
       dispatch(slice.actions.deleteApiKey({ id }));
     }
+    return success;
   };
 
 export const rotateApiKey =

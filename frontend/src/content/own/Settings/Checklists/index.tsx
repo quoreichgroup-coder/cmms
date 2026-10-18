@@ -23,12 +23,12 @@ import {
   GridValueGetterParams
 } from '@mui/x-data-grid';
 import { Checklist } from '../../../../models/owns/checklists';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SelectTasksModal from '../../components/form/SelectTasks';
 import { useContext, useEffect, useState } from 'react';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import VisibilityTwoToneIcon from '@mui/icons-material/VisibilityTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useDispatch, useSelector } from '../../../../store';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import {
@@ -79,9 +79,16 @@ function Checklists() {
     setCurrentChecklist(checklist);
     setOpenEditChecklist(true);
   };
-  const handleDelete = (id: number) => {
-    dispatch(deleteChecklist(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteChecklist(id));
+      setOpenDelete(false);
+      if (deleted) onDeleteSuccess();
+      else onDeleteFailure(new Error('Checklist deletion was not confirmed'));
+    } catch (err) {
+      setOpenDelete(false);
+      onDeleteFailure(err);
+    }
   };
   const columns: GridEnrichedColDef[] = [
     {
@@ -122,19 +129,19 @@ function Checklists() {
       getActions: (params: GridRowParams<Checklist>) => [
         <GridActionsCellItem
           key="view"
-          icon={<VisibilityTwoToneIcon fontSize="small" />}
+          icon={<VisibilityOutlinedIcon fontSize="small" />}
           onClick={() => openChecklistDetails(params.row)}
           label={t('view_task_list')}
         />,
         <GridActionsCellItem
           key="edit"
-          icon={<EditTwoToneIcon fontSize="small" />}
+          icon={<EditOutlinedIcon fontSize="small" />}
           onClick={() => openChecklistEditor(params.row)}
           label={t('edit_task_list')}
         />,
         <GridActionsCellItem
           key="delete"
-          icon={<DeleteTwoToneIcon fontSize="small" color="error" />}
+          icon={<DeleteOutlinedIcon fontSize="small" color="error" />}
           onClick={() => {
             setCurrentChecklist(params.row);
             setOpenDelete(true);
@@ -161,7 +168,7 @@ function Checklists() {
                 }}
                 variant="contained"
                 onClick={() => setOpenCreateChecklist(true)}
-                startIcon={<AddTwoToneIcon fontSize="small" />}
+                startIcon={<AddOutlinedIcon fontSize="small" />}
               >
                 {t('create_checklist')}
               </Button>
@@ -201,7 +208,11 @@ function Checklists() {
                   </Typography>
                 )}
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Chip label={t('general_task_list')} size="small" color="primary" />
+                  <Chip
+                    label={t('general_task_list')}
+                    size="small"
+                    color="primary"
+                  />
                   {currentChecklist?.category && (
                     <Chip label={currentChecklist.category} size="small" />
                   )}
@@ -231,7 +242,11 @@ function Checklists() {
                           alignItems="flex-start"
                           spacing={1}
                         >
-                          <Stack direction="row" spacing={1} alignItems="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
                             <Typography
                               variant="caption"
                               color="text.secondary"
@@ -262,7 +277,9 @@ function Checklists() {
                             color="text.secondary"
                             sx={{ mt: 0.75 }}
                           >
-                            {task.options.map((option) => option.label).join(' · ')}
+                            {task.options
+                              .map((option) => option.label)
+                              .join(' · ')}
                           </Typography>
                         )}
                       </Box>

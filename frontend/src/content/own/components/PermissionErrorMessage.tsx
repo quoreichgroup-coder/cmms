@@ -1,5 +1,6 @@
-import { Card, Typography } from '@mui/material';
+import { Card } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import ContentState from './ContentState';
 
 export default function PermissionErrorMessage({
   message
@@ -9,16 +10,19 @@ export default function PermissionErrorMessage({
   const { t }: { t: any } = useTranslation();
   return (
     <Card
+      variant="outlined"
       sx={{
-        height: 500,
-        p: 4,
-        m: 4,
-        justifyContent: 'center',
+        minHeight: { xs: 200, sm: 240 },
+        mx: { xs: 1.5, sm: 3 },
+        my: { xs: 1.5, sm: 3 },
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        borderRadius: 2
       }}
     >
-      <Typography variant="h4">{t(message)}</Typography>
+      <ContentState variant="denied" message={t(message)} minHeight={180} />
     </Card>
   );
 }

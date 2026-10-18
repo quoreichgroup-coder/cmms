@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 
 import { View } from '../../../components/Themed';
 import { RootStackScreenProps } from '../../../types';
@@ -25,6 +25,9 @@ import AssetMaintenance from './AssetMaintenance';
 import AssetInspections from './AssetInspections';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
+import { getAssetDetailsActionVisibility } from '../../../utils/assetDetailsAccess';
 
 export default function AssetDetailsHome({
   navigation,
@@ -45,6 +48,15 @@ export default function AssetDetailsHome({
   const [loadingAsset, setLoadingAsset] = useState(!asset);
   const [assetLoadError, setAssetLoadError] = useState(false);
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
+    useAuth();
+  const assetActionVisibility = getAssetDetailsActionVisibility({
+    canEditAsset: !!asset && hasEditPermission(PermissionEntity.ASSETS, asset),
+    canCreateWorkOrder: hasCreatePermission(PermissionEntity.WORK_ORDERS),
+    canCreateChildAsset: hasCreatePermission(PermissionEntity.ASSETS),
+    canDeleteAsset:
+      !!asset && hasDeletePermission(PermissionEntity.ASSETS, asset)
+  });
   const tabs = React.useMemo(
     () => [
       { key: 'details', title: t('details') },
@@ -106,29 +118,28 @@ export default function AssetDetailsHome({
       // Keep the compact equipment identifier in the app bar; the full name is
       // already shown prominently in the first details card below the tabs.
       title: asset?.customId || t('asset'),
-      headerRight: () => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('more_options')}
-          onPress={() => {
-            SheetManager.show('asset-details-sheet', {
-              payload: {
-                onEdit: () => navigation.navigate('EditAsset', { asset }),
-                onDelete: () => setOpenDelete(true),
-                onCreateWorkOrder: () =>
-                  navigation.push('AddWorkOrder', { asset }),
-                onCreateChildAsset: () =>
-                  navigation.push('AddAsset', { parentAsset: asset }),
-                asset
-              }
-            });
-          }}
-        >
-          <IconButton icon="dots-vertical" />
-        </Pressable>
-      )
+      headerRight: () =>
+        asset && assetActionVisibility.hasAnyAction ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('asset-details-sheet', {
+                payload: {
+                  onEdit: () => navigation.navigate('EditAsset', { asset }),
+                  onDelete: () => setOpenDelete(true),
+                  onCreateWorkOrder: () =>
+                    navigation.push('AddWorkOrder', { asset }),
+                  onCreateChildAsset: () =>
+                    navigation.push('AddAsset', { parentAsset: asset }),
+                  asset
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [asset, navigation, t]);
+  }, [asset, assetActionVisibility.hasAnyAction, navigation, t]);
 
   const onDeleteSuccess = () => {
     showSnackBar(t('asset_remove_success'), 'success');

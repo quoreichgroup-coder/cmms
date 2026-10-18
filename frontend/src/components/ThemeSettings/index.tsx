@@ -2,6 +2,7 @@ import { FC, useContext, useRef, useState, MouseEvent } from 'react';
 import {
   Popover,
   styled,
+  ButtonBase,
   Button,
   MenuItem,
   Menu,
@@ -12,11 +13,11 @@ import {
   Tooltip
 } from '@mui/material';
 import { ThemeContext } from 'src/theme/ThemeProvider';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
-import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import Fab from '@mui/material/Fab';
 import { useTranslation } from 'react-i18next';
-import UnfoldMoreTwoToneIcon from '@mui/icons-material/UnfoldMoreTwoTone';
+import UnfoldMoreOutlinedIcon from '@mui/icons-material/UnfoldMoreOutlined';
 import { NavLink } from 'react-router-dom';
 
 const ThemeSettingsButton = styled(Box)(
@@ -53,17 +54,27 @@ const ThemeToggleWrapper = styled(Box)(
   `
 );
 
-const ButtonWrapper = styled(Box)(
+const ButtonWrapper = styled(ButtonBase)(
   ({ theme }) => `
         cursor: pointer;
         position: relative;
+        width: 100%;
         border-radius: ${theme.general.borderRadiusXl};
         padding: ${theme.spacing(0.8)};
         display: flex;
         flex-direction: row;
         align-items: stretch;
         min-width: 80px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
         box-shadow: 0 0 0 2px ${theme.colors.primary.lighter};
+
+        &:focus-visible {
+            outline: 2px solid ${theme.palette.primary.main};
+            outline-offset: 3px;
+        }
 
         &:hover {
             box-shadow: 0 0 0 2px ${theme.colors.primary.light};
@@ -202,8 +213,13 @@ const ThemeSettings: FC = () => {
     <>
       <ThemeSettingsButton>
         <Tooltip arrow title={t('Theme Settings')}>
-          <Fab ref={ref} onClick={handleOpen} color="primary" aria-label="add">
-            <SettingsTwoToneIcon />
+          <Fab
+            ref={ref}
+            onClick={handleOpen}
+            color="primary"
+            aria-label={t('Theme Settings')}
+          >
+            <SettingsOutlinedIcon />
           </Fab>
         </Tooltip>
         <Popover
@@ -236,7 +252,7 @@ const ThemeSettings: FC = () => {
               fullWidth
               size="large"
               variant="outlined"
-              endIcon={<UnfoldMoreTwoToneIcon />}
+              endIcon={<UnfoldMoreOutlinedIcon />}
               color="primary"
               aria-haspopup="true"
               aria-expanded={open ? 'true' : undefined}
@@ -341,13 +357,16 @@ const ThemeSettings: FC = () => {
               <Tooltip placement="left" title="Pure Light" arrow>
                 <ButtonWrapper
                   className={theme === 'PureLightTheme' ? 'active' : ''}
+                  type="button"
+                  aria-label="Pure Light"
+                  aria-pressed={theme === 'PureLightTheme'}
                   onClick={() => {
                     changeTheme('PureLightTheme');
                   }}
                 >
                   {theme === 'PureLightTheme' && (
                     <CheckSelected>
-                      <CheckTwoToneIcon />
+                      <CheckOutlinedIcon />
                     </CheckSelected>
                   )}
                   <ColorSchemeWrapper className="colorSchemeWrapper pureLight">
@@ -359,13 +378,16 @@ const ThemeSettings: FC = () => {
               <Tooltip placement="left" title="Grey Goose" arrow>
                 <ButtonWrapper
                   className={theme === 'GreyGooseTheme' ? 'active' : ''}
+                  type="button"
+                  aria-label="Grey Goose"
+                  aria-pressed={theme === 'GreyGooseTheme'}
                   onClick={() => {
                     changeTheme('GreyGooseTheme');
                   }}
                 >
                   {theme === 'GreyGooseTheme' && (
                     <CheckSelected>
-                      <CheckTwoToneIcon />
+                      <CheckOutlinedIcon />
                     </CheckSelected>
                   )}
                   <ColorSchemeWrapper className="colorSchemeWrapper greyGoose">
@@ -377,13 +399,16 @@ const ThemeSettings: FC = () => {
               <Tooltip placement="left" title="Purple Flow" arrow>
                 <ButtonWrapper
                   className={theme === 'PurpleFlowTheme' ? 'active' : ''}
+                  type="button"
+                  aria-label="Purple Flow"
+                  aria-pressed={theme === 'PurpleFlowTheme'}
                   onClick={() => {
                     changeTheme('PurpleFlowTheme');
                   }}
                 >
                   {theme === 'PurpleFlowTheme' && (
                     <CheckSelected>
-                      <CheckTwoToneIcon />
+                      <CheckOutlinedIcon />
                     </CheckSelected>
                   )}
                   <ColorSchemeWrapper className="colorSchemeWrapper purpleFlow">

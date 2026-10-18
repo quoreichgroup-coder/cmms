@@ -6,7 +6,7 @@ import { GreyGooseTheme } from './schemes/GreyGooseTheme';
 import { PurpleFlowTheme } from './schemes/PurpleFlowTheme';
 
 export function themeCreator(theme: string): Theme {
-  return themeMap[theme];
+  return themeMap[theme] ?? PureLightTheme;
 }
 
 declare module '@mui/material/styles' {

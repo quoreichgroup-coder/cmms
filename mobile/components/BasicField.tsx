@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minHeight: 44
+    minHeight: qpmLayoutTokens.touchTarget.minimum
   }
 });

@@ -248,6 +248,7 @@ export const deleteAsset =
     if (success) {
       dispatch(slice.actions.deleteAsset({ id }));
     }
+    return success;
   };
 
 export const getAssetChildren =

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 interface PropsType {
   label: string;
+  name?: string;
   type?: 'simpleCheckbox' | 'groupCheckbox';
   listCheckbox?: {
     label: string;
@@ -39,7 +40,7 @@ export default (props: PropsType) => {
   ) : (
     <Box>
       <FormControlLabel
-        control={<Checkbox checked={props.checked} />}
+        control={<Checkbox checked={props.checked} name={props.name} />}
         label={t(`${props.label}`)}
         onChange={props.onChange}
       />

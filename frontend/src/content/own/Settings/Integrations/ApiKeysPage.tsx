@@ -39,11 +39,11 @@ import { Page, Pageable, SearchCriteria } from '../../../../models/owns/page';
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../../components/CustomDatagrid2';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
-import SyncTwoToneIcon from '@mui/icons-material/SyncTwoTone';
+import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { Formik, Form, Field } from 'formik';
@@ -129,11 +129,19 @@ function ApiKeys() {
     setCurrentApiKey(null);
   };
 
-  const handleDeleteApiKey = () => {
+  const handleDeleteApiKey = async () => {
     if (currentApiKey) {
-      dispatch(deleteApiKey(currentApiKey.id));
-      showSnackBar(t('Deleted successfully'), 'success');
-      handleCloseDeleteDialog();
+      try {
+        const deleted = await dispatch(deleteApiKey(currentApiKey.id));
+        if (deleted) {
+          showSnackBar(t('Deleted successfully'), 'success');
+          handleCloseDeleteDialog();
+        } else {
+          showSnackBar(t('something_went_wrong'), 'error');
+        }
+      } catch (error) {
+        showSnackBar(t('something_went_wrong'), 'error');
+      }
     }
   };
 
@@ -229,14 +237,14 @@ function ApiKeys() {
                 onClick={() => handleOpenRotateDialog(apiKey)}
                 title={t('rotate')}
               >
-                <SyncTwoToneIcon />
+                <SyncOutlinedIcon />
               </IconButton>
             )}
             <IconButton
               color="error"
               onClick={() => handleOpenDeleteDialog(apiKey)}
             >
-              <DeleteTwoToneIcon />
+              <DeleteOutlinedIcon />
             </IconButton>
           </Stack>
         );
@@ -252,7 +260,7 @@ function ApiKeys() {
           <Button onClick={onOpenApiDocs}>{t('open_api_docs')}</Button>
           <Button
             variant="contained"
-            startIcon={<AddTwoToneIcon />}
+            startIcon={<AddOutlinedIcon />}
             onClick={handleOpenCreateModal}
           >
             {t('create_api_key')}

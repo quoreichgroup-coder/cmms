@@ -26,7 +26,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import { useTranslation } from 'react-i18next';
 import Logo from 'src/components/LogoSign';
-import CheckTwoToneIcon from '@mui/icons-material/CheckTwoTone';
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import useAuth from '../../../../hooks/useAuth';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { emailRegExp } from '../../../../utils/validators';
@@ -234,7 +234,7 @@ function RecoverPasswordBasic() {
           }}
         >
           <AvatarSuccess>
-            <CheckTwoToneIcon />
+            <CheckOutlinedIcon />
           </AvatarSuccess>
 
           <Collapse in={openAlert}>

@@ -114,19 +114,17 @@ export const getTasksByWorkOrder =
 export const patchTasksOfWorkOrder =
   (workOrderId: number, taskBases: any[]): AppThunk =>
   async (dispatch) => {
-    if (taskBases.length) {
-      const tasks = await api.patch<Task[]>(
-        `${basePath}/work-order/${workOrderId}`,
-        taskBases,
-        null
-      );
-      dispatch(
-        slice.actions.patchTasksOfWorkOrder({
-          workOrderId,
-          tasks
-        })
-      );
-    }
+    const tasks = await api.patch<Task[]>(
+      `${basePath}/work-order/${workOrderId}`,
+      taskBases,
+      null
+    );
+    dispatch(
+      slice.actions.patchTasksOfWorkOrder({
+        workOrderId,
+        tasks
+      })
+    );
   };
 export const getTasksByPreventiveMaintenance =
   (id: number): AppThunk =>
@@ -146,19 +144,17 @@ export const getTasksByPreventiveMaintenance =
 export const patchTasksOfPreventiveMaintenance =
   (preventiveMaintenanceId: number, taskBases: any[]): AppThunk =>
   async (dispatch) => {
-    if (taskBases.length) {
-      const tasks = await api.patch<Task[]>(
-        `${basePath}/preventive-maintenance/${preventiveMaintenanceId}`,
-        taskBases,
-        null
-      );
-      dispatch(
-        slice.actions.patchTasksOfPM({
-          preventiveMaintenanceId,
-          tasks
-        })
-      );
-    }
+    const tasks = await api.patch<Task[]>(
+      `${basePath}/preventive-maintenance/${preventiveMaintenanceId}`,
+      taskBases,
+      null
+    );
+    dispatch(
+      slice.actions.patchTasksOfPM({
+        preventiveMaintenanceId,
+        tasks
+      })
+    );
   };
 export const deleteTask =
   (workOrderId: number, id: number): AppThunk =>

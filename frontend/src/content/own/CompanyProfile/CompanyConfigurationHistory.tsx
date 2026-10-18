@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Card, CardContent, CircularProgress, Divider, Stack, Typography } from '@mui/material';
-import HistoryTwoToneIcon from '@mui/icons-material/HistoryTwoTone';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../../../hooks/useAuth';
 import api, { getErrorMessage } from '../../../utils/api';
@@ -43,7 +43,7 @@ export default function CompanyConfigurationHistory() {
   return (
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 3, pb: 1 }}>
-        <HistoryTwoToneIcon color="primary" />
+        <HistoryOutlinedIcon color="primary" />
         <Box>
           <Typography variant="h4">{t('configuration_audit_title')}</Typography>
           <Typography variant="body2" color="text.secondary">{t('configuration_audit_description')}</Typography>

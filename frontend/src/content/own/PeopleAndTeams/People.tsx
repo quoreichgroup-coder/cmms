@@ -36,7 +36,7 @@ import {
 } from '../../../slices/user';
 import { OwnUser, UserResponseDTO } from '../../../models/user';
 import { PermissionEntity, Role } from '../../../models/owns/role';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import useAuth from '../../../hooks/useAuth';
 import Form from '../components/form';
@@ -419,7 +419,7 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
 
         return (
           <Stack direction="row" spacing={1}>
-            <EditTwoToneIcon
+            <EditOutlinedIcon
               fontSize="small"
               color="primary"
               sx={{ cursor: 'pointer' }}

@@ -30,12 +30,12 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { useDispatch, useSelector } from '../../../store';
 import * as React from 'react';
 import { useContext, useEffect, useMemo, useState } from 'react';
-import ReplayTwoToneIcon from '@mui/icons-material/ReplayTwoTone';
+import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
 import { TitleContext } from '../../../contexts/TitleContext';
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../components/CustomDatagrid2';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { AssetDTO, AssetRow } from '../../../models/owns/asset';
 import Form from '../components/form';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -56,7 +56,7 @@ import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import { isNumeric } from '../../../utils/validators';
 import { getSingleLocation } from '../../../slices/location';
 import { useExport } from '../../../hooks/useExport';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import {
   FilterField,
   Pageable,
@@ -85,11 +85,13 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
+import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
 
 const PAGE_SIZE = 40;
 
 function Assets() {
   const { t }: { t: any } = useTranslation();
+  const hasNfcBarcode = useLicenseEntitlement('NFC_BARCODE');
   const location = useLocation();
   const { setTitle } = useContext(TitleContext);
   const { uploadFiles } = useContext(CompanySettingsContext);
@@ -650,6 +652,18 @@ function Assets() {
       placeholder: t('barcode'),
       midWidth: true
     },
+    ...(hasNfcBarcode
+      ? [
+          {
+            name: 'nfcId',
+            type: 'text' as const,
+            label: t('nfc_tag'),
+            placeholder: t('nfc_tag'),
+            helperText: t('nfc_web_assignment_help'),
+            midWidth: true
+          }
+        ]
+      : []),
     {
       name: 'serialNumber',
       type: 'text',
@@ -997,32 +1011,64 @@ function Assets() {
         <Helmet>
           <title>{t('assets')}</title>
         </Helmet>
-        <Box justifyContent="center" alignItems="stretch" paddingX={4}>
+        <Box
+          justifyContent="center"
+          alignItems="stretch"
+          sx={{ px: { xs: 1.5, sm: 2.5, xl: 4 }, pb: 3 }}
+        >
           <Box
-            my={1}
+            my={{ xs: 1.5, md: 2 }}
             display="flex"
-            flexDirection="row"
+            flexDirection={{ xs: 'column', md: 'row' }}
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            gap={1.5}
           >
-            <SearchInput onChange={debouncedQueryChange} />
-            <Stack direction="row" spacing={1}>
-              <IconButton onClick={() => handleReset(true)} color="primary">
-                <ReplayTwoToneIcon />
+            <Box
+              sx={{
+                width: { xs: '100%', md: 300 },
+                '& .MuiFormControl-root': { width: '100%' },
+                '& .MuiOutlinedInput-root': { borderRadius: 2 }
+              }}
+            >
+              <SearchInput onChange={debouncedQueryChange} />
+            </Box>
+            <Stack
+              direction="row"
+              justifyContent={{ xs: 'flex-end', md: 'flex-start' }}
+              alignItems="center"
+              sx={{ flexWrap: 'wrap', gap: 1 }}
+            >
+              <IconButton
+                onClick={() => handleReset(true)}
+                color="primary"
+                aria-label={t('retry')}
+                sx={{ minWidth: 40, minHeight: 40 }}
+              >
+                <ReplayOutlinedIcon />
               </IconButton>
-              <IconButton onClick={handleOpenMenu} color="primary">
-                <MoreVertTwoToneIcon />
+              <IconButton
+                onClick={handleOpenMenu}
+                color="primary"
+                aria-label={t('actions')}
+                sx={{ minWidth: 40, minHeight: 40 }}
+              >
+                <MoreVertOutlinedIcon />
               </IconButton>
               {view === 'list' && (
-                <Button variant={'outlined'} onClick={onResetFilters}>
+                <Button
+                  variant="outlined"
+                  onClick={onResetFilters}
+                  sx={{ minHeight: 40, borderRadius: 2, textTransform: 'none' }}
+                >
                   {t('reset_filters')}
                 </Button>
               )}
               {hasCreatePermission(PermissionEntity.ASSETS) && (
                 <SplitButton
                   onMainClick={() => setOpenAddModal(true)}
-                  startIcon={<AddTwoToneIcon />}
-                  sx={{ mx: 6, my: 1 }}
+                  startIcon={<AddOutlinedIcon />}
+                  sx={{ mx: 0, my: 0, borderRadius: 2 }}
                   label={t('asset')}
                   menuItems={
                     hasViewPermission(PermissionEntity.SETTINGS) &&
@@ -1041,14 +1087,19 @@ function Assets() {
           </Box>
           <Card
             sx={{
-              py: 2,
+              py: { xs: 1, sm: 2 },
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              alignItems: 'stretch',
+              justifyContent: 'space-between',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 3,
+              boxShadow: 'none',
+              overflow: 'hidden'
             }}
           >
-            <Box sx={{ width: '95%' }}>
+            <Box sx={{ width: '100%', minWidth: 0 }}>
               {hierarchyError && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {hierarchyError}
@@ -1102,7 +1153,10 @@ function Assets() {
           open={openFilterDrawer}
           onClose={handleCloseFilterDrawer}
           PaperProps={{
-            sx: { width: '30%' }
+            sx: {
+              width: { xs: '92%', sm: 420, md: 'min(32vw, 480px)' },
+              maxWidth: '100%'
+            }
           }}
         >
           <Filters

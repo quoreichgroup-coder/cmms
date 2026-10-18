@@ -15,6 +15,8 @@ interface CustomerState {
   currentPageNum: number;
   lastPage: boolean;
   loadingGet: boolean;
+  listLoading: boolean;
+  latestListRequestId: number;
 }
 
 const initialState: CustomerState = {
@@ -23,7 +25,9 @@ const initialState: CustomerState = {
   customersMini: [],
   currentPageNum: 0,
   lastPage: true,
-  loadingGet: false
+  loadingGet: false,
+  listLoading: false,
+  latestListRequestId: 0
 };
 
 const slice = createSlice({
@@ -33,18 +37,20 @@ const slice = createSlice({
   reducers: {
     getCustomers(
       state: CustomerState,
-      action: PayloadAction<{ customers: Page<Customer> }>
+      action: PayloadAction<{ customers: Page<Customer>; requestId: number }>
     ) {
-      const { customers } = action.payload;
+      const { customers, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.customers = customers;
       state.currentPageNum = 0;
       state.lastPage = customers.last;
     },
     getMoreCustomers(
       state: CustomerState,
-      action: PayloadAction<{ customers: Page<Customer> }>
+      action: PayloadAction<{ customers: Page<Customer>; requestId: number }>
     ) {
-      const { customers } = action.payload;
+      const { customers, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.customers.content = state.customers.content.concat(
         customers.content
       );
@@ -91,7 +97,12 @@ const slice = createSlice({
       const customerIndex = state.customers.content.findIndex(
         (customer) => customer.id === id
       );
-      state.customers.content.splice(customerIndex, 1);
+      if (customerIndex !== -1)
+        state.customers.content.splice(customerIndex, 1);
+      state.customersMini = state.customersMini.filter(
+        (customer) => customer.id !== id
+      );
+      delete state.customerInfos[id];
     },
     setLoadingGet(
       state: CustomerState,
@@ -99,39 +110,52 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: CustomerState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: CustomerState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getCustomers =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const customers = await api.post<Page<Customer>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getCustomers({ customers }));
+      dispatch(slice.actions.getCustomers({ customers, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreCustomers =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const customers = await api.post<Page<Customer>>(
         `${basePath}/search`,
         criteria
       );
-      dispatch(slice.actions.getMoreCustomers({ customers }));
+      dispatch(slice.actions.getMoreCustomers({ customers, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 
@@ -160,9 +184,12 @@ export const editCustomer =
   };
 export const getCustomersMini = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.setLoadingGet({ loading: true }));
-  const customers = await api.get<CustomerMiniDTO[]>('customers/mini');
-  dispatch(slice.actions.getCustomersMini({ customers }));
-  dispatch(slice.actions.setLoadingGet({ loading: false }));
+  try {
+    const customers = await api.get<CustomerMiniDTO[]>('customers/mini');
+    dispatch(slice.actions.getCustomersMini({ customers }));
+  } finally {
+    dispatch(slice.actions.setLoadingGet({ loading: false }));
+  }
 };
 export const addCustomer =
   (customer): AppThunk =>

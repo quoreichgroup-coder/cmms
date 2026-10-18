@@ -1,6 +1,6 @@
 {
   "name": "atlas-cmms",
-  "version": "1.0.58",
+  "version": "1.0.59",
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
@@ -16,7 +16,11 @@
     "eas-build-on-error": "sentry-eas-build-on-error",
     "build:apk": "node scripts/build-apk.mjs",
     "build:dev-apk": "node scripts/build-dev-apk.mjs",
-    "test:mobile-regression": "node --test scripts/request-pilot.test.cjs scripts/mobile-regression.test.cjs scripts/request-form-layout.test.cjs scripts/task-input.test.cjs scripts/file-upload-access.test.cjs scripts/dashboard-dates.test.cjs scripts/appearance.test.cjs scripts/related-load.test.cjs scripts/async-action-lock.test.cjs scripts/form-audio-recording.test.cjs scripts/work-order-creation.test.cjs scripts/work-order-completion-load.test.cjs scripts/manual-labor-duration.test.cjs scripts/unsaved-changes.test.cjs",
+    "test:checklist-selector-states": "node --test scripts/checklist-selector-states.test.cjs",
+    "test:task-options-accessibility": "node --test scripts/task-options-accessibility.test.cjs",
+    "test:part-selector-states": "node --test scripts/part-selector-states.test.cjs",
+    "test:meter-selector-states": "node --test scripts/meter-selector-states.test.cjs",
+    "test:mobile-regression": "node --test scripts/request-pilot.test.cjs scripts/mobile-regression.test.cjs scripts/request-form-layout.test.cjs scripts/task-input.test.cjs scripts/file-upload-access.test.cjs scripts/dashboard-dates.test.cjs scripts/appearance.test.cjs scripts/related-load.test.cjs scripts/part-details-load.test.cjs scripts/async-action-lock.test.cjs scripts/form-audio-recording.test.cjs scripts/work-order-creation.test.cjs scripts/work-order-completion-load.test.cjs scripts/manual-labor-duration.test.cjs scripts/unsaved-changes.test.cjs scripts/directory-list-concurrency.test.cjs scripts/directory-selector-load.test.cjs scripts/asset-selector-load.test.cjs scripts/feedback-submit.test.cjs scripts/attachment-delete-confirmation.test.cjs scripts/media-permissions.test.cjs scripts/metro-watcher-exclusions.test.cjs scripts/server-session-reset.test.cjs scripts/asset-delete-state.test.cjs scripts/list-delete-index-state.test.cjs scripts/list-detail-loading-isolation.test.cjs scripts/part-selector-states.test.cjs scripts/meter-selector-states.test.cjs scripts/checklist-selector-states.test.cjs scripts/task-options-accessibility.test.cjs",
     "start:lan": "expo start --dev-client --lan",
     "start:tunnel": "expo start --dev-client --tunnel"
   },

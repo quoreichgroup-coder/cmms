@@ -13,8 +13,7 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import Text from 'src/components/Text';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useState } from 'react';
@@ -23,6 +22,7 @@ import CustomDialog from '../components/CustomDialog';
 import { Company } from '../../../models/owns/company';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
+import { getSafeHttpUrl } from '../../../utils/safeWindow';
 
 interface CompanyDetailsProps {
   company: Company;
@@ -30,8 +30,10 @@ interface CompanyDetailsProps {
 function CompanyDetails(props: CompanyDetailsProps) {
   const { company } = props;
   const { patchCompany, user } = useAuth();
-  const canEdit = user.ownsCompany || (user.role?.viewPermissions?.includes(PermissionEntity.SETTINGS)
-    && user.role?.editOtherPermissions?.includes(PermissionEntity.SETTINGS));
+  const canEdit =
+    user.ownsCompany ||
+    (user.role?.viewPermissions?.includes(PermissionEntity.SETTINGS) &&
+      user.role?.editOtherPermissions?.includes(PermissionEntity.SETTINGS));
   const { t }: { t: any } = useTranslation();
   const [openEditModal, setOpenEditModal] = useState<boolean>(false);
   const handleOpenEditModal = () => setOpenEditModal(true);
@@ -47,6 +49,7 @@ function CompanyDetails(props: CompanyDetailsProps) {
     website: { value: company.website, title: t('website'), isLink: true },
     phone: { value: company.phone, title: t('phone') }
   };
+  const companyWebsite = getSafeHttpUrl(company.website, { assumeHttps: true });
 
   const KeyAndValue = ({
     label,
@@ -65,24 +68,18 @@ function CompanyDetails(props: CompanyDetailsProps) {
           </Box>
         </Grid>
         <Grid item xs={12} sm={8} md={9}>
-          {isLink && value ? (
+          {isLink && value && companyWebsite ? (
             <Link
-              href={
-                value
-                  ? value.startsWith('https://') || value.startsWith('http://')
-                    ? value
-                    : `https://${value}`
-                  : null
-              }
+              href={companyWebsite}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               {value}
             </Link>
           ) : (
-            <Text color="black">
+            <Typography color="text.primary">
               <b>{value ?? 'N/A'}</b>
-            </Text>
+            </Typography>
           )}
         </Grid>
       </>
@@ -296,7 +293,7 @@ function CompanyDetails(props: CompanyDetailsProps) {
                 <Button
                   onClick={handleOpenEditModal}
                   variant="text"
-                  startIcon={<EditTwoToneIcon />}
+                  startIcon={<EditOutlinedIcon />}
                 >
                   {t('edit')}
                 </Button>

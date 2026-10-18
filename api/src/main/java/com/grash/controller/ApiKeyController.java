@@ -57,7 +57,7 @@ public class ApiKeyController {
     public ApiKeyShowDTO getById(@PathVariable Long id, @Parameter(hidden = true) @CurrentUser User user) {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        return apiKeyMapper.toShowDto(apiKeyService.findById(id).orElseThrow(() -> new CustomException("Not found",
+        return apiKeyMapper.toShowDto(apiKeyService.findByIdAndCompany(id, user).orElseThrow(() -> new CustomException("Not found",
                 HttpStatus.NOT_FOUND)));
     }
 
@@ -81,10 +81,7 @@ public class ApiKeyController {
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
 
-        ApiKey savedApiKey =
-                apiKeyService.findById(id).orElseThrow(() -> new CustomException("Not found",
-                        HttpStatus.NOT_FOUND));
-        apiKeyService.delete(id);
+        apiKeyService.delete(id, user);
         return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"), HttpStatus.OK);
     }
 }

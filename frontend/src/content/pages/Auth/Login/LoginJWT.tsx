@@ -131,9 +131,14 @@ const LoginJWT: FC = () => {
             }}
           />
           <Box
-            alignItems="center"
-            display={{ xs: 'block', md: 'flex' }}
-            justifyContent="space-between"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: { xs: 'wrap', md: 'nowrap' },
+              columnGap: 1,
+              rowGap: 0.5
+            }}
           >
             {!ldapEnabled && (
               <FormControlLabel
@@ -145,9 +150,18 @@ const LoginJWT: FC = () => {
                   />
                 }
                 label={t('super_admin_signin')}
+                sx={{ mr: 0, minWidth: 0 }}
               />
             )}
-            <Link component={RouterLink} to="/account/recover-password">
+            <Link
+              component={RouterLink}
+              to="/account/recover-password"
+              sx={{
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                ml: { xs: 'auto', md: 0 }
+              }}
+            >
               <b>{t('lost_password')}</b>
             </Link>
           </Box>

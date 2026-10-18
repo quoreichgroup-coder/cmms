@@ -13,6 +13,13 @@ npm run web -- --localhost --port 8082
 
 Expo démarre le bundle Web sur `http://localhost:8082` ; dans VS Code, transférez le port 8082 (onglet **Ports**) puis ouvrez l’adresse locale affichée. Utilisez l’émulation téléphone/tablette du navigateur pour contrôler les dimensions. Ce mode valide la présentation Web responsive, mais ne remplace pas un test sur le runtime natif Android/iOS.
 
+Si Expo signale `EACCES` lors du nettoyage de `/tmp/metro-cache` (par exemple après un lancement précédent avec `sudo`), créez un cache temporaire privé au projet et relancez le Web :
+
+```sh
+mkdir -p .build-tools/expo-tmp
+TMPDIR="$PWD/.build-tools/expo-tmp" npm run web -- --localhost --port 8082 --clear
+```
+
 Pour le rechargement à chaud sur un téléphone dans le runtime natif, QPM utilise `expo-dev-client` et le lancement `npx expo start --dev-client`. Il faut disposer une première fois d’un build de développement QPM installé sur le téléphone ; ensuite, les modifications TypeScript/JavaScript et UI se chargent depuis Expo sans reconstruire l’APK à chaque changement. Le profil EAS `development` est déjà configuré dans `eas.json`.
 
 ### Test natif avec Expo depuis le serveur de développement
@@ -21,7 +28,7 @@ Une build de développement Android séparée peut être créée avec `npm run b
 
 ```sh
 npm run build:dev-apk
-adb install -r dist/QPM-1.0.58-dev.apk
+adb install -r dist/QPM-1.0.59-dev.apk
 ```
 
 On peut aussi transférer le fichier sur le téléphone puis l’ouvrir pour l’installer. Après cette installation initiale, les changements TypeScript/JavaScript et UI se rechargent depuis Metro, sans reconstruire ni retélécharger d’APK.
@@ -48,7 +55,7 @@ Expo Go n’est pas un substitut direct pour ce projet : QPM s’appuie sur des 
 
 ## Installer sur Android
 
-L’APK de production 1.0.58 est disponible dans `dist/QPM-1.0.58.apk`. Le build conserve `versionCode` 41 pour le test visuel de cette même version; il est signé avec le certificat QPM existant. Pour le rechargement UI continu, créez et installez une build Dev selon les étapes ci-dessus. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md), et le parcours de validation est dans [`../docs/GUIDE-TEST-VISUEL-MOBILE.md`](../docs/GUIDE-TEST-VISUEL-MOBILE.md).
+L’APK de production 1.0.59 est disponible dans `dist/QPM-1.0.59.apk` (version Android `versionCode` 42), signé avec le certificat QPM existant. Pour le rechargement UI continu, créez et installez une build Dev selon les étapes ci-dessus. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md), et le parcours de validation est dans [`../docs/GUIDE-TEST-VISUEL-MOBILE.md`](../docs/GUIDE-TEST-VISUEL-MOBILE.md).
 
 L’APK utilise par défaut `https://169-58-86-7.sslip.io/api/`. Le certificat HTTPS est émis et renouvelé automatiquement par Caddy. Si une ancienne adresse personnalisée est conservée après la mise à jour, ouvrez **Serveur personnalisé** depuis l’écran de connexion et choisissez **Réinitialiser**. Connectez-vous avec un compte utilisateur de l’entreprise ; le superadmin de plateforme est un compte technique et le parcours mobile client ne l’accepte pas. Les taps de notification ouvrent maintenant leur ressource après le démarrage et la restauration de session. La réception des push demande encore les credentials Firebase de l’entreprise. Au premier démarrage, le propriétaire de l’entreprise peut saisir la clé de licence depuis **Réglages → Licence de l’entreprise**.
 
@@ -77,7 +84,7 @@ Sans configuration Firebase propre à l’environnement, les notifications push 
 
 ## Préparer un build iOS
 
-Un IPA signé ne peut être produit qu’avec un projet EAS lié et des identifiants Apple Developer valides. Depuis le compte Expo de l’entreprise, exécutez `npx eas-cli login`, puis `npx eas-cli init` pour créer ou lier le projet. La configuration dynamique lit son identifiant depuis `EAS_PROJECT_ID`; fournissez cette variable pendant la résolution Expo et les builds EAS. Ne mettez pas cet identifiant ni les credentials Apple dans Git. Le projet requiert EAS CLI 12 ou ultérieur pour sa gestion distante des numéros de build. Le profil `preview` produit une version interne; `production` prépare la distribution App Store/TestFlight et incrémente le numéro de build distant.
+La configuration source iOS est alignée sur QPM 1.0.59 (`buildNumber` 13), et l’export JavaScript iOS de cette version a été validé. Un IPA signé ne peut être produit qu’avec un projet EAS lié, une session Expo active et des identifiants Apple Developer valides. Depuis le compte Expo de l’entreprise, exécutez `npx eas-cli login`, puis `npx eas-cli init` pour créer ou lier le projet. La configuration dynamique lit son identifiant depuis `EAS_PROJECT_ID`; fournissez cette variable pendant la résolution Expo et les builds EAS. Ne mettez pas cet identifiant ni les credentials Apple dans Git. Le projet requiert EAS CLI 12 ou ultérieur pour sa gestion distante des numéros de build. Le profil `preview` produit une version interne; `production` prépare la distribution App Store/TestFlight et incrémente le numéro de build distant. L’IPA 1.0.59 reste à construire après authentification EAS et validation des certificats Apple.
 
 Depuis un Mac avec Xcode ou depuis EAS Build :
 

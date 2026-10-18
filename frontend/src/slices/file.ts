@@ -148,6 +148,7 @@ export const deleteFile =
     if (success) {
       dispatch(slice.actions.deleteFile({ id }));
     }
+    return success;
   };
 export const clearSingleFile = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.clearSingleFile({}));

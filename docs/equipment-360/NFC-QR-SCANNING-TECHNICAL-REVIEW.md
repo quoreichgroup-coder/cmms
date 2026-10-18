@@ -3,7 +3,7 @@
 ## Current identifier model
 
 - Equipment stores `Asset.nfcId` and `Asset.barCode` as strings (`api/.../model/Asset.java`).
-- Mobile NFC requests `NfcTech.Ndef` and returns `tag.id`; it does not parse an NDEF payload. Treat this as a hardware tag identifier workflow with a tag-technology compatibility limitation, not as cryptographic identification.
+- Mobile NFC returns `tag.id`; it does not parse an NDEF payload. Android requests NDEF and UID-capable technologies. iOS requests MIFARE and ISO 15693 through Core NFC. Treat this as a hardware tag identifier workflow with platform/tag compatibility limits, not as cryptographic identification.
 - Web equipment details generates a QR image from `barCode` (`frontend/src/content/own/Assets/Show/AssetDetails.tsx`). The QR contains the barcode string only. Backend can auto-assign a UUID barcode according to company preferences.
 - Mobile barcode/QR scanner forwards camera `data` to the barcode lookup endpoint. The lookup parameter is URL-encoded in the mobile slice.
 
@@ -17,8 +17,8 @@
 
 ## Platform and lifecycle observations
 
-- Android: native NFC module is configured; runtime support requires an NFC-capable device and enabled NFC. Hardware, manifest merger, device permissions, NDEF compatibility and cold/warm lifecycle have not been verified on-device.
-- iOS: scanner UI intentionally hides NFC; QR/barcode remains available.
+- Android: native NFC module is configured; runtime support requires an NFC-capable device and enabled NFC. Hardware, manifest merger, device permissions, tag compatibility and cold/warm lifecycle have not been verified on-device.
+- iOS: NFC is exposed in the scanner and asset form on native builds. The project declares `NFCReaderUsageDescription` and the NFC TAG reader entitlement; the selected technologies are MIFARE and ISO 15693. A compatible iPhone, Apple signing profile/capability, tag compatibility and lifecycle behavior remain unverified on-device. QR/barcode remains available as a fallback.
 - Expo Go: not a valid NFC verification target for this project. Use its development build or signed app containing the native NFC module.
 - Camera: Expo `CameraView` requests permission using `ensureScannerCameraPermission`, offers a settings action on denial and locks after the first barcode event. Camera hardware and formats remain untested here.
 - Background/cancel: NFC modal cancels the technology request on completion/unmount, but app background/resume and repeated-scan behavior need device verification.
@@ -34,7 +34,7 @@
 4. Scan a truly unknown value while signed in as (a) an asset creator and (b) a user without asset-create permission. Only (a) may be offered the create flow.
 5. Disable the network after camera permission is granted, then scan. Verify a connection error, no create prompt and no unintended asset creation.
 6. Deny camera permission, choose Retry, then open Settings and grant permission. Repeat with the app backgrounded while the camera modal is open.
-7. On Android, test NFC disabled, unsupported hardware, NDEF-compatible tag, non-NDEF tag, repeated tap, rapid second tag and leaving the modal mid-read. Verify clean cancellation and useful feedback.
+7. On Android, test NFC disabled, unsupported hardware, NDEF-compatible tag, non-NDEF tag, repeated tap, rapid second tag and leaving the modal mid-read. On iOS, test a supported MIFARE or ISO 15693 tag, user cancellation and leaving the reader session. Verify clean cancellation and useful feedback on both platforms.
 8. Copy and alter a QR value; verify it only resolves if it maps to an authorized record and never authorizes access by itself.
 9. Run the same cross-tenant direct `GET /assets/{id}` check; it must return not found for another company's equipment.
 

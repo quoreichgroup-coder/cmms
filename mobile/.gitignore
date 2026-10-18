@@ -1,5 +1,8 @@
 node_modules/
 .expo/
+# Locally generated Expo validation bundles (hundreds of files per run).
+.expo-check-*/
+.expo-export-*/
 dist/
 npm-debug.*
 *.jks

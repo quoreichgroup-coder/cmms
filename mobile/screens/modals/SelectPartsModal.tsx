@@ -20,7 +20,8 @@ import {
   Searchbar,
   Text
 } from 'react-native-paper';
-import { useAppTheme } from '../../custom-theme';
+import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { getMultiPartsMini } from '../../slices/multipart';
 import SetType from '../../models/setType';
@@ -106,6 +107,15 @@ const PartItem = React.memo(
   }
 );
 
+const SelectorEmptyState = ({ message }: { message: string }) => {
+  const theme = useAppTheme();
+  return (
+    <View style={styles.emptyState} accessibilityRole="text">
+      <Text style={{ color: theme.colors.onSurfaceVariant }}>{message}</Text>
+    </View>
+  );
+};
+
 const SetItem = React.memo(
   ({
     multiPart,
@@ -160,11 +170,17 @@ const PartsRoute = React.memo(
   ({
     toggle,
     partsMini,
+    loading,
+    loadError,
+    onRetry,
     navigation,
     selectedIds
   }: {
     toggle: (id: number) => void;
     partsMini: PartMiniDTO[];
+    loading: boolean;
+    loadError: boolean;
+    onRetry: () => void;
     selectedIds: number[];
     navigation: any;
   }) => {
@@ -210,24 +226,54 @@ const PartsRoute = React.memo(
       <View style={{ flex: 1 }}>
         <Searchbar
           placeholder={t('search')}
+          accessibilityLabel={t('search')}
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={{ backgroundColor: theme.colors.background }}
         />
-        <FlatList
-          data={filteredParts}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          initialNumToRender={20}
-          maxToRenderPerBatch={20}
-          windowSize={10}
-          removeClippedSubviews={true}
-          getItemLayout={(_data, index) => ({
-            length: ITEM_HEIGHT,
-            offset: ITEM_HEIGHT * index,
-            index
-          })}
-        />
+        {loadError && partsMini.length > 0 ? (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('parts_load_error')}
+            onRetry={onRetry}
+          />
+        ) : null}
+        {loading && partsMini.length > 0 ? (
+          <ActivityIndicator
+            style={styles.refreshIndicator}
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('loading')}
+          />
+        ) : null}
+        {loadError && partsMini.length === 0 ? (
+          <AsyncStateFeedback
+            mode="error"
+            message={t('parts_load_error')}
+            onRetry={onRetry}
+          />
+        ) : loading && partsMini.length === 0 ? (
+          <AsyncStateFeedback mode="loading" message={t('loading')} />
+        ) : (
+          <FlatList
+            data={filteredParts}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={10}
+            removeClippedSubviews={true}
+            ListEmptyComponent={
+              <SelectorEmptyState
+                message={searchQuery.trim() ? t('no_results') : t('no_parts')}
+              />
+            }
+            getItemLayout={(_data, index) => ({
+              length: ITEM_HEIGHT,
+              offset: ITEM_HEIGHT * index,
+              index
+            })}
+          />
+        )}
       </View>
     );
   }
@@ -237,10 +283,16 @@ const SetsRoute = React.memo(
   ({
     toggle,
     multiParts,
+    loading,
+    loadError,
+    onRetry,
     selectedIds
   }: {
     toggle: (multiPart: SetType, checked: boolean) => void;
     multiParts: SetType[];
+    loading: boolean;
+    loadError: boolean;
+    onRetry: () => void;
     selectedIds: number[];
   }) => {
     const { t } = useTranslation();
@@ -289,24 +341,58 @@ const SetsRoute = React.memo(
       <View style={{ flex: 1 }}>
         <Searchbar
           placeholder={t('search')}
+          accessibilityLabel={t('search')}
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={{ backgroundColor: theme.colors.background }}
         />
-        <FlatList
-          data={filteredMultiParts}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          initialNumToRender={20}
-          maxToRenderPerBatch={20}
-          windowSize={10}
-          removeClippedSubviews={true}
-          getItemLayout={(_data, index) => ({
-            length: ITEM_HEIGHT,
-            offset: ITEM_HEIGHT * index,
-            index
-          })}
-        />
+        {loadError && multiParts.length > 0 ? (
+          <AsyncStateFeedback
+            mode="banner"
+            message={t('multi_parts_load_error')}
+            onRetry={onRetry}
+          />
+        ) : null}
+        {loading && multiParts.length > 0 ? (
+          <ActivityIndicator
+            style={styles.refreshIndicator}
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('loading')}
+          />
+        ) : null}
+        {loadError && multiParts.length === 0 ? (
+          <AsyncStateFeedback
+            mode="error"
+            message={t('multi_parts_load_error')}
+            onRetry={onRetry}
+          />
+        ) : loading && multiParts.length === 0 ? (
+          <AsyncStateFeedback mode="loading" message={t('loading')} />
+        ) : (
+          <FlatList
+            data={filteredMultiParts}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={10}
+            removeClippedSubviews={true}
+            ListEmptyComponent={
+              <SelectorEmptyState
+                message={
+                  searchQuery.trim()
+                    ? t('no_results')
+                    : t('no_part_sets_available')
+                }
+              />
+            }
+            getItemLayout={(_data, index) => ({
+              length: ITEM_HEIGHT,
+              offset: ITEM_HEIGHT * index,
+              index
+            })}
+          />
+        )}
       </View>
     );
   }
@@ -322,13 +408,33 @@ export default function SelectParts({
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { partsMini, loadingGet } = useSelector((state) => state.parts);
+  const { partsMini, partsMiniLoading } = useSelector((state) => state.parts);
   const { miniMultiParts: multiParts, loadingMultiparts } = useSelector(
     (state) => state.multiParts
   );
   const [tabIndex, setTabIndex] = useState(0);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [partsLoadError, setPartsLoadError] = useState(false);
+  const [setsLoadError, setSetsLoadError] = useState(false);
   const layout = useWindowDimensions();
+
+  const loadPartsMini = useCallback(async () => {
+    setPartsLoadError(false);
+    try {
+      await dispatch(getPartsMini());
+    } catch (_error) {
+      setPartsLoadError(true);
+    }
+  }, [dispatch]);
+
+  const loadSetsMini = useCallback(async () => {
+    setSetsLoadError(false);
+    try {
+      await dispatch(getMultiPartsMini());
+    } catch (_error) {
+      setSetsLoadError(true);
+    }
+  }, [dispatch]);
 
   const [tabs] = useState([
     { key: 'parts', title: t('parts') },
@@ -365,9 +471,9 @@ export default function SelectParts({
   }, [selectedParts, navigation, onChange, t]);
 
   useEffect(() => {
-    dispatch(getPartsMini());
-    dispatch(getMultiPartsMini());
-  }, []);
+    void loadPartsMini();
+    void loadSetsMini();
+  }, [loadPartsMini, loadSetsMini]);
 
   const onSelect = useCallback((ids: number[]) => {
     setSelectedIds((prev) => Array.from(new Set([...prev, ...ids])));
@@ -408,6 +514,9 @@ export default function SelectParts({
               toggle={toggle}
               navigation={navigation}
               partsMini={partsMini}
+              loading={partsMiniLoading}
+              loadError={partsLoadError}
+              onRetry={loadPartsMini}
               selectedIds={selectedIds}
             />
           );
@@ -416,6 +525,9 @@ export default function SelectParts({
             <SetsRoute
               toggle={toggleMultipart}
               multiParts={multiParts}
+              loading={loadingMultiparts}
+              loadError={setsLoadError}
+              onRetry={loadSetsMini}
               selectedIds={selectedIds}
             />
           );
@@ -439,13 +551,6 @@ export default function SelectParts({
     <View
       style={{ ...styles.container, backgroundColor: theme.colors.background }}
     >
-      {((loadingGet && tabIndex === 0) ||
-        (loadingMultiparts && tabIndex === 1)) && (
-        <ActivityIndicator
-          style={{ position: 'absolute', top: '45%', left: '45%', zIndex: 10 }}
-          size="large"
-        />
-      )}
       <TabView
         style={{ flex: 1 }}
         renderTabBar={renderTabBar}
@@ -501,5 +606,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: 'bold',
     flexShrink: 1
+  },
+  emptyState: {
+    minHeight: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: qpmLayoutTokens.space.xl
+  },
+  refreshIndicator: {
+    alignSelf: 'center',
+    marginVertical: qpmLayoutTokens.space.sm
   }
 });

@@ -24,6 +24,10 @@ export const qpmDesignTokens = {
     shadow: '#000000',
     success: '#237A32',
     onSuccess: '#FFFFFF',
+    inProgress: '#6941C6',
+    onInProgress: '#FFFFFF',
+    inProgressContainer: '#EBE9FE',
+    onInProgressContainer: '#53389E',
     warning: '#8A5700',
     onWarning: '#FFFFFF',
     error: '#C6283D',
@@ -71,6 +75,10 @@ export const qpmDesignTokens = {
     shadow: '#000000',
     success: '#77D18A',
     onSuccess: '#0D1220',
+    inProgress: '#BDB4FE',
+    onInProgress: '#17132B',
+    inProgressContainer: '#34285A',
+    onInProgressContainer: '#E4DEFF',
     warning: '#FFC66D',
     onWarning: '#0D1220',
     error: '#FF8292',
@@ -113,5 +121,9 @@ export const qpmLayoutTokens = {
     cardLarge: 20,
     sheet: 24,
     pill: 999
+  },
+  touchTarget: {
+    minimum: 48,
+    prominent: 56
   }
 } as const;

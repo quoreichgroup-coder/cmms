@@ -24,6 +24,7 @@ import { enqueueTaskSave } from '../utils/taskSaveQueue';
 interface SingleTaskProps {
   task: Task;
   preview?: boolean;
+  readOnly?: boolean;
   handleChange?: (value: string | number, id: number) => void | Promise<void>;
   handleSaveNotes?: (value: string, id: number) => Promise<void>;
   handleNoteChange?: (value: string, id: number) => void;
@@ -38,6 +39,7 @@ interface SingleTaskProps {
 export default function SingleTask({
   task,
   handleChange,
+  readOnly: externallyReadOnly = false,
   handleNoteChange,
   handleSaveNotes,
   preview,
@@ -58,7 +60,9 @@ export default function SingleTask({
   const isTaskAssignedToAnotherUser = Boolean(
     task.taskBase.user && task.taskBase.user.id !== user.id
   );
-  const isTaskReadOnly = Boolean(preview || isTaskAssignedToAnotherUser);
+  const isTaskReadOnly = Boolean(
+    preview || externallyReadOnly || isTaskAssignedToAnotherUser
+  );
   const imagesBusy = isUploadingImages || isSelectingImages;
   const imageActionDisabled =
     imagesBusy || isTaskReadOnly || !canUploadTaskImages;
@@ -296,8 +300,8 @@ export default function SingleTask({
                 text="±"
                 accessibilityLabel={t('toggle_numeric_sign')}
                 textStyle={{
-                  minWidth: 44,
-                  minHeight: 44,
+                  minWidth: qpmLayoutTokens.touchTarget.minimum,
+                  minHeight: qpmLayoutTokens.touchTarget.minimum,
                   textAlign: 'center',
                   textAlignVertical: 'center'
                 }}
@@ -345,7 +349,8 @@ export default function SingleTask({
             </Text>
             <Button
               compact
-              disabled={preview || isTaskAssignedToAnotherUser}
+              style={styles.retryButton}
+              disabled={isTaskReadOnly}
               onPress={() => saveTaskValue(lastAttemptedValue.current)}
             >
               {t('retry')}
@@ -388,10 +393,14 @@ export default function SingleTask({
               disabled={isTaskReadOnly || savingNotes}
             />
             <Button
-              style={{ marginTop: 10 }}
+              style={styles.saveNotesButton}
               mode="contained"
               loading={savingNotes}
               disabled={savingNotes || isTaskReadOnly}
+              accessibilityState={{
+                busy: savingNotes,
+                disabled: savingNotes || isTaskReadOnly
+              }}
               onPress={() => {
                 // Prevent duplicate PATCH requests before React commits the
                 // loading state after a fast repeated tap.
@@ -454,6 +463,15 @@ const styles = StyleSheet.create({
   taskTitle: { flex: 1, fontWeight: '700' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   saveError: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  saveNotesButton: {
+    marginTop: 10,
+    minHeight: qpmLayoutTokens.touchTarget.prominent,
+    justifyContent: 'center'
+  },
+  retryButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
+  },
   metadataRow: {
     marginVertical: 4,
     flexDirection: 'row',

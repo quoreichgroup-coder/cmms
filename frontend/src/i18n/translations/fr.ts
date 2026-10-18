@@ -421,8 +421,12 @@ const frJSON = {
   list_view: 'Vue liste',
   calendar_view: 'Vue calendrier',
   column_view: 'Vue colonnes',
+  column_view_page_scope:
+    'Les compteurs reflètent la page affichée ({{from}}–{{to}} sur {{count}} OT).',
   wo_create_success: 'Le bon de travail a été créé avec succès',
   wo_create_failure: "Le bon de travail n'a pas pu être créé",
+  wo_close_success: 'Le bon de travail a été clôturé avec succès',
+  wo_status_change_success: 'Le statut du bon de travail a été mis à jour',
   changes_saved_success: 'les changements ont été enregistrés',
   wo_update_failure: "Le bon de travail n'a pas pu être modifié",
   wo_delete_success: 'Le bon de travail a été supprimé avec succès',
@@ -554,6 +558,9 @@ const frJSON = {
   cancelled: 'Annulé',
   reject: 'Rejeter',
   approve: 'Approuver',
+  confirm_request_approval: 'Approuver cette demande ?',
+  confirm_request_approval_message:
+    'Un ordre de travail sera créé à partir de cette demande. Continuer ?',
   request_create_success: 'Bon de travail demandé avec succès',
   request_create_failure: "La demande de travail n'a pas pu être créée",
   request_edit_failure: "La demande n'a pas pu être modifiée",
@@ -594,6 +601,13 @@ const frJSON = {
   down: 'En panne',
   area: 'Zone',
   barcode: 'Code à barre',
+  nfc_tag: 'Tag NFC',
+  nfc_web_assignment_help:
+    'Saisissez l’identifiant du tag relevé avec l’application mobile. Les navigateurs Web ne peuvent pas lire directement les tags NFC.',
+  download_asset_qr: "Télécharger le QR code de l'équipement",
+  print_asset_label: "Imprimer l'étiquette de l'équipement",
+  asset_label_scan_hint:
+    "Scannez avec l'application mobile QPM pour ouvrir cet équipement.",
   placed_in_service: 'Mis en service',
   warranty_expiration: 'Expiration de la garantie',
   asset_information: "Informations sur l'équipement",
@@ -603,6 +617,8 @@ const frJSON = {
   create_downtime_success: "Le temps d'arrêt a été ajouté avec succès",
   create_downtime_failure: "Le temps d'arrêt n'a pas pu être ajouté",
   edit_downtime_success: "Le temps d'arrêt a été modifié avec succès",
+  downtime_delete_success: "Le temps d'arrêt a été supprimé avec succès",
+  downtime_delete_failure: "Le temps d'arrêt n'a pas pu être supprimé",
   started_on: 'A Commencé le',
   required_startsOn: 'La date de début est obligatoire',
   reading_create_success: 'Le relevé a été ajouté avec succès',
@@ -813,6 +829,8 @@ const frJSON = {
   po_create_success: 'Le bon de commande a été créé avec succès',
   select_one_part: 'Sélectionnez au moins 1 pièce ',
   po_create_failure: "Le bon de commande n'a pas pu être créé",
+  po_create_partial_failure:
+    'Le bon de commande a été créé, mais l’enregistrement des articles ou l’approbation a échoué. Vérifiez-le et terminez l’étape manquante.',
   approve_while_submitting: 'Approuver lors de la soumission',
   invalid_fax: "Le numéro de fax n'est pas valide",
   submit: 'Soumettre',
@@ -1519,6 +1537,8 @@ const frJSON = {
     "Appuyez sur le bouton '+' pour créer un nouvel équipement.",
   reset_filters: 'Réinitialiser les filtres',
   toggle_menu: 'Commuter le menu',
+  collapse_sidebar: 'Replier le menu latéral',
+  expand_sidebar: 'Déplier le menu latéral',
   no_results: 'Aucun résultat trouvé',
   an_error_occured: "Une erreur s'est produite.",
   density: 'Densité',
@@ -1763,6 +1783,10 @@ const frJSON = {
   import_error: "L'importation a échoué",
   request_upgrade: 'Demander un changement de plan',
   operation_success: "L'opération a réussi",
+  purchase_order_approved: "Le bon d'achat a été approuvé",
+  purchase_order_rejected: "Le bon d'achat a été rejeté",
+  po_edit_partial_failure:
+    "Les informations du bon d'achat ont été enregistrées, mais pas ses quantités de pièces. Vérifiez les lignes avant de quitter cette page.",
   CANCELLED: 'Rejeté',
   uptime_hours: 'Disponibilité(h)',
   downtime_hours: "Temps d'arrêt(h)",
@@ -1801,6 +1825,7 @@ const frJSON = {
   EMERGENCY_SHUTDOWN: "Arrêt d'urgence",
   select_asset_status: "Sélectionnez l'état de l'équipement",
   asset_status: "État de l'équipement",
+  view_request_image: 'Afficher l’image de la demande',
   ui_configuration: "Configuration de l'interface",
   password_leave_empty_if_you_dont_want_to_change:
     'Mot de passe - laisser vide si vous ne voulez pas le changer',
@@ -2211,6 +2236,86 @@ const frJSON = {
   api_keys: 'Clés API',
   connectors: 'Connecteurs',
   webhooks: 'Webhooks',
+  connectors_overview_description:
+    'Gérez les méthodes d’intégration actuellement disponibles dans QPM. Cet aperçu ne signifie pas qu’un système externe est connecté.',
+  connector_api_keys_description:
+    'Créez et gérez les identifiants API des systèmes autorisés à accéder à QPM.',
+  connector_webhooks_description:
+    'Configurez les endpoints webhook et choisissez les événements QPM qu’ils doivent recevoir.',
+  integration_available: 'Disponible dans QPM',
+  manage_integration: 'Gérer',
+  integration_hub_description:
+    'Reliez les événements de maintenance QPM aux outils déjà utilisés par vos équipes, de la notification à une mise à jour contrôlée de QPM.',
+  integration_hub_security_note:
+    'QPM ne stocke pas ici les identifiants des outils externes. Les clés API héritent des droits du compte qui les crée et ne possèdent pas de scopes propres. N’utilisez pas une clé administrateur dans un flux externe.',
+  integration_external_workflows: 'Automatisations externes',
+  integration_external_workflows_description:
+    'Commencez avec des guides utilisant les webhooks QPM et l’API existante.',
+  integration_recipes_title: 'Recettes de flux maintenance',
+  integration_recipes_description:
+    'Choisissez un événement QPM réel, puis configurez sa destination dans votre outil externe.',
+  integration_recipe_work_orders_title: 'Suivi des ordres de travail',
+  integration_recipe_work_orders_description:
+    'Notifier une équipe lors de la création d’un OT ou d’un changement de statut. La notification ne valide pas et ne clôture pas l’ordre.',
+  integration_recipe_requests_title: 'Triage des demandes',
+  integration_recipe_requests_description:
+    'Transmettre les nouvelles demandes et leurs changements de décision vers une file de triage externe; conserver l’approbation dans QPM.',
+  integration_recipe_parts_title: 'Mouvements de pièces',
+  integration_recipe_parts_description:
+    'Informer le magasin lorsqu’une quantité ou une fiche de pièce change. Ce flux ne déclenche pas automatiquement un achat.',
+  integration_recipe_configure: 'Configurer les événements QPM',
+  integration_recipes_security_note:
+    'Avant toute automatisation, vérifiez la signature HMAC du webhook dans l’outil destinataire. N’utilisez pas un événement comme autorisation d’approuver, de clôturer ou d’acheter.',
+  integration_available_via_webhooks: 'Configuration par webhook QPM',
+  integration_recipe_available: 'Guide disponible',
+  integration_planned: 'À venir',
+  integration_power_automate_title: 'Power Automate et Teams',
+  integration_power_automate_description:
+    'Envoyez les alertes d’OT et les demandes de maintenance dans Teams avec un flux Power Automate.',
+  integration_n8n_title: 'n8n',
+  integration_n8n_description:
+    'Créez des flux de maintenance auto-hébergés à partir des événements signés QPM et des actions API autorisées.',
+  integration_sap_title: 'SAP EAM / PM',
+  integration_sap_description:
+    'Un pilote SAP peut commencer par la lecture et l’aperçu via le middleware de votre entreprise; QPM ne propose pas encore de connecteur direct.',
+  integration_calendar_title: 'Microsoft et Google Calendar',
+  integration_calendar_description:
+    'La publication dans un calendrier nécessite OAuth, un stockage serveur des jetons et une gestion de synchronisation.',
+  integration_open_setup: 'Ouvrir le guide',
+  integration_backend_prerequisite:
+    'Une connexion directe nécessitera une évolution future du backend.',
+  integration_qpm_tools_title: 'Outils d’intégration QPM',
+  integration_qpm_tools_description:
+    'Gérez les clés API et abonnements aux événements utilisés par les intégrations.',
+  integration_tools_not_provider_connections:
+    'Outils QPM · pas des connexions fournisseur',
+  integration_setup_title: 'Configurer {{provider}}',
+  integration_step_external: 'Préparer l’outil',
+  integration_step_qpm: 'Configurer QPM',
+  integration_step_verify: 'Vérifier le flux',
+  integration_step_external_desc:
+    'Créez un flux dans la plateforme externe avec un déclencheur webhook HTTPS. Choisissez les événements de maintenance et le canal ou la destination adaptés à votre équipe.',
+  integration_step_external_n8n_note:
+    'n8n fournit des URL webhook de test et de production distinctes. Utilisez l’URL de production après activation du flux et conservez les identifiants dans n8n.',
+  integration_open_provider_docs: 'Lire la documentation du fournisseur',
+  integration_step_qpm_desc:
+    'Créez un endpoint webhook QPM avec l’URL du flux, puis sélectionnez uniquement les événements nécessaires. QPM signe les livraisons webhook : gardez le secret confidentiel.',
+  integration_step_qpm_note:
+    'Utilisez un endpoint dédié et limitez les événements au besoin. Le destinataire doit vérifier la signature HMAC avant tout traitement. Teams Workflows ne valide pas automatiquement la signature QPM; prévoyez une étape de vérification. N’incluez pas de données sensibles dans un canal public.',
+  integration_step_verify_desc:
+    'Déclenchez un événement QPM réel et non critique, puis consultez l’historique d’exécution du flux externe. Vérifiez les champs reçus et leur traitement.',
+  integration_step_verify_note:
+    'QPM ne fournit pas encore ici d’historique durable des livraisons, de relance ou de rejeu. Ce guide ne marque donc pas une connexion comme vérifiée.',
+  integration_writeback_title: 'Si le flux doit modifier QPM',
+  integration_writeback_desc:
+    'Une clé API QPM reprend les autorités de son compte propriétaire; elle ne peut pas recevoir un périmètre plus étroit que ce compte. Si votre politique l’autorise, utilisez un compte d’intégration au rôle le plus restreint disponible, définissez une expiration et gardez la clé dans le coffre de l’outil externe. Ne l’exposez jamais dans le navigateur ou des journaux partagés.',
+  webhook_event_dispatch_note:
+    'Seuls les événements actuellement émis par QPM sont proposés. Les événements sans déclencheur actif ne peuvent pas envoyer de livraison.',
+  integration_create_webhook: 'Configurer un webhook QPM',
+  integration_create_api_key: 'Gérer les clés API',
+  integration_previous: 'Retour',
+  integration_continue: 'Continuer',
+  integration_done: 'Terminer',
   create_api_key: 'Créer une clé API',
   api_key_label: 'Libellé de la clé API',
   api_key_created_success: 'Clé API créée avec succès',
@@ -2235,6 +2340,8 @@ const frJSON = {
   revoked: 'Révoqué',
   upgrade_api:
     "Passez à une version supérieure pour accéder à l'API, aux connecteurs et aux webhooks",
+  license_authority_unavailable:
+    'Le service de licences est indisponible. Réessayez dans un instant.',
   // Webhooks
   webhook_endpoints: 'Points de terminaison Webhook',
   create_webhook_endpoint: 'Créer un point de terminaison Webhook',
@@ -2267,6 +2374,10 @@ const frJSON = {
   webhook_endpoint_rotate_secret: 'Renouveler le secret',
   webhook_endpoint_secret_rotated: 'Secret renouvelé avec succès',
   webhook_endpoint_secret_copied: 'Secret copié dans le presse-papiers',
+  webhook_endpoint_secret_view_once:
+    'Enregistrez ce secret de signature en lieu sûr. Il ne sera plus affiché.',
+  webhook_endpoint_rotate_confirm:
+    "Le renouvellement invalide immédiatement le secret actuel. Mettez à jour votre service récepteur après l'opération.",
   webhook_endpoint_last_triggered: 'Dernier déclenchement',
   webhook_endpoint_never_triggered: 'Jamais déclenché',
   webhook_endpoint_type: 'Type',
@@ -2357,6 +2468,17 @@ const frJSON = {
   view_other_hint:
     '"Voir autre" signifie voir quelque chose créé par quelqu\'un d\'autre',
   go_to_billing: 'Aller à la facturation',
+  allow_popups_to_export:
+    'Autorisez les fenêtres contextuelles pour télécharger l’export.',
+  preparing_export: 'Préparation de votre export…',
+  invalid_export_download_url:
+    'Le lien de téléchargement de l’export est invalide.',
+  allow_popups_to_continue:
+    'Autorisez les fenêtres contextuelles pour ouvrir le portail de facturation.',
+  opening_billing_portal: 'Ouverture du portail de facturation…',
+  invalid_billing_portal_url:
+    'Le portail de facturation a renvoyé un lien invalide.',
+  billing_portal_open_error: 'Impossible d’ouvrir le portail de facturation.',
   import_from_spreadsheet: "Importer à partir d'un tableur ou d'un CSV",
   reset: 'Réinitialiser',
   confirm_delete_row: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
@@ -2385,6 +2507,8 @@ const frJSON = {
   due_soon: 'Échéance proche',
   all_users: 'Tous les utilisateurs',
   team_member: "Membre de l'équipe",
+  workload_edit_shift_aria: 'Modifier le planning de {{user}}',
+  workload_open_order_aria: 'Ouvrir {{customId}} : {{title}}',
   no_data: 'Aucune donnée',
   hours_left: 'restantes',
   export_cost_and_time: 'Exporter les coûts et le temps',
@@ -2542,7 +2666,57 @@ const frJSON = {
   'configuration_field.autoGenerateAssetBarcode':
     'génération automatique des codes-barres',
   'configuration_field.csvSeparator': 'séparateur CSV',
-  'configuration_field.profile': 'profil'
+  'configuration_field.profile': 'profil',
+  first_page: 'Première page',
+  previous_page: 'Page précédente',
+  next_page: 'Page suivante',
+  last_page: 'Dernière page',
+  items_per_page: 'Lignes par page :',
+  pagination_displayed_rows: '{{from}}–{{to}} sur {{count}}',
+  pagination_displayed_rows_unknown: '{{from}}–{{to}} sur plus de {{to}}',
+  pagination: 'Pagination',
+  maintenance_dashboard: 'Tableau de bord maintenance',
+  maintenance_dashboard_subtitle:
+    'Performance opérationnelle basée sur les statistiques OT disponibles.',
+  current_iso_week: 'Semaine ISO en cours',
+  last_30_days: '30 derniers jours',
+  dashboard_data_scoped_to_permissions:
+    'Les résultats respectent vos droits et l’entreprise sélectionnée.',
+  work_orders_in_period: 'Ordres de travail sur la période',
+  created_in_selected_period: 'Créés sur la période sélectionnée',
+  work_order_completion_ratio: 'Taux de clôture des OT',
+  completed_over_created_in_period: '{{complete}} clôturés sur {{total}} créés',
+  completed_work_order_compliance: 'Conformité des OT clôturés',
+  compliant_orders_count: '{{compliant}} conformes sur {{complete}} clôturés',
+  open_work_order_backlog: 'Backlog des OT ouverts',
+  average_age_days: 'Âge moyen : {{age}} jours',
+  work_order_status_trend: 'Évolution des statuts OT',
+  status_trend_selected_period:
+    'Volumes de statuts sur la période sélectionnée',
+  dashboard_status_chart_accessible_summary:
+    'Dernier relevé affiché : {{date}}. Ouverts : {{open}}, en cours : {{inProgress}}, en pause : {{onHold}}, clôturés : {{complete}}.',
+  no_data_for_period: 'Aucune donnée disponible pour cette période.',
+  maintenance_cost: 'Coûts de maintenance',
+  completed_work_orders_created_in_period:
+    'OT clôturés et créés sur la période sélectionnée',
+  maintenance_cost_trend: 'Évolution des coûts de maintenance',
+  dashboard_cost_chart_accessible_summary:
+    'Total sur {{periodCount}} dates affichées : {{total}}.',
+  labor_cost: 'Main-d’œuvre',
+  parts_cost: 'Pièces',
+  additional_cost: 'Autres coûts',
+  labor_hours: 'Heures de main-d’œuvre',
+  estimated_vs_recorded_hours: 'Temps estimé comparé au temps saisi',
+  recorded_hours: 'Heures saisies',
+  not_capacity_utilization_note:
+    'Les heures saisies ne représentent pas la capacité disponible des équipes.',
+  dashboard_data_boundaries_title: 'Limites des données KPI',
+  dashboard_data_boundaries_body:
+    'Les API actuelles ne fournissent pas les échéances du planning gelé, la classification selon la date de lancement, la conformité des plans préventifs, la capacité des équipes, le backlog de notifications, les budgets ou les centres de travail. Ces mesures ne sont pas estimées. La couleur du vieillissement du backlog utilise uniquement son âge moyen retourné ({{aging}}).',
+  critical: 'plus de 30 jours',
+  attention: '8 à 30 jours',
+  within_target: '0 à 7 jours',
+  open_work_order_analytics: 'Ouvrir les statistiques OT'
 };
 
 export default frJSON;

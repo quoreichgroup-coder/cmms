@@ -47,7 +47,7 @@ export default function RequestDetails({
   route
 }: RootStackScreenProps<'RequestDetails'>) {
   const { id, requestProp } = route.params;
-  const { loadingGet, requestInfos } = useSelector((state) => state.requests);
+  const { requestInfos } = useSelector((state) => state.requests);
   const request = requestInfos[id]?.request ?? requestProp;
   const theme = useAppTheme();
   const [approving, setApproving] = useState<boolean>(false);
@@ -552,7 +552,11 @@ export default function RequestDetails({
           ]}
         >
           <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text
+              variant="titleMedium"
+              style={styles.sectionTitle}
+              accessibilityRole="header"
+            >
               {t('request_details')}
             </Text>
             {fieldsToRender
@@ -579,7 +583,11 @@ export default function RequestDetails({
             ]}
           >
             <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
+              <Text
+                variant="titleMedium"
+                style={styles.sectionTitle}
+                accessibilityRole="header"
+              >
                 {t('audio_description')}
               </Text>
               <AudioPlayer url={request.audioDescription.url} />

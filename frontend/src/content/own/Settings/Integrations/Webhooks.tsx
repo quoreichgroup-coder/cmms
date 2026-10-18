@@ -33,6 +33,7 @@ import {
   useState
 } from 'react';
 import { TransitionProps } from '@mui/material/transitions';
+import { openSafeWindow } from '../../../../utils/safeWindow';
 import { useDispatch, useSelector } from '../../../../store';
 import {
   addWebhookEndpoint,
@@ -53,7 +54,7 @@ import {
   WebhookEndpointShowDTO,
   WebhookEvent,
   WOField,
-  WEBHOOK_EVENTS,
+  CONFIGURABLE_WEBHOOK_EVENTS,
   WO_FIELDS,
   PART_FIELDS,
   getWebhookEventLabelKey
@@ -61,8 +62,8 @@ import {
 import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../../components/CustomDatagrid2';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -76,6 +77,7 @@ import { assetStatuses } from '../../../../models/owns/asset';
 import { RotateLeft } from '@mui/icons-material';
 import { onOpenApiDocs } from '../../../../utils/overall';
 import { apiUrl } from '../../../../config';
+import { getErrorMessage } from '../../../../utils/api';
 
 const DialogWrapper = styled(Dialog)(
   () => `
@@ -111,6 +113,8 @@ function Webhooks() {
   const [currentEndpoint, setCurrentEndpoint] =
     useState<WebhookEndpointShowDTO | null>(null);
   const [rotatingSecretId, setRotatingSecretId] = useState<number | null>(null);
+  const [openRotateDialog, setOpenRotateDialog] = useState(false);
+  const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null);
 
   const handleOpenCreateModal = () => setOpenCreateModal(true);
   const handleCloseCreateModal = () => setOpenCreateModal(false);
@@ -122,7 +126,10 @@ function Webhooks() {
       if (result) {
         showSnackBar(t('webhook_endpoint_created_success'), 'success');
         handleCloseCreateModal();
+        if (result.secret) setOneTimeSecret(result.secret);
       }
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
     } finally {
       setLoadingCreate(false);
     }
@@ -138,26 +145,49 @@ function Webhooks() {
     setCurrentEndpoint(null);
   };
 
-  const handleDeleteEndpoint = () => {
+  const handleDeleteEndpoint = async () => {
     if (currentEndpoint) {
-      dispatch(deleteWebhookEndpoint(currentEndpoint.id));
-      showSnackBar(t('webhook_endpoint_deleted_success'), 'success');
-      handleCloseDeleteDialog();
+      try {
+        const deleted = await dispatch(
+          deleteWebhookEndpoint(currentEndpoint.id)
+        );
+        if (deleted) {
+          showSnackBar(t('webhook_endpoint_deleted_success'), 'success');
+          handleCloseDeleteDialog();
+        } else {
+          showSnackBar(t('something_went_wrong'), 'error');
+        }
+      } catch (error) {
+        showSnackBar(getErrorMessage(error), 'error');
+      }
     }
   };
 
-  const handleRotateSecret = async (id: number) => {
-    setRotatingSecretId(id);
-    const newSecret = await dispatch(rotateSecret(id));
-    setRotatingSecretId(null);
-    if (newSecret) {
-      showSnackBar(t('webhook_endpoint_secret_rotated'), 'success');
+  const handleRotateSecret = async () => {
+    if (!currentEndpoint || rotatingSecretId !== null) return;
+    setRotatingSecretId(currentEndpoint.id);
+    try {
+      const newSecret = await dispatch(rotateSecret(currentEndpoint.id));
+      if (newSecret) {
+        setOneTimeSecret(newSecret);
+        setOpenRotateDialog(false);
+        setCurrentEndpoint(null);
+        showSnackBar(t('webhook_endpoint_secret_rotated'), 'success');
+      }
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      setRotatingSecretId(null);
     }
   };
 
-  const copySecret = (secret: string) => {
-    navigator.clipboard.writeText(secret);
-    showSnackBar(t('webhook_endpoint_secret_copied'), 'success');
+  const copySecret = async (secret: string) => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      showSnackBar(t('webhook_endpoint_secret_copied'), 'success');
+    } catch {
+      showSnackBar(t('something_went_wrong'), 'error');
+    }
   };
 
   useEffect(() => {
@@ -222,56 +252,42 @@ function Webhooks() {
       size: 160
     },
     {
-      header: t('webhook_endpoint_secret'),
-      accessorKey: 'secret',
+      header: t('actions'),
       cell: (info) => {
-        const secret = info.getValue() as string;
-        const row = info.row.original;
-        const isRotating = rotatingSecretId === row.id;
-
+        const endpoint = info.row.original;
+        const isRotating = rotatingSecretId === endpoint.id;
         return (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                copySecret(secret);
-              }}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
+          <Stack direction="row" spacing={0.5}>
             <Tooltip title={t('webhook_endpoint_rotate_secret')}>
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRotateSecret(row.id);
-                }}
-                disabled={isRotating}
-              >
-                {isRotating ? <CircularProgress size={18} /> : <RotateLeft />}
-              </IconButton>
+              <span>
+                <IconButton
+                  size="small"
+                  aria-label={t('webhook_endpoint_rotate_secret')}
+                  onClick={() => {
+                    setCurrentEndpoint(endpoint);
+                    setOpenRotateDialog(true);
+                  }}
+                  disabled={isRotating}
+                >
+                  {isRotating ? <CircularProgress size={18} /> : <RotateLeft />}
+                </IconButton>
+              </span>
             </Tooltip>
+            <IconButton
+              color="error"
+              aria-label={t('delete_webhook_endpoint')}
+              onClick={() => handleOpenDeleteDialog(endpoint)}
+            >
+              <DeleteOutlinedIcon />
+            </IconButton>
           </Stack>
         );
       },
-      size: 170
-    },
-    {
-      header: t('actions'),
-      cell: (info) => (
-        <IconButton
-          color="error"
-          onClick={() => handleOpenDeleteDialog(info.row.original)}
-        >
-          <DeleteTwoToneIcon />
-        </IconButton>
-      ),
-      size: 80
+      size: 110
     }
   ];
   const onOpenWebhookDocs = async () => {
-    window.open(apiUrl + 'api-docs.html#tag/webhook-subscriptions', '_blank');
+    openSafeWindow(apiUrl + 'api-docs.html#tag/webhook-subscriptions');
   };
   return (
     <Box>
@@ -279,7 +295,7 @@ function Webhooks() {
         <Button onClick={onOpenWebhookDocs}>{t('open_api_docs')}</Button>
         <Button
           variant="contained"
-          startIcon={<AddTwoToneIcon />}
+          startIcon={<AddOutlinedIcon />}
           onClick={handleOpenCreateModal}
         >
           {t('create_webhook_endpoint')}
@@ -331,7 +347,8 @@ function Webhooks() {
             validationSchema={Yup.object({
               url: Yup.string()
                 .matches(/^https?:\/\//, t('invalid_url'))
-                .required(t('webhook_endpoint_url') + ' ' + t('required'))
+                .required(t('webhook_endpoint_url') + ' ' + t('required')),
+              event: Yup.string().required(t('webhook_endpoint_select_event'))
             })}
             onSubmit={handleCreateEndpoint}
           >
@@ -395,12 +412,15 @@ function Webhooks() {
                               />
                             }
                           >
-                            {WEBHOOK_EVENTS.map((event) => (
+                            {CONFIGURABLE_WEBHOOK_EVENTS.map((event) => (
                               <MenuItem key={event} value={event}>
                                 {getEventLabel(event)}
                               </MenuItem>
                             ))}
                           </Select>
+                          <FormHelperText>
+                            {t('webhook_event_dispatch_note')}
+                          </FormHelperText>
                         </FormControl>
                       </Grid>
 
@@ -730,6 +750,57 @@ function Webhooks() {
         confirmText={t('delete')}
         question={t('delete_webhook_endpoint_confirm')}
       />
+      <ConfirmDialog
+        open={openRotateDialog}
+        onCancel={() => {
+          if (rotatingSecretId === null) {
+            setOpenRotateDialog(false);
+            setCurrentEndpoint(null);
+          }
+        }}
+        onConfirm={handleRotateSecret}
+        confirmText={t('webhook_endpoint_rotate_secret')}
+        question={t('webhook_endpoint_rotate_confirm')}
+      />
+      <Dialog
+        open={Boolean(oneTimeSecret)}
+        maxWidth="sm"
+        fullWidth
+        onClose={() => setOneTimeSecret(null)}
+        aria-labelledby="webhook-secret-title"
+      >
+        <DialogTitle id="webhook-secret-title">
+          {t('webhook_endpoint_secret')}
+        </DialogTitle>
+        <DialogContent>
+          <Typography role="note" sx={{ mb: 2 }}>
+            {t('webhook_endpoint_secret_view_once')}
+          </Typography>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <TextField
+              fullWidth
+              value={oneTimeSecret || ''}
+              inputProps={{
+                readOnly: true,
+                'aria-label': t('webhook_endpoint_secret')
+              }}
+              multiline
+              sx={{ '& input': { fontFamily: 'monospace' } }}
+            />
+            <IconButton
+              aria-label={t('webhook_endpoint_copy_secret')}
+              onClick={() => oneTimeSecret && copySecret(oneTimeSecret)}
+            >
+              <ContentCopyIcon />
+            </IconButton>
+          </Stack>
+          <Box mt={2} display="flex" justifyContent="flex-end">
+            <Button variant="contained" onClick={() => setOneTimeSecret(null)}>
+              {t('close')}
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

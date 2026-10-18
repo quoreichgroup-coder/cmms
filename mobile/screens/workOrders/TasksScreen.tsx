@@ -23,13 +23,20 @@ import InAppCamera from '../../components/InAppCamera';
 import { ProgressBar, Text, useTheme } from 'react-native-paper';
 import { qpmLayoutTokens } from '../../custom-theme';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import useAuth from '../../hooks/useAuth';
+import { PermissionEntity } from '../../models/role';
+import { isWorkOrderTaskExecutionReadOnly } from '../../utils/workOrderTaskAccess';
 
 export default function TasksScreen({
   navigation,
   route
 }: RootStackScreenProps<'Tasks'>) {
   const { t }: { t: any } = useTranslation();
-  const { tasksProps, workOrderId } = route.params;
+  const {
+    tasksProps,
+    workOrderId,
+    isReadOnly: readOnlyFromRoute
+  } = route.params;
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const [currentImage, setCurrentImage] = useState<string>();
   const [currentImages, setCurrentImages] = useState<string[]>([]);
@@ -48,6 +55,20 @@ export default function TasksScreen({
   const storedTasks = useSelector(
     (state) => state.tasks.tasksByWorkOrder[workOrderId]
   );
+  const workOrder = useSelector(
+    (state) =>
+      state.workOrders.workOrderInfos[workOrderId]?.workOrder ??
+      state.workOrders.workOrders.content.find(
+        (item) => item.id === workOrderId
+      )
+  );
+  const { hasEditPermission } = useAuth();
+  const isReadOnly = workOrder
+    ? isWorkOrderTaskExecutionReadOnly(
+        workOrder,
+        hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder)
+      )
+    : Boolean(readOnlyFromRoute ?? true);
   const [cameraTaskId, setCameraTaskId] = useState<number | null>(null);
   const [uploadingTaskIds, setUploadingTaskIds] = useState<Set<number>>(
     () => new Set()
@@ -255,37 +276,57 @@ export default function TasksScreen({
         windowSize={7}
         ListHeaderComponent={
           tasks.length > 0 ? (
-            <View
-              style={[
-                styles.progressCard,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineVariant
-                }
-              ]}
-            >
-              <View style={styles.progressHeading}>
-                <Text variant="titleMedium" style={styles.progressTitle}>
-                  {t('tasks')}
-                </Text>
-                <Text
-                  variant="labelLarge"
-                  style={{ color: theme.colors.primary, fontWeight: '700' }}
+            <View style={styles.listHeader}>
+              {isReadOnly ? (
+                <View
+                  style={[
+                    styles.readOnlyNotice,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outlineVariant
+                    }
+                  ]}
                 >
-                  {completedTasks}/{tasks.length}
-                </Text>
+                  <Text
+                    variant="bodyMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t('work_order_tasks_read_only')}
+                  </Text>
+                </View>
+              ) : null}
+              <View
+                style={[
+                  styles.progressCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <View style={styles.progressHeading}>
+                  <Text variant="titleMedium" style={styles.progressTitle}>
+                    {t('tasks')}
+                  </Text>
+                  <Text
+                    variant="labelLarge"
+                    style={{ color: theme.colors.primary, fontWeight: '700' }}
+                  >
+                    {completedTasks}/{tasks.length}
+                  </Text>
+                </View>
+                <ProgressBar
+                  progress={completionProgress}
+                  color={theme.colors.primary}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel={t('task_completion_progress')}
+                  accessibilityValue={{
+                    min: 0,
+                    max: tasks.length,
+                    now: completedTasks
+                  }}
+                />
               </View>
-              <ProgressBar
-                progress={completionProgress}
-                color={theme.colors.primary}
-                accessibilityRole="progressbar"
-                accessibilityLabel={t('task_completion_progress')}
-                accessibilityValue={{
-                  min: 0,
-                  max: tasks.length,
-                  now: completedTasks
-                }}
-              />
             </View>
           ) : null
         }
@@ -311,6 +352,7 @@ export default function TasksScreen({
         renderItem={({ item: task }) => (
           <SingleTask
             task={task}
+            readOnly={isReadOnly}
             isUploadingImages={
               uploadingTaskIds.has(task.id) || cameraTaskId === task.id
             }
@@ -347,6 +389,13 @@ const styles = StyleSheet.create({
   },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   emptyContent: { flexGrow: 1 },
+  listHeader: { gap: 12 },
+  readOnlyNotice: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
+  },
   progressCard: {
     padding: 16,
     marginBottom: 14,

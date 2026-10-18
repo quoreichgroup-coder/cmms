@@ -19,7 +19,7 @@ import { TitleContext } from '../../../contexts/TitleContext';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
 import CustomDataGrid from '../components/CustomDatagrid';
 import { GridRenderCellParams, GridToolbar } from '@mui/x-data-grid';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import PurchaseOrder from '../../../models/owns/purchaseOrder';
 import { useDispatch, useSelector } from '../../../store';
 import {
@@ -56,6 +56,10 @@ import SearchInput from '../components/SearchInput';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
+import {
+  PurchaseOrderPartsUpdateError,
+  updatePurchaseOrderWorkflow
+} from './createPurchaseOrderWorkflow';
 
 function PurchaseOrders() {
   const { t }: { t: any } = useTranslation();
@@ -180,12 +184,22 @@ function PurchaseOrders() {
     }
   }, [openUpdateModal]);
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deletePurchaseOrder(id))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deletePurchaseOrder(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Purchase order deletion was not confirmed'));
+      }
+    } catch (error) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(error);
+    }
   };
   const handleCloseDetails = () => {
     window.history.replaceState(null, 'PurchaseOrder', `/app/purchase-orders`);
@@ -195,7 +209,13 @@ function PurchaseOrders() {
     setOpenUpdateModal(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
-  const onEditFailure = (err) => showSnackBar(t('po_edit_failure'), 'error');
+  const onEditFailure = (err) =>
+    showSnackBar(
+      err instanceof PurchaseOrderPartsUpdateError
+        ? t('po_edit_partial_failure')
+        : t('po_edit_failure'),
+      'error'
+    );
   const onDeleteSuccess = () => {
     showSnackBar(t('po_delete_success'), 'success');
   };
@@ -446,11 +466,18 @@ function PurchaseOrders() {
       placeholder: t('shipping_method'),
       midWidth: true
     },
-    ...getCustomFieldsIFields(customFields, CustomFieldEntityType.PURCHASE_REQUEST)
+    ...getCustomFieldsIFields(
+      customFields,
+      CustomFieldEntityType.PURCHASE_REQUEST
+    )
   ];
   const shape = {
     name: Yup.string().required(t('required_name')),
-    ...getCustomFieldsRequiredShape(customFields, CustomFieldEntityType.PURCHASE_REQUEST, t)
+    ...getCustomFieldsRequiredShape(
+      customFields,
+      CustomFieldEntityType.PURCHASE_REQUEST,
+      t
+    )
   };
   const renderUpdateModal = () => (
     <Dialog
@@ -501,31 +528,25 @@ function PurchaseOrders() {
               values.vendor = formatSelect(values.vendor);
               values.category = formatSelect(values.category);
               values = formatCustomFields(values);
-              return new Promise<void>((resolve, rej) => {
-                dispatch(editPurchaseOrder(currentPurchaseOrder.id, values))
-                  .then(() => {
+              try {
+                await updatePurchaseOrderWorkflow(
+                  () =>
+                    dispatch(
+                      editPurchaseOrder(currentPurchaseOrder.id, values)
+                    ),
+                  () =>
                     dispatch(
                       editPOPartQuantities(
                         currentPurchaseOrder.id,
                         values.partQuantities
                       )
-                    ).then(() =>
-                      setTimeout(
-                        () =>
-                          dispatch(
-                            getPartQuantitiesByPurchaseOrder(
-                              currentPurchaseOrder.id
-                            )
-                          ),
-                        //I don't know why direct call to API doesn't have updated values
-                        1000
-                      )
-                    );
-                  })
-                  .then(onEditSuccess)
-                  .catch(onEditFailure)
-                  .finally(resolve);
-              });
+                    )
+                );
+                onEditSuccess();
+              } catch (err) {
+                onEditFailure(err);
+                throw err;
+              }
             }}
           />
         </Box>
@@ -550,7 +571,7 @@ function PurchaseOrders() {
                 <SearchInput onChange={debouncedQueryChange} />
                 <Button
                   onClick={() => navigate('/app/purchase-orders/create')}
-                  startIcon={<AddTwoToneIcon />}
+                  startIcon={<AddOutlinedIcon />}
                   variant="contained"
                 >
                   {t('purchase_order')}

@@ -54,7 +54,8 @@ const slice = createSlice({
       const categoryIndex = state.categories[basePath].findIndex(
         (category) => category.id === id
       );
-      state.categories[basePath].splice(categoryIndex, 1);
+      if (categoryIndex !== -1)
+        state.categories[basePath].splice(categoryIndex, 1);
     }
   }
 });

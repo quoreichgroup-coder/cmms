@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -49,17 +50,20 @@ import {
   Droppable,
   type DropResult
 } from 'react-beautiful-dnd';
-import ArrowForwardTwoToneIcon from '@mui/icons-material/ArrowForwardTwoTone';
-import ArrowBackTwoToneIcon from '@mui/icons-material/ArrowBackTwoTone';
-import TodayTwoToneIcon from '@mui/icons-material/TodayTwoTone';
+import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import TodayOutlinedIcon from '@mui/icons-material/TodayOutlined';
 import useDateLocale from '../../../../hooks/useDateLocale';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../../../utils/api';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { getSingleUser } from 'src/slices/user';
 import type { UserResponseDTO } from 'src/models/user';
 import ShiftConfigurationModal from 'src/content/own/PeopleAndTeams/components/ShiftConfigurationModal';
+import { getWorkloadDestination } from './scheduleDestination';
+import WorkloadOrderCard from './WorkloadOrderCard';
+import { getWorkloadUserDisplayName } from './userDisplayName';
 
 interface WorkloadViewProps {
   handleOpenDetails: (id: number, type: string) => void;
@@ -80,8 +84,14 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const dateLocale = useDateLocale();
-  const { overview, unscheduled, loadingOverview, loadingUnscheduled } =
-    useSelector((state) => state.workload);
+  const {
+    overview,
+    unscheduled,
+    loadingOverview,
+    loadingUnscheduled,
+    overviewError,
+    unscheduledError
+  } = useSelector((state) => state.workload);
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
   );
@@ -268,9 +278,6 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
     if (!wo) return;
 
     const isUnscheduled = (id: string) => id === 'unscheduled';
-    const parseDroppable = (id: string) =>
-      /^user-(\d+)-(\d{4}-\d{2}-\d{2})$/.exec(id);
-
     if (
       isUnscheduled(source.droppableId) &&
       isUnscheduled(destination.droppableId)
@@ -285,11 +292,10 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       return;
     }
 
-    const match = parseDroppable(destination.droppableId);
-    if (!match) return;
+    const scheduleDestination = getWorkloadDestination(destination.droppableId);
+    if (!scheduleDestination) return;
 
-    const userId = Number(match[1]);
-    const dateStr = format(new Date(match[2]), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const { userId, dateStr } = scheduleDestination;
 
     if (!wo.estimatedDuration) {
       setPendingWorkOrder({ id: wo.id, dateStr, userId });
@@ -400,32 +406,44 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       <DragDropContext onDragEnd={handleDragEnd}>
         <Box>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: 'column', md: 'row' }}
+            alignItems={{ xs: 'stretch', md: 'center' }}
             justifyContent="space-between"
+            spacing={1}
             sx={{ mb: 2 }}
           >
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <IconButton onClick={handlePrevWeek}>
-                <ArrowBackTwoToneIcon />
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={0.5}
+              sx={{ flexWrap: 'wrap', rowGap: 0.5 }}
+            >
+              <IconButton aria-label={t('previous')} onClick={handlePrevWeek}>
+                <ArrowBackOutlinedIcon />
               </IconButton>
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<TodayTwoToneIcon />}
+                startIcon={<TodayOutlinedIcon />}
                 onClick={handleThisWeek}
               >
                 {t('this_week')}
               </Button>
-              <IconButton onClick={handleNextWeek}>
-                <ArrowForwardTwoToneIcon />
+              <IconButton aria-label={t('next')} onClick={handleNextWeek}>
+                <ArrowForwardOutlinedIcon />
               </IconButton>
-              <Typography variant="h6" sx={{ ml: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ ml: 1, fontSize: { xs: '0.9rem', sm: '1.125rem' } }}
+              >
                 {format(weekStart, 'd MMM', { locale: dateLocale })} -{' '}
                 {format(weekEnd, 'd MMM, yyyy', { locale: dateLocale })}
               </Typography>
             </Stack>
-            <FormControl size="small" sx={{ minWidth: 240 }}>
+            <FormControl
+              size="small"
+              sx={{ width: { xs: '100%', md: 280 }, minWidth: 0 }}
+            >
               <InputLabel>{t('users')}</InputLabel>
               <Select
                 multiple
@@ -434,12 +452,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                 input={<OutlinedInput label={t('users')} />}
                 renderValue={(selected) => {
                   const names = selected
-                    .map(
-                      (id) =>
-                        allUsers.find((u) => u.id === id)?.firstName ||
-                        allUsers.find((u) => u.id === id)?.lastName ||
-                        String(id)
-                    )
+                    .map((id) => getWorkloadUserDisplayName(id, allUsers))
                     .join(', ');
                   return names || t('all_users');
                 }}
@@ -453,6 +466,20 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
             </FormControl>
           </Stack>
 
+          {overviewError && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={
+                <Button color="inherit" size="small" onClick={loadOverview}>
+                  {t('retry')}
+                </Button>
+              }
+            >
+              {overviewError}
+            </Alert>
+          )}
+
           <Card sx={{ p: 2, mb: 2 }}>
             {loadingOverview ? (
               <Box
@@ -464,13 +491,14 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
               >
                 <CircularProgress size={24} />
               </Box>
-            ) : (
+            ) : overviewError ? null : (
               <Box sx={{ overflowX: 'auto' }}>
                 <Box
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: `${GRID_LABEL_WIDTH}px repeat(7, 1fr)`,
-                    width: '100%'
+                    width: '100%',
+                    minWidth: { xs: 980, lg: '100%' }
                   }}
                 >
                   {renderGridHeader(t('total_resource_capacity'))}
@@ -503,7 +531,22 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   {t('unscheduled_work_orders')}
                 </Typography>
-                {loadingUnscheduled ? (
+                {unscheduledError ? (
+                  <Alert
+                    severity="error"
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => dispatch(getUnscheduled())}
+                      >
+                        {t('retry')}
+                      </Button>
+                    }
+                  >
+                    {unscheduledError}
+                  </Alert>
+                ) : loadingUnscheduled ? (
                   <Box
                     sx={{
                       display: 'flex',
@@ -581,23 +624,14 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                           const isOverdue =
                             wo.dueDate && new Date(wo.dueDate) < new Date();
                           return (
-                            <Chip
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              label={wo.title}
-                              size="small"
-                              variant="outlined"
-                              color={isOverdue ? 'error' : 'default'}
-                              onClick={() =>
+                            <WorkloadOrderCard
+                              workOrder={wo}
+                              overdue={Boolean(isOverdue)}
+                              provided={provided}
+                              snapshot={snapshot}
+                              onOpen={() =>
                                 handleOpenDetails(wo.id, 'WORK_ORDER')
                               }
-                              sx={{
-                                maxWidth: 250,
-                                mb: 0.5,
-                                borderRadius: '4px',
-                                ...(snapshot.isDragging ? { boxShadow: 3 } : {})
-                              }}
                             />
                           );
                         }}
@@ -624,13 +658,14 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
               >
                 <CircularProgress size={24} />
               </Box>
-            ) : (
+            ) : overviewError ? null : (
               <Box sx={{ overflowX: 'auto' }}>
                 <Box
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: `${GRID_LABEL_WIDTH}px repeat(7, 1fr)`,
-                    width: '100%'
+                    width: '100%',
+                    minWidth: { xs: 980, lg: '100%' }
                   }}
                 >
                   {renderGridHeader(t('team_member'))}
@@ -656,24 +691,48 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                           justifyContent: 'space-between',
                           '&:hover .shift-config-btn': {
                             opacity: 1
+                          },
+                          '&:focus-within .shift-config-btn': {
+                            opacity: 1
                           }
                         }}
                       >
                         <Typography variant="body2" noWrap>
                           {userSummary.fullName ||
-                            allUsers.find((u) => u.id === userSummary.userId)
-                              ?.firstName ||
-                            ''}
+                            getWorkloadUserDisplayName(
+                              userSummary.userId,
+                              allUsers
+                            )}
                         </Typography>
                         <IconButton
                           className="shift-config-btn"
                           size="small"
+                          aria-label={t('workload_edit_shift_aria', {
+                            user:
+                              userSummary.fullName ||
+                              getWorkloadUserDisplayName(
+                                userSummary.userId,
+                                allUsers
+                              )
+                          })}
+                          title={t('workload_edit_shift_aria', {
+                            user:
+                              userSummary.fullName ||
+                              getWorkloadUserDisplayName(
+                                userSummary.userId,
+                                allUsers
+                              )
+                          })}
                           onClick={() =>
                             handleEditShiftConfig(userSummary.userId)
                           }
-                          sx={{ opacity: 0, transition: 'opacity 0.2s' }}
+                          sx={{
+                            opacity: { xs: 1, md: 0 },
+                            transition: 'opacity 0.2s',
+                            '&:focus-visible': { opacity: 1 }
+                          }}
                         >
-                          <EditTwoToneIcon fontSize="small" />
+                          <EditOutlinedIcon fontSize="small" />
                         </IconButton>
                       </Box>
                       {weekDays.map((day) => {
@@ -728,61 +787,46 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                         )}`;
                                       })()}
                                     </Typography>
-                                    {[...userDayData.workOrders]
-                                      .sort(
-                                        (a, b) =>
-                                          new Date(
-                                            a.estimatedStartDate
-                                          ).getTime() -
-                                          new Date(
-                                            b.estimatedStartDate
-                                          ).getTime()
-                                      )
-                                      .map((wo, index) => (
-                                        <Draggable
-                                          key={wo.id}
-                                          draggableId={`wo-${wo.id}`}
-                                          index={index}
-                                        >
-                                          {(provided, snapshot) => {
-                                            const isOverdue =
-                                              wo.dueDate &&
-                                              new Date(wo.dueDate) < new Date();
-                                            return (
-                                              <Chip
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                {...provided.dragHandleProps}
-                                                label={wo.title}
-                                                size="small"
-                                                variant="outlined"
-                                                color={
-                                                  isOverdue
-                                                    ? 'error'
-                                                    : 'default'
-                                                }
-                                                onClick={() =>
-                                                  handleOpenDetails(
-                                                    wo.id,
-                                                    'WORK_ORDER'
-                                                  )
-                                                }
-                                                sx={{
-                                                  mt: 0.3,
-                                                  mr: 0.3,
-                                                  maxWidth: 110,
-                                                  fontSize: 10,
-                                                  width: '100%',
-                                                  borderRadius: '4px',
-                                                  ...(snapshot.isDragging
-                                                    ? { boxShadow: 3 }
-                                                    : {})
-                                                }}
-                                              />
-                                            );
-                                          }}
-                                        </Draggable>
-                                      ))}
+                                    <Stack spacing={0.5}>
+                                      {[...userDayData.workOrders]
+                                        .sort(
+                                          (a, b) =>
+                                            new Date(
+                                              a.estimatedStartDate
+                                            ).getTime() -
+                                            new Date(
+                                              b.estimatedStartDate
+                                            ).getTime()
+                                        )
+                                        .map((wo, index) => (
+                                          <Draggable
+                                            key={wo.id}
+                                            draggableId={`wo-${wo.id}`}
+                                            index={index}
+                                          >
+                                            {(provided, snapshot) => {
+                                              const isOverdue =
+                                                wo.dueDate &&
+                                                new Date(wo.dueDate) <
+                                                  new Date();
+                                              return (
+                                                <WorkloadOrderCard
+                                                  workOrder={wo}
+                                                  overdue={Boolean(isOverdue)}
+                                                  provided={provided}
+                                                  snapshot={snapshot}
+                                                  onOpen={() =>
+                                                    handleOpenDetails(
+                                                      wo.id,
+                                                      'WORK_ORDER'
+                                                    )
+                                                  }
+                                                />
+                                              );
+                                            }}
+                                          </Draggable>
+                                        ))}
+                                    </Stack>
                                   </Box>
                                 ) : (
                                   <Typography

@@ -1,15 +1,9 @@
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-  View as RNView
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, View as RNView } from 'react-native';
 import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { AssetMiniDTO } from '../../models/asset';
 import { getAssetsMini } from '../../slices/asset';
@@ -17,6 +11,7 @@ import {
   Avatar,
   Button,
   Divider,
+  Icon,
   IconButton,
   Searchbar,
   SegmentedButtons,
@@ -24,6 +19,7 @@ import {
 } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 interface AssetHierarchyNode extends AssetMiniDTO {
   hasChildren: boolean;
@@ -132,21 +128,32 @@ export default function SelectAssetsModal({
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { assetsMini, loadingGet } = useSelector((state) => state.assets);
+  const { assetsMini } = useSelector((state) => state.assets);
+  const [loadingAssets, setLoadingAssets] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadedLocationKey, setLoadedLocationKey] = useState<string | null>(
+    null
+  );
+  const loadRequestRef = useRef(0);
+  const locationKey = locationId == null ? 'all' : `location:${locationId}`;
+  const hasLoadedForLocation = loadedLocationKey === locationKey;
+  const visibleAssetsMini = hasLoadedForLocation ? assetsMini : [];
 
   const assetsHierarchy: AssetHierarchyNode[] = useMemo(() => {
-    const assetMap = new Map(assetsMini.map((asset) => [asset.id, asset]));
+    const assetMap = new Map(
+      visibleAssetsMini.map((asset) => [asset.id, asset])
+    );
     const childrenMap = new Map<number, boolean>();
-    assetsMini.forEach((asset) => {
+    visibleAssetsMini.forEach((asset) => {
       if (asset.parentId !== null && assetMap.has(asset.parentId)) {
         childrenMap.set(asset.parentId, true);
       }
     });
-    return assetsMini.map((asset) => ({
+    return visibleAssetsMini.map((asset) => ({
       ...asset,
       hasChildren: childrenMap.has(asset.id) || false
     }));
-  }, [assetsMini]);
+  }, [visibleAssetsMini]);
 
   const assetsMap = useMemo(
     () => new Map(assetsHierarchy.map((a) => [a.id, a])),
@@ -173,9 +180,32 @@ export default function SelectAssetsModal({
     }
   }, [selected]);
 
+  const loadAssets = useCallback(async () => {
+    const requestId = ++loadRequestRef.current;
+    setLoadingAssets(true);
+    setLoadError(false);
+    try {
+      await dispatch(getAssetsMini(locationId));
+      if (requestId !== loadRequestRef.current) return;
+      setLoadedLocationKey(locationKey);
+    } catch (_error) {
+      if (requestId !== loadRequestRef.current) return;
+      setLoadError(true);
+    } finally {
+      if (requestId === loadRequestRef.current) setLoadingAssets(false);
+    }
+  }, [dispatch, locationId, locationKey]);
+
   useEffect(() => {
-    dispatch(getAssetsMini(locationId));
-  }, [locationId, dispatch]);
+    void loadAssets();
+    return () => {
+      loadRequestRef.current += 1;
+    };
+  }, [loadAssets]);
+
+  useEffect(() => {
+    setCurrentHierarchyParent(null);
+  }, [locationKey]);
 
   const currentlySelectedAssets = useMemo(
     () =>
@@ -279,11 +309,11 @@ export default function SelectAssetsModal({
   }, [assetsMap]);
 
   const onRefresh = useCallback(() => {
-    dispatch(getAssetsMini(locationId));
+    void loadAssets();
     if (view === 'hierarchy') {
       setCurrentHierarchyParent(null);
     }
-  }, [locationId, dispatch, view]);
+  }, [loadAssets, view]);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -316,8 +346,17 @@ export default function SelectAssetsModal({
   );
 
   const ListEmptyComponent = useCallback(() => {
-    if (loadingGet) {
-      return <ActivityIndicator animating={true} style={{ marginTop: 20 }} />;
+    if (loadingAssets || (!hasLoadedForLocation && !loadError)) {
+      return <AsyncStateFeedback mode="loading" message={t('loading')} />;
+    }
+    if (loadError && !hasLoadedForLocation) {
+      return (
+        <AsyncStateFeedback
+          mode="error"
+          message={t('asset_list_load_error')}
+          onRetry={() => void loadAssets()}
+        />
+      );
     }
     if (view === 'hierarchy') return null;
     if (searchQuery) {
@@ -339,7 +378,15 @@ export default function SelectAssetsModal({
         {t('no_assets_available')}
       </Text>
     );
-  }, [loadingGet, view, searchQuery, t]);
+  }, [
+    loadingAssets,
+    hasLoadedForLocation,
+    loadError,
+    loadAssets,
+    view,
+    searchQuery,
+    t
+  ]);
 
   const ListFooterComponent = useCallback(
     () => (
@@ -380,6 +427,7 @@ export default function SelectAssetsModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={handleSearchChange}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background, margin: 5 }}
@@ -395,7 +443,7 @@ export default function SelectAssetsModal({
       />
       {view === 'hierarchy' && currentHierarchyParent && (
         <Pressable onPress={navigateHierarchyUp} style={styles.backButton}>
-          <IconButton icon="arrow-left" size={20} />
+          <Icon source="arrow-left" size={20} color={theme.colors.onSurface} />
           <Text variant="titleMedium">
             {t('back_to')}{' '}
             {assetsMap.get(currentHierarchyParent.parentId ?? -1)?.name ??
@@ -409,8 +457,17 @@ export default function SelectAssetsModal({
           data={filteredListAssets}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          refreshing={loadingGet}
+          refreshing={loadingAssets}
           onRefresh={onRefresh}
+          ListHeaderComponent={
+            loadError && hasLoadedForLocation ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={() => void loadAssets()}
+              />
+            ) : null
+          }
           ListEmptyComponent={ListEmptyComponent}
           ListFooterComponent={ListFooterComponent}
           initialNumToRender={20}
@@ -429,8 +486,17 @@ export default function SelectAssetsModal({
           data={currentHierarchyLevel}
           renderItem={(item) => renderItem(item, true)}
           keyExtractor={keyExtractor}
-          refreshing={loadingGet}
+          refreshing={loadingAssets}
           onRefresh={onRefresh}
+          ListHeaderComponent={
+            loadError && hasLoadedForLocation ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('asset_list_load_error')}
+                onRetry={() => void loadAssets()}
+              />
+            ) : null
+          }
           ListEmptyComponent={ListEmptyComponent}
           ListFooterComponent={ListFooterComponent}
           initialNumToRender={20}

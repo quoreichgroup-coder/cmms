@@ -1,21 +1,21 @@
 import { useContext } from 'react';
 
 import {
-  alpha,
   Box,
   Divider,
   IconButton,
-  lighten,
   Stack,
   styled,
   Tooltip,
   Typography,
   useTheme
 } from '@mui/material';
-import MenuTwoToneIcon from '@mui/icons-material/MenuTwoTone';
+import MenuIcon from '@mui/icons-material/Menu';
 import { SidebarContext } from 'src/contexts/SidebarContext';
-import ArrowBackTwoToneIcon from '@mui/icons-material/ArrowBackTwoTone';
-import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import HeaderButtons from './Buttons';
 import HeaderUserbox from './Userbox';
@@ -30,20 +30,24 @@ const HeaderWrapper = styled(Box)(
         padding: ${theme.spacing(0, 2)};
         right: 0;
         z-index: 6;
-        background-color: ${alpha(theme.header.background, 0.95)};
-        backdrop-filter: blur(3px);
+        background-color: ${theme.header.background};
+        border-bottom: 1px solid ${theme.palette.divider};
         position: fixed;
         justify-content: space-between;
         width: 100%;
         @media (min-width: ${theme.breakpoints.values.lg}px) {
-            left: ${theme.sidebar.width};
             width: auto;
         }
 `
 );
 
 function Header() {
-  const { sidebarToggle, toggleSidebar } = useContext(SidebarContext);
+  const {
+    sidebarToggle,
+    toggleSidebar,
+    desktopSidebarCollapsed,
+    toggleDesktopSidebar
+  } = useContext(SidebarContext);
   const { title } = useContext(TitleContext);
   const theme = useTheme();
   const { t }: { t: any } = useTranslation();
@@ -55,21 +59,53 @@ function Header() {
       display="flex"
       alignItems="center"
       sx={{
-        boxShadow:
-          theme.palette.mode === 'dark'
-            ? `0 1px 0 ${alpha(
-                lighten(theme.colors.primary.main, 0.7),
-                0.15
-              )}, 0px 2px 8px -3px rgba(0, 0, 0, 0.2), 0px 5px 22px -4px rgba(0, 0, 0, .1)`
-            : `0px 2px 8px -3px ${alpha(
-                theme.colors.alpha.black[100],
-                0.2
-              )}, 0px 5px 22px -4px ${alpha(
-                theme.colors.alpha.black[100],
-                0.1
-              )}`
+        boxShadow: 'none',
+        left: { lg: desktopSidebarCollapsed ? '72px' : theme.sidebar.width },
+        width: {
+          xs: '100%',
+          lg: desktopSidebarCollapsed
+            ? 'calc(100% - 72px)'
+            : `calc(100% - ${theme.sidebar.width})`
+        },
+        transition: theme.transitions.create(['left', 'width'], {
+          duration: theme.transitions.duration.shortest
+        })
       }}
     >
+      <Box sx={{ display: { xs: 'none', lg: 'inline-flex' }, mr: 1 }}>
+        <Tooltip
+          arrow
+          title={
+            desktopSidebarCollapsed
+              ? t('expand_sidebar')
+              : t('collapse_sidebar')
+          }
+        >
+          <IconButton
+            color="primary"
+            onClick={toggleDesktopSidebar}
+            aria-label={
+              desktopSidebarCollapsed
+                ? t('expand_sidebar')
+                : t('collapse_sidebar')
+            }
+            aria-expanded={!desktopSidebarCollapsed}
+            aria-controls="qpm-primary-sidebar"
+          >
+            {desktopSidebarCollapsed ? (
+              theme.direction === 'rtl' ? (
+                <ChevronLeftIcon />
+              ) : (
+                <ChevronRightIcon />
+              )
+            ) : theme.direction === 'rtl' ? (
+              <ChevronRightIcon />
+            ) : (
+              <ChevronLeftIcon />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Box>
       <Stack
         direction="row"
         divider={<Divider orientation="vertical" flexItem />}
@@ -77,10 +113,25 @@ function Header() {
         spacing={2}
         sx={{ minWidth: 0, flex: 1, mr: 2 }}
       >
-        <IconButton onClick={()=>navigate(-1)} disabled={location.key==='default'}>
-          <ArrowBackTwoToneIcon/>
-          </IconButton>
-        <Typography variant="h2" noWrap title={title} sx={{ minWidth: 0 }}>
+        <IconButton
+          aria-label={t('go_back')}
+          onClick={() => navigate(-1)}
+          disabled={location.key === 'default'}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography
+          variant="h3"
+          component="h1"
+          noWrap
+          title={title}
+          sx={{
+            minWidth: 0,
+            color: 'text.primary',
+            fontSize: { xs: '1.125rem', sm: '1.5rem' },
+            lineHeight: 1.25
+          }}
+        >
           {title}
         </Typography>
       </Stack>
@@ -97,9 +148,9 @@ function Header() {
           <Tooltip arrow title={t('toggle_menu')}>
             <IconButton color="primary" onClick={toggleSidebar}>
               {!sidebarToggle ? (
-                <MenuTwoToneIcon fontSize="small" />
+                <MenuIcon fontSize="small" />
               ) : (
-                <CloseTwoToneIcon fontSize="small" />
+                <CloseIcon fontSize="small" />
               )}
             </IconButton>
           </Tooltip>

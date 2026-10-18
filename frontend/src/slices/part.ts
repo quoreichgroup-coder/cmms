@@ -132,6 +132,7 @@ export const deletePart =
     if (success) {
       dispatch(slice.actions.deletePart({ id }));
     }
+    return success;
   };
 export const clearSinglePart = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.clearSinglePart({}));

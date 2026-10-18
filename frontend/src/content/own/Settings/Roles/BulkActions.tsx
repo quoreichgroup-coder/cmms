@@ -12,7 +12,7 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 
 const ButtonError = styled(Button)(
   ({ theme }) => `
@@ -63,7 +63,7 @@ function BulkActions(props: BulkActionsProps) {
                 p: 1
               }}
             >
-              <VerifiedUserTwoToneIcon />
+              <VerifiedUserOutlinedIcon />
             </IconButton>
           </Tooltip> */}
           {actions.map((action) =>
@@ -101,7 +101,7 @@ function BulkActions(props: BulkActionsProps) {
             p: 1
           }}
         >
-          <MoreVertTwoToneIcon />
+          <MoreVertOutlinedIcon />
         </IconButton>
       </Box>
 

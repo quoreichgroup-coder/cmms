@@ -19,6 +19,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import PrintIcon from '@mui/icons-material/Print';
 import { QRCodeSVG } from 'qrcode.react';
 import { RequestPortal } from '../../../../../../models/owns/requestPortal';
+import { populateQrPrintDocument } from '../../../../../../utils/printQrCode';
 
 interface SharePortalModalProps {
   open: boolean;
@@ -78,22 +79,14 @@ export default function SharePortalModal({
     if (svg) {
       const svgData = new XMLSerializer().serializeToString(svg);
       const printWindow = window.open('', '_blank');
-      printWindow?.document.write(`
-        <html>
-          <head>
-            <title>QR Code - ${portal?.title}</title>
-            <style>
-              body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-              img { max-width: 100%; }
-            </style>
-          </head>
-          <body>
-            <img src="data:image/svg+xml;base64,${btoa(svgData)}" />
-          </body>
-        </html>
-      `);
-      printWindow?.document.close();
-      printWindow?.focus();
+      if (!printWindow) return;
+      printWindow.opener = null;
+      populateQrPrintDocument(
+        printWindow,
+        `QR Code - ${portal?.title ?? ''}`,
+        'data:image/svg+xml;base64,' + btoa(svgData)
+      );
+      printWindow.focus();
       setTimeout(() => {
         printWindow?.print();
         printWindow?.close();

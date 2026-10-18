@@ -26,16 +26,16 @@ import {
   useTheme
 } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { useTranslation } from 'react-i18next';
-import ContactSupportTwoToneIcon from '@mui/icons-material/ContactSupportTwoTone';
+import ContactSupportOutlinedIcon from '@mui/icons-material/ContactSupportOutlined';
 import Scrollbar from 'src/components/Scrollbar';
-import RestoreTwoToneIcon from '@mui/icons-material/RestoreTwoTone';
-import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
-import StarTwoToneIcon from '@mui/icons-material/StarTwoTone';
-import DashboardTwoToneIcon from '@mui/icons-material/DashboardTwoTone';
-import AppSettingsAltTwoToneIcon from '@mui/icons-material/AppSettingsAltTwoTone';
-import KeyboardArrowRightTwoToneIcon from '@mui/icons-material/KeyboardArrowRightTwoTone';
+import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import StarOutlineIcon from '@mui/icons-material/StarOutline';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import AppSettingsAltOutlinedIcon from '@mui/icons-material/AppSettingsAltOutlined';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 const wait = (time: number): Promise<void> =>
   new Promise((res) => setTimeout(res, time));
@@ -189,7 +189,7 @@ function HeaderSearch() {
     <>
       <Tooltip arrow title={t('Search')}>
         <IconButtonWrapper color="primary" onClick={handleClickOpen}>
-          <SearchTwoToneIcon fontSize="small" />
+          <SearchOutlinedIcon fontSize="small" />
         </IconButtonWrapper>
       </Tooltip>
 
@@ -206,7 +206,7 @@ function HeaderSearch() {
           <form onSubmit={submitSearch}>
             <Box display="flex" alignItems="center">
               <Box flexGrow={1} display="flex" alignItems="center">
-                <SearchTwoToneIcon
+                <SearchOutlinedIcon
                   sx={{
                     ml: 2,
                     color: theme.colors.secondary.main
@@ -259,7 +259,7 @@ function HeaderSearch() {
                   my: 2
                 }}
               >
-                <ContactSupportTwoToneIcon
+                <ContactSupportOutlinedIcon
                   sx={{
                     mr: 0.8,
                     fontSize: theme.typography.pxToRem(18)
@@ -303,7 +303,7 @@ function HeaderSearch() {
                         <Fragment key={result.title}>
                           <ListButton>
                             <Box display="flex" alignItems="flex-start">
-                              <RestoreTwoToneIcon
+                              <RestoreOutlinedIcon
                                 sx={{
                                   mr: 1
                                 }}
@@ -311,7 +311,7 @@ function HeaderSearch() {
                               />
                               <Typography>{result.title}</Typography>
                             </Box>
-                            <KeyboardArrowRightTwoToneIcon fontSize="small" />
+                            <KeyboardArrowRightIcon fontSize="small" />
                           </ListButton>
                         </Fragment>
                       ))}
@@ -337,7 +337,7 @@ function HeaderSearch() {
                     </Typography>
                     <ListButton>
                       <Box display="flex" alignItems="center">
-                        <RestoreTwoToneIcon
+                        <RestoreOutlinedIcon
                           sx={{
                             mr: 1
                           }}
@@ -352,7 +352,7 @@ function HeaderSearch() {
                           title={t('Save this search')}
                         >
                           <IconButton size="small" color="primary">
-                            <StarTwoToneIcon fontSize="small" />
+                            <StarOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip
@@ -361,14 +361,14 @@ function HeaderSearch() {
                           title={t('Remove this search from history')}
                         >
                           <IconButton size="small" color="error">
-                            <CloseTwoToneIcon fontSize="small" />
+                            <CloseIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Box>
                     </ListButton>
                     <ListButton>
                       <Box display="flex" alignItems="center">
-                        <RestoreTwoToneIcon
+                        <RestoreOutlinedIcon
                           sx={{
                             mr: 1
                           }}
@@ -383,7 +383,7 @@ function HeaderSearch() {
                           title={t('Save this search')}
                         >
                           <IconButton size="small" color="primary">
-                            <StarTwoToneIcon fontSize="small" />
+                            <StarOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip
@@ -392,7 +392,7 @@ function HeaderSearch() {
                           title={t('Remove this search from history')}
                         >
                           <IconButton size="small" color="error">
-                            <CloseTwoToneIcon fontSize="small" />
+                            <CloseIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -408,7 +408,7 @@ function HeaderSearch() {
                     </Typography>
                     <ListButton>
                       <Box display="flex" alignItems="center">
-                        <StarTwoToneIcon
+                        <StarOutlineIcon
                           sx={{
                             mr: 1
                           }}
@@ -423,7 +423,7 @@ function HeaderSearch() {
                           title={t('Remove this search from favourites')}
                         >
                           <IconButton size="small" color="error">
-                            <CloseTwoToneIcon fontSize="small" />
+                            <CloseIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -445,7 +445,7 @@ function HeaderSearch() {
                             fontSize={13}
                             alignItems="center"
                           >
-                            <DashboardTwoToneIcon
+                            <DashboardOutlinedIcon
                               sx={{
                                 color: theme.colors.primary.main,
                                 fontSize: theme.typography.pxToRem(18),
@@ -508,7 +508,7 @@ function HeaderSearch() {
                             fontSize={13}
                             alignItems="center"
                           >
-                            <AppSettingsAltTwoToneIcon
+                            <AppSettingsAltOutlinedIcon
                               sx={{
                                 color: theme.colors.primary.main,
                                 fontSize: theme.typography.pxToRem(18),

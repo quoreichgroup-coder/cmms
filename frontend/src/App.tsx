@@ -188,7 +188,7 @@ function App() {
   }, [user, isInitialized, isAuthenticated, location]);
 
   useEffect(() => {
-    dispatch(getLicenseValidity());
+    dispatch(getLicenseValidity()).catch(() => undefined);
   }, []);
 
   useEffect(() => {

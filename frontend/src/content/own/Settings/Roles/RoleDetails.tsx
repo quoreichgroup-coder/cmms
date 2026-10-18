@@ -6,8 +6,8 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { Role } from '../../../../models/owns/role';
 import PermissionsMatrix from './PermissionsMatrix';
 import useAuth from '../../../../hooks/useAuth';
@@ -57,7 +57,7 @@ export default function RoleDetails(props: RoleDetailsProps) {
                   style={{ marginRight: 10 }}
                   onClick={handleOpenUpdate}
                 >
-                  <EditTwoToneIcon
+                  <EditOutlinedIcon
                     color={
                       hasFeature(PlanFeature.ROLE) ? 'primary' : 'disabled'
                     }
@@ -77,7 +77,7 @@ export default function RoleDetails(props: RoleDetailsProps) {
                   disabled={!hasFeature(PlanFeature.ROLE)}
                   onClick={handleOpenDelete}
                 >
-                  <DeleteTwoToneIcon
+                  <DeleteOutlinedIcon
                     color={hasFeature(PlanFeature.ROLE) ? 'error' : 'disabled'}
                   />
                 </IconButton>

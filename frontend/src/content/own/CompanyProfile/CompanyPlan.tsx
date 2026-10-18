@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { SubscriptionPlan } from '../../../models/owns/subscriptionPlan';
-import CardMembershipTwoToneIcon from '@mui/icons-material/CardMembershipTwoTone';
+import CardMembershipOutlinedIcon from '@mui/icons-material/CardMembershipOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
 import i18n from 'i18next';
@@ -21,7 +21,13 @@ import { homeUrl, isCloudVersion } from '../../../config';
 import { getLicenseValidity } from '../../../slices/license';
 import { useDispatch, useSelector } from 'src/store';
 import subscriptionPlan from '../../../slices/subscriptionPlan';
-import api from '../../../utils/api';
+import api, { getErrorMessage } from '../../../utils/api';
+import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
+import {
+  closePendingWindow,
+  navigatePendingWindow,
+  openPendingWindow
+} from '../../../utils/asyncWindow';
 
 interface CompanyPlanProps {
   plan: SubscriptionPlan;
@@ -33,6 +39,7 @@ function CompanyPlan(props: CompanyPlanProps) {
   const navigate = useNavigate();
   const theme = useTheme();
   const { t, i18n } = useTranslation();
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const getLanguage = i18n.language;
   const [loadingBilling, setLoadingBilling] = useState<boolean>(false);
@@ -42,14 +49,41 @@ function CompanyPlan(props: CompanyPlanProps) {
     : licensingState.expirationDate;
 
   useEffect(() => {
-    dispatch(getLicenseValidity());
+    dispatch(getLicenseValidity()).catch(() => undefined);
   }, []);
 
   const goToPaddleBilling = () => {
+    let billingWindow: Window;
+    try {
+      billingWindow = openPendingWindow(
+        t('allow_popups_to_continue'),
+        t('opening_billing_portal')
+      );
+    } catch (error) {
+      showSnackBar(
+        getErrorMessage(error, t('allow_popups_to_continue')),
+        'error'
+      );
+      return;
+    }
+
     setLoadingBilling(true);
     api
       .get<{ message: string }>('paddle/customer-portal')
-      .then(({ message }) => window.open(message, '_blank'))
+      .then(({ message }) =>
+        navigatePendingWindow(
+          billingWindow,
+          message,
+          t('invalid_billing_portal_url')
+        )
+      )
+      .catch((error) => {
+        closePendingWindow(billingWindow);
+        showSnackBar(
+          getErrorMessage(error, t('billing_portal_open_error')),
+          'error'
+        );
+      })
       .finally(() => setLoadingBilling(false));
   };
 
@@ -77,7 +111,7 @@ function CompanyPlan(props: CompanyPlanProps) {
           )}`
         }}
       >
-        <CardMembershipTwoToneIcon
+        <CardMembershipOutlinedIcon
           sx={{
             fontSize: `${theme.typography.pxToRem(30)}`
           }}
@@ -127,14 +161,18 @@ function CompanyPlan(props: CompanyPlanProps) {
             sx={{ mr: 2 }}
             variant="contained"
             component={RouterLink}
-            to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
+            to={
+              isCloudVersion
+                ? '/app/subscription/plans'
+                : '/app/account/company-profile'
+            }
           >
             {t('upgrade_now')}
           </Button>
           {isCloudVersion && (
             <Button
               onClick={() => {
-              navigate('/app/subscription/plans');
+                navigate('/app/subscription/plans');
               }}
               variant="contained"
               color="secondary"

@@ -1,4 +1,4 @@
-import { Linking, Pressable, ScrollView, TouchableOpacity } from 'react-native';
+import { Linking, ScrollView, TouchableOpacity } from 'react-native';
 import * as React from 'react';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,8 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import BasicField from '../../../components/BasicField';
 import { getCustomFieldValuesForDetails } from '../../../models/form';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
+import useAuth from '../../../hooks/useAuth';
+import { PermissionEntity } from '../../../models/role';
 
 export default function VendorDetailsScreen({
   navigation,
@@ -41,6 +43,12 @@ export default function VendorDetailsScreen({
   const [deleting, setDeleting] = useState(false);
   const deletingRef = React.useRef(false);
   const [loadError, setLoadError] = useState(false);
+  const { hasEditPermission, hasDeletePermission } = useAuth();
+  const canOpenVendorActions = Boolean(
+    vendor &&
+      (hasEditPermission(PermissionEntity.VENDORS_AND_CUSTOMERS, vendor) ||
+        hasDeletePermission(PermissionEntity.VENDORS_AND_CUSTOMERS, vendor))
+  );
 
   const loadVendor = useCallback(async () => {
     setLoadError(false);
@@ -58,27 +66,24 @@ export default function VendorDetailsScreen({
   useEffect(() => {
     navigation.setOptions({
       title: vendor?.name ?? t('loading'),
-      headerRight: vendor
-        ? () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('more_options')}
-              onPress={() => {
-                SheetManager.show('vendor-details-sheet', {
-                  payload: {
-                    onEdit: () => navigation.navigate('EditVendor', { vendor }),
-                    onDelete: () => setOpenDelete(true),
-                    vendor
-                  }
-                });
-              }}
-            >
-              <IconButton icon="dots-vertical" />
-            </Pressable>
-          )
-        : undefined
+      headerRight: () =>
+        canOpenVendorActions && vendor ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('vendor-details-sheet', {
+                payload: {
+                  onEdit: () => navigation.navigate('EditVendor', { vendor }),
+                  onDelete: () => setOpenDelete(true),
+                  vendor
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [navigation, t, vendor]);
+  }, [canOpenVendorActions, navigation, t, vendor]);
   const fieldsToRender: { label: string; value: string; isLink?: boolean }[] = [
     {
       label: t('address'),

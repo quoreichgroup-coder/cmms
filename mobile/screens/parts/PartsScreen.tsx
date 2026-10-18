@@ -21,6 +21,7 @@ import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
+import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
 export const getFormattedQuantityWithUnit = (
   quantity: number,
   unit: string
@@ -32,7 +33,7 @@ export default function PartsScreen({
 }: RootStackScreenProps<'Parts'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
-  const { parts, loadingGet, currentPageNum, lastPage } = useSelector(
+  const { parts, listLoading, currentPageNum, lastPage } = useSelector(
     (state) => state.parts
   );
   const theme = useAppTheme();
@@ -43,6 +44,8 @@ export default function PartsScreen({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const nextPageRequestInProgress = useRef(false);
   const firstPageRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
+  const refreshRequestSequence = useRef(0);
   const { hasViewPermission } = useAuth();
   const canView = hasViewPermission(PermissionEntity.PARTS_AND_MULTIPARTS);
   const [hasLoadedList, setHasLoadedList] = useState(false);
@@ -69,46 +72,69 @@ export default function PartsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
-  const fetchFirstPage = useCallback(async () => {
-    const requestSequence = ++firstPageRequestSequence.current;
-    setLoadError(false);
-    setLoadMoreError(false);
-    try {
-      await dispatch(
-        getParts({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
-      );
-    } catch (_error) {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setLoadError(true);
+  const fetchFirstPage = useCallback(
+    async (isRefresh = false) => {
+      const requestSequence = beginRequest(firstPageRequestSequence);
+      beginRequest(paginationRequestSequence);
+      nextPageRequestInProgress.current = false;
+      setLoadError(false);
+      setLoadMoreError(false);
+      if (!isRefresh) {
+        refreshRequestSequence.current += 1;
+        setRefreshing(false);
       }
-    } finally {
-      if (requestSequence === firstPageRequestSequence.current) {
-        setHasLoadedList(true);
+      try {
+        await dispatch(
+          getParts({
+            ...criteria,
+            pageSize: 10,
+            pageNum: 0,
+            direction: 'DESC'
+          })
+        );
+      } catch (_error) {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadError(true);
+        }
+      } finally {
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setHasLoadedList(true);
+        }
       }
-    }
-  }, [criteria, dispatch]);
+    },
+    [criteria, dispatch]
+  );
 
   const fetchNextPage = useCallback(
     async (retry = false) => {
-      const requestSequence = firstPageRequestSequence.current;
+      const firstPageSequence = firstPageRequestSequence.current;
       if (
         !canView ||
         nextPageRequestInProgress.current ||
-        loadingGet ||
+        listLoading ||
         lastPage ||
         (loadMoreError && !retry)
       )
         return;
+      const paginationSequence = beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = true;
       setLoadMoreError(false);
       try {
         await dispatch(getMoreParts(criteria, currentPageNum + 1));
       } catch (_error) {
-        if (requestSequence === firstPageRequestSequence.current) {
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
           setLoadMoreError(true);
         }
       } finally {
-        nextPageRequestInProgress.current = false;
+        if (
+          isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          nextPageRequestInProgress.current = false;
+        }
       }
     },
     [
@@ -118,7 +144,7 @@ export default function PartsScreen({
       dispatch,
       lastPage,
       loadMoreError,
-      loadingGet
+      listLoading
     ]
   );
 
@@ -127,13 +153,16 @@ export default function PartsScreen({
   }, [canView, fetchFirstPage]);
 
   const onRefresh = async () => {
+    const requestSequence = beginRequest(refreshRequestSequence);
     setRefreshing(true);
     try {
-      await fetchFirstPage();
+      await fetchFirstPage(true);
     } catch (_error) {
       // The API error handler displays the failure message globally.
     } finally {
-      setRefreshing(false);
+      if (isCurrentRequest(requestSequence, refreshRequestSequence)) {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -256,7 +285,7 @@ export default function PartsScreen({
           </Pressable>
         )}
         ListEmptyComponent={
-          canView && (loadingGet || !hasLoadedList) ? (
+          canView && (listLoading || !hasLoadedList) ? (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -325,7 +354,7 @@ export default function PartsScreen({
           )
         }
         ListFooterComponent={
-          loadingGet && !refreshing && parts.content.length > 0 ? (
+          listLoading && !refreshing && parts.content.length > 0 ? (
             <View
               style={styles.loadingFooter}
               accessibilityRole="progressbar"

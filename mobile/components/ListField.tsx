@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch'
   },
   valueLink: {
-    minHeight: 44,
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingVertical: qpmLayoutTokens.space.xs

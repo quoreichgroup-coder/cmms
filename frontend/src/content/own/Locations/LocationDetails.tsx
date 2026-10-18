@@ -21,10 +21,10 @@ import {
 import Location from '../../../models/owns/location';
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../components/form';
 import * as Yup from 'yup';
 import { IField } from '../type';
@@ -42,6 +42,7 @@ import { getAssetUrl } from '../../../utils/urlPaths';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
+import { openSafeWindow } from '../../../utils/safeWindow';
 
 interface LocationDetailsProps {
   location: Location;
@@ -191,7 +192,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
         <Box>
           {hasEditPermission(PermissionEntity.LOCATIONS, location) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.LOCATIONS) && (
@@ -204,7 +205,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
           )}
           {hasDeletePermission(PermissionEntity.LOCATIONS, location) && (
             <IconButton onClick={handleOpenDelete}>
-              <DeleteTwoToneIcon color="error" />
+              <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
         </Box>
@@ -245,7 +246,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             {hasCreatePermission(PermissionEntity.ASSETS) && (
               <Box display="flex" justifyContent="right">
                 <Button
-                  startIcon={<AddTwoToneIcon fontSize="small" />}
+                  startIcon={<AddOutlinedIcon fontSize="small" />}
                   onClick={() =>
                     navigate(`/app/assets?location=${location.id}`)
                   }
@@ -283,7 +284,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             {hasCreatePermission(PermissionEntity.WORK_ORDERS) && (
               <Box display="flex" justifyContent="right">
                 <Button
-                  startIcon={<AddTwoToneIcon fontSize="small" />}
+                  startIcon={<AddOutlinedIcon fontSize="small" />}
                   onClick={() =>
                     navigate(`/app/work-orders?location=${location.id}`)
                   }
@@ -320,7 +321,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
               hasFeature(PlanFeature.FILE) && (
                 <Box display="flex" justifyContent="right">
                   <Button
-                    startIcon={<AddTwoToneIcon fontSize="small" />}
+                    startIcon={<AddOutlinedIcon fontSize="small" />}
                     onClick={handleOpenUpdate}
                   >
                     {t('file')}
@@ -333,7 +334,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
                   <ListItemButton
                     key={file.id}
                     divider
-                    onClick={() => window.open(file.url, '_blank')}
+                    onClick={() => openSafeWindow(file.url)}
                   >
                     <ListItemText
                       primary={
@@ -358,7 +359,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
               <Box display="flex" justifyContent="right">
                 <Button
                   onClick={() => setOpenAddFloorPlan(true)}
-                  startIcon={<AddTwoToneIcon fontSize="small" />}
+                  startIcon={<AddOutlinedIcon fontSize="small" />}
                 >
                   {t('floor_plan')}
                 </Button>
@@ -386,7 +387,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
                             }
                           }}
                         >
-                          <DeleteTwoToneIcon fontSize="small" color="error" />
+                          <DeleteOutlinedIcon fontSize="small" color="error" />
                         </IconButton>
                       }
                     >

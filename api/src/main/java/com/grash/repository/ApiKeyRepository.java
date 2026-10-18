@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface ApiKeyRepository extends JpaRepository<ApiKey, Long>,
         JpaSpecificationExecutor<ApiKey> {
     Optional<ApiKey> findByCode(String code);
+    Optional<ApiKey> findByIdAndCompany_Id(Long id, Long companyId);
 
     @Modifying
     @Transactional

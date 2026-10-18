@@ -2,13 +2,12 @@ import {
   Pressable,
   FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View
 } from 'react-native';
 import { useDispatch, useSelector } from '../../store';
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import {
@@ -26,11 +25,12 @@ import {
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Location from '../../models/location';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function LocationsScreen({
   navigation,
@@ -41,6 +41,7 @@ export default function LocationsScreen({
   const {
     locations,
     locationsHierarchy,
+    listLoading,
     loadingGet,
     currentPageNum,
     lastPage,
@@ -54,6 +55,7 @@ export default function LocationsScreen({
   const { hasViewPermission } = useAuth();
   const canView = hasViewPermission(PermissionEntity.LOCATIONS);
   const [hasLoadedList, setHasLoadedList] = useState(false);
+  const [listLoadError, setListLoadError] = useState(false);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -79,21 +81,35 @@ export default function LocationsScreen({
   );
   const [loadMoreError, setLoadMoreError] = useState(false);
   const listPageRequestInProgress = useRef(false);
-  useEffect(() => {
-    if (canView && view === 'list') {
-      dispatch(
+  const activeListLoadId = useRef(0);
+  const childPageRequestInProgress = useRef<{
+    locationId: number;
+    pageNum: number;
+  } | null>(null);
+  const loadLocations = useCallback(async () => {
+    if (!canView) return;
+    const requestId = ++activeListLoadId.current;
+    setListLoadError(false);
+    setLoadMoreError(false);
+    try {
+      await dispatch(
         getLocations({
           ...criteria,
           pageSize: 10,
           pageNum: 0,
           direction: 'DESC'
         })
-      ).then(
-        () => setHasLoadedList(true),
-        () => setHasLoadedList(true)
       );
+    } catch (error) {
+      console.warn('Could not load locations:', error);
+      if (activeListLoadId.current === requestId) setListLoadError(true);
+    } finally {
+      if (activeListLoadId.current === requestId) setHasLoadedList(true);
     }
-  }, [canView, criteria, dispatch, view]);
+  }, [canView, criteria, dispatch]);
+  useEffect(() => {
+    if (view === 'list') void loadLocations();
+  }, [loadLocations, view]);
   const [currentLocations, setCurrentLocations] = useState([]);
   useEffect(() => {
     if (
@@ -113,16 +129,7 @@ export default function LocationsScreen({
 
   const onRefresh = () => {
     if (view === 'list') {
-      dispatch(
-        getLocations({
-          ...criteria,
-          pageSize: 10,
-          pageNum: 0,
-          direction: 'DESC'
-        })
-      ).catch((error) => {
-        console.warn('Could not refresh locations:', error);
-      });
+      void loadLocations();
     } else {
       dispatch(
         getLocationChildren(
@@ -139,7 +146,7 @@ export default function LocationsScreen({
   const loadNextLocationPage = (retry = false) => {
     if (
       listPageRequestInProgress.current ||
-      loadingGet ||
+      listLoading ||
       lastPage ||
       (loadMoreError && !retry)
     ) {
@@ -147,16 +154,51 @@ export default function LocationsScreen({
     }
 
     listPageRequestInProgress.current = true;
+    const requestId = activeListLoadId.current;
     setLoadMoreError(false);
     dispatch(getMoreLocations(criteria, currentPageNum + 1))
       .catch((error) => {
-        setLoadMoreError(true);
+        if (activeListLoadId.current === requestId) setLoadMoreError(true);
         console.warn('Could not load more locations:', error);
       })
       .finally(() => {
         listPageRequestInProgress.current = false;
       });
   };
+
+  const loadNextLocationChildren = useCallback(() => {
+    const locationId = route.params?.id ?? 0;
+    const pageNum = (locationChildrenPageNum[locationId] ?? 0) + 1;
+    const activeRequest = childPageRequestInProgress.current;
+
+    if (
+      loadingGet ||
+      locationChildrenLastPage[locationId] ||
+      (activeRequest?.locationId === locationId &&
+        activeRequest.pageNum === pageNum)
+    ) {
+      return;
+    }
+
+    childPageRequestInProgress.current = { locationId, pageNum };
+    void dispatch(
+      getLocationChildren(locationId, route.params?.hierarchy ?? [], pageNum)
+    ).finally(() => {
+      if (
+        childPageRequestInProgress.current?.locationId === locationId &&
+        childPageRequestInProgress.current.pageNum === pageNum
+      ) {
+        childPageRequestInProgress.current = null;
+      }
+    });
+  }, [
+    dispatch,
+    loadingGet,
+    locationChildrenLastPage,
+    locationChildrenPageNum,
+    route.params?.hierarchy,
+    route.params?.id
+  ]);
 
   const onQueryChange = (query) => {
     onSearchQueryChange<Location>(
@@ -190,7 +232,7 @@ export default function LocationsScreen({
         (location) => location.hierarchy.length === 1
       );
     setCurrentLocations(result);
-  }, [locationsHierarchy]);
+  }, [locationsHierarchy, route.params?.id]);
 
   const LocationCard = ({
     location,
@@ -270,6 +312,12 @@ export default function LocationsScreen({
               })
             }
             accessibilityRole="button"
+            accessibilityLabel={t('view_children_for_location', {
+              location: `${
+                location.customId ? `#${location.customId} · ` : ''
+              }${location.name}`
+            })}
+            accessibilityHint={t('view_child_locations_hint')}
           >
             {t('view_children')}
           </Button>
@@ -284,6 +332,7 @@ export default function LocationsScreen({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onFocus={() => setStartedSearch(true)}
         onChangeText={setSearchQuery}
         value={searchQuery}
@@ -292,7 +341,7 @@ export default function LocationsScreen({
       {view === 'list' ? (
         <FlatList
           style={styles.scrollView}
-          data={locations.content}
+          data={canView ? locations.content : []}
           keyExtractor={(location) => String(location.id)}
           renderItem={({ item }) => <LocationCard location={item} />}
           onEndReached={() => loadNextLocationPage()}
@@ -303,16 +352,29 @@ export default function LocationsScreen({
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
-              refreshing={loadingGet}
+              refreshing={listLoading}
               onRefresh={onRefresh}
               colors={[theme.colors.primary]}
             />
           }
           ListEmptyComponent={
-            loadingGet || (canView && !hasLoadedList) ? (
+            !canView ? (
+              <AsyncStateFeedback
+                mode="permissionDenied"
+                message={t('permission_denied_message', {
+                  permission: t('locations')
+                })}
+              />
+            ) : listLoading || !hasLoadedList ? (
               <ActivityIndicator
                 style={styles.listLoading}
                 color={theme.colors.primary}
+              />
+            ) : listLoadError ? (
+              <AsyncStateFeedback
+                mode="error"
+                message={t('locations_load_error')}
+                onRetry={() => void loadLocations()}
               />
             ) : (
               <View
@@ -334,7 +396,13 @@ export default function LocationsScreen({
             )
           }
           ListFooterComponent={
-            loadMoreError ? (
+            listLoadError && locations.content.length > 0 ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('locations_load_error')}
+                onRetry={() => void loadLocations()}
+              />
+            ) : loadMoreError ? (
               <View style={styles.paginationFeedback}>
                 <Text
                   variant="bodyMedium"
@@ -346,7 +414,7 @@ export default function LocationsScreen({
                   {t('retry')}
                 </Button>
               </View>
-            ) : loadingGet && locations.content.length > 0 ? (
+            ) : listLoading && locations.content.length > 0 ? (
               <ActivityIndicator
                 style={styles.listLoading}
                 color={theme.colors.primary}
@@ -355,25 +423,19 @@ export default function LocationsScreen({
           }
         />
       ) : (
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
-          onScroll={({ nativeEvent }) => {
-            if (isCloseToBottom(nativeEvent)) {
-              if (
-                !loadingGet &&
-                !locationChildrenLastPage[route.params?.id ?? 0]
-              ) {
-                dispatch(
-                  getLocationChildren(
-                    route.params?.id ?? 0,
-                    route.params?.hierarchy ?? [],
-                    (locationChildrenPageNum[route.params?.id ?? 0] ?? 0) + 1
-                  )
-                );
-              }
-            }
-          }}
-          scrollEventThrottle={400}
+          contentContainerStyle={styles.listContent}
+          data={currentLocations}
+          keyExtractor={(location) => String(location.id)}
+          renderItem={({ item: location }) => (
+            <LocationCard location={location} showChildrenButton />
+          )}
+          onEndReached={loadNextLocationChildren}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={8}
+          windowSize={7}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={loadingGet}
@@ -381,16 +443,42 @@ export default function LocationsScreen({
               colors={[theme.colors.primary]}
             />
           }
-        >
-          {!!currentLocations.length &&
-            currentLocations.map((location) => (
-              <LocationCard
-                key={location.id}
-                location={location}
-                showChildrenButton={true}
+          ListEmptyComponent={
+            loadingGet ? (
+              <ActivityIndicator
+                style={styles.listLoading}
+                color={theme.colors.primary}
               />
-            ))}
-        </ScrollView>
+            ) : (
+              <View
+                style={[
+                  styles.emptyState,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {canView
+                    ? t('no_locations_available')
+                    : t('no_access_location')}
+                </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            loadingGet && currentLocations.length > 0 ? (
+              <ActivityIndicator
+                style={styles.listLoading}
+                color={theme.colors.primary}
+              />
+            ) : null
+          }
+        />
       )}
     </View>
   );

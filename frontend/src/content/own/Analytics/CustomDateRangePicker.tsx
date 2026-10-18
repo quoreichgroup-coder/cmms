@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import en from 'date-fns/locale/en-US';
 import useAuth from '../../../hooks/useAuth';
-import BusinessTwoToneIcon from '@mui/icons-material/BusinessTwoTone';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 
 interface OwnProps {
   start: Date;
@@ -28,6 +28,7 @@ interface OwnProps {
   setEnd: (date: Date) => void;
   companyId?: number;
   onCompanyChange?: (companyId: number | undefined) => void;
+  months?: number;
 }
 
 export default function ({
@@ -36,7 +37,8 @@ export default function ({
   setEnd,
   setStart,
   companyId,
-  onCompanyChange
+  onCompanyChange,
+  months = 2
 }: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const { user } = useAuth();
@@ -127,7 +129,7 @@ export default function ({
                   minWidth: 0
                 }}
                 variant={selectedName ? 'contained' : 'outlined'}
-                startIcon={<BusinessTwoToneIcon />}
+                startIcon={<BusinessOutlinedIcon />}
                 size={'large'}
               >
                 {selectedName ?? t('all_companies')}
@@ -171,11 +173,14 @@ export default function ({
           vertical: 'top',
           horizontal: 'left'
         }}
+        PaperProps={{
+          sx: { maxWidth: 'calc(100vw - 24px)', overflowX: 'auto' }
+        }}
       >
         <DateRange
           ranges={state}
           onChange={handleSelect}
-          months={2}
+          months={months}
           locale={en}
           direction="horizontal"
           rangeColors={[theme.palette.primary.main]}

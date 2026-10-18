@@ -21,6 +21,8 @@ import { PermissionEntity } from '../../../models/owns/role';
 import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { editPOPartQuantities } from '../../../slices/partQuantity';
+import { createPurchaseOrderWorkflow } from './createPurchaseOrderWorkflow';
+import PartQuantity from '../../../models/owns/partQuantity';
 
 function CreatePurchaseOrder() {
   const { t }: { t: any } = useTranslation();
@@ -39,8 +41,7 @@ function CreatePurchaseOrder() {
   const onMissingPartQuantities = () => {
     showSnackBar(t('select_one_part'), 'error');
   };
-  const onCreationFailure = (err) =>
-    showSnackBar(t('po_create_failure'), 'error');
+  const onCreationFailure = () => showSnackBar(t('po_create_failure'), 'error');
   const defaultFields: Array<IField> = [
     {
       name: 'purchaseOrderDetails',
@@ -263,20 +264,29 @@ function CreatePurchaseOrder() {
                       values,
                       'approveOnSubmit'
                     );
-                    return dispatch(addPurchaseOrder(values))
-                      .then((id: number) => {
-                        dispatch(
-                          editPOPartQuantities(id, values.partQuantities)
-                        )
-                          .then(() => {
-                            if (values.approveOnSubmit) {
-                              dispatch(respondPurchaseOrder(id, true));
-                            }
-                          })
-                          .then(onCreationSuccess)
-                          .catch(onCreationFailure);
-                      })
-                      .catch(onCreationFailure);
+                    let createdPurchaseOrderId: number | null = null;
+                    try {
+                      await createPurchaseOrderWorkflow<PartQuantity>(
+                        values,
+                        async () => dispatch(addPurchaseOrder(values)),
+                        (id, partQuantities) =>
+                          dispatch(editPOPartQuantities(id, partQuantities)),
+                        (id) => dispatch(respondPurchaseOrder(id, true)),
+                        (id) => {
+                          createdPurchaseOrderId = id;
+                        }
+                      );
+                      onCreationSuccess();
+                    } catch (err) {
+                      if (createdPurchaseOrderId !== null) {
+                        showSnackBar(t('po_create_partial_failure'), 'error');
+                        navigate(
+                          `/app/purchase-orders/${createdPurchaseOrderId}`
+                        );
+                      } else {
+                        onCreationFailure();
+                      }
+                    }
                   }}
                 />
               </Card>

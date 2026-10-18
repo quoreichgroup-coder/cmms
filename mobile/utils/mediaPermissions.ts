@@ -18,12 +18,14 @@ interface PermissionFlowOptions {
   permissionNameKey: 'camera' | 'media_library';
   requestPermission: () => Promise<PermissionResponseLike>;
   getPermission: () => Promise<PermissionResponseLike>;
+  presentAlerts?: boolean;
 }
 
 export const ensurePermission = async ({
   permissionNameKey,
   requestPermission,
-  getPermission
+  getPermission,
+  presentAlerts = true
 }: PermissionFlowOptions): Promise<boolean> => {
   const permissionName = i18n.t(permissionNameKey);
 
@@ -35,6 +37,10 @@ export const ensurePermission = async ({
     }
 
     const latest = await getPermission();
+
+    if (!presentAlerts) {
+      return false;
+    }
 
     if (!latest.canAskAgain) {
       Alert.alert(
@@ -59,10 +65,12 @@ export const ensurePermission = async ({
     return false;
   } catch (error) {
     console.error(`Unable to request ${permissionName} permission`, error);
-    Alert.alert(
-      i18n.t('error'),
-      i18n.t('unable_to_request_permission', { permission: permissionName })
-    );
+    if (presentAlerts) {
+      Alert.alert(
+        i18n.t('error'),
+        i18n.t('unable_to_request_permission', { permission: permissionName })
+      );
+    }
     return false;
   }
 };
@@ -116,6 +124,8 @@ export const ensureScannerCameraPermission = async (
     flow,
     permissionNameKey: 'camera',
     requestPermission: Camera.requestCameraPermissionsAsync,
-    getPermission: Camera.getCameraPermissionsAsync
+    getPermission: Camera.getCameraPermissionsAsync,
+    // SelectBarcodeModal owns the scanner-specific recovery UI.
+    presentAlerts: false
   });
 };

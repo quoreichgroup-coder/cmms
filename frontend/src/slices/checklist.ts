@@ -116,6 +116,7 @@ export const deleteChecklist =
     if (success) {
       dispatch(slice.actions.deleteChecklist({ id }));
     }
+    return success;
   };
 
 export default slice;

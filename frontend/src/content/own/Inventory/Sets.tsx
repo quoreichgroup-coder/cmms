@@ -68,10 +68,21 @@ const Sets = ({ setAction }: PropsType) => {
     setOpenUpdateModal(true);
   };
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteMultiParts(id)).then(onDeleteSuccess).catch(onDeleteFailure);
+  const handleDelete = async (id: number) => {
     setOpenDelete(false);
+    try {
+      const deleted = await dispatch(deleteMultiParts(id));
+      if (!deleted) {
+        onDeleteFailure(
+          new Error('Set deletion was not confirmed by the server')
+        );
+        return;
+      }
+      handleCloseDetails();
+      onDeleteSuccess();
+    } catch (error) {
+      onDeleteFailure(error);
+    }
   };
   const formatValues = (values) => {
     const newValues = { ...values };

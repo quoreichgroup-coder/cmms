@@ -2,47 +2,44 @@ import { useContext } from 'react';
 import Scrollbar from 'src/components/Scrollbar';
 import { SidebarContext } from 'src/contexts/SidebarContext';
 
-import {
-  alpha,
-  Box,
-  Button,
-  darken,
-  Divider,
-  Drawer,
-  lighten,
-  Link,
-  Stack,
-  styled,
-  useTheme
-} from '@mui/material';
+import { Box, Drawer, styled, useTheme } from '@mui/material';
 import SidebarMenu from './SidebarMenu';
 import SidebarFooter from './SidebarFooter';
 import Logo from 'src/components/LogoSign';
-import { isCloudVersion } from '../../../config';
-import useAuth from '../../../hooks/useAuth';
-import dayjs from 'dayjs';
+
+const COLLAPSED_SIDEBAR_WIDTH = '72px';
 
 const SidebarWrapper = styled(Box)(
   ({ theme }) => `
         width: ${theme.sidebar.width};
         min-width: ${theme.sidebar.width};
-        color: ${theme.colors.alpha.trueWhite[70]};
+        color: ${theme.sidebar.textColor};
         position: relative;
         z-index: 7;
         height: 100%;
-        padding-bottom: 61px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: ${theme.sidebar.background};
 `
 );
 
 function Sidebar() {
-  const { sidebarToggle, toggleSidebar } = useContext(SidebarContext);
-  const closeSidebar = () => toggleSidebar();
+  const { sidebarToggle, closeSidebar, desktopSidebarCollapsed } =
+    useContext(SidebarContext);
   const theme = useTheme();
 
   return (
     <>
       <SidebarWrapper
+        id="qpm-primary-sidebar"
         sx={{
+          width: desktopSidebarCollapsed
+            ? COLLAPSED_SIDEBAR_WIDTH
+            : theme.sidebar.width,
+          minWidth: desktopSidebarCollapsed
+            ? COLLAPSED_SIDEBAR_WIDTH
+            : theme.sidebar.width,
           display: {
             xs: 'none',
             lg: 'inline-block'
@@ -50,16 +47,15 @@ function Sidebar() {
           position: 'fixed',
           left: 0,
           top: 0,
-          background:
-            theme.palette.mode === 'dark'
-              ? alpha(lighten(theme.header.background, 0.1), 0.5)
-              : darken(theme.colors.alpha.black[100], 0.5),
-          boxShadow:
-            theme.palette.mode === 'dark' ? theme.sidebar.boxShadow : 'none'
+          borderRight: `1px solid ${theme.sidebar.dividerBg}`,
+          boxShadow: 'none',
+          transition: theme.transitions.create(['width', 'min-width'], {
+            duration: theme.transitions.duration.shortest
+          })
         }}
       >
-        <Scrollbar>
-          <Box mt={3}>
+        <Scrollbar style={{ flex: 1, minHeight: 0 }}>
+          <Box mt={2.5}>
             <Box
               sx={{
                 display: 'flex',
@@ -72,20 +68,8 @@ function Sidebar() {
               </Box>
             </Box>
           </Box>
-          <Divider
-            sx={{
-              mt: theme.spacing(1),
-              mx: theme.spacing(2),
-              background: theme.colors.alpha.trueWhite[10]
-            }}
-          />
           <SidebarMenu />
         </Scrollbar>
-        <Divider
-          sx={{
-            background: theme.colors.alpha.trueWhite[10]
-          }}
-        />
         <SidebarFooter />
       </SidebarWrapper>
       <Drawer
@@ -98,16 +82,9 @@ function Sidebar() {
         variant="temporary"
         elevation={9}
       >
-        <SidebarWrapper
-          sx={{
-            background:
-              theme.palette.mode === 'dark'
-                ? theme.colors.alpha.white[100]
-                : darken(theme.colors.alpha.black[100], 0.5)
-          }}
-        >
-          <Scrollbar>
-            <Box mt={3}>
+        <SidebarWrapper>
+          <Scrollbar style={{ flex: 1, minHeight: 0 }}>
+            <Box mt={2.5}>
               <Box
                 sx={{
                   display: 'flex',
@@ -120,14 +97,7 @@ function Sidebar() {
                 </Box>
               </Box>
             </Box>
-            <Divider
-              sx={{
-                mt: theme.spacing(1),
-                mx: theme.spacing(2),
-                background: theme.colors.alpha.trueWhite[10]
-              }}
-            />
-            <SidebarMenu />
+            <SidebarMenu forceExpanded />
           </Scrollbar>
           <SidebarFooter />
         </SidebarWrapper>

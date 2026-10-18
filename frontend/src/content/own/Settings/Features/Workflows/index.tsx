@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SettingsLayout from '../../SettingsLayout';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { useContext, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../../../../store';
 import { CustomSnackBarContext } from '../../../../../contexts/CustomSnackBarContext';
@@ -60,7 +60,7 @@ import { VendorMiniDTO } from '../../../../../models/owns/vendor';
 import { TeamMiniDTO } from '../../../../../models/owns/team';
 import Category from '../../../../../models/owns/category';
 import DateTimePicker from '@mui/lab/DateTimePicker';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { useBrand } from '../../../../../hooks/useBrand';
 import { getErrorMessage } from '../../../../../utils/api';
 import DateRangePicker from '../../../components/form/DateRangePicker';
@@ -448,9 +448,16 @@ function Workflows() {
   const onDeleteFailure = (err) =>
     showSnackBar(t('workflow_delete_failure'), 'error');
 
-  const handleDelete = (id: number) => {
-    dispatch(deleteWorkflow(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteWorkflow(id));
+      setOpenDelete(false);
+      if (deleted) onDeleteSuccess();
+      else onDeleteFailure(new Error('Workflow deletion was not confirmed'));
+    } catch (err) {
+      setOpenDelete(false);
+      onDeleteFailure(err);
+    }
   };
   const handleConditionTypeChange = (
     value: WorkflowConditionType,
@@ -834,7 +841,7 @@ function Workflows() {
           </Box>
         </Box>
         <IconButton onClick={() => onRemoveCondition(index)}>
-          <DeleteTwoToneIcon color={'error'} />
+          <DeleteOutlinedIcon color={'error'} />
         </IconButton>
       </Stack>
     );
@@ -931,7 +938,7 @@ function Workflows() {
                   disabled={
                     !hasFeature(PlanFeature.WORKFLOW) && workflows.length > 0
                   }
-                  startIcon={<AddTwoToneIcon fontSize="small" />}
+                  startIcon={<AddOutlinedIcon fontSize="small" />}
                 >
                   {t('create_workflow')}
                 </Button>

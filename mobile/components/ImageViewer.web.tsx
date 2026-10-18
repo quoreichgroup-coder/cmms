@@ -10,6 +10,7 @@ import {
 import { Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { ImageViewerProps } from './ImageViewer.types';
+import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function ImageViewer({
   images,
@@ -28,8 +29,7 @@ export default function ImageViewer({
   const safeIndex = Math.min(Math.max(activeIndex, 0), images.length - 1);
   const goToPrevious = () =>
     setActiveIndex((index) => (index - 1 + images.length) % images.length);
-  const goToNext = () =>
-    setActiveIndex((index) => (index + 1) % images.length);
+  const goToNext = () => setActiveIndex((index) => (index + 1) % images.length);
 
   return (
     <Modal
@@ -66,7 +66,10 @@ export default function ImageViewer({
               current: safeIndex + 1,
               total: images.length
             })}
-            style={{ width: Math.min(width * 0.82, 1100), height: height * 0.82 }}
+            style={{
+              width: Math.min(width * 0.82, 1100),
+              height: height * 0.82
+            }}
           />
           {images.length > 1 && (
             <Pressable
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     top: 16,
     right: 18,
     zIndex: 1,
-    width: 48,
+    width: qpmLayoutTokens.touchTarget.minimum,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   navigationButton: {
-    width: 44,
+    width: 48,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,9 +1,4 @@
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet } from 'react-native';
 import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
@@ -11,15 +6,10 @@ import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getMetersMini } from '../../slices/meter';
-import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Searchbar,
-  Text
-} from 'react-native-paper';
+import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function SelectMetersModal({
   navigation,
@@ -107,106 +97,102 @@ export default function SelectMetersModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}
       />
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadMeters} />
-        }
+      {loadError && metersMini.length > 0 ? (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('meters_load_error')}
+          onRetry={() => void loadMeters()}
+        />
+      ) : null}
+      <FlatList
+        data={filteredMeters}
+        keyExtractor={(meter) => String(meter.id)}
+        refreshing={loading}
+        onRefresh={loadMeters}
         style={{
           flex: 1,
           backgroundColor: theme.colors.background
         }}
-      >
-        {loading && !metersMini.length ? (
-          <ActivityIndicator
-            animating
-            accessibilityLabel={t('loading')}
-            style={{ marginTop: 24 }}
-          />
-        ) : (
-          filteredMeters.map((meter) => (
-            <View
-              key={meter.id}
-              style={[styles.card, { backgroundColor: theme.colors.surface }]}
+        renderItem={({ item: meter }) => (
+          <View
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
+            <Pressable
+              onPress={() => {
+                toggle(meter.id);
+              }}
+              accessibilityRole={multiple ? 'checkbox' : 'button'}
+              accessibilityLabel={`${meter.name}, #${meter.id}`}
+              accessibilityState={
+                multiple
+                  ? { checked: selectedIds.includes(meter.id) }
+                  : undefined
+              }
+              style={styles.selectionTarget}
             >
-              <Pressable
-                onPress={() => {
-                  toggle(meter.id);
-                }}
-                accessibilityRole={multiple ? 'checkbox' : 'button'}
-                accessibilityLabel={`${meter.name}, #${meter.id}`}
-                accessibilityState={
-                  multiple
-                    ? { checked: selectedIds.includes(meter.id) }
-                    : undefined
-                }
-                style={styles.selectionTarget}
-              >
-                {multiple && (
-                  <SelectionIndicator
-                    checked={selectedIds.includes(meter.id)}
-                    color={theme.colors.primary}
-                    uncheckedColor={theme.colors.controlOutline}
-                  />
-                )}
-                <Avatar.Icon
-                  size={50}
-                  icon="gauge"
-                  style={{ backgroundColor: theme.colors.primaryContainer }}
+              {multiple && (
+                <SelectionIndicator
+                  checked={selectedIds.includes(meter.id)}
+                  color={theme.colors.primary}
+                  uncheckedColor={theme.colors.controlOutline}
                 />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="titleMedium" style={styles.cardTitle}>
-                        {meter.name}
-                      </Text>
-                      <Text
-                        variant={'bodySmall'}
-                        style={{ color: theme.colors.onSurfaceVariant }}
-                      >{`#${meter.id}`}</Text>
-                    </View>
+              )}
+              <Avatar.Icon
+                size={50}
+                icon="gauge"
+                style={{ backgroundColor: theme.colors.primaryContainer }}
+              />
+              <View style={{ flex: 1 }}>
+                <View style={styles.cardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="titleMedium" style={styles.cardTitle}>
+                      {meter.name}
+                    </Text>
+                    <Text
+                      variant={'bodySmall'}
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >{`#${meter.id}`}</Text>
                   </View>
                 </View>
-              </Pressable>
-            </View>
-          ))
-        )}
-        {loadError && (
-          <View style={styles.messageContainer}>
-            <Text
-              accessibilityRole="alert"
-              style={{ color: theme.colors.error, textAlign: 'center' }}
-            >
-              {t('an_error_occured')}
-            </Text>
-            <Button
-              mode="text"
-              onPress={loadMeters}
-              accessibilityLabel={t('retry')}
-              style={{ marginTop: 4 }}
-            >
-              {t('retry')}
-            </Button>
+              </View>
+            </Pressable>
           </View>
         )}
-        {!loading && !loadError && filteredMeters.length === 0 && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              textAlign: 'center',
-              marginTop: 24,
-              color: theme.colors.onSurfaceVariant
-            }}
-          >
-            {metersMini.length
-              ? t('no_results_found')
-              : t('no_meters_available')}
-          </Text>
-        )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading && !metersMini.length ? (
+            <ActivityIndicator
+              animating
+              accessibilityLabel={t('loading')}
+              style={{ marginTop: 24 }}
+            />
+          ) : loadError && !metersMini.length ? (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('meters_load_error')}
+              onRetry={() => void loadMeters()}
+            />
+          ) : !loading && !loadError && filteredMeters.length === 0 ? (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                textAlign: 'center',
+                marginTop: 24,
+                color: theme.colors.onSurfaceVariant
+              }}
+            >
+              {metersMini.length
+                ? t('no_results_found')
+                : t('no_meters_available')}
+            </Text>
+          ) : null
+        }
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 }
@@ -239,9 +225,5 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: 'bold',
     flexShrink: 1
-  },
-  messageContainer: {
-    alignItems: 'center',
-    padding: 20
   }
 });

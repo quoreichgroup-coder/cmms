@@ -39,6 +39,7 @@ import { addDays } from 'date-fns';
 import { shutdown } from '@intercom/messenger-js-sdk';
 import Clarity from '@microsoft/clarity';
 import { clarityId, IS_LOCALHOST } from '../config';
+import { logoutWithFallback } from '../utils/logoutWithFallback';
 
 interface AuthState {
   isInitialized: boolean;
@@ -679,11 +680,15 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     } catch (err) {
       console.error(err);
     }
-    await api.post('auth/logout', {});
-    setSession(null, null);
-    Sentry.setUser(null);
-    if (clarityId && !IS_LOCALHOST) Clarity.identify('');
-    dispatch({ type: 'LOGOUT' });
+    await logoutWithFallback(
+      () => api.post('auth/logout', {}),
+      () => {
+        setSession(null, null);
+        dispatch({ type: 'LOGOUT' });
+        Sentry.setUser(null);
+        if (clarityId && !IS_LOCALHOST) Clarity.identify('');
+      }
+    );
   };
 
   const register = async (

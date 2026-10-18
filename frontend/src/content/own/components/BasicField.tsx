@@ -1,6 +1,7 @@
 import { Grid, Stack, Typography, Link } from '@mui/material';
 import { getPriorityLabel } from '../../../utils/formatters';
 import { useTranslation } from 'react-i18next';
+import { getSafeHttpUrl } from '../../../utils/safeWindow';
 
 interface BasicFieldProps {
   label: string | number;
@@ -32,10 +33,9 @@ const BasicField: React.FC<BasicFieldProps> = ({
       return `/app/${type}s/${id}`;
     }
     if (isLink) {
-      const href = value.toString().startsWith('http')
-        ? value.toString()
-        : `https://${value}`;
-      return href;
+      return (
+        getSafeHttpUrl(value.toString(), { assumeHttps: true }) || undefined
+      );
     }
     return undefined;
   };
@@ -53,10 +53,7 @@ const BasicField: React.FC<BasicFieldProps> = ({
     const isExternal = isLink || (type === 'vendor' && id);
     return (
       <Grid item xs={12} lg={6}>
-        <Typography
-          variant="h6"
-          sx={{ color: (theme: any) => theme.colors.alpha.black[70] }}
-        >
+        <Typography variant="h6" sx={{ color: 'text.secondary' }}>
           {label}
         </Typography>
         {isExternal ? (
@@ -80,10 +77,7 @@ const BasicField: React.FC<BasicFieldProps> = ({
 
   return (
     <Grid item xs={12} lg={6}>
-      <Typography
-        variant="h6"
-        sx={{ color: (theme: any) => theme.colors.alpha.black[70] }}
-      >
+      <Typography variant="h6" sx={{ color: 'text.secondary' }}>
         {label}
       </Typography>
       <Typography variant="h6">{renderValue()}</Typography>

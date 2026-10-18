@@ -27,8 +27,8 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import ClearTwoToneIcon from '@mui/icons-material/ClearTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { Formik } from 'formik';
@@ -57,7 +57,7 @@ import {
   Draggable,
   DropResult
 } from 'react-beautiful-dnd';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 
 const IconButtonWrapper = styled(IconButton)(
   ({ theme }) => `
@@ -281,7 +281,7 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
                                   color="inherit"
                                   size="small"
                                 >
-                                  <EditTwoToneIcon fontSize="small" />
+                                  <EditOutlinedIcon fontSize="small" />
                                 </IconButtonWrapper>
                               )}
                               {hasViewPermission(PermissionEntity.SETTINGS) && (
@@ -299,7 +299,7 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
                                   color="inherit"
                                   size="small"
                                 >
-                                  <DeleteTwoToneIcon fontSize="small" />
+                                  <DeleteOutlinedIcon fontSize="small" />
                                 </IconButtonWrapper>
                               )}
                             </Box>

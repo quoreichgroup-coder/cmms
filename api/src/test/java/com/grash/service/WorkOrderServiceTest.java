@@ -1127,6 +1127,7 @@ class WorkOrderServiceTest {
 
         @Test
         void signatureWithoutLicense_throwsForbidden() {
+            stubBasic();
             when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
             dto.setSignature("sig");
             when(licenseService.hasEntitlement(LicenseEntitlement.SIGNATURE_CAPTURE)).thenReturn(false);
@@ -1370,11 +1371,6 @@ class WorkOrderServiceTest {
             wo.setCompletedOn(new Date());
             dto.setStatus(Status.COMPLETE);
             stubBasic();
-            when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
-                WorkOrder saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> workOrderService.changeStatus(dto, 1L, user, "ios"));
@@ -1490,6 +1486,20 @@ class WorkOrderServiceTest {
 
     @Nested
     class Reopen {
+        @Test
+        void reopen_workOrderFromAnotherCompanyReturnsNotFoundWithoutEvent() {
+            role.getEditOtherPermissions().add(PermissionEntity.REOPEN_WORK_ORDERS);
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.reopen(1L, "Correct completion data", user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+            verify(workOrderLifecycleEventRepository, never()).save(any());
+            verify(workOrderRepository, never()).saveAndFlush(any());
+        }
+
         @Test
         void reopen_requiresDedicatedRolePermission() {
             WorkOrder completed = buildWorkOrder(1L);
@@ -2143,8 +2153,6 @@ class WorkOrderServiceTest {
 
         @Test
         void workOrderFromAnotherCompany_isNotFound() {
-            WorkOrder foreignWorkOrder = buildWorkOrder(1L);
-            when(workOrderRepository.findById(1L)).thenReturn(Optional.of(foreignWorkOrder));
             when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId())).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
@@ -2152,7 +2160,6 @@ class WorkOrderServiceTest {
 
             assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
             verify(workOrderRepository).findByIdAndCompany_Id(1L, company.getId());
-            verify(workOrderRepository, never()).findById(1L);
         }
 
         @Test
@@ -2165,6 +2172,45 @@ class WorkOrderServiceTest {
             CustomException ex = assertThrows(CustomException.class,
                     () -> workOrderService.checkAccessToWorkOrderId(1L, user));
             assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+        }
+    }
+
+    @Nested
+    class WorkOrderLifecycleEvents {
+
+        @Test
+        void getLifecycleEvents_scopesLookupToAccessibleCompanyWorkOrder() {
+            WorkOrder accessibleWorkOrder = buildWorkOrder(1L);
+            accessibleWorkOrder.setCreatedBy(user.getId());
+            WorkOrderLifecycleEvent event = mock(WorkOrderLifecycleEvent.class);
+            List<WorkOrderLifecycleEvent> events = List.of(event);
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId()))
+                    .thenReturn(Optional.of(accessibleWorkOrder));
+            when(workOrderLifecycleEventRepository
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(1L, company.getId()))
+                    .thenReturn(events);
+
+            List<WorkOrderLifecycleEvent> result = workOrderService.getLifecycleEvents(1L, user);
+
+            assertEquals(events, result);
+            verify(workOrderLifecycleEventRepository)
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(1L, company.getId());
+        }
+
+        @Test
+        void getLifecycleEvents_deniesInaccessibleWorkOrderBeforeQueryingEvents() {
+            WorkOrder inaccessibleWorkOrder = buildWorkOrder(1L);
+            inaccessibleWorkOrder.setCreatedBy(99L);
+            role.getViewOtherPermissions().clear();
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId()))
+                    .thenReturn(Optional.of(inaccessibleWorkOrder));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.getLifecycleEvents(1L, user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+            verify(workOrderLifecycleEventRepository, never())
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(anyLong(), anyLong());
         }
     }
 
@@ -3203,6 +3249,8 @@ class WorkOrderServiceTest {
             dto.setStatus(Status.COMPLETE);
 
             when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(wo));
             when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
                 WorkOrder saved = inv.getArgument(0);
                 saved.setId(1L);
@@ -3239,6 +3287,8 @@ class WorkOrderServiceTest {
             dto.setStatus(Status.COMPLETE);
 
             when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId()))
+                    .thenReturn(Optional.of(wo));
             when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
                 WorkOrder saved = inv.getArgument(0);
                 saved.setId(1L);

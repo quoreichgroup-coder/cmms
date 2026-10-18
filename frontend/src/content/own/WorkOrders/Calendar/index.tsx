@@ -11,6 +11,7 @@ import {
   Button,
   Box,
   Card,
+  Chip,
   CircularProgress,
   Divider,
   Drawer,
@@ -20,6 +21,7 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
+import { alpha, lighten } from '@mui/material/styles';
 
 import type { View } from 'src/models/calendar';
 import { useDispatch, useSelector } from 'src/store';
@@ -41,11 +43,20 @@ import { FilterField } from 'src/models/owns/page';
 import { loadFilterFields, saveFilterFields } from 'src/utils/filter';
 import MoreFilters from '../Filters/MoreFilters';
 import _ from 'lodash';
+import {
+  getCalendarEventColor,
+  getCalendarEventStatus
+} from './eventPresentation';
+import { qpmWorkOrderStatusTokens } from 'src/theme/tokens';
 
 const FullCalendarWrapper = styled(Box)(
   ({ theme }) => `
-    padding: ${theme.spacing(3)};
+    padding: ${theme.spacing(1)};
     position: relative;
+
+    @media (min-width: ${theme.breakpoints.values.sm}px) {
+      padding: ${theme.spacing(2)};
+    }
    
     & .fc-license-message {
       display: none;
@@ -56,18 +67,22 @@ const FullCalendarWrapper = styled(Box)(
       }
       .fc-col-header-cell {
         padding: ${theme.spacing(1)};
-        background: ${theme.colors.alpha.black[5]};
+        background: ${theme.palette.background.default};
+        color: ${theme.palette.text.secondary};
+        font-weight: 600;
       }
 
       .fc-scrollgrid {
-        border: 2px solid ${theme.colors.alpha.black[10]};
+        border: 1px solid ${theme.palette.divider};
         border-right-width: 1px;
         border-bottom-width: 1px;
+        border-radius: ${theme.shape.borderRadius * 1.5}px;
+        overflow: hidden;
       }
 
       .fc-cell-shaded,
       .fc-list-day-cushion {
-        background: ${theme.colors.alpha.black[5]};
+        background: ${theme.palette.background.default};
       }
 
       .fc-list-event-graphic {
@@ -76,52 +91,78 @@ const FullCalendarWrapper = styled(Box)(
 
       .fc-theme-standard td, .fc-theme-standard th,
       .fc-col-header-cell {
-        border: 1px solid ${theme.colors.alpha.black[10]};
+        border: 1px solid ${theme.palette.divider};
       }
 
       .fc-event {
-        padding: ${theme.spacing(0.1)} ${theme.spacing(0.3)};
+        padding: ${theme.spacing(0.1)} ${theme.spacing(0.25)};
+        border: 0 !important;
+        background: transparent !important;
+        cursor: pointer;
       }
 
       .fc-list-day-side-text {
         font-weight: normal;
-        color: ${theme.colors.alpha.black[70]};
+        color: ${theme.palette.text.secondary};
       }
 
       .fc-list-event:hover td,
       td.fc-daygrid-day.fc-day-today {
-        background-color: ${theme.colors.primary.lighter};
+        background-color: ${theme.palette.action.hover};
       }
 
       td.fc-daygrid-day:hover,
       .fc-highlight {
-        background: ${theme.colors.alpha.black[10]};
+        background: ${theme.palette.action.hover};
       }
 
       .fc-daygrid-dot-event:hover, 
       .fc-daygrid-dot-event.fc-event-mirror {
-        background: ${theme.colors.primary.lighter};
+        background: ${theme.palette.action.hover};
       }
 
       .fc-daygrid-day-number {
         padding: ${theme.spacing(1)};
-        font-weight: bold;
+        font-weight: 600;
+        color: ${theme.palette.text.primary};
       }
 
       .fc-list-sticky .fc-list-day > * {
-        background: ${theme.colors.alpha.black[5]} !important;
+        background: ${theme.palette.background.default} !important;
       }
 
       .fc-cell-shaded, 
       .fc-list-day-cushion {
-        background: ${theme.colors.alpha.black[10]} !important;
-        color: ${theme.colors.alpha.black[70]} !important;
+        background: ${theme.palette.background.default} !important;
+        color: ${theme.palette.text.secondary} !important;
       }
 
       &.fc-theme-standard td, 
       &.fc-theme-standard th,
       &.fc-theme-standard .fc-list {
-        border-color: ${theme.colors.alpha.black[30]};
+        border-color: ${theme.palette.divider};
+      }
+
+      .fc-day-today {
+        background: ${theme.palette.action.selected} !important;
+      }
+
+      .fc-daygrid-day-frame {
+        transition: background-color 120ms ease;
+      }
+
+      .fc-daygrid-day:hover .fc-daygrid-day-frame {
+        background: ${theme.palette.action.hover};
+      }
+
+      .fc-timegrid-slot-label,
+      .fc-timegrid-axis-cushion {
+        color: ${theme.palette.text.secondary};
+        font-size: 0.75rem;
+      }
+
+      .fc-list-event:hover td {
+        background: ${theme.palette.action.hover};
       }
     }
 `
@@ -130,12 +171,18 @@ const FullCalendarWrapper = styled(Box)(
 interface Event {
   id: string;
   allDay: boolean;
-  color?: string;
+  color: string;
+  textColor: string;
   description: string;
   end: Date;
   start: Date;
   title: string;
-  extendedProps: { type: string };
+  extendedProps: {
+    type: string;
+    status?: string | null;
+    priority: Priority;
+    accentColor: string;
+  };
 }
 
 interface OwnProps {
@@ -179,7 +226,8 @@ function ApplicationsCalendar({
   eventsRefreshTrigger = 0
 }: OwnProps) {
   const theme = useTheme();
-  const { i18n } = useTranslation();
+  const isCompact = useMediaQuery(theme.breakpoints.down('sm'));
+  const { i18n, t } = useTranslation();
   const calendarRef = useRef<FullCalendar | null>(null);
   const dispatch = useDispatch();
   const { calendar } = useSelector((state) => state.workOrders);
@@ -223,19 +271,34 @@ function ApplicationsCalendar({
   const getEventFromWO = (
     eventPayload: CalendarEvent<WorkOrder | PreventiveMaintenance>
   ): Event => {
+    const status =
+      'status' in eventPayload.event ? eventPayload.event.status : undefined;
+    const color =
+      getCalendarEventColor({
+        status,
+        dueDate: eventPayload.event.dueDate
+      }) ??
+      getColor(eventPayload.event.priority) ??
+      theme.colors.primary.main;
+
     return {
       id: eventPayload.event.id.toString(),
       allDay: false,
-      color:
-        'status' in eventPayload.event &&
-        eventPayload.event.status === 'COMPLETE'
-          ? theme.colors.alpha.black[30]
-          : getColor(eventPayload.event.priority),
+      color: theme.palette.background.paper,
+      textColor: theme.palette.text.primary,
       description: eventPayload.event?.description,
       end: new Date(eventPayload.endDate),
       start: new Date(eventPayload.date),
       title: eventPayload.event.title,
-      extendedProps: { type: eventPayload.type }
+      extendedProps: {
+        type: eventPayload.type,
+        status: getCalendarEventStatus({
+          status,
+          dueDate: eventPayload.event.dueDate
+        }),
+        priority: eventPayload.event.priority,
+        accentColor: color
+      }
     };
   };
   const handleDateToday = (): void => {
@@ -302,6 +365,8 @@ function ApplicationsCalendar({
     <Grid item xs={12}>
       <Actions
         date={date}
+        rangeStart={visibleRange.start}
+        rangeEnd={visibleRange.end}
         onNext={handleDateNext}
         onPrevious={handleDatePrev}
         onToday={handleDateToday}
@@ -332,7 +397,7 @@ function ApplicationsCalendar({
                 )
               }
             >
-              Réessayer
+              {t('retry')}
             </Button>
           }
         >
@@ -371,8 +436,76 @@ function ApplicationsCalendar({
           events={calendar.events.map((eventPayload) =>
             getEventFromWO(eventPayload)
           )}
+          eventContent={(arg) => {
+            const status = arg.event.extendedProps.status;
+            const statusToken = status
+              ? qpmWorkOrderStatusTokens[status] ??
+                qpmWorkOrderStatusTokens.DEFAULT
+              : null;
+            const accentColor = arg.event.extendedProps.accentColor;
+            return (
+              <Box
+                sx={{
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  px: 0.75,
+                  py: 0.5,
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderLeft: '3px solid',
+                  borderLeftColor: accentColor,
+                  borderRadius: 1.25,
+                  boxShadow: 1
+                }}
+              >
+                {status && (
+                  <Chip
+                    size="small"
+                    label={t(status === 'OVERDUE' ? 'overdue' : status)}
+                    sx={{
+                      display: 'flex',
+                      width: 'fit-content',
+                      maxWidth: '100%',
+                      height: 20,
+                      mb: 0.5,
+                      color:
+                        theme.palette.mode === 'dark'
+                          ? lighten(statusToken?.foreground ?? '#475467', 0.58)
+                          : statusToken?.foreground,
+                      bgcolor: alpha(
+                        statusToken?.foreground ?? '#475467',
+                        0.16
+                      ),
+                      '& .MuiChip-label': {
+                        px: 0.75,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        fontSize: 10,
+                        fontWeight: 700
+                      }
+                    }}
+                  />
+                )}
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    color: 'text.primary',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    lineHeight: 1.35,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {arg.event.title}
+                </Box>
+              </Box>
+            );
+          }}
           headerToolbar={false}
-          height={660}
+          height={isCompact ? 'auto' : 660}
           ref={calendarRef}
           rerenderDelay={10}
           weekends
@@ -389,7 +522,7 @@ function ApplicationsCalendar({
         open={openFilterDrawer}
         onClose={handleCloseFilterDrawer}
         PaperProps={{
-          sx: { width: '30%' }
+          sx: { width: { xs: '100vw', sm: 360, md: 420 }, maxWidth: '100vw' }
         }}
       >
         <MoreFilters

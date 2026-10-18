@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../../../store';
 import { getAssetsMini, resetAssetsHierarchy } from '../../../../slices/asset';
 import { AssetMiniDTO } from '../../../../models/owns/asset';
-import ReplayTwoToneIcon from '@mui/icons-material/ReplayTwoTone';
+import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
 import NoRowsMessageWrapper from '../NoRowsMessageWrapper';
 import { usePrevious } from '../../../../hooks/usePrevious';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -278,7 +278,7 @@ const SelectAssetModal: React.FC<SelectAssetModalProps> = ({
           color="primary"
           size="small"
         >
-          <ReplayTwoToneIcon />
+          <ReplayOutlinedIcon />
         </IconButton>
       </DialogTitle>
 

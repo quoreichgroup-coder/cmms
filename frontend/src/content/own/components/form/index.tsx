@@ -9,6 +9,8 @@ import {
   useTheme
 } from '@mui/material';
 import { Formik, FormikProps } from 'formik';
+import { useFormikContext } from 'formik';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import FormikErrorFocus from 'formik-error-focus';
 import * as Yup from 'yup';
@@ -37,8 +39,13 @@ interface PropsType {
   isLoading?: boolean;
   isButtonEnabled?: (values: IHash<any>, ...props: any[]) => boolean;
   enableReinitialize?: boolean;
+  stickyActions?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
   nextToButton?: React.ReactNode;
-  renderValues?: (values: IHash<any>, setFieldValue: (field: string, value: any) => void) => React.ReactNode;
+  renderValues?: (
+    values: IHash<any>,
+    setFieldValue: (field: string, value: any) => void
+  ) => React.ReactNode;
 }
 
 const flattenFormikErrors = (
@@ -59,6 +66,20 @@ const flattenFormikErrors = (
     );
   }
   return [];
+};
+
+const FormikDirtyObserver = ({
+  onDirtyChange
+}: {
+  onDirtyChange?: (dirty: boolean) => void;
+}) => {
+  const { dirty } = useFormikContext();
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  return null;
 };
 
 export default (props: PropsType) => {
@@ -153,230 +174,285 @@ export default (props: PropsType) => {
         }}
       >
         {(formik) => (
-          <Grid container spacing={2}>
-            {filterRelatedFields(props.fields, formik).map((field, index) => {
-              return (
-                <Grid
-                  item
-                  xs={12}
-                  lg={field.midWidth ? 6 : 12}
-                  key={field.name}
-                >
-                  {field.type === 'select' ? (
-                    <CustomSelect field={field} handleChange={handleChange} />
-                  ) : field.type === 'checkbox' ? (
-                    <CheckBoxForm
-                      label={field.label}
-                      onChange={(e) => {
-                        handleChange(formik, field.name, e.target.checked);
-                      }}
-                      checked={formik.values[field.name]}
-                    />
-                  ) : field.type === 'groupCheckbox' ? (
-                    <CheckBoxForm
-                      label={field.label}
-                      type="groupCheckbox"
-                      listCheckbox={field.items}
-                      key={field.name}
-                    />
-                  ) : field.type === 'switch' ? (
-                    <CustomSwitch
-                      title={field.label}
-                      description={field.helperText}
-                      name={field.name}
-                      handleChange={formik.handleChange}
-                      checked={formik.values[field.name]}
-                    />
-                  ) : field.type === 'titleGroupField' ? (
-                    <Typography variant="h3" sx={{ pb: 1 }}>
-                      {t(`${field.label}`)}
-                    </Typography>
-                  ) : field.type === 'file' ? (
-                    <Box>
-                      <FileUpload
-                        multiple={field.multiple}
-                        title={field.label}
-                        type={field.fileType || 'file'}
-                        description={t('upload')}
-                        files={
-                          Array.isArray(formik.values[field.name])
-                            ? formik.values[field.name]
-                            : formik.values[field.name]
-                            ? [formik.values[field.name]]
-                            : []
-                        }
-                        onDrop={(files) => {
-                          formik.setFieldValue(field.name, files);
-                        }}
-                        error={formik.errors[field.name] || field.error}
-                      />
-                    </Box>
-                  ) : field.type === 'date' ? (
-                    <Box>
-                      <Box pb={1}>
-                        <b>{field.label}:</b>
-                      </Box>
-                      <DateTimePicker
-                        value={formik.values[field.name] ?? null}
-                        onChange={(newValue) => {
-                          handleChange(formik, field.name, newValue);
-                        }}
-                        inputFormat={
-                          generalPreferences.dateFormat === 'MMDDYY'
-                            ? 'MM/dd/yyyy HH:mm'
-                            : 'dd/MM/yyyy HH:mm'
-                        }
-                        ampm={false}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            fullWidth
-                            placeholder={t('select_date')}
-                            required={field?.required}
-                            error={!!formik.errors[field.name] || field.error}
-                            helperText={
-                              typeof formik.errors[field.name] === 'string'
-                                ? (formik.errors[field.name] as string)
-                                : ''
+          <Box component="form" noValidate onSubmit={formik.handleSubmit}>
+            <FormikDirtyObserver onDirtyChange={props.onDirtyChange} />
+            <Grid container spacing={2}>
+              {filterRelatedFields(props.fields, formik).map((field, index) => {
+                const needsContainerFocus = [
+                  'file',
+                  'coordinates',
+                  'partQuantity',
+                  'signature',
+                  'groupCheckbox'
+                ].includes(field.type);
+                return (
+                  <Grid
+                    item
+                    xs={12}
+                    lg={field.midWidth ? 6 : 12}
+                    key={field.name}
+                    data-error-key={
+                      needsContainerFocus ? field.name : undefined
+                    }
+                    tabIndex={needsContainerFocus ? -1 : undefined}
+                    sx={
+                      needsContainerFocus
+                        ? {
+                            '&:focus': {
+                              outline: `2px solid ${theme.palette.primary.main}`,
+                              outlineOffset: 2,
+                              borderRadius: 1
                             }
-                          />
-                        )}
-                      />
-                    </Box>
-                  ) : field.type === 'dateRange' ? (
-                    <Box>
-                      <Box pb={1}>
-                        <b>{field.label}:</b>
-                      </Box>
-                      <DateRangePicker
-                        value={formik.values[field.name]}
-                        onChange={(range) => {
-                          handleChange(formik, field.name, range);
+                          }
+                        : undefined
+                    }
+                  >
+                    {field.type === 'select' ? (
+                      <CustomSelect field={field} handleChange={handleChange} />
+                    ) : field.type === 'checkbox' ? (
+                      <CheckBoxForm
+                        label={field.label}
+                        name={field.name}
+                        onChange={(e) => {
+                          handleChange(formik, field.name, e.target.checked);
                         }}
-                        fullWidth
-                        placeholder={t('select_date_range')}
-                        required={field?.required}
-                        error={!!formik.errors[field.name] || field.error}
-                        helperText={
-                          typeof formik.errors[field.name] === 'string'
-                            ? (formik.errors[field.name] as string)
-                            : ''
-                        }
+                        checked={formik.values[field.name]}
                       />
-                    </Box>
-                  ) : field.type === 'coordinates' ? (
-                    <SelectMapCoordinates
-                      selected={formik.values[field.name]}
-                      onChange={(coordinates) => {
-                        handleChange(formik, field.name, coordinates);
-                      }}
-                    />
-                  ) : field.type === 'partQuantity' ? (
-                    <SelectPartQuantities
-                      selected={formik.values[field.name] ?? []}
-                      onChange={(newPartQuantities) => {
-                        handleChange(formik, field.name, newPartQuantities);
-                      }}
-                    />
-                  ) : field.type === 'signature' ? (
-                    <SignaturePad
-                      label={field.label}
-                      value={formik.values[field.name]}
-                      onChange={(signature) => {
-                        formik.setFieldValue(field.name, signature);
-                      }}
-                    />
-                  ) : (
-                    <Field
-                      key={index}
-                      {...field}
-                      isDisabled={formik.isSubmitting}
-                      type={field.type}
-                      label={field.label}
-                      placeholder={field.placeholder}
-                      value={formik.values[field.name]}
-                      onBlur={formik.handleBlur}
-                      // onChange={formik.handleChange}
-                      onChange={(e) => handleChange(formik, field.name, e)}
-                      onKeyDown={handleKeyDown(formik, field.multiple)}
-                      error={!!formik.errors[field.name] || field.error}
-                      errorMessage={formik.errors[field.name]}
-                      fullWidth={field.fullWidth}
-                    />
-                  )}
+                    ) : field.type === 'groupCheckbox' ? (
+                      <CheckBoxForm
+                        label={field.label}
+                        type="groupCheckbox"
+                        listCheckbox={field.items}
+                        key={field.name}
+                      />
+                    ) : field.type === 'switch' ? (
+                      <CustomSwitch
+                        title={field.label}
+                        description={field.helperText}
+                        name={field.name}
+                        handleChange={formik.handleChange}
+                        checked={formik.values[field.name]}
+                      />
+                    ) : field.type === 'titleGroupField' ? (
+                      <Typography variant="h3" sx={{ pb: 1 }}>
+                        {t(`${field.label}`)}
+                      </Typography>
+                    ) : field.type === 'file' ? (
+                      <Box>
+                        <FileUpload
+                          multiple={field.multiple}
+                          title={field.label}
+                          type={field.fileType || 'file'}
+                          description={t('upload')}
+                          files={
+                            Array.isArray(formik.values[field.name])
+                              ? formik.values[field.name]
+                              : formik.values[field.name]
+                              ? [formik.values[field.name]]
+                              : []
+                          }
+                          onDrop={(files) => {
+                            formik.setFieldValue(field.name, files);
+                          }}
+                          error={formik.errors[field.name] || field.error}
+                        />
+                      </Box>
+                    ) : field.type === 'date' ? (
+                      <Box>
+                        <Box pb={1}>
+                          <b>{field.label}:</b>
+                        </Box>
+                        <DateTimePicker
+                          value={formik.values[field.name] ?? null}
+                          onChange={(newValue) => {
+                            handleChange(formik, field.name, newValue);
+                          }}
+                          inputFormat={
+                            generalPreferences.dateFormat === 'MMDDYY'
+                              ? 'MM/dd/yyyy HH:mm'
+                              : 'dd/MM/yyyy HH:mm'
+                          }
+                          ampm={false}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              name={field.name}
+                              fullWidth
+                              placeholder={t('select_date')}
+                              required={field?.required}
+                              error={!!formik.errors[field.name] || field.error}
+                              helperText={
+                                typeof formik.errors[field.name] === 'string'
+                                  ? (formik.errors[field.name] as string)
+                                  : ''
+                              }
+                            />
+                          )}
+                        />
+                      </Box>
+                    ) : field.type === 'dateRange' ? (
+                      <Box>
+                        <Box pb={1}>
+                          <b>{field.label}:</b>
+                        </Box>
+                        <DateRangePicker
+                          value={formik.values[field.name]}
+                          name={field.name}
+                          onChange={(range) => {
+                            handleChange(formik, field.name, range);
+                          }}
+                          fullWidth
+                          placeholder={t('select_date_range')}
+                          required={field?.required}
+                          error={!!formik.errors[field.name] || field.error}
+                          helperText={
+                            typeof formik.errors[field.name] === 'string'
+                              ? (formik.errors[field.name] as string)
+                              : ''
+                          }
+                        />
+                      </Box>
+                    ) : field.type === 'coordinates' ? (
+                      <SelectMapCoordinates
+                        selected={formik.values[field.name]}
+                        onChange={(coordinates) => {
+                          handleChange(formik, field.name, coordinates);
+                        }}
+                      />
+                    ) : field.type === 'partQuantity' ? (
+                      <SelectPartQuantities
+                        selected={formik.values[field.name] ?? []}
+                        onChange={(newPartQuantities) => {
+                          handleChange(formik, field.name, newPartQuantities);
+                        }}
+                      />
+                    ) : field.type === 'signature' ? (
+                      <SignaturePad
+                        label={field.label}
+                        value={formik.values[field.name]}
+                        onChange={(signature) => {
+                          formik.setFieldValue(field.name, signature);
+                        }}
+                      />
+                    ) : (
+                      <Field
+                        key={index}
+                        {...field}
+                        isDisabled={formik.isSubmitting}
+                        type={field.type}
+                        label={field.label}
+                        placeholder={field.placeholder}
+                        value={formik.values[field.name]}
+                        onBlur={formik.handleBlur}
+                        // onChange={formik.handleChange}
+                        onChange={(e) => handleChange(formik, field.name, e)}
+                        onKeyDown={handleKeyDown(formik, field.multiple)}
+                        error={!!formik.errors[field.name] || field.error}
+                        errorMessage={formik.errors[field.name]}
+                        fullWidth={field.fullWidth}
+                      />
+                    )}
+                  </Grid>
+                );
+              })}
+
+              {props.renderValues && (
+                <Grid item xs={12}>
+                  {props.renderValues(formik.values, formik.setFieldValue)}
                 </Grid>
-              );
-            })}
+              )}
 
-            {props.renderValues && (
-              <Grid item xs={12}>
-                {props.renderValues(formik.values, formik.setFieldValue)}
-              </Grid>
-            )}
+              {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && (
+                <Grid item xs={12}>
+                  <Alert severity="error">
+                    <Typography>
+                      {t('form_validation_error_summary')}
+                    </Typography>
+                    <Box component="ul" sx={{ mb: 0, pl: 2 }}>
+                      {flattenFormikErrors(formik.errors).map(
+                        ({ path, message }) => {
+                          const fieldName = path.split(/[.[\]]/)[0];
+                          const field = props.fields.find(
+                            (item) => item.name === fieldName
+                          );
+                          const label = field?.label
+                            ? t(field.label)
+                            : fieldName;
 
-            {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && (
-              <Grid item xs={12}>
-                <Alert severity="error">
-                  <Typography>{t('form_validation_error_summary')}</Typography>
-                  <Box component="ul" sx={{ mb: 0, pl: 2 }}>
-                    {flattenFormikErrors(formik.errors).map(({ path, message }) => {
-                      const fieldName = path.split(/[.[\]]/)[0];
-                      const field = props.fields.find(
-                        (item) => item.name === fieldName
-                      );
-                      const label = field?.label ? t(field.label) : fieldName;
+                          return (
+                            <li key={path}>
+                              <strong>{label || path}:</strong> {message}
+                            </li>
+                          );
+                        }
+                      )}
+                    </Box>
+                  </Alert>
+                </Grid>
+              )}
 
-                      return (
-                        <li key={path}>
-                          <strong>{label || path}:</strong> {message}
-                        </li>
-                      );
-                    })}
-                  </Box>
-                </Alert>
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <Button
-                type="submit"
-                sx={{
-                  mt: { xs: 2, sm: 0 }
-                }}
-                onClick={() => formik.handleSubmit()}
-                variant="contained"
-                startIcon={
-                  formik.isSubmitting ? <CircularProgress size="1rem" /> : null
+              <Grid
+                item
+                xs={12}
+                sx={
+                  props.stickyActions
+                    ? {
+                        [theme.breakpoints.down('sm')]: {
+                          position: 'sticky',
+                          bottom: 0,
+                          zIndex: 1,
+                          backgroundColor: theme.palette.background.paper,
+                          borderTop: `1px solid ${theme.palette.divider}`,
+                          py: 1.5,
+                          '& .MuiButton-root': { minHeight: 48 }
+                        }
+                      }
+                    : undefined
                 }
-                disabled={Boolean(formik.errors.submit) || formik.isSubmitting}
               >
-                {t(props.submitText)}
-              </Button>
-
-              {props.onCanceled && (
                 <Button
+                  type="submit"
                   sx={{
                     mt: { xs: 2, sm: 0 }
                   }}
-                  onClick={() => props.onCanceled}
-                  variant="outlined"
-                  disabled
+                  variant="contained"
+                  startIcon={
+                    formik.isSubmitting ? (
+                      <CircularProgress size="1rem" />
+                    ) : null
+                  }
+                  disabled={
+                    Boolean(formik.errors.submit) || formik.isSubmitting
+                  }
                 >
                   {t(props.submitText)}
                 </Button>
-              )}
-              {props.nextToButton}
+
+                {props.onCanceled && (
+                  <Button
+                    sx={{
+                      mt: { xs: 2, sm: 0 }
+                    }}
+                    onClick={() => props.onCanceled}
+                    variant="outlined"
+                    disabled
+                  >
+                    {t(props.submitText)}
+                  </Button>
+                )}
+                {props.nextToButton}
+              </Grid>
+              <FormikErrorFocus
+                // See scroll-to-element for configuration options: https://www.npmjs.com/package/scroll-to-element
+                offset={0}
+                align={'bottom'}
+                focusDelay={200}
+                ease={'linear'}
+                duration={500}
+                formik={formik}
+              />
             </Grid>
-            <FormikErrorFocus
-              // See scroll-to-element for configuration options: https://www.npmjs.com/package/scroll-to-element
-              offset={0}
-              align={'bottom'}
-              focusDelay={200}
-              ease={'linear'}
-              duration={500}
-              formik={formik}
-            />
-          </Grid>
+          </Box>
         )}
       </Formik>
     </>

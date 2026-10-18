@@ -1,6 +1,6 @@
 import {
+  FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   TouchableOpacity
 } from 'react-native';
@@ -8,10 +8,18 @@ import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getCategories, addCategory } from '../../slices/category';
-import { Avatar, Button, Divider, Text, TextInput } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Avatar,
+  Button,
+  Divider,
+  Searchbar,
+  Text,
+  TextInput
+} from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
 
@@ -29,6 +37,9 @@ export default function SelectCategoriesModal({
   const [showCreateInput, setShowCreateInput] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createError, setCreateError] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const currentCategories = categories[type] ?? [];
   const selectedCategories = React.useMemo(
     () =>
@@ -62,9 +73,29 @@ export default function SelectCategoriesModal({
       });
   }, [selectedCategories, navigation, onChange, t]);
 
+  const loadCategories = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await dispatch(getCategories(type));
+    } catch (_error) {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, type]);
+
   useEffect(() => {
-    dispatch(getCategories(type));
-  }, []);
+    void loadCategories();
+  }, [loadCategories]);
+
+  const filteredCategories = React.useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+    if (!normalizedSearch) return currentCategories;
+    return currentCategories.filter((category) =>
+      category.name.toLocaleLowerCase().includes(normalizedSearch)
+    );
+  }, [currentCategories, searchQuery]);
 
   const toggle = (id: number) => {
     if (multiple) {
@@ -104,16 +135,35 @@ export default function SelectCategoriesModal({
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        // refreshControl={
-        //   <RefreshControl refreshing={loadingGet} onRefresh={() => dispatch(getCategories())} />}
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background
-        }}
-      >
-        {currentCategories.map((category) => (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Searchbar
+        placeholder={t('search')}
+        accessibilityLabel={t('search')}
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={{ backgroundColor: theme.colors.background }}
+      />
+      <FlatList
+        data={filteredCategories}
+        keyExtractor={(category) => String(category.id)}
+        refreshing={loading}
+        onRefresh={loadCategories}
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+        ListHeaderComponent={
+          loadError && currentCategories.length > 0 ? (
+            <View style={styles.loadErrorBanner} accessibilityRole="alert">
+              <Text style={{ color: theme.colors.error, flex: 1 }}>
+                {t('category_load_failed')}
+              </Text>
+              <Button compact onPress={loadCategories}>
+                {t('retry')}
+              </Button>
+            </View>
+          ) : null
+        }
+        renderItem={({ item: category }) => (
           <TouchableOpacity
             onPress={() => {
               toggle(category.id);
@@ -159,64 +209,93 @@ export default function SelectCategoriesModal({
               </View>
             </View>
           </TouchableOpacity>
-        ))}
-        <Divider />
-        {showCreateInput ? (
-          <View style={styles.createContainer}>
-            <TextInput
-              mode="outlined"
-              placeholder={t('name')}
-              value={newCategoryName}
-              onChangeText={(value) => {
-                setNewCategoryName(value);
-                setCreateError(false);
-              }}
-              style={styles.createInput}
-              disabled={isCreating}
-              error={createError}
-              autoFocus
-            />
-            {createError && (
-              <Text
-                accessibilityRole="alert"
-                style={{ color: theme.colors.error, marginBottom: 12 }}
-              >
-                {t('category_create_failed')}
-              </Text>
-            )}
-            <View style={styles.createActions}>
-              <Button
-                mode="text"
-                onPress={() => {
-                  setNewCategoryName('');
-                  setCreateError(false);
-                  setShowCreateInput(false);
-                }}
-                disabled={isCreating}
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                mode="contained"
-                onPress={handleCreateCategory}
-                loading={isCreating}
-                disabled={isCreating || !newCategoryName.trim()}
-              >
-                {t('save')}
-              </Button>
-            </View>
-          </View>
-        ) : (
-          <Button
-            icon={'plus-circle'}
-            style={{ margin: 20 }}
-            mode={'contained'}
-            onPress={() => setShowCreateInput(true)}
-          >
-            {t('create_category')}
-          </Button>
         )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator
+              style={styles.emptyState}
+              color={theme.colors.primary}
+              accessibilityLabel={t('loading')}
+            />
+          ) : loadError ? (
+            <View style={styles.emptyState} accessibilityRole="alert">
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('category_load_failed')}
+              </Text>
+              <Button onPress={loadCategories}>{t('retry')}</Button>
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.emptyState,
+                { color: theme.colors.onSurfaceVariant }
+              ]}
+            >
+              {searchQuery ? t('no_results') : t('no_categories')}
+            </Text>
+          )
+        }
+        ListFooterComponent={
+          <>
+            <Divider />
+            {showCreateInput ? (
+              <View style={styles.createContainer}>
+                <TextInput
+                  mode="outlined"
+                  placeholder={t('name')}
+                  value={newCategoryName}
+                  onChangeText={(value) => {
+                    setNewCategoryName(value);
+                    setCreateError(false);
+                  }}
+                  style={styles.createInput}
+                  disabled={isCreating}
+                  error={createError}
+                  autoFocus
+                />
+                {createError && (
+                  <Text
+                    accessibilityRole="alert"
+                    style={{ color: theme.colors.error, marginBottom: 12 }}
+                  >
+                    {t('category_create_failed')}
+                  </Text>
+                )}
+                <View style={styles.createActions}>
+                  <Button
+                    mode="text"
+                    onPress={() => {
+                      setNewCategoryName('');
+                      setCreateError(false);
+                      setShowCreateInput(false);
+                    }}
+                    disabled={isCreating}
+                  >
+                    {t('cancel')}
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleCreateCategory}
+                    loading={isCreating}
+                    disabled={isCreating || !newCategoryName.trim()}
+                  >
+                    {t('save')}
+                  </Button>
+                </View>
+              </View>
+            ) : (
+              <Button
+                icon="plus-circle"
+                style={{ margin: 20 }}
+                mode="contained"
+                onPress={() => setShowCreateInput(true)}
+              >
+                {t('create_category')}
+              </Button>
+            )}
+          </>
+        }
+      />
     </View>
   );
 }
@@ -254,5 +333,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 10
+  },
+  emptyState: {
+    minHeight: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 8
+  },
+  loadErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    margin: 16,
+    padding: 12
   }
 });

@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { deleteRole, getRoles } from '../../../../slices/role';
 import { useDispatch, useSelector } from '../../../../store';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import PageHeader from './PageHeader';
 import { useTranslation } from 'react-i18next';
 import {
@@ -32,7 +32,7 @@ import {
   useState
 } from 'react';
 import { TransitionProps } from '@mui/material/transitions';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import {
   GridActionsCellItem,
   GridRenderCellParams,
@@ -307,7 +307,7 @@ function Roles() {
             key="edit"
             disabled={!hasFeature(PlanFeature.ROLE)}
             icon={
-              <EditTwoToneIcon
+              <EditOutlinedIcon
                 fontSize="small"
                 color={hasFeature(PlanFeature.ROLE) ? 'primary' : 'disabled'}
               />
@@ -319,7 +319,7 @@ function Roles() {
             key="delete"
             disabled={!hasFeature(PlanFeature.ROLE)}
             icon={
-              <DeleteTwoToneIcon
+              <DeleteOutlinedIcon
                 fontSize="small"
                 color={hasFeature(PlanFeature.ROLE) ? 'error' : 'disabled'}
               />

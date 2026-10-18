@@ -14,6 +14,8 @@ interface TeamState {
   teamsMini: TeamMiniDTO[];
   currentPageNum: number;
   lastPage: boolean;
+  listLoading: boolean;
+  latestListRequestId: number;
   loadingGet: boolean;
 }
 
@@ -23,6 +25,8 @@ const initialState: TeamState = {
   teamsMini: [],
   currentPageNum: 0,
   lastPage: true,
+  listLoading: false,
+  latestListRequestId: 0,
   loadingGet: false
 };
 
@@ -31,17 +35,22 @@ const slice = createSlice({
   initialState,
   extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
-    getTeams(state: TeamState, action: PayloadAction<{ teams: Page<Team> }>) {
-      const { teams } = action.payload;
+    getTeams(
+      state: TeamState,
+      action: PayloadAction<{ teams: Page<Team>; requestId: number }>
+    ) {
+      const { teams, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.teams = teams;
       state.currentPageNum = 0;
       state.lastPage = teams.last;
     },
     getMoreTeams(
       state: TeamState,
-      action: PayloadAction<{ teams: Page<Team> }>
+      action: PayloadAction<{ teams: Page<Team>; requestId: number }>
     ) {
-      const { teams } = action.payload;
+      const { teams, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.teams.content = state.teams.content.concat(teams.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = teams.last;
@@ -75,7 +84,9 @@ const slice = createSlice({
     deleteTeam(state: TeamState, action: PayloadAction<{ id: number }>) {
       const { id } = action.payload;
       const teamIndex = state.teams.content.findIndex((team) => team.id === id);
-      state.teams.content.splice(teamIndex, 1);
+      if (teamIndex !== -1) state.teams.content.splice(teamIndex, 1);
+      state.teamsMini = state.teamsMini.filter((team) => team.id !== id);
+      delete state.teamInfos[id];
     },
     setLoadingGet(
       state: TeamState,
@@ -83,33 +94,46 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: TeamState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: TeamState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getTeams =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const teams = await api.post<Page<Team>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getTeams({ teams }));
+      dispatch(slice.actions.getTeams({ teams, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreTeams =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const teams = await api.post<Page<Team>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getMoreTeams({ teams }));
+      dispatch(slice.actions.getMoreTeams({ teams, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getTeamDetails =
@@ -117,15 +141,13 @@ export const getTeamDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const team = await api.get<Team>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getTeamDetails({
-        id,
-        team
-      })
-    );
-
+      const team = await api.get<Team>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getTeamDetails({
+          id,
+          team
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -140,9 +162,12 @@ export const editTeam =
 
 export const getTeamsMini = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.setLoadingGet({ loading: true }));
-  const teams = await api.get<TeamMiniDTO[]>('teams/mini');
-  dispatch(slice.actions.getTeamsMini({ teams }));
-  dispatch(slice.actions.setLoadingGet({ loading: false }));
+  try {
+    const teams = await api.get<TeamMiniDTO[]>('teams/mini');
+    dispatch(slice.actions.getTeamsMini({ teams }));
+  } finally {
+    dispatch(slice.actions.setLoadingGet({ loading: false }));
+  }
 };
 export const addTeam =
   (team): AppThunk =>

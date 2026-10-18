@@ -17,10 +17,10 @@ import {
 } from '@mui/material';
 import { ChangeEvent, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import AddShoppingCartTwoToneIcon from '@mui/icons-material/AddShoppingCartTwoTone';
+import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutlined';
 import Part from '../../../models/owns/part';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import { PermissionEntity } from '../../../models/owns/role';
@@ -157,7 +157,7 @@ export default function PartDetails(props: PartDetailsProps) {
         <Box>
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
-              <EditTwoToneIcon color="primary" />
+              <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.PARTS_AND_MULTIPARTS) && (
@@ -173,12 +173,12 @@ export default function PartDetails(props: PartDetailsProps) {
               style={{ marginRight: 10 }}
               onClick={() => setOpenRestock(true)}
             >
-              <AddShoppingCartTwoToneIcon color="primary" />
+              <AddShoppingCartOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
             <IconButton onClick={handleOpenDelete}>
-              <DeleteTwoToneIcon style={{ cursor: 'pointer' }} color="error" />
+              <DeleteOutlinedIcon style={{ cursor: 'pointer' }} color="error" />
             </IconButton>
           )}
         </Box>
@@ -366,7 +366,7 @@ export default function PartDetails(props: PartDetailsProps) {
         {currentTab === 'files' && (
           <Box>
             {/*<Box display="flex" justifyContent="right">*/}
-            {/*  <Button startIcon={<AddTwoToneIcon fontSize="small" />}>*/}
+            {/*  <Button startIcon={<AddOutlinedIcon fontSize="small" />}>*/}
             {/*    {t('file')}*/}
             {/*  </Button>*/}
             {/*</Box>*/}

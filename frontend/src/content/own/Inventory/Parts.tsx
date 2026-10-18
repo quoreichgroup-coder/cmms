@@ -62,7 +62,7 @@ import {
 } from '../../../utils/overall';
 import { SearchCriteria, SortDirection } from '../../../models/owns/page';
 import { useExport, ExportEntityType } from '../../../hooks/useExport';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import { PermissionEntity } from '../../../models/owns/role';
 import SearchInput from '../components/SearchInput';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
@@ -181,10 +181,22 @@ const Parts = ({ setAction }: PropsType) => {
     setOpenUpdateModal(true);
   };
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deletePart(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deletePart(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Part deletion was not confirmed'));
+      }
+    } catch (error) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(error);
+    }
   };
   const tabs = [
     { value: 'list', label: t('list_view') },
@@ -760,7 +772,7 @@ const Parts = ({ setAction }: PropsType) => {
         </Tabs>
         <SearchInput onChange={debouncedQueryChange} />
         <IconButton onClick={handleOpenMenu} color="primary">
-          <MoreVertTwoToneIcon />
+          <MoreVertOutlinedIcon />
         </IconButton>
       </Stack>
       {currentTab === 'list' && (

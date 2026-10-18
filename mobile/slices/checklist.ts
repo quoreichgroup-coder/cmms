@@ -54,7 +54,7 @@ const slice = createSlice({
       const checklistIndex = state.checklists.findIndex(
         (checklist) => checklist.id === id
       );
-      state.checklists.splice(checklistIndex, 1);
+      if (checklistIndex !== -1) state.checklists.splice(checklistIndex, 1);
     },
     setLoadingGet(
       state: ChecklistState,
@@ -80,32 +80,32 @@ export const getChecklists = (): AppThunk => async (dispatch) => {
 
 export const addChecklist =
   (checklist, companySettingsId): AppThunk =>
-    async (dispatch) => {
-      const checklistResponse = await api.post<Checklist>('checklists', {
-        ...checklist,
-        companySettings: { id: companySettingsId }
-      });
-      dispatch(slice.actions.addChecklist({ checklist: checklistResponse }));
-    };
+  async (dispatch) => {
+    const checklistResponse = await api.post<Checklist>('checklists', {
+      ...checklist,
+      companySettings: { id: companySettingsId }
+    });
+    dispatch(slice.actions.addChecklist({ checklist: checklistResponse }));
+  };
 export const editChecklist =
   (id: number, checklist): AppThunk =>
-    async (dispatch) => {
-      const checklistResponse = await api.patch<Checklist>(
-        `checklists/${id}`,
-        checklist
-      );
-      dispatch(slice.actions.editChecklist({ checklist: checklistResponse }));
-    };
+  async (dispatch) => {
+    const checklistResponse = await api.patch<Checklist>(
+      `checklists/${id}`,
+      checklist
+    );
+    dispatch(slice.actions.editChecklist({ checklist: checklistResponse }));
+  };
 export const deleteChecklist =
   (id: number): AppThunk =>
-    async (dispatch) => {
-      const checklistResponse = await api.deletes<{ success: boolean }>(
-        `checklists/${id}`
-      );
-      const { success } = checklistResponse;
-      if (success) {
-        dispatch(slice.actions.deleteChecklist({ id }));
-      }
-    };
+  async (dispatch) => {
+    const checklistResponse = await api.deletes<{ success: boolean }>(
+      `checklists/${id}`
+    );
+    const { success } = checklistResponse;
+    if (success) {
+      dispatch(slice.actions.deleteChecklist({ id }));
+    }
+  };
 
 export default slice;

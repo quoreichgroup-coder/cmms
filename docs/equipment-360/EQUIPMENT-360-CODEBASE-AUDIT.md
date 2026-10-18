@@ -21,8 +21,8 @@ Mobile detail initially exposed **Details, Work Orders, Files and Parts**. This 
 ## Equipment scan path traced
 
 1. The Home screen opens `ScanAssetScreen` when the user has asset-view permission and the device reports internet connectivity.
-2. `ScanAssetScreen` offers NFC on non-iOS and QR/barcode on all supported platforms, gated by the `NFC_BARCODE` entitlement.
-3. `SelectNfcModal` starts `react-native-nfc-manager`, requests `NfcTech.Ndef`, reads a tag, then returns `tag.id` (the hardware identifier, not the NDEF payload).
+2. `ScanAssetScreen` offers NFC on native Android/iOS builds and QR/barcode on all supported platforms, gated by the `NFC_BARCODE` entitlement.
+3. `SelectNfcModal` starts `react-native-nfc-manager`, requests platform-specific tag technologies (Android NDEF/A/B/F/V and related technologies; iOS MIFARE/ISO 15693), reads a tag, then returns `tag.id` (the hardware identifier, not an NDEF payload).
 4. `SelectBarcodeModal` requests camera permission through `ensureScannerCameraPermission`, receives Expo Camera's scanned `data`, and returns it once per modal instance.
 5. `mobile/slices/asset.ts` calls `GET /assets/nfc?nfcId=...` or `GET /assets/barcode?data=...`; the identifier is now URL-encoded.
 6. The backend requires the NFC/barcode entitlement, finds the identifier within the user's company and checks `Asset.canBeViewedBy`. Unknown IDs return a 404; unauthorized equipment returns 403.
@@ -36,7 +36,7 @@ This trace does **not** establish that a physical NFC tag, camera permission pro
 
 1. The scan flow used to offer equipment creation on any lookup failure, including network and access failures, and checked the Work Orders create permission. It now offers creation only after a server 404 and checks `ASSETS` create permission.
 2. The asset lookup endpoints used to disclose the mini equipment DTO based on company membership alone. They now enforce the role's asset visibility rule. Detail lookup is also company-scoped.
-3. NFC reads request NDEF but return `tag.id`. This behaves like UID-based identification for compatible NDEF tags; physical compatibility and lifecycle behavior remain unverified. A UID is not an authorization credential.
+3. NFC reads return `tag.id` without parsing an NDEF payload. Android requests its supported NDEF and UID-capable technologies; iOS requests MIFARE and ISO 15693. Physical compatibility and lifecycle behavior remain unverified. A tag identifier is not an authorization credential.
 4. Barcode/NFC duplicate checks exist in application service code. The historical schema changelog explicitly removed the old uniqueness constraints, and no current composite tenant-scoped uniqueness constraint was verified. Concurrent assignment can therefore still require a separately reviewed data-integrity migration.
 5. The QR in Web asset details encodes the barcode value. It is a stable identifier, not a secret. The backend must continue to authenticate and authorize every lookup; do not put sensitive asset details or authorization data into the QR payload.
 6. Offline scanning is not implemented: Home rejects opening the scan flow without internet, and no durable scan-resolution queue/reconciliation path was found.

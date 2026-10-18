@@ -4,9 +4,9 @@ import {
   DialogContent, DialogTitle, FormControl, Grid, IconButton, InputLabel, MenuItem,
   Select, Stack, TextField, Typography
 } from '@mui/material';
-import AddLocationAltTwoToneIcon from '@mui/icons-material/AddLocationAltTwoTone';
-import DeleteOutlineTwoToneIcon from '@mui/icons-material/DeleteOutlineTwoTone';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
+import AddLocationAltOutlinedIcon from '@mui/icons-material/AddLocationAltOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useTranslation } from 'react-i18next';
 import api, { getErrorMessage } from '../../../utils/api';
 import useAuth from '../../../hooks/useAuth';
@@ -76,7 +76,7 @@ export default function CompanySites() {
           <Typography variant="h4">{t('company_sites')}</Typography>
           <Typography variant="body2" color="text.secondary">{t('company_sites_description')}</Typography>
         </Box>
-        {canEdit && <Button variant="contained" startIcon={<AddLocationAltTwoToneIcon />} onClick={() => setEditing({ ...emptySite })}>
+        {canEdit && <Button variant="contained" startIcon={<AddLocationAltOutlinedIcon />} onClick={() => setEditing({ ...emptySite })}>
           {t('add_site')}
         </Button>}
       </Box>
@@ -95,8 +95,8 @@ export default function CompanySites() {
                     </Typography>
                   </Box>
                   {canEdit && <Box>
-                    <IconButton aria-label={t('edit')} onClick={() => setEditing({ ...site })}><EditTwoToneIcon /></IconButton>
-                    <IconButton aria-label={t('delete')} onClick={() => remove(site)}><DeleteOutlineTwoToneIcon /></IconButton>
+                    <IconButton aria-label={t('edit')} onClick={() => setEditing({ ...site })}><EditOutlinedIcon /></IconButton>
+                    <IconButton aria-label={t('delete')} onClick={() => remove(site)}><DeleteOutlineOutlinedIcon /></IconButton>
                   </Box>}
                 </Box>
               ))}

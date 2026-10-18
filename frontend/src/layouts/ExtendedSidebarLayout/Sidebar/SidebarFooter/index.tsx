@@ -1,5 +1,4 @@
 import {
-  alpha,
   Box,
   IconButton,
   styled,
@@ -9,11 +8,11 @@ import {
   useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EventTwoToneIcon from '@mui/icons-material/EventTwoTone';
-import PowerSettingsNewTwoToneIcon from '@mui/icons-material/PowerSettingsNewTwoTone';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import PowerSettingsNewOutlinedIcon from '@mui/icons-material/PowerSettingsNewOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useAuth from 'src/hooks/useAuth';
-import UpgradeTwoToneIcon from '@mui/icons-material/UpgradeTwoTone';
+import UpgradeOutlinedIcon from '@mui/icons-material/UpgradeOutlined';
 import { isCloudVersion } from '../../../../config';
 import { useContext } from 'react';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
@@ -39,6 +38,15 @@ function SidebarFooter() {
   const { logout, user } = useAuth();
   const { requestSubscriptionChange } = useContext(CompanySettingsContext);
   const navigate = useNavigate();
+  const footerButtonSx = {
+    backgroundColor: 'transparent',
+    color: theme.sidebar.menuItemIconColor,
+    transition: theme.transitions.create(['background-color', 'color']),
+    '&:hover': {
+      backgroundColor: theme.sidebar.menuItemBgActive,
+      color: theme.sidebar.menuItemColorActive
+    }
+  };
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -52,7 +60,11 @@ function SidebarFooter() {
   return (
     <Box
       sx={{
-        height: 60
+        minHeight: 60,
+        flexShrink: 0,
+        borderTop: `1px solid ${theme.sidebar.dividerBg}`,
+        backgroundColor: theme.sidebar.background,
+        px: 1
       }}
       display="flex"
       alignItems="center"
@@ -61,58 +73,38 @@ function SidebarFooter() {
       {user.ownsCompany && user.superAccountRelations.length === 0 && (
         <LightTooltip placement="top" arrow title={t('upgrade_now')}>
           <IconButton
-            sx={{
-              background: `${theme.colors.alpha.trueWhite[10]}`,
-              color: `${theme.colors.alpha.trueWhite[70]}`,
-              transition: `${theme.transitions.create(['all'])}`,
-
-              '&:hover': {
-                background: `${alpha(theme.colors.alpha.trueWhite[100], 0.2)}`,
-                color: `${theme.colors.alpha.trueWhite[100]}`
-              }
-            }}
+            aria-label={t('upgrade_now')}
+            sx={footerButtonSx}
             component={RouterLink}
-            to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
+            to={
+              isCloudVersion
+                ? '/app/subscription/plans'
+                : '/app/account/company-profile'
+            }
           >
-            <UpgradeTwoToneIcon fontSize="small" />
+            <UpgradeOutlinedIcon fontSize="small" />
           </IconButton>
         </LightTooltip>
       )}
       {user.superAccountRelations.length === 0 && (
         <LightTooltip placement="top" arrow title={t('wo_calendar')}>
           <IconButton
-            sx={{
-              background: `${theme.colors.alpha.trueWhite[10]}`,
-              color: `${theme.colors.alpha.trueWhite[70]}`,
-              transition: `${theme.transitions.create(['all'])}`,
-
-              '&:hover': {
-                background: `${alpha(theme.colors.alpha.trueWhite[100], 0.2)}`,
-                color: `${theme.colors.alpha.trueWhite[100]}`
-              }
-            }}
+            aria-label={t('wo_calendar')}
+            sx={footerButtonSx}
             to="/app/work-orders?view=calendar"
             component={RouterLink}
           >
-            <EventTwoToneIcon fontSize="small" />
+            <EventOutlinedIcon fontSize="small" />
           </IconButton>
         </LightTooltip>
       )}
       <LightTooltip placement="top" arrow title={t('Logout')}>
         <IconButton
-          sx={{
-            background: `${theme.colors.alpha.trueWhite[10]}`,
-            color: `${theme.colors.alpha.trueWhite[70]}`,
-            transition: `${theme.transitions.create(['all'])}`,
-
-            '&:hover': {
-              background: `${alpha(theme.colors.alpha.trueWhite[100], 0.2)}`,
-              color: `${theme.colors.alpha.trueWhite[100]}`
-            }
-          }}
+          aria-label={t('Logout')}
+          sx={footerButtonSx}
           onClick={handleLogout}
         >
-          <PowerSettingsNewTwoToneIcon fontSize="small" />
+          <PowerSettingsNewOutlinedIcon fontSize="small" />
         </IconButton>
       </LightTooltip>
     </Box>

@@ -7,9 +7,7 @@ import {
   IconButton,
   Link,
   Stack,
-  styled,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { AssetDTO } from '../../../../models/owns/asset';
@@ -31,14 +29,17 @@ import AssetStatusSelect from '../components/AssetStatusSelect';
 import Loading from '../../Analytics/Loading';
 import { PermissionEntity } from '../../../../models/owns/role';
 import SplitButton from '../../components/SplitButton';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import * as React from 'react';
 import useAuth from '../../../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getCustomFieldValuesForDetails } from '../../type';
 import { QRCodeSVG } from 'qrcode.react';
+import { useLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
+import { populateQrPrintDocument } from '../../../../utils/printQrCode';
 
 interface PropsType {
   asset: AssetDTO;
@@ -73,10 +74,36 @@ const downloadQRCode = (value: string) => {
 
   img.src = url;
 };
+const printAssetLabel = (asset: AssetDTO, t: (key: string) => string) => {
+  if (!asset.barCode) return;
+
+  const svgElement = document.getElementById(`qr-code-${asset.barCode}`);
+  if (!svgElement) return;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.opener = null;
+
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  populateQrPrintDocument(
+    printWindow,
+    asset.name,
+    `data:image/svg+xml;base64,${btoa(svgData)}`,
+    {
+      subtitle: t('asset_label_scan_hint'),
+      identifier: `${t('barcode')}: ${asset.barCode}`
+    }
+  );
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+};
 const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const { hasCreatePermission, hasEditPermission } = useAuth();
+  const hasNfcBarcode = useLicenseEntitlement('NFC_BARCODE');
   const navigate = useNavigate();
   const { getFormattedDate, getFormattedCurrency } = useContext(
     CompanySettingsContext
@@ -97,7 +124,8 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
         : null
     },
     { label: t('area'), value: asset?.area },
-    { label: t('barcode'), value: asset?.barCode, barcode: true }
+    { label: t('barcode'), value: asset?.barCode, barcode: true },
+    ...(hasNfcBarcode ? [{ label: t('nfc_tag'), value: asset?.nfcId }] : [])
   ];
   const moreInfosFields = [
     {
@@ -128,23 +156,47 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
   }) => {
     return value ? (
       <Grid item xs={12}>
-        <Stack spacing={5} direction="row">
-          <Typography variant="h6" fontWeight="bold">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 0.5, sm: 5 }}
+          sx={{ minWidth: 0 }}
+        >
+          <Typography
+            variant="subtitle2"
+            color="text.secondary"
+            sx={{ flexShrink: 0 }}
+          >
             {label}
           </Typography>
-          <Box>
-            <Typography variant="h6">{value}</Typography>
+          <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+            <Typography variant="body1" fontWeight={500}>
+              {value}
+            </Typography>
             {barcode && value && (
-              <QRCodeSVG
-                id={`qr-code-${value}`}
-                value={value.toString()}
-                size={120}
-                level="H"
-                onClick={() => {
-                  downloadQRCode(value.toString());
-                }}
-                style={{ marginTop: theme.spacing(1), cursor: 'pointer' }}
-              />
+              <Stack alignItems="flex-start" spacing={1}>
+                <IconButton
+                  aria-label={t('download_asset_qr')}
+                  title={t('download_asset_qr')}
+                  onClick={() => downloadQRCode(value.toString())}
+                  sx={{ mt: 1, ml: -1, width: 196, height: 196 }}
+                >
+                  <QRCodeSVG
+                    id={`qr-code-${value}`}
+                    value={value.toString()}
+                    size={180}
+                    level="H"
+                    includeMargin
+                  />
+                </IconButton>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PrintOutlinedIcon />}
+                  onClick={() => printAssetLabel(asset, t)}
+                >
+                  {t('print_asset_label')}
+                </Button>
+              </Stack>
             )}
           </Box>
         </Stack>
@@ -166,11 +218,24 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
     return (
       !!values?.length && (
         <Grid item xs={12}>
-          <Stack spacing={5} direction="row">
-            <Typography variant="h6" fontWeight="bold">
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={{ xs: 0.5, sm: 5 }}
+            sx={{ minWidth: 0 }}
+          >
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              sx={{ flexShrink: 0 }}
+            >
               {label}
             </Typography>
-            <Stack spacing={1} direction="row">
+            <Stack
+              spacing={1}
+              direction="row"
+              flexWrap="wrap"
+              sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
+            >
               {values.map((value, index) => (
                 <Stack key={value.id} spacing={1} direction="row">
                   <Link href={getHref(value)} variant="h6">
@@ -202,20 +267,43 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
       </Box>
     );
   return (
-    <Box sx={{ px: 4 }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 4 } }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Card sx={{ p: 2 }}>
-            <Grid container spacing={2} padding={2}>
+          <Card variant="outlined" sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               {asset?.image && (
                 <Grid item xs={12}>
-                  <img width="auto" height="300px" src={asset.image.url} />
+                  <img
+                    src={asset.image.url}
+                    alt={asset.name}
+                    style={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      maxHeight: 300,
+                      height: 'auto',
+                      objectFit: 'contain'
+                    }}
+                  />
                 </Grid>
               )}
               <Grid item xs={12}>
-                <Stack direction={'row'} justifyContent={'space-between'}>
-                  <Stack direction={'row'} spacing={2} alignItems={'center'}>
-                    <Typography variant="h3">
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: 'stretch', sm: 'center' }}
+                  spacing={2}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={{ xs: 1, sm: 2 }}
+                    alignItems="center"
+                    sx={{ flexWrap: 'wrap' }}
+                  >
+                    <Typography
+                      variant="h3"
+                      sx={{ fontSize: { xs: 24, sm: 30 } }}
+                    >
                       {t('asset_information')}
                     </Typography>
                     {asset && (
@@ -230,7 +318,11 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
                       />
                     )}
                     {hasCreatePermission(PermissionEntity.ASSETS) && (
-                      <IconButton onClick={onCopy}>
+                      <IconButton
+                        onClick={onCopy}
+                        aria-label={t('copy_asset')}
+                        title={t('copy_asset')}
+                      >
                         <ContentCopyIcon />
                       </IconButton>
                     )}
@@ -240,8 +332,12 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
                       onClick={() =>
                         navigate(`/app/work-orders?asset=${asset.id}`)
                       }
-                      startIcon={<AddTwoToneIcon />}
+                      startIcon={<AddOutlinedIcon />}
                       variant={'contained'}
+                      sx={{
+                        alignSelf: { xs: 'flex-start', sm: 'auto' },
+                        minHeight: 44
+                      }}
                     >
                       {t('work_order')}
                     </Button>
@@ -259,14 +355,22 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
               ))}
               {asset?.primaryUser && (
                 <Grid item xs={12}>
-                  <Stack spacing={5} direction="row">
-                    <Typography variant="h6" fontWeight="bold">
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={{ xs: 0.5, sm: 5 }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ flexShrink: 0 }}
+                    >
                       {t('primary_worker')}
                     </Typography>
                     <Link
                       key={asset.primaryUser.id}
                       href={`/app/people-teams/people/${asset.primaryUser.id}`}
-                      variant="h6"
+                      variant="body1"
+                      sx={{ overflowWrap: 'anywhere' }}
                     >
                       {`${asset.primaryUser.firstName} ${asset.primaryUser.lastName}`}
                     </Link>
@@ -276,13 +380,21 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
               )}
               {asset?.location && (
                 <Grid item xs={12}>
-                  <Stack spacing={5} direction="row">
-                    <Typography variant="h6" fontWeight="bold">
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={{ xs: 0.5, sm: 5 }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ flexShrink: 0 }}
+                    >
                       {t('location')}
                     </Typography>
                     <Link
                       href={`/app/locations/${asset.location.id}`}
-                      variant="h6"
+                      variant="body1"
+                      sx={{ overflowWrap: 'anywhere' }}
                     >
                       {asset.location.name}
                     </Link>

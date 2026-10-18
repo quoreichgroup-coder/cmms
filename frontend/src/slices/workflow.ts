@@ -104,6 +104,7 @@ export const deleteWorkflow =
     if (success) {
       dispatch(slice.actions.deleteWorkflow({ id }));
     }
+    return success;
   };
 
 export default slice;

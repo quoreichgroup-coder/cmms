@@ -21,8 +21,8 @@ import { ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PartMiniDTO } from 'src/models/owns/part';
 import { useDispatch, useSelector } from '../../../../store';
-import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { getPartsMini } from '../../../../slices/part';
 import { getMultiParts } from "../../../../slices/multipart";
 
@@ -150,7 +150,7 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
                       />
                       <Accordion>
                         <AccordionSummary
-                          expandIcon={<ExpandMoreTwoToneIcon />}
+                          expandIcon={<ExpandMoreOutlinedIcon />}
                           aria-controls="panel1a-content"
                         >
                           {set.name}
@@ -185,7 +185,7 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
           </Button>
         </DialogActions>
       </Dialog>
-      <Button startIcon={<AddTwoToneIcon />} onClick={() => setOpenModal(true)}>
+      <Button startIcon={<AddOutlinedIcon />} onClick={() => setOpenModal(true)}>
         {t('add_parts')}
       </Button>
     </>

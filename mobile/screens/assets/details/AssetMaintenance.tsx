@@ -2,10 +2,11 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Chip, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme, qpmLayoutTokens } from '../../../custom-theme';
@@ -25,6 +26,17 @@ import Tag from '../../../components/Tag';
 type Props = {
   asset: AssetDTO;
   navigation: RootStackScreenProps<'AssetDetails'>['navigation'];
+};
+
+type AssetMaintenanceRow =
+  | { kind: 'meter'; value: Meter }
+  | { kind: 'plan'; value: PreventiveMaintenance }
+  | { kind: 'downtime'; value: AssetDowntime };
+
+type AssetMaintenanceSection = {
+  key: 'meters' | 'plans' | 'downtime';
+  kind: 'meters' | 'plans' | 'downtime';
+  data: AssetMaintenanceRow[];
 };
 
 export default function AssetMaintenance({ asset, navigation }: Props) {
@@ -222,10 +234,282 @@ export default function AssetMaintenance({ asset, navigation }: Props) {
     return null;
   };
 
+  const sections = useMemo<AssetMaintenanceSection[]>(() => {
+    const recentDowntimes = [...downtimes]
+      .sort(
+        (a, b) =>
+          new Date(b.startsOn).getTime() - new Date(a.startsOn).getTime()
+      )
+      .slice(0, 10);
+
+    return [
+      {
+        key: 'meters',
+        kind: 'meters',
+        data: canViewMeters
+          ? meters.map((value) => ({ kind: 'meter', value }))
+          : []
+      },
+      {
+        key: 'plans',
+        kind: 'plans',
+        data:
+          canViewPM && canViewPMFeature
+            ? plans.map((value) => ({ kind: 'plan', value }))
+            : []
+      },
+      {
+        key: 'downtime',
+        kind: 'downtime',
+        data: canViewDowntime
+          ? recentDowntimes.map((value) => ({ kind: 'downtime', value }))
+          : []
+      }
+    ];
+  }, [
+    canViewDowntime,
+    canViewMeters,
+    canViewPM,
+    canViewPMFeature,
+    downtimes,
+    meters,
+    plans
+  ]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: AssetMaintenanceRow }) => {
+      if (item.kind === 'meter') {
+        const meter = item.value;
+        const accessibilityLabel = [
+          meter.name,
+          meter.unit,
+          meter.lastReading
+            ? `${t('last_reading')}: ${getFormattedDate(
+                meter.lastReading,
+                true
+              )}`
+            : null,
+          meter.nextReading
+            ? `${t('next_reading_due')}: ${getFormattedDate(
+                meter.nextReading,
+                true
+              )}`
+            : null
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join('. ');
+
+        return (
+          <Card
+            mode="outlined"
+            style={cardStyle}
+            onPress={() =>
+              navigation.push('MeterDetails', {
+                id: meter.id,
+                meterProp: meter
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+          >
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.cardHeading}>
+                <Text variant="titleSmall" style={styles.cardTitle}>
+                  {meter.name}
+                </Text>
+                <Chip compact>{meter.unit}</Chip>
+              </View>
+              {meter.lastReading ? (
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {t('last_reading')}:{' '}
+                  {getFormattedDate(meter.lastReading, true)}
+                </Text>
+              ) : null}
+              {meter.nextReading ? (
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {t('next_reading_due')}:{' '}
+                  {getFormattedDate(meter.nextReading, true)}
+                </Text>
+              ) : null}
+            </Card.Content>
+          </Card>
+        );
+      }
+
+      if (item.kind === 'plan') {
+        const plan = item.value;
+        const meterBased = plan.schedule?.triggerType === 'METER';
+        const nextSchedule = meterBased
+          ? plan.schedule?.nextMeterValue != null
+            ? `${plan.schedule.nextMeterValue} ${
+                plan.schedule.meterUnit ?? ''
+              }`.trim()
+            : t('pm_no_next_meter_threshold')
+          : plan.nextWorkOrderDate
+          ? getFormattedDate(plan.nextWorkOrderDate, true)
+          : t('pm_no_next_occurrence');
+
+        return (
+          <Card
+            mode="outlined"
+            style={cardStyle}
+            onPress={() =>
+              navigation.push('PreventiveMaintenanceDetails', {
+                id: plan.id,
+                pmProp: plan
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${plan.name}, ${plan.title}, ${nextSchedule}`}
+          >
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.cardHeading}>
+                <Text variant="titleSmall" style={styles.cardTitle}>
+                  {plan.name}
+                </Text>
+                <Chip
+                  compact
+                  icon={meterBased ? 'speedometer' : 'calendar-month'}
+                >
+                  {t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
+                </Chip>
+              </View>
+              <Text variant="bodyMedium" numberOfLines={2}>
+                {plan.title}
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {t(meterBased ? 'pm_next_threshold' : 'pm_next_occurrence')}:{' '}
+                {nextSchedule}
+              </Text>
+            </Card.Content>
+          </Card>
+        );
+      }
+
+      const record = item.value;
+      const ongoing = record.duration === 0;
+      const startDate = getFormattedDate(record.startsOn, true);
+      const accessibleDuration = ongoing
+        ? t('downtime_ongoing')
+        : `${t('duration')}, ${formatDuration(record.duration)}`;
+
+      return (
+        <Card
+          mode="outlined"
+          style={cardStyle}
+          accessible
+          accessibilityLabel={`${t(
+            'downtimes'
+          )}, ${startDate}, ${accessibleDuration}`}
+        >
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.cardHeading}>
+              <Text variant="titleSmall" style={styles.cardTitle}>
+                {startDate}
+              </Text>
+              {ongoing ? (
+                <Tag
+                  text={t('downtime_ongoing')}
+                  color={theme.colors.onError}
+                  backgroundColor={theme.colors.error}
+                />
+              ) : null}
+            </View>
+            {record.duration > 0 ? (
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {formatDuration(record.duration)}
+              </Text>
+            ) : null}
+          </Card.Content>
+        </Card>
+      );
+    },
+    [cardStyle, formatDuration, getFormattedDate, navigation, t, theme.colors]
+  );
+
   return (
-    <ScrollView
+    <SectionList<AssetMaintenanceRow, AssetMaintenanceSection>
       style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={styles.content}
+      sections={sections}
+      keyExtractor={(item) => `${item.kind}:${item.value.id}`}
+      renderItem={renderItem}
+      renderSectionHeader={({ section }) => (
+        <View
+          style={[
+            styles.sectionHeader,
+            section.kind !== 'meters' && {
+              marginTop: qpmLayoutTokens.space.xl
+            }
+          ]}
+        >
+          <Text
+            variant="titleMedium"
+            style={styles.sectionTitle}
+            accessibilityRole="header"
+          >
+            {t(
+              section.kind === 'meters'
+                ? 'meters'
+                : section.kind === 'plans'
+                ? 'preventive_maintenance'
+                : 'downtimes'
+            )}
+          </Text>
+          {section.kind === 'meters' ? (
+            renderSectionState(
+              'meters',
+              canViewMeters,
+              t('meter_list_load_error'),
+              meters.length === 0,
+              'no_access_meters'
+            )
+          ) : section.kind === 'plans' ? (
+            !canViewPM ? (
+              renderSectionState(
+                'plans',
+                false,
+                t('an_error_occured'),
+                true,
+                'no_access_preventive_maintenance'
+              )
+            ) : !canViewPMFeature ? (
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('upgrade_preventive_maintenance')}
+              </Text>
+            ) : (
+              renderSectionState(
+                'plans',
+                true,
+                t('an_error_occured'),
+                plans.length === 0
+              )
+            )
+          ) : (
+            renderSectionState(
+              'downtime',
+              canViewDowntime,
+              t('an_error_occured'),
+              downtimes.length === 0
+            )
+          )}
+        </View>
+      )}
+      stickySectionHeadersEnabled={false}
+      initialNumToRender={8}
+      windowSize={7}
       refreshControl={
         <RefreshControl
           refreshing={Object.values(loading).some(Boolean)}
@@ -233,228 +517,7 @@ export default function AssetMaintenance({ asset, navigation }: Props) {
           colors={[theme.colors.primary]}
         />
       }
-    >
-      <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          {t('meters')}
-        </Text>
-        {renderSectionState(
-          'meters',
-          canViewMeters,
-          t('meter_list_load_error'),
-          meters.length === 0
-        )}
-        {canViewMeters &&
-          !loading.meters &&
-          !errors.meters &&
-          meters.map((meter) => {
-            const accessibilityLabel = [
-              meter.name,
-              meter.unit,
-              meter.lastReading
-                ? `${t('last_reading')}: ${getFormattedDate(
-                    meter.lastReading,
-                    true
-                  )}`
-                : null,
-              meter.nextReading
-                ? `${t('next_reading_due')}: ${getFormattedDate(
-                    meter.nextReading,
-                    true
-                  )}`
-                : null
-            ]
-              .filter((part): part is string => Boolean(part))
-              .join('. ');
-
-            return (
-              <Card
-                key={meter.id}
-                mode="outlined"
-                style={cardStyle}
-                onPress={() =>
-                  navigation.push('MeterDetails', {
-                    id: meter.id,
-                    meterProp: meter
-                  })
-                }
-                accessibilityRole="button"
-                accessibilityLabel={accessibilityLabel}
-              >
-                <Card.Content style={styles.cardContent}>
-                  <View style={styles.cardHeading}>
-                    <Text variant="titleSmall" style={styles.cardTitle}>
-                      {meter.name}
-                    </Text>
-                    <Chip compact>{meter.unit}</Chip>
-                  </View>
-                  {meter.lastReading ? (
-                    <Text
-                      variant="bodySmall"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                    >
-                      {t('last_reading')}:{' '}
-                      {getFormattedDate(meter.lastReading, true)}
-                    </Text>
-                  ) : null}
-                  {meter.nextReading ? (
-                    <Text
-                      variant="bodySmall"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                    >
-                      {t('next_reading_due')}:{' '}
-                      {getFormattedDate(meter.nextReading, true)}
-                    </Text>
-                  ) : null}
-                </Card.Content>
-              </Card>
-            );
-          })}
-      </View>
-
-      <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          {t('preventive_maintenance')}
-        </Text>
-        {!canViewPM &&
-          renderSectionState(
-            'plans',
-            false,
-            t('an_error_occured'),
-            true,
-            'no_access_preventive_maintenance'
-          )}
-        {canViewPM && !canViewPMFeature ? (
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>
-            {t('upgrade_preventive_maintenance')}
-          </Text>
-        ) : canViewPM ? (
-          renderSectionState(
-            'plans',
-            true,
-            t('an_error_occured'),
-            plans.length === 0
-          )
-        ) : null}
-        {canViewPM &&
-          canViewPMFeature &&
-          !loading.plans &&
-          !errors.plans &&
-          plans.map((plan) => {
-            const meterBased = plan.schedule?.triggerType === 'METER';
-            const nextSchedule = meterBased
-              ? plan.schedule?.nextMeterValue != null
-                ? `${plan.schedule.nextMeterValue} ${
-                    plan.schedule.meterUnit ?? ''
-                  }`.trim()
-                : t('pm_no_next_meter_threshold')
-              : plan.nextWorkOrderDate
-              ? getFormattedDate(plan.nextWorkOrderDate, true)
-              : t('pm_no_next_occurrence');
-            return (
-              <Card
-                key={plan.id}
-                mode="outlined"
-                style={cardStyle}
-                onPress={() =>
-                  navigation.push('PreventiveMaintenanceDetails', {
-                    id: plan.id,
-                    pmProp: plan
-                  })
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`${plan.name}, ${plan.title}, ${nextSchedule}`}
-              >
-                <Card.Content style={styles.cardContent}>
-                  <View style={styles.cardHeading}>
-                    <Text variant="titleSmall" style={styles.cardTitle}>
-                      {plan.name}
-                    </Text>
-                    <Chip
-                      compact
-                      icon={meterBased ? 'speedometer' : 'calendar-month'}
-                    >
-                      {t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
-                    </Chip>
-                  </View>
-                  <Text variant="bodyMedium" numberOfLines={2}>
-                    {plan.title}
-                  </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {t(meterBased ? 'pm_next_threshold' : 'pm_next_occurrence')}
-                    : {nextSchedule}
-                  </Text>
-                </Card.Content>
-              </Card>
-            );
-          })}
-      </View>
-
-      <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          {t('downtimes')}
-        </Text>
-        {renderSectionState(
-          'downtime',
-          canViewDowntime,
-          t('an_error_occured'),
-          downtimes.length === 0
-        )}
-        {canViewDowntime &&
-          !loading.downtime &&
-          !errors.downtime &&
-          [...downtimes]
-            .sort(
-              (a, b) =>
-                new Date(b.startsOn).getTime() - new Date(a.startsOn).getTime()
-            )
-            .slice(0, 10)
-            .map((record) => {
-              const ongoing = record.duration === 0;
-              const startDate = getFormattedDate(record.startsOn, true);
-              const accessibleDuration = ongoing
-                ? t('downtime_ongoing')
-                : `${t('duration')}, ${formatDuration(record.duration)}`;
-              return (
-                <Card
-                  key={record.id}
-                  mode="outlined"
-                  style={cardStyle}
-                  accessible
-                  accessibilityLabel={`${t(
-                    'downtimes'
-                  )}, ${startDate}, ${accessibleDuration}`}
-                >
-                  <Card.Content style={styles.cardContent}>
-                    <View style={styles.cardHeading}>
-                      <Text variant="titleSmall" style={styles.cardTitle}>
-                        {startDate}
-                      </Text>
-                      {ongoing ? (
-                        <Tag
-                          text={t('downtime_ongoing')}
-                          color={theme.colors.onError}
-                          backgroundColor={theme.colors.error}
-                        />
-                      ) : null}
-                    </View>
-                    {record.duration > 0 ? (
-                      <Text
-                        variant="bodySmall"
-                        style={{ color: theme.colors.onSurfaceVariant }}
-                      >
-                        {formatDuration(record.duration)}
-                      </Text>
-                    ) : null}
-                  </Card.Content>
-                </Card>
-              );
-            })}
-      </View>
-    </ScrollView>
+    />
   );
 }
 
@@ -463,15 +526,15 @@ const styles = StyleSheet.create({
     padding: qpmLayoutTokens.space.lg,
     paddingBottom: qpmLayoutTokens.space.xl
   },
-  section: {
+  sectionHeader: {
     gap: qpmLayoutTokens.space.sm,
-    marginBottom: qpmLayoutTokens.space.xl
+    marginBottom: qpmLayoutTokens.space.sm
   },
   sectionTitle: { fontWeight: '700' },
   card: {
     borderRadius: qpmLayoutTokens.radius.cardLarge,
     borderWidth: 1,
-    marginBottom: qpmLayoutTokens.space.xs
+    marginBottom: qpmLayoutTokens.space.sm
   },
   cardContent: { gap: qpmLayoutTokens.space.xs },
   cardHeading: {

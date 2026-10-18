@@ -2,6 +2,15 @@
 
 **Date:** 2026-10-13
 
+## Revalidation du client mobile Expo — 15 octobre 2026
+
+- `npx tsc --noEmit --pretty false` réussit sur le worktree courant.
+- `npm run test:mobile-regression` réussit : 20 fichiers de test, 0 échec. Le nouveau test `metro-watcher-exclusions.test.cjs` protège les exclusions des sorties Android/Gradle, du SDK local et des bundles Expo temporaires, tout en vérifiant qu’un écran source reste surveillé.
+- Le bouton ± des champs de tâche `NUMBER`/`METER` respecte maintenant le minimum tactile de 48 dp via le token partagé; son libellé accessible et sa préservation des décimales sont explicitement vérifiés dans le code et le guide de recette.
+- Les exports Expo réussissent depuis un dossier temporaire interne au projet : Android (2 219 modules), iOS (2 210 modules) et Web (1 883 modules). Le dossier temporaire est supprimé après export; ces bundles ne constituent pas un APK/IPA installable.
+- L’export vers `/tmp` est refusé par Expo, qui exige un dossier de sortie enfant du projet; relancer l’export vers `.expo-export-*` résout ce point sans ajouter d’artefacts suivis dans Git.
+- Ces contrôles prouvent le typage et le bundling des plateformes; ils ne valident pas l’affichage sur appareil, les permissions natives, le NFC, ni les réponses de l’API réelle. L’APK 1.0.59 précède les changements courants et ne les contient donc pas; utiliser QPM Dev/Metro pour la vérification rapide ou reconstruire un APK avant distribution.
+
 ## Follow-up — 2026-10-14
 
 - Mobile scan lookup now shows an accessible progress state after QR/NFC capture and ignores duplicate callbacks while one resolution is in flight. API outcomes and permission checks are unchanged.

@@ -15,8 +15,8 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import LockTwoToneIcon from '@mui/icons-material/LockTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Text from 'src/components/Text';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -460,14 +460,14 @@ function ProfileDetails() {
               <Button
                 onClick={handleOpenEditModal}
                 variant="text"
-                startIcon={<EditTwoToneIcon />}
+                startIcon={<EditOutlinedIcon />}
               >
                 {t('edit')}
               </Button>
               <Button
                 onClick={handleOpenPasswordModal}
                 variant="text"
-                startIcon={<LockTwoToneIcon />}
+                startIcon={<LockOutlinedIcon />}
               >
                 {t('change_password')}
               </Button>

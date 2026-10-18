@@ -1,4 +1,3 @@
-import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
@@ -7,6 +6,7 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
 import { getRequestStatsByPriority } from '../../../../../slices/analytics/request';
+import { qpmPriorityTokens } from '../../../../../theme/tokens';
 
 interface OwnProps {
   handleOpenModal: (
@@ -26,7 +26,6 @@ function RequestStatsByPriority({
   companyId
 }: OwnProps) {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const dispatch = useDispatch();
   const { requestStatsByPriority, loading, errors } = useSelector(
     (state) => state.requestAnalytics
@@ -47,25 +46,25 @@ function RequestStatsByPriority({
     {
       label: t('high_priority'),
       count: requestStatsByPriority.high.count,
-      color: theme.colors.error.main,
+      color: qpmPriorityTokens.HIGH.foreground,
       filters: [{ key: 'fs', value: false }]
     },
     {
       label: t('medium_priority'),
       count: requestStatsByPriority.medium.count,
-      color: theme.colors.warning.main,
+      color: qpmPriorityTokens.MEDIUM.foreground,
       filters: [{ key: 'fs', value: false }]
     },
     {
       label: t('low_priority'),
       count: requestStatsByPriority.low.count,
-      color: theme.colors.success.main,
+      color: qpmPriorityTokens.LOW.foreground,
       filters: [{ key: 'fs', value: false }]
     },
     {
       label: t('none_priority'),
       count: requestStatsByPriority.none.count,
-      color: theme.colors.alpha.black[70],
+      color: qpmPriorityTokens.DEFAULT.foreground,
       filters: [{ key: 'fs', value: false }]
     }
   ];

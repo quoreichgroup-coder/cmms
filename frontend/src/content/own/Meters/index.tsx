@@ -36,7 +36,7 @@ import CustomDatagrid2, {
   CustomDatagridColumn2
 } from '../components/CustomDatagrid2';
 import { SearchCriteria, SortDirection } from '../../../models/owns/page';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Meter from '../../../models/owns/meter';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -61,7 +61,7 @@ import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import NoRowsMessageWrapper from '../components/NoRowsMessageWrapper';
 import { useExport } from '../../../hooks/useExport';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import {
   canAddReading,
   getImageAndFiles,
@@ -248,10 +248,22 @@ function Meters() {
     newValues.updateFrequency = Number(newValues.updateFrequency);
     return formatCustomFields(newValues);
   };
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteMeter(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteMeter(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setOpenDrawer(true);
+        onDeleteFailure(new Error('Meter deletion was not confirmed'));
+      }
+    } catch (err) {
+      setOpenDelete(false);
+      setOpenDrawer(true);
+      onDeleteFailure(err);
+    }
   };
   const handleOpenUpdate = () => {
     setOpenUpdateModal(true);
@@ -635,12 +647,12 @@ function Meters() {
               <SearchInput onChange={debouncedQueryChange} />
               <Stack direction={'row'} alignItems="center" spacing={1}>
                 <IconButton onClick={handleOpenMenu} color="primary">
-                  <MoreVertTwoToneIcon />
+                  <MoreVertOutlinedIcon />
                 </IconButton>
                 {hasCreatePermission(PermissionEntity.METERS) && (
                   <SplitButton
                     onMainClick={() => setOpenAddModal(true)}
-                    startIcon={<AddTwoToneIcon />}
+                    startIcon={<AddOutlinedIcon />}
                     label={t('meter')}
                     menuItems={
                       hasViewPermission(PermissionEntity.SETTINGS) &&

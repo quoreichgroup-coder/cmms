@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 
 import SuspenseLoader from 'src/components/SuspenseLoader';
 import analyticsRoutes from './analytics';
+import AnalyticsLayout from '../content/own/Analytics/AnalyticsLayout';
 
 const Loader = (Component) => (props) =>
   (
@@ -146,6 +147,9 @@ const CreatePurchaseOrders = Loader(
 );
 const Locations = Loader(lazy(() => import('../content/own/Locations')));
 const WorkOrders = Loader(lazy(() => import('../content/own/WorkOrders')));
+const MaintenanceDashboard = Loader(
+  lazy(() => import('../content/own/MaintenanceDashboard'))
+);
 
 const VendorsAndCustomers = Loader(
   lazy(() => import('../content/own/VendorsAndCustomers'))
@@ -174,6 +178,14 @@ const SwitchAccount = Loader(
   lazy(() => import('../content/own/SwitchAccount'))
 );
 const appRoutes = [
+  {
+    path: 'dashboard',
+    element: (
+      <AnalyticsLayout>
+        <MaintenanceDashboard />
+      </AnalyticsLayout>
+    )
+  },
   {
     path: 'settings',
     element: <SettingsLayout />,

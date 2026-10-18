@@ -96,6 +96,7 @@ export type RootStackParamList = {
   Tasks: {
     tasksProps: Task[];
     workOrderId: number;
+    isReadOnly?: boolean;
   };
   SelectParts: { onChange: (parts: PartMiniDTO[]) => void; selected: number[] };
   SelectCustomers: {
@@ -154,6 +155,11 @@ export type RootStackParamList = {
       feedback: string | undefined
     ) => Promise<boolean>;
     fieldsConfig: { feedback: boolean; signature: boolean };
+    workOrderContext: {
+      identifier: string;
+      title: string;
+      assetName?: string;
+    };
   };
   NotFound: undefined;
   Meters: undefined;

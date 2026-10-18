@@ -16,8 +16,8 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useState } from 'react';
-import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveTwoTone';
-import DownloadTwoToneIcon from '@mui/icons-material/DownloadTwoTone';
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { useDispatch } from '../../../../store';
 import { getPDFReport, ReportConfig } from '../../../../slices/workOrder';
 import ReportConfigFields from './ReportConfigFields';
@@ -143,10 +143,13 @@ export default function ReportConfigModal({
         ) : (
           <List dense disablePadding>
             {documents.map((document) => (
-              <ListItem key={document.id} divider secondaryAction={
+              <ListItem
+                key={document.id}
+                divider
+                secondaryAction={
                 <Tooltip title={t('download')}>
                   <IconButton aria-label={t('download')} onClick={() => downloadDocument(document)}>
-                    <DownloadTwoToneIcon />
+                    <DownloadOutlinedIcon />
                   </IconButton>
                 </Tooltip>
               }>
@@ -174,7 +177,7 @@ export default function ReportConfigModal({
           color="primary"
           onClick={handleIssue}
           disabled={issuing}
-          startIcon={issuing ? <CircularProgress size="1rem" /> : <ArchiveTwoToneIcon />}
+          startIcon={issuing ? <CircularProgress size="1rem" /> : <ArchiveOutlinedIcon />}
         >
           {t('issue_archive_document')}
         </Button>

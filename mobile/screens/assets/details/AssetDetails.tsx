@@ -195,7 +195,11 @@ export default function AssetDetails({
       {asset.hasChildren && (
         <View style={styles.childrenSection}>
           <View style={styles.childrenHeading}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
+            <Text
+              variant="titleMedium"
+              style={styles.sectionTitle}
+              accessibilityRole="header"
+            >
               {t('child_assets')}
             </Text>
             {canViewAssets && (
@@ -290,9 +294,14 @@ export default function AssetDetails({
           >
             <Text>{t('primary_worker')}</Text>
             <TouchableOpacity
+              accessibilityRole="link"
+              accessibilityLabel={`${t('primary_worker')}: ${
+                asset.primaryUser.firstName
+              } ${asset.primaryUser.lastName}`}
               onPress={() =>
                 navigation.push('UserDetails', { id: asset.primaryUser.id })
               }
+              style={styles.relatedObjectLink}
             >
               <Text
                 style={{
@@ -317,9 +326,12 @@ export default function AssetDetails({
           >
             <Text>{t('location')}</Text>
             <TouchableOpacity
+              accessibilityRole="link"
+              accessibilityLabel={`${t('location')}: ${asset.location.name}`}
               onPress={() =>
                 navigation.push('LocationDetails', { id: asset.location.id })
               }
+              style={styles.relatedObjectLink}
             >
               <Text
                 style={{
@@ -406,6 +418,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12
+  },
+  relatedObjectLink: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-end'
   },
   childText: { flex: 1, gap: 3 },
   childName: { fontWeight: '700' }

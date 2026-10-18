@@ -1,4 +1,4 @@
-import { FC, ReactNode, useEffect } from 'react';
+import { FC, ReactNode, useContext, useEffect } from 'react';
 import { alpha, Box, lighten, useTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 
@@ -7,6 +7,9 @@ import Header from './Header';
 import Intercom from '@intercom/messenger-js-sdk';
 import useAuth from '../../hooks/useAuth';
 import { intercomId, isCloudVersion } from '../../config';
+import { SidebarContext } from '../../contexts/SidebarContext';
+
+const COLLAPSED_SIDEBAR_WIDTH = '72px';
 
 interface ExtendedSidebarLayoutProps {
   children?: ReactNode;
@@ -15,6 +18,10 @@ interface ExtendedSidebarLayoutProps {
 const ExtendedSidebarLayout: FC<ExtendedSidebarLayoutProps> = () => {
   const theme = useTheme();
   const { user } = useAuth();
+  const { desktopSidebarCollapsed } = useContext(SidebarContext);
+  const sidebarWidth = desktopSidebarCollapsed
+    ? COLLAPSED_SIDEBAR_WIDTH
+    : theme.sidebar.width;
 
   useEffect(() => {
     if (user && user.ownsCompany && isCloudVersion && intercomId)
@@ -67,7 +74,10 @@ const ExtendedSidebarLayout: FC<ExtendedSidebarLayoutProps> = () => {
             flex: 1,
             pt: `${theme.header.height}`,
             [theme.breakpoints.up('lg')]: {
-              ml: `${theme.sidebar.width}`
+              ml: sidebarWidth,
+              transition: theme.transitions.create('margin-left', {
+                duration: theme.transitions.duration.shortest
+              })
             }
           }}
         >

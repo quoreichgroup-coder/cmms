@@ -78,7 +78,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
   slug: 'atlas-cmms',
-  version: '1.0.58',
+  version: '1.0.59',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'atlascmms',
@@ -104,7 +104,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: 'com.cmms.atlas',
-    buildNumber: '12',
+    buildNumber: '13',
     jsEngine: 'hermes',
     supportsTablet: false,
     runtimeVersion: { policy: 'appVersion' },
@@ -120,7 +120,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#071b3d'
     },
-    versionCode: 41,
+    versionCode: 42,
     package: 'com.atlas.cmms',
     jsEngine: 'hermes',
     edgeToEdgeEnabled: true,

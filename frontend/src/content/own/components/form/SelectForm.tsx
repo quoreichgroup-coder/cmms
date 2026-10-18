@@ -2,6 +2,7 @@ import { Autocomplete, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 interface PropsType {
+  name: string;
   options: {
     label: string;
     value: string | number;
@@ -44,6 +45,7 @@ export default (props: PropsType) => {
       renderInput={(params) => (
         <TextField
           {...params}
+          name={props.name}
           fullWidth={props.fullWidth || true}
           variant="outlined"
           required={props.required}

@@ -31,6 +31,7 @@ import {
   IconButton,
   Paper,
   TablePagination,
+  TableSortLabel,
   CircularProgress,
   alpha,
   Menu,
@@ -70,6 +71,8 @@ declare module '@tanstack/react-table' {
     enableReordering?: boolean;
   }
 }
+
+let nextCustomDatagridId = 0;
 
 export type CustomDatagridColumn2<TData extends RowData = any> =
   ColumnDef<TData> & {
@@ -119,8 +122,6 @@ interface CustomDatagrid2Props<TData extends RowData> {
   hidePagination?: boolean;
   getRowId?: (row: TData) => string;
 }
-
-const PINNED_BG = '#F2F5F9';
 
 function CustomDatagrid2<TData extends RowData>({
   columns,
@@ -183,6 +184,12 @@ function CustomDatagrid2<TData extends RowData>({
   const [currentColumnId, setCurrentColumnId] = useState<string | null>(null);
   const [columnsMenuAnchor, setColumnsMenuAnchor] =
     useState<null | HTMLElement>(null);
+  const datagridIdRef = useRef<string>();
+  if (!datagridIdRef.current) {
+    datagridIdRef.current = `custom-datagrid-${nextCustomDatagridId++}`;
+  }
+  const columnActionMenuId = `${datagridIdRef.current}-column-actions`;
+  const columnsVisibilityMenuId = `${datagridIdRef.current}-column-visibility`;
 
   const openMenu = Boolean(anchorEl);
   const openColumnsMenu = Boolean(columnsMenuAnchor);
@@ -395,28 +402,28 @@ function CustomDatagrid2<TData extends RowData>({
         <IconButton
           onClick={handleFirstPageClick}
           disabled={page === 0}
-          aria-label="first page"
+          aria-label={t('first_page')}
         >
           <FirstPageIcon />
         </IconButton>
         <IconButton
           onClick={handleBackClick}
           disabled={page === 0}
-          aria-label="previous page"
+          aria-label={t('previous_page')}
         >
           <KeyboardArrowLeft />
         </IconButton>
         <IconButton
           onClick={handleNextClick}
           disabled={page >= totalPages - 1}
-          aria-label="next page"
+          aria-label={t('next_page')}
         >
           <KeyboardArrowRight />
         </IconButton>
         <IconButton
           onClick={handleLastPageClick}
           disabled={page >= totalPages - 1}
-          aria-label="last page"
+          aria-label={t('last_page')}
         >
           <LastPageIcon />
         </IconButton>
@@ -524,7 +531,7 @@ function CustomDatagrid2<TData extends RowData>({
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 borderBottom: `1px solid ${theme.palette.divider}`,
-                backgroundColor: '#E8EAEE',
+                backgroundColor: theme.palette.action.hover,
                 position: 'sticky',
                 top: 0,
                 zIndex: 3
@@ -543,6 +550,15 @@ function CustomDatagrid2<TData extends RowData>({
                 {headerGroup.headers.map((header) => {
                   const isSortable = header.column.getCanSort();
                   const sortDirection = header.column.getIsSorted();
+                  const renderedHeader = flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  );
+                  const accessibleHeaderLabel =
+                    typeof renderedHeader === 'string' ||
+                    typeof renderedHeader === 'number'
+                      ? String(renderedHeader)
+                      : header.id;
                   const canResize = header.column.getCanResize();
                   const isResizing = header.column.getIsResizing();
                   const isPinned = isColumnPinned(header.id);
@@ -555,23 +571,30 @@ function CustomDatagrid2<TData extends RowData>({
                   return (
                     <TableCell
                       key={header.id}
+                      aria-sort={
+                        sortDirection === 'asc'
+                          ? 'ascending'
+                          : sortDirection === 'desc'
+                          ? 'descending'
+                          : undefined
+                      }
                       sx={{
                         whiteSpace: 'nowrap',
                         position: isPinned ? 'sticky' : 'relative',
                         left: isPinned ? stickyLeft : undefined,
-                        backgroundColor: PINNED_BG,
+                        backgroundColor: theme.palette.background.paper,
                         userSelect: isResizing ? 'none' : 'auto',
                         cursor: canDrag ? 'pointer' : 'default',
                         borderRight: isPinned
                           ? `2px solid ${theme.palette.divider}`
-                          : `1px solid #F2F5F9`,
+                          : `1px solid ${theme.palette.divider}`,
                         boxShadow: isPinned
                           ? `2px 0 4px ${alpha(
                               theme.palette.common.black,
                               0.08
                             )}`
                           : undefined,
-                        '&:hover .sort-icon, &:hover .more-vert-icon': {
+                        '&:hover .more-vert-icon': {
                           opacity: 1
                         }
                       }}
@@ -591,12 +614,6 @@ function CustomDatagrid2<TData extends RowData>({
                         canDrag ? handleDrop(e, header.id) : undefined
                       }
                       onDragEnd={handleDragEnd}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isSortable) {
-                          header.column.toggleSorting();
-                        }
-                      }}
                     >
                       <Box
                         sx={{
@@ -613,28 +630,52 @@ function CustomDatagrid2<TData extends RowData>({
                             flexGrow: 1
                           }}
                         >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                          {isSortable && (
-                            <ArrowDownwardIcon
-                              className="sort-icon"
-                              sx={{
-                                fontSize: 16,
-                                opacity: sortDirection ? 1 : 0,
-                                transform:
-                                  sortDirection === 'asc'
-                                    ? 'rotate(180deg)'
-                                    : 'rotate(0deg)',
-                                transition: 'all 0.2s'
+                          {isSortable ? (
+                            <TableSortLabel
+                              active={Boolean(sortDirection)}
+                              direction={sortDirection || 'asc'}
+                              IconComponent={ArrowDownwardIcon}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                header.column.toggleSorting();
                               }}
-                            />
+                              sx={{
+                                color: 'inherit',
+                                '&:focus-visible': {
+                                  outline: `2px solid ${theme.palette.primary.main}`,
+                                  outlineOffset: 2,
+                                  borderRadius: 1
+                                },
+                                '& .MuiTableSortLabel-icon': {
+                                  opacity: sortDirection ? 1 : 0.45
+                                }
+                              }}
+                            >
+                              {renderedHeader}
+                            </TableSortLabel>
+                          ) : (
+                            renderedHeader
                           )}
                         </Box>
                         <IconButton
                           className="more-vert-icon"
                           size="small"
+                          aria-label={`${t(
+                            'actions'
+                          )}: ${accessibleHeaderLabel}`}
+                          aria-haspopup="menu"
+                          aria-controls={
+                            currentColumnId === header.id &&
+                            (openMenu || openColumnsMenu)
+                              ? openColumnsMenu
+                                ? columnsVisibilityMenuId
+                                : columnActionMenuId
+                              : undefined
+                          }
+                          aria-expanded={
+                            currentColumnId === header.id &&
+                            (openMenu || openColumnsMenu)
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             handleMenuClick(e, header.id);
@@ -648,7 +689,9 @@ function CustomDatagrid2<TData extends RowData>({
                                 theme.palette.common.black,
                                 0.1
                               )
-                            }
+                            },
+                            '&:focus-visible': { opacity: 1 },
+                            '@media (hover: none)': { opacity: 1 }
                           }}
                         >
                           <MoreVertIcon fontSize="small" />
@@ -697,47 +740,67 @@ function CustomDatagrid2<TData extends RowData>({
             ))}
           </TableHead>
           <TableBody
+            aria-busy={loading}
             sx={{
               opacity: loading ? 0.3 : 1,
               transition: 'opacity 0.2s'
             }}
           >
             {table.getRowModel().rows.length === 0 ? (
-              <Box
-                style={{
-                  marginTop: 130,
-                  width: scrollContainerRef.current?.clientWidth ?? 500,
-                  maxWidth: scrollContainerRef.current?.clientWidth ?? 500
-                }}
-              >
-                <NoRowsMessageWrapper
-                  message={noRowsMessage}
-                  action={noRowsAction}
-                />
-              </Box>
+              <TableRow>
+                <TableCell
+                  colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
+                  sx={{ height: 280, border: 0 }}
+                >
+                  <NoRowsMessageWrapper
+                    message={noRowsMessage}
+                    action={noRowsAction}
+                  />
+                </TableCell>
+              </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => {
                 const rowDepth = (row.original as any)?.depth ?? 0;
                 const isNested = rowDepth > 0;
                 const backgroundColor = isNested
-                  ? rowDepth % 2 === 0
-                    ? theme.colors.primary.light
-                    : theme.palette.primary.main
+                  ? alpha(theme.palette.primary.main, 0.08)
                   : undefined;
-                const textColor = isNested ? 'white' : undefined;
+                const textColor = isNested
+                  ? theme.palette.text.primary
+                  : undefined;
 
                 return (
                   <TableRow
                     key={row.id}
                     onClick={() => onRowClick && onRowClick(row.original)}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={
+                      onRowClick
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              onRowClick(row.original);
+                            }
+                          }
+                        : undefined
+                    }
                     sx={{
                       '&:last-child td, &:last-child th': { border: 0 },
                       backgroundColor,
                       color: textColor,
+                      cursor: onRowClick ? 'pointer' : undefined,
+                      // Keep hover feedback subtle and theme-aware. A solid
+                      // brand fill made nested rows difficult to read and
+                      // left pinned cells visually detached from the row.
+                      '&:hover > .MuiTableCell-root': {
+                        backgroundColor: theme.palette.action.hover
+                      },
+                      '&:focus-visible': {
+                        outline: `2px solid ${theme.palette.primary.main}`,
+                        outlineOffset: -2
+                      },
                       '&:hover': {
-                        backgroundColor: isNested
-                          ? theme.palette.primary.main
-                          : alpha(theme.palette.primary.main, 0.04)
+                        backgroundColor: theme.palette.action.hover
                       }
                     }}
                   >
@@ -746,6 +809,15 @@ function CustomDatagrid2<TData extends RowData>({
                         <Checkbox
                           checked={row.getIsSelected()}
                           onChange={row.getToggleSelectedHandler()}
+                          inputProps={{
+                            'aria-label': `${t('select')} ${row.id}`
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.stopPropagation();
+                            }
+                          }}
                         />
                       </TableCell>
                     )}
@@ -763,7 +835,9 @@ function CustomDatagrid2<TData extends RowData>({
                             textOverflow: 'ellipsis',
                             position: isPinned ? 'sticky' : undefined,
                             left: isPinned ? stickyLeft : undefined,
-                            backgroundColor: isPinned ? PINNED_BG : undefined,
+                            backgroundColor: isPinned
+                              ? theme.palette.background.paper
+                              : undefined,
                             borderRight: isPinned
                               ? `2px solid ${theme.palette.divider}`
                               : undefined,
@@ -804,17 +878,21 @@ function CustomDatagrid2<TData extends RowData>({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: alpha(theme.palette.common.white, 0.5),
+            backgroundColor: alpha(theme.palette.background.paper, 0.72),
             zIndex: 10,
             pointerEvents: 'none'
           }}
+          role="status"
+          aria-live="polite"
+          aria-label={t('loading')}
         >
-          <CircularProgress />
+          <CircularProgress aria-label={t('loading')} />
         </Box>
       )}
 
       {/* Column header menu */}
       <Menu
+        id={columnActionMenuId}
         anchorEl={anchorEl}
         open={openMenu}
         onClose={handleMenuClose}
@@ -850,6 +928,7 @@ function CustomDatagrid2<TData extends RowData>({
 
       {/* Columns visibility menu */}
       <Menu
+        id={columnsVisibilityMenuId}
         anchorEl={columnsMenuAnchor}
         open={openColumnsMenu}
         onClose={handleColumnsMenuClose}
@@ -924,7 +1003,12 @@ function CustomDatagrid2<TData extends RowData>({
             })
           }
           rowsPerPageOptions={pageSizeOptions}
-          // labelRowsPerPage={t('rows_per_page')}
+          labelRowsPerPage={t('items_per_page')}
+          labelDisplayedRows={({ from, to, count }) =>
+            count === -1
+              ? t('pagination_displayed_rows_unknown', { from, to })
+              : t('pagination_displayed_rows', { from, to, count })
+          }
           ActionsComponent={TablePaginationActions}
           sx={{
             borderTop: `1px solid ${theme.palette.divider}`,

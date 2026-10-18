@@ -62,7 +62,7 @@ const slice = createSlice({
     deleteFile(state: FileState, action: PayloadAction<{ id: number }>) {
       const { id } = action.payload;
       const fileIndex = state.files.content.findIndex((file) => file.id === id);
-      state.files.content.splice(fileIndex, 1);
+      if (fileIndex !== -1) state.files.content.splice(fileIndex, 1);
     },
     setLoadingGet(
       state: FileState,

@@ -10,7 +10,7 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import TaskAltTwoToneIcon from '@mui/icons-material/TaskAltTwoTone';
+import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import { useContext, useEffect, useState } from 'react';
 import SingleTask from '../../components/form/SelectTasks/SingleTask';
 import { Task } from '../../../../models/owns/tasks';
@@ -165,7 +165,7 @@ export default function Tasks({
   };
   return (
     <Card>
-      <CardHeader title={t('tasks')} avatar={<TaskAltTwoToneIcon />} />
+      <CardHeader title={t('tasks')} avatar={<TaskAltOutlinedIcon />} />
       <Divider />
       <CardContent>
         <FormControl fullWidth>

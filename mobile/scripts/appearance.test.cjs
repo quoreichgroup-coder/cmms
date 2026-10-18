@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 const { mobileRuntime } = require('./mobile-test-runtime.cjs');
 
@@ -16,6 +18,7 @@ const { createQpmActionSheetContainerStyle } = mobileRuntime().load(
 const {
   getPriorityColor,
   getPriorityForegroundColor,
+  getStatusContainerColor,
   getStatusColor,
   getStatusForegroundColor
 } = mobileRuntime().load('utils/overall.ts');
@@ -46,11 +49,37 @@ test('appearance preference safely defaults invalid stored values to system', ()
   assert.equal(parseAppearancePreference('system'), 'system');
 });
 
+test('all appearance choices meet the QPM minimum touch target', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/SettingsScreen.tsx'),
+    'utf8'
+  );
+  const appearanceOptions = [
+    ...source.matchAll(
+      /value: '(system|light|dark)'[\s\S]*?style: styles\.appearanceOption/g
+    )
+  ];
+
+  assert.deepEqual(
+    appearanceOptions.map((match) => match[1]),
+    ['system', 'light', 'dark']
+  );
+  assert.match(
+    source,
+    /appearanceOption:\s*\{\s*minHeight:\s*qpmLayoutTokens\.touchTarget\.minimum/
+  );
+});
+
 test('QPM layout radius scale distinguishes controls, cards and dashboard cards', () => {
   assert.equal(qpmLayoutTokens.radius.control, 10);
   assert.equal(qpmLayoutTokens.radius.card, 16);
   assert.equal(qpmLayoutTokens.radius.cardLarge, 20);
   assert.equal(qpmLayoutTokens.radius.sheet, 24);
+});
+
+test('QPM touch target tokens meet the field minimum and primary action size', () => {
+  assert.equal(qpmLayoutTokens.touchTarget.minimum, 48);
+  assert.equal(qpmLayoutTokens.touchTarget.prominent, 56);
 });
 
 test('QPM themes expose the semantic shadow color through Paper', () => {
@@ -330,7 +359,14 @@ test('interactive control outlines remain distinguishable on QPM surfaces', () =
 });
 
 test('semantic status foreground tokens remain readable in both modes', () => {
-  const statusTokens = ['success', 'warning', 'error', 'info', 'complete'];
+  const statusTokens = [
+    'success',
+    'inProgress',
+    'warning',
+    'error',
+    'info',
+    'complete'
+  ];
   for (const mode of ['light', 'dark']) {
     for (const token of statusTokens) {
       assert.ok(
@@ -353,6 +389,7 @@ test('status message foreground tokens meet AA contrast on their status fills', 
       'error',
       'info',
       'complete',
+      'inProgress',
       'assetModernization',
       'assetCommissioning'
     ]) {
@@ -368,7 +405,7 @@ test('status message foreground tokens meet AA contrast on their status fills', 
 });
 
 test('semantic status containers use QPM palettes and meet AA text contrast', () => {
-  const statuses = ['success', 'warning', 'error', 'info'];
+  const statuses = ['success', 'inProgress', 'warning', 'error', 'info'];
   for (const mode of ['light', 'dark']) {
     const colors = qpmDesignTokens[mode];
     for (const status of statuses) {
@@ -390,8 +427,7 @@ test('priority foreground tokens meet AA contrast on their matching fills', () =
   const priorities = [
     ['neutral', 'onNeutral'],
     ['info', 'onInfo'],
-    ['warning', 'onWarning'],
-    ['error', 'onError']
+    ['warning', 'onWarning']
   ];
   for (const mode of ['light', 'dark']) {
     const colors = qpmDesignTokens[mode];
@@ -417,21 +453,35 @@ test('maintenance status and priority helpers keep their semantic token mapping'
 
     assert.equal(getStatusColor('OPEN', theme), colors.neutral);
     assert.equal(getStatusForegroundColor('OPEN', theme), colors.onNeutral);
-    assert.equal(getStatusColor('IN_PROGRESS', theme), colors.success);
+    assert.equal(getStatusColor('IN_PROGRESS', theme), colors.inProgress);
     assert.equal(
       getStatusForegroundColor('IN_PROGRESS', theme),
-      colors.onSuccess
+      colors.onInProgress
     );
     assert.equal(getStatusColor('ON_HOLD', theme), colors.warning);
     assert.equal(getStatusColor('LATE_WO', theme), colors.error);
     assert.equal(getStatusColor('TODAY_WO', theme), colors.brandPrimary);
-    assert.equal(getStatusColor('COMPLETE', theme), colors.complete);
+    assert.equal(getStatusColor('HIGH_WO', theme), colors.warning);
+    assert.equal(getStatusColor('COMPLETE', theme), colors.success);
+    assert.equal(getStatusForegroundColor('COMPLETE', theme), colors.onSuccess);
+    assert.equal(
+      getStatusContainerColor('IN_PROGRESS', theme),
+      colors.inProgressContainer
+    );
+    assert.equal(
+      getStatusContainerColor('HIGH_WO', theme),
+      colors.warningContainer
+    );
+    assert.equal(
+      getStatusContainerColor('COMPLETE', theme),
+      colors.successContainer
+    );
 
     const priorities = [
       ['NONE', 'neutral', 'onNeutral'],
       ['LOW', 'info', 'onInfo'],
       ['MEDIUM', 'warning', 'onWarning'],
-      ['HIGH', 'error', 'onError']
+      ['HIGH', 'warning', 'onWarning']
     ];
     for (const [priority, fill, foreground] of priorities) {
       assert.equal(getPriorityColor(priority, theme), colors[fill]);
@@ -460,4 +510,32 @@ test('unselected interactive control indicators meet 3:1 contrast on QPM surface
       );
     }
   }
+});
+
+test('settings row icons are decorative instead of nested interactive buttons', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/SettingsScreen.tsx'),
+    'utf8'
+  );
+
+  assert.doesNotMatch(source, /IconButton/);
+  const leftIcons = source.match(/<List\.Icon\b/g);
+  assert.equal(leftIcons?.length, 5);
+  assert.match(
+    source,
+    /left=\{\(props\) => <List\.Icon \{\.\.\.props\} icon="swap-horizontal"/
+  );
+  assert.match(source, /color=\{theme\.colors\.error\} icon="logout"/);
+  assert.match(
+    source,
+    /left=\{\(props\) => <List\.Icon \{\.\.\.props\} icon="license"/
+  );
+  assert.match(
+    source,
+    /left=\{\(props\) => <List\.Icon \{\.\.\.props\} icon="domain"/
+  );
+  assert.match(
+    source,
+    /left=\{\(props\) => \([\s\S]*?icon="information-outline"/
+  );
 });

@@ -14,10 +14,10 @@ import {
   useTheme
 } from '@mui/material';
 import Field from '../Field';
-import NoteTwoToneIcon from '@mui/icons-material/NoteTwoTone';
-import AttachFileTwoToneIcon from '@mui/icons-material/AttachFileTwoTone';
-import SpeedTwoToneIcon from '@mui/icons-material/SpeedTwoTone';
-import ArrowDropDownCircleTwoToneIcon from '@mui/icons-material/ArrowDropDownCircleTwoTone';
+import NoteOutlinedIcon from '@mui/icons-material/NoteOutlined';
+import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
+import ArrowDropDownCircleOutlinedIcon from '@mui/icons-material/ArrowDropDownCircleOutlined';
 import { Task, TaskOption, TaskType } from '../../../../../models/owns/tasks';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -163,7 +163,7 @@ export default function SingleTask({
         <Box>
           <Tooltip arrow placement="top" title={t('see_details')}>
             <IconButton onClick={() => !preview && toggleNotes(task.id)}>
-              <ArrowDropDownCircleTwoToneIcon />
+              <ArrowDropDownCircleOutlinedIcon />
             </IconButton>
           </Tooltip>
           {task.taskBase.taskType === 'METER' && (
@@ -172,12 +172,12 @@ export default function SingleTask({
                 !preview && navigate(`/app/meters/${task.taskBase.meter.id}`)
               }
             >
-              <SpeedTwoToneIcon color="primary" />
+              <SpeedOutlinedIcon color="primary" />
             </IconButton>
           )}
           <Tooltip arrow placement="top" title={t('add_notes')}>
             <IconButton onClick={() => !preview && toggleNotes(task.id)}>
-              <NoteTwoToneIcon color="primary" />
+              <NoteOutlinedIcon color="primary" />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -202,7 +202,7 @@ export default function SingleTask({
                   )
                 }
               >
-                <AttachFileTwoToneIcon color="primary" />
+                <AttachFileOutlinedIcon color="primary" />
               </IconButton>
             </span>
           </Tooltip>

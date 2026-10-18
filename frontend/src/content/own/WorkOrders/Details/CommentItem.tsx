@@ -14,20 +14,21 @@ import { MentionsTextField } from '@jackstenglein/mui-mentions';
 import Comment from '../../../../models/owns/comment';
 import { useContext, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import { useDispatch, useSelector } from '../../../../store';
 import { deleteComment, updateComment } from '../../../../slices/comment';
 import { getUsersMini } from '../../../../slices/user';
 import useAuth from '../../../../hooks/useAuth';
 import File from '../../../../models/owns/file';
-import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveTwoTone';
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import ImageViewer from 'react-simple-image-viewer';
 import mime from 'mime';
 import { InsertDriveFile } from '@mui/icons-material';
 import { getUserUrl } from '../../../../utils/urlPaths';
 import { useNavigate } from 'react-router-dom';
+import { getSafeHttpUrl } from '../../../../utils/safeWindow';
 
 const CommentWrapper = styled(Box)<{ highlighted?: boolean }>(
   ({ theme, highlighted }) => `
@@ -238,10 +239,10 @@ export default function CommentItem(props: CommentItemProps) {
                       onClick={() => setIsEditing(true)}
                       sx={{ mr: 0.5 }}
                     >
-                      <EditTwoToneIcon fontSize="small" color="primary" />
+                      <EditOutlinedIcon fontSize="small" color="primary" />
                     </IconButton>
                     <IconButton size="small" onClick={handleDelete}>
-                      <DeleteTwoToneIcon fontSize="small" color="error" />
+                      <DeleteOutlinedIcon fontSize="small" color="error" />
                     </IconButton>
                   </Box>
                 )}
@@ -334,36 +335,42 @@ export default function CommentItem(props: CommentItemProps) {
                   )}
                   {otherFiles.length > 0 && (
                     <Stack spacing={1}>
-                      {otherFiles.map((file) => (
-                        <Box
-                          key={file.id}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            p: 1,
-                            borderRadius: 1,
-                            bgcolor: 'background.default'
-                          }}
-                        >
-                          <InsertDriveFile color="error" />
-                          <Typography
-                            variant="body2"
-                            sx={{ flex: 1, minWidth: 0 }}
-                            noWrap
+                      {otherFiles.map((file) => {
+                        const safeUrl = getSafeHttpUrl(file.url);
+                        return (
+                          <Box
+                            key={file.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              p: 1,
+                              borderRadius: 1,
+                              bgcolor: 'background.default'
+                            }}
                           >
-                            {file.name}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            component="a"
-                            href={file.url}
-                            download={file.name}
-                          >
-                            <ArchiveTwoToneIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ))}
+                            <InsertDriveFile color="error" />
+                            <Typography
+                              variant="body2"
+                              sx={{ flex: 1, minWidth: 0 }}
+                              noWrap
+                            >
+                              {file.name}
+                            </Typography>
+                            {safeUrl && (
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={safeUrl}
+                                download={file.name}
+                                aria-label={`${t('download')} ${file.name}`}
+                              >
+                                <ArchiveOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </Box>
+                        );
+                      })}
                     </Stack>
                   )}
                 </Box>

@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -53,17 +52,22 @@ public class WebhookEndpointService {
                 && user.getCompany().getSubscription().getSubscriptionPlan().getFeatures()
                 .contains(PlanFeatures.WEBHOOK)))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        WebhookEndpoint savedWebhookEndpoint = webhookEndpointRepository.findById(id).orElse(null);
-        if (savedWebhookEndpoint != null) {
+        WebhookEndpoint savedWebhookEndpoint = webhookEndpointRepository
+                .findByIdAndCompanyId(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        if (webhookEndpointReq.getUrl() != null) {
             WebhookUrlValidator.validate(webhookEndpointReq.getUrl());
-            WebhookEndpoint webhookEndpoint1 = webhookEndpointMapper.updateWebhookEndpoint(savedWebhookEndpoint,
-                    webhookEndpointReq);
-            return webhookEndpointRepository.save(webhookEndpoint1);
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        }
+        WebhookEndpoint updated = webhookEndpointMapper.updateWebhookEndpoint(
+                savedWebhookEndpoint, webhookEndpointReq);
+        return webhookEndpointRepository.save(updated);
     }
 
-    public void delete(Long id) {
-        webhookEndpointRepository.deleteById(id);
+    public void delete(Long id, User user) {
+        WebhookEndpoint endpoint = webhookEndpointRepository
+                .findByIdAndCompanyId(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        webhookEndpointRepository.delete(endpoint);
     }
 
 
@@ -86,7 +90,4 @@ public class WebhookEndpointService {
         return "whsec_" + HexFormat.of().formatHex(bytes);
     }
 
-    public Optional<WebhookEndpoint> findById(Long id) {
-        return webhookEndpointRepository.findById(id);
-    }
 }

@@ -1,7 +1,13 @@
 import { FC, useState, createContext } from 'react';
+import {
+  readDesktopSidebarCollapsed,
+  writeDesktopSidebarCollapsed
+} from 'src/utils/sidebarState';
 type SidebarContext = {
-  sidebarToggle: any;
+  sidebarToggle: boolean;
+  desktopSidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  toggleDesktopSidebar: () => void;
   closeSidebar: () => void;
 };
 
@@ -12,8 +18,18 @@ export const SidebarContext = createContext<SidebarContext>(
 
 export const SidebarProvider: FC = ({ children }) => {
   const [sidebarToggle, setSidebarToggle] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(
+    readDesktopSidebarCollapsed
+  );
   const toggleSidebar = () => {
-    setSidebarToggle(!sidebarToggle);
+    setSidebarToggle((isOpen) => !isOpen);
+  };
+  const toggleDesktopSidebar = () => {
+    setDesktopSidebarCollapsed((isCollapsed) => {
+      const nextValue = !isCollapsed;
+      writeDesktopSidebarCollapsed(nextValue);
+      return nextValue;
+    });
   };
   const closeSidebar = () => {
     setSidebarToggle(false);
@@ -21,7 +37,13 @@ export const SidebarProvider: FC = ({ children }) => {
 
   return (
     <SidebarContext.Provider
-      value={{ sidebarToggle, toggleSidebar, closeSidebar }}
+      value={{
+        sidebarToggle,
+        desktopSidebarCollapsed,
+        toggleSidebar,
+        toggleDesktopSidebar,
+        closeSidebar
+      }}
     >
       {children}
     </SidebarContext.Provider>

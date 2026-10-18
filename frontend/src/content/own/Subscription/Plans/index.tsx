@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import PersonTwoToneIcon from '@mui/icons-material/PersonTwoTone';
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
 import { randomInt } from '../../../../utils/generators';
 import {
   Box,
@@ -229,7 +229,7 @@ function SubscriptionPlans() {
                 </Typography>
               </Stack>
               <Stack direction="row" spacing={1}>
-                <PersonTwoToneIcon />
+                <PersonOutlinedIcon />
                 <Typography variant="h6">
                   {subscription.usersCount} {t(`Users`)}
                 </Typography>

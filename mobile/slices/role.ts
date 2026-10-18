@@ -40,7 +40,7 @@ const slice = createSlice({
     deleteRole(state: RoleState, action: PayloadAction<{ id: number }>) {
       const { id } = action.payload;
       const roleIndex = state.roles.findIndex((role) => role.id === id);
-      state.roles.splice(roleIndex, 1);
+      if (roleIndex !== -1) state.roles.splice(roleIndex, 1);
     },
     setLoadingGet(
       state: RoleState,

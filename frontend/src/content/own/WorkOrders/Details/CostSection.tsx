@@ -10,8 +10,8 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { Fragment, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from '../../../../store';
@@ -109,12 +109,12 @@ export default function CostSection({
                           <IconButton
                             onClick={() => handleEdit(additionalCost)}
                           >
-                            <EditTwoToneIcon fontSize="small" color="primary" />
+                            <EditOutlinedIcon fontSize="small" color="primary" />
                           </IconButton>
                           <IconButton
                             onClick={() => handleDelete(additionalCost)}
                           >
-                            <DeleteTwoToneIcon fontSize="small" color="error" />
+                            <DeleteOutlinedIcon fontSize="small" color="error" />
                           </IconButton>
                         </>
                       )}

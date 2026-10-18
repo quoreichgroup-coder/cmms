@@ -275,6 +275,7 @@ export default function SelectLocationsModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}

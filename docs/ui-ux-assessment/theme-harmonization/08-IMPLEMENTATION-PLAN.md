@@ -216,6 +216,22 @@ Contraste du chronomètre et revue du flux de clôture WO (13 octobre 2026) : le
 
 Revalidation après signalement du contraste pendant l’exécution (13 octobre 2026) : React Native Paper réduit le contraste de premier plan quand le FAB est désactivé/occupé; le style du FAB conservait alors le fond d’action coloré. Le calcul des couleurs utilise désormais `surfaceDisabled` et `onSurfaceDisabled` ensemble dans cet état, tout en conservant les couples primaire/sur-primaire (5,12:1 clair; 8,11:1 sombre) et erreur/sur-erreur (5,57:1 clair; 7,88:1 sombre) en état actif. Le parcours confirmé reste : démarrer/arrêter le temps (enregistrement séparé), compléter les tâches et les autres champs exigés, recueillir feedback/signature si configurés, puis confirmer la clôture au niveau du WO. SAP décrit des confirmations partielles/finales par opération, information que le modèle/API QPM actuel ne représente pas; aucune pseudo-confirmation opérationnelle n’est ajoutée. Les 11 suites, TypeScript, Prettier et `git diff --check` passent. Contraste perçu, tailles tactiles et annonce TalkBack/VoiceOver sont à vérifier sur téléphone; aucun APK n’a été reconstruit pour ce correctif.
 
+Filtres rapides de Work Orders (14 octobre 2026) : les contrôles de filtre rapide et enum reprennent maintenant les tokens QPM `radius.pill` et `radius.control` au lieu de rayons ponctuels codés en dur. Libellés, critères, sélection, couleurs, permissions et appels restent inchangés. Prettier, TypeScript, les 14 suites de régression, `git diff --check` et l’export Expo Android (2 211 modules) passent; contrôle clair/sombre et petit écran sur appareil encore requis.
+
+Lisibilité des échéances dans les cartes WO (14 octobre 2026) : les dates imminentes ont désormais un badge visible « Échéance imminente » en plus de leur couleur d’avertissement; les retards conservent leur badge d’erreur. Les badges et le libellé accessible utilisent le même seuil déjà défini, et restent absents des ordres terminés. Aucun tri, calcul, endpoint ou droit ne change. Les 14 suites, TypeScript, Prettier, `git diff --check` et l’export Expo Android (2 211 modules) passent. Ajouter au test visuel mobile la comparaison des dates normale/proche/passée/WO terminé en clair/sombre sur petit écran.
+
+Rayons des commentaires WO (14 octobre 2026) : la carte de commentaire reprend le rayon de carte QPM (16 dp); suggestions de mention, champ d’édition, vignettes et pièces jointes utilisent le rayon de contrôle (10 dp). `CommentItem` et le compositeur de commentaires partagent ainsi la même échelle que les autres écrans. Contenu, permissions, upload/téléchargement et mutations inchangés. Prettier, TypeScript, 14 suites, `git diff --check` et export Expo Android (2 211 modules) passent; affichage clair/sombre et clavier à valider sur appareil.
+
+Scan QR mobile (14 octobre 2026) : l’aperçu caméra utilise maintenant tout l’espace disponible de la modale plutôt que la hauteur brute de fenêtre; un cadre responsive et un indice de scan localisé aident à viser le code. Le nom/aide accessible décrivent le lecteur. Lecture, permission, callback, API et permissions métier inchangés. TypeScript, Prettier, 14 suites, `git diff --check` et export Expo Android (2 211 modules) passent; tester caméra, retour, QR connu/inconnu, clair/sombre et lecteur d’écran sur appareil.
+
+Filtres WO avec options associées supprimées ou devenues inaccessibles (15 octobre 2026) : la reconstitution des étiquettes de filtre affiche maintenant `#<id>` pour toute valeur sauvegardée absente des options chargées, au lieu d’appeler le formateur avec `undefined` et de faire planter le formulaire. L’identifiant sélectionné est conservé pour que le filtre transmis reste inchangé. Test de régression ajouté. Prettier, TypeScript, 14 suites mobiles, `git diff --check` et exports Expo Android (2 212 modules), iOS (2 181) et Web (1 898) passent. Tester avec un filtre enregistré contenant un utilisateur/actif supprimé et une réponse API normale sur appareil.
+
+Recherche multi-champs non mutante (15 octobre 2026) : `onSearchQueryChange` retirait le premier champ avec `shift()`, ce qui modifiait le tableau reçu et pouvait faire disparaître des champs de recherche aux appels successifs si une liste de champs était réutilisée. Le helper utilise maintenant une décomposition sans mutation. Le test envoie deux requêtes successives avec le même tableau et vérifie les alternatives complètes et la conservation des autres filtres. Prettier, TypeScript, 14 suites mobiles, `git diff --check` et export Expo Android (2 212 modules) passent.
+
+Noms accessibles des recherches mobiles (15 octobre 2026) : les champs Searchbar de Work Orders, Actifs, Emplacements, Compteurs et des sélecteurs d’actif, compteur, fournisseur, pièce, équipe, client, utilisateur, emplacement et checklist exposent maintenant le nom traduit `search` aux lecteurs d’écran. Un test balaie les écrans et exige ce nom sur chaque Searchbar, y compris les contrôles déjà conformes. Aucun filtre ou comportement de saisie ne change. Prettier, TypeScript, 14 suites mobiles, `git diff --check` et export Expo Android (2 212 modules) passent; annonces TalkBack/VoiceOver à confirmer sur appareil.
+
+Réponses de recherche compteur ordonnées par requête (15 octobre 2026) : la liste des compteurs appliquait chaque réponse dans son ordre d’arrivée; une ancienne recherche lente pouvait ainsi remplacer les résultats de la recherche la plus récente. La slice protège maintenant première page et pagination avec un identifiant monotone et ne ferme l’état de chargement de liste qu’à la fin de la requête active. La vue liste observe un indicateur séparé du chargement des détails du compteur. Le test résout volontairement la requête récente avant l’ancienne et vérifie que seuls ses résultats persistent. Endpoint, filtres, permissions et modèle restent inchangés. Prettier, TypeScript, 14 suites, `git diff --check` et export Expo Android (2 212 modules) passent; tester une recherche lente/réseau dégradé sur appareil.
+
 Hiérarchie du dialogue de clôture WO (13 octobre 2026) : l’action `Clôturer l'ordre` est maintenant le bouton principal contenu avec les couleurs `primary`/`onPrimary`; `Annuler` reste secondaire. Cette distinction visuelle n’altère ni l’étape de confirmation, ni les validations, ni les préférences de feedback/signature, ni la mutation `COMPLETE`. Les 11 suites, TypeScript, Prettier, `git diff --check` et l’export Expo Web (1 890 modules) passent. Metro Dev Client LAN a été démarré sur le port 8090 et `/status` retourne `packager-status:running`; l’accès du téléphone au port reste à confirmer sur son réseau. APK non reconstruit; l’installation et le rendu tactile restent à tester.
 
 États de l’historique des compteurs (13 octobre 2026) : le premier chargement sans relevé affiche désormais une activité et son libellé avec le token de texte secondaire. Une réponse réussie sans relevé affiche une carte vide arrondie, bordée selon le thème, avec une icône dédiée; un échec de chargement continue d’afficher sa bannière relançable. Ces états restent distincts sans changer les requêtes ni les relevés. Onze suites, TypeScript, Prettier, `git diff --check` et exports Expo Android (2 204 modules) / iOS (2 173 modules) passent. Vérifier clair/sombre et la lecture TalkBack/VoiceOver sur appareil; APK non reconstruit.
@@ -243,3 +259,163 @@ Lot confirmation d’abandon des modifications mobile (13 octobre 2026) : quand 
 Lot actualisation des compteurs Home (13 octobre 2026) : un nouveau chargement des statistiques invalide maintenant l’indicateur `mobileOverviewLoaded` jusqu’à la réponse du filtre courant. Les nombres de la réponse précédente ne restent donc pas affichés pendant le chargement ou après l’échec d’un changement « assigné à moi »; les états loading/erreur déjà rendus reprennent la main. Un test couvre le rafraîchissement après un succès précédent. Endpoint, filtres, calculs, permissions et données métier restent inchangés. Treize suites de régression, TypeScript, Prettier, `git diff --check` et exports Expo Android (2 207 modules), iOS (2 176) et Web (1 893) réussissent. À vérifier visuellement lors d’un changement de filtre avec réseau lent et lors d’un échec API; l’APK 1.0.58 ne contient pas ce lot.
 
 Lot indicateur de chronométrage WO (13 octobre 2026) : le bouton du chronomètre conserve désormais son étiquette de durée écoulée lorsque la fiche défile et que le FAB passe en mode compact; l’utilisateur voit donc toujours le temps actif et l’action d’arrêt. À l’arrêt, le comportement précédent est conservé (durée affichée uniquement lorsque le FAB est déplié, libellé de démarrage sans durée enregistrée). Contrastes démarrer/arrêter vérifiés AA dans les thèmes clair et sombre; contrôle d’accès, mutations, payloads et API inchangés. Un test couvre les états actif, compact et arrêté. Treize suites, TypeScript, Prettier et `git diff --check` passent. APK release 1.0.58 reconstruit avec ce lot, package `com.atlas.cmms`, `versionCode` 41, signature v2 valide, certificat QPM conservé, SHA-256 `bb13c9ea511611b71db3af27f3ca5f22a0e1ace6b24bcb77e1fc4279b80793e0`. À vérifier visuellement sur petit téléphone et au grand texte.
+
+## Réponses concurrentes de la liste des actifs — 15 octobre 2026
+
+- Une ancienne recherche ou une page demandée sous un filtre précédent pouvait s’appliquer après le résultat du filtre courant, car la première page et la pagination utilisent des clés d’annulation différentes. La slice ignore maintenant les réponses de liste périmées et possède un état de chargement dédié; les compteurs de chargement de fiches et de sélecteurs restent indépendants. Le test résout les recherches dans l’ordre inverse puis retourne une page périmée après un nouveau filtre et confirme que seule la liste actuelle est conservée.
+- Les endpoints, critères, pagination, permissions et règles métier ne changent pas. `test:mobile-regression` (14 suites), TypeScript et les exports Expo Android (2 212 modules) / Web (1 898 modules) passent. L’APK 1.0.58 généré avant ce lot ne l’inclut pas; il faudra le reconstruire pour le test natif. Vérifier aussi recherche rapide, rafraîchissement et pagination sur appareil avec réseau lent.
+
+APK 1.0.58 rebuildé le 15 octobre après le lot des réponses concurrentes d’actifs : build Gradle réussi, package `com.atlas.cmms`, versionCode 41, signature v2 vérifiée, SHA-256 `8fdfc6c5ee798de7fe514698214222559d92625701b9995f4ee8afb6c568ad81`. La recette physique demeure nécessaire.
+
+Lot Emplacements — états fiables de recherche (15 octobre 2026) : la vue liste distingue refus d’accès, résultats vides, chargement et panne réseau avec reprise localisée; les données préexistantes ne sont pas affichées sans permission. Les recherches et pages périmées sont ignorées, et leur état de chargement ne concurrence plus celui de l’arborescence/détail. Pas de changement API ou de règle de permission serveur. Deux tests ajoutés; suite 14/14, TypeScript, Prettier et exports Expo Android (2 212) / Web (1 898) réussis. Vérifier le rendu sur téléphone après changement de rôle, erreur réseau, actualisation et pagination. L’APK 1.0.58 actuel précède ce lot.
+
+## Personnes et Équipes — virtualisation et réponses de liste protégées — 15 octobre 2026
+
+Les annuaires Personnes et Équipes rendent maintenant leurs cartes avec `FlatList` et ignorent les réponses de recherche ou pagination obsolètes lorsqu’un filtre plus récent est actif. Le chargement de liste est dissocié de celui d’une fiche; la vue conserve les contrôles d’accès existants et n’expose pas les données quand l’utilisateur n’a pas le droit de consultation. Les endpoints, critères, pagination et navigation ne changent pas.
+
+Des tests reproduisent deux recherches résolues dans l’ordre inverse, puis une réponse tardive de pagination, et vérifient le contenu courant et la libération correcte du chargement. `test:mobile-regression` (14 suites), TypeScript, Prettier, `git diff --check`, l’export Expo Web (1 898 modules) et le build Android signé (2 212 modules) passent. Reste à contrôler sur téléphone le défilement des annuaires longs, la pagination réseau ralentie et VoiceOver/TalkBack. L’APK 1.0.58 de SHA-256 `9c2ef90652c25989543e6e4a2e3c5479b0dd1632c49b8dca13be4b54c59e91bd` contient ce lot, mais précède le correctif Notifications ci-dessous.
+
+## Notifications — protection contre les fins de requêtes obsolètes — 15 octobre 2026
+
+Le rafraîchissement de notifications utilise des séquences distinctes pour les gestes refresh et la pagination. Une requête plus ancienne ne peut donc pas masquer le spinner d’une actualisation plus récente, afficher une erreur de pagination périmée ou désactiver l’accès à la prochaine page après le rafraîchissement. Une actualisation invalide aussi explicitement les marqueurs locaux de pagination, pendant que la slice continue de protéger les données Redux contre l’ajout d’une ancienne page.
+
+Les endpoints, critères, permissions, données et destinations ne changent pas. Test de séquence ajouté; 14 suites de régression, TypeScript, Prettier, `git diff --check` et exports Expo non minifiés Android (2 213 modules), iOS (2 182) et Web (1 899) réussissent. Il reste à vérifier le spinner et la relance sur téléphone avec une connexion ralentie. L’APK 1.0.58 doit être rebâti pour contenir ce lot.
+
+## Liste Maintenance préventive — rafraîchissement prioritaire — 15 octobre 2026
+
+La liste des maintenances préventives permet maintenant à une actualisation de supplanter une pagination déjà lancée. Une séquence de requête garde la réponse, l’erreur et la fin de chargement liées à la requête active; les pages ajoutées en double restent bloquées. Cela évite de conserver un ancien état occupé après le geste de rafraîchissement et empêche les éléments d’une page devenue obsolète de réapparaître après la réponse récente.
+
+Les critères, endpoint, permissions, pagination serveur, cartes et navigation sont inchangés. Le test couvre une page résolue après la réponse de rafraîchissement et confirme que son contenu est écarté. 14 suites, TypeScript, Prettier, `git diff --check` et exports Expo Android (2 213 modules), iOS (2 182) et Web (1 899) réussissent. Reste à contrôler le geste et les états busy sur appareil avec réseau ralenti. L’APK 1.0.58 doit être rebâti pour embarquer cette correction.
+
+## Liste Work Orders — invalidation des paginations et refresh — 15 octobre 2026
+
+La liste WO libère maintenant son verrou local de pagination quand une première page commence. Les anciennes réponses, erreurs et fins de chargement sont vérifiées contre les générations de première page et de pagination : elles ne peuvent plus modifier l’indicateur ou le verrou d’une opération plus récente. Les gestes pull-to-refresh chevauchants gardent le spinner tant que le refresh courant n’est pas terminé.
+
+Les filtres, l’ordre, l’endpoint, les permissions et les transitions métier ne changent pas. Une régression vérifie le comportement des séquences de pagination et de rafraîchissement lorsque des réponses deviennent obsolètes. Les 14 suites, TypeScript, Prettier, `git diff --check` et exports Expo Android (2 213 modules), iOS (2 182) et Web (1 899) passent. Le spinner et le contrôle sur téléphone avec réseau ralenti restent à vérifier; l’APK 1.0.58 doit être rebâti pour contenir le lot.
+
+## Demandes — invalidation des paginations et rafraîchissements concurrents — 15 octobre 2026
+
+Une première page invalide la pagination et son verrou locaux. Les erreurs et `finally` des pages devenues périmées ne changent plus l’état de l’opération courante; les rafraîchissements multiples gardent leur spinner jusqu’à la fin du plus récent, sauf si une nouvelle recherche ou un filtre le rend obsolète. Endpoints, critères, permissions, statuts et règles de qualification ne changent pas. Tests mobiles (14 suites), TypeScript, Prettier, vérification du diff et exports Expo Android/iOS/Web réussis. La recette réseau ralenti reste à effectuer sur téléphone; l’APK 1.0.58 est à reconstruire pour inclure ce lot.
+
+APK 1.0.58 reconstruit après le lot de la liste Demandes : versionCode 41, package `com.atlas.cmms`, Gradle réussi, signature v2 vérifiée avec le certificat QPM; SHA-256 `4c47a81f57f5ed443f40027a29a06db6ef1279e79771f467d8585c3555cfba29`. Le test visuel sur téléphone reste à faire.
+
+## Stock de pièces — requêtes de liste protégées — 15 octobre 2026
+
+La slice ignore maintenant les réponses de recherche et pagination périmées et distingue `listLoading` du chargement des fiches et du mini-catalogue. Les séquences écran invalident aussi les erreurs, verrous et indicateurs de pages obsolètes pendant un rafraîchissement concurrent. Données, filtres, endpoint, règles de stock et permissions restent inchangés. 14 suites, TypeScript, Prettier, diff-check et Expo Android (2 213), iOS (2 182), Web (1 899) réussissent; recette appareils/réseau lent encore requise. L’APK 1.0.58 actuel n’embarque pas ce lot.
+
+## Sélecteur Inventaire — état d’erreur et reprise — 15 octobre 2026
+
+Le chargement des pièces et jeux de pièces est maintenant relançable et présente un message dédié par onglet; un échec n’entraîne plus de rejet de promesse non consommé ni de spinner de catalogue bloqué. Le mini-catalogue possède son indicateur indépendant du chargement d’une fiche pièce. Aucun contrat API, filtre ou payload métier ne change. 14 suites mobiles, TypeScript, Prettier, diff-check et exports Expo Android/iOS/Web passent. Test réseau sur appareil restant à faire; APK 1.0.58 à reconstruire pour inclure ce lot.
+
+Fiche d’une pièce (15 octobre 2026) : l’échec de la lecture initiale ne laisse plus l’écran en chargement infini. Sans donnée, la fiche affiche l’erreur traduite et une reprise; avec une donnée déjà disponible, elle la conserve et affiche une bannière relançable. Le test ciblé vérifie que le thunk de détail libère `loadingGet` après rejet et que l’écran présente une action de reprise. Route `GET parts/{id}`, permissions et logique métier inchangées. 15 suites, TypeScript, Prettier, diff-check et exports Android/iOS/Web réussis; état physique et navigation de reprise restent à tester sur appareil. APK 1.0.58 rebâti; SHA-256 `5532dd6f6c34dbda48714d67b0660852c8ac5c2f8c9274658b01158675b4cea9`.
+
+Scanner équipement (15 octobre 2026) : les options QR/NFC attendent maintenant la réponse de `GET license/state`; si la requête échoue, l’écran montre une erreur localisée et une action de reprise. L’entitlement requis et l’accès aux actions scanner restent déterminés par les données de licence existantes. Aucun endpoint, droit, résolution d’identifiant ni flux de création d’équipement ne change. 15 suites, TypeScript, Prettier, diff-check et exports Expo Android (2 213), iOS (2 182), Web (1 899) réussis. APK 1.0.58 reconstruit, package `com.atlas.cmms`, versionCode 41, signature v2 valide; SHA-256 `dc7016e9410c339c8388c68d8c206c651f33d52deb30a2de66eeb52b39579f42`. Essais réels licence active/absente, réseau et lecteur QR/NFC restent requis.
+
+### Statistiques WO — taux sans données — 15 octobre 2026
+
+L'écran Statistiques remplace maintenant par `—` le taux de conformité lorsque la période ne contient aucune WO clôturée, au lieu d'interpréter la valeur API de repli `1.0` comme `100.00%`. L'annonce d'accessibilité explique l'absence de WO clôturées. La réponse API, les permissions et les règles métier restent inchangées. Test de régression, 15 suites mobiles, TypeScript, Prettier et `git diff --check` réussis; exports Expo et APK à confirmer.
+
+APK 1.0.58 reconstruit après le correctif Statistiques — 15 octobre 2026 : `mobile/dist/QPM-1.0.58.apk`, package `com.atlas.cmms`, `versionCode=41`, Gradle réussi, signature v2 vérifiée. Taille : 101 Mio. SHA-256 : `44d5ff313d9cd74061fedc8962a35084747dd5b1a3fd8c897e1cf156ba394edb`. Tests mobiles (15 suites), TypeScript, Prettier, `git diff --check` et exports Expo Android/iOS/Web réussis. Vérification visuelle sur téléphone restant à effectuer.
+
+### Accueil — affichage des statistiques WO dans le périmètre du rôle — 15 octobre 2026
+
+L'Accueil masque les statistiques WO et leur navigation aux rôles sans permission de consultation. Les utilisateurs disposant seulement du droit de voir leurs propres WO reçoivent toujours le scope assigné, même si un ancien réglage demande une vue d'équipe; le hero et chaque carte transmettent aussi le filtre assigné à la liste. L'écran Work Order Stats protège son chargement et présente l'état Permission refusée lorsqu'il est ouvert sans droit. Contrats, endpoints et règles de rôle n'ont pas été modifiés. 15 suites, TypeScript, Prettier, vérification du diff et exports Expo Android (2 213)/Web (1 899) passent; les comptes de droits distincts doivent être testés sur appareil. Dépendance de sécurité à suivre : le contrôleur `GET /analytics/work-orders/mobile/overview` ne fait qu'un contrôle de rôle global, donc la restriction mobile reste une garde d'interface et n'assure pas l'isolation de cet endpoint pour les autres clients.
+
+### Formulaires — édition multiligne lisible — 15 octobre 2026
+
+Le formulaire partagé réserve quatre lignes et 112 dp aux TextInputs multilignes, afin que les descriptions opérationnelles et champs personnalisés longs restent visibles dès la saisie. Le défilement, la validation, la sauvegarde et les appels existants sont conservés. Un test vérifie la configuration du contrôle réutilisé par les formulaires de WO et de Demande. 15 suites, TypeScript, Prettier, `git diff --check` et exports Expo Android/iOS/Web réussis. APK 1.0.58 antérieur à ce lot; valider le curseur, le clavier, les petites hauteurs d'écran et le grand texte sur appareil.
+
+## Asset 360 — message de permission Compteurs — 15 octobre 2026
+
+La section Compteurs réutilisait le message d’accès refusé aux Actifs, ce qui rendait le refus peu clair. Elle utilise maintenant la traduction existante `no_access_meters` (EN/FR). Les permissions, endpoints et règles métier restent inchangés. Test de régression ajouté; l’essai avec un compte sans permission doit être fait sur appareil.
+
+Vérifications : 15 suites mobiles, TypeScript, Prettier, `git diff --check` et export Expo Android (2 213 modules) réussis. L’APK 1.0.58 doit être reconstruit pour contenir ce correctif; tester aussi l’état de refus avec un compte limité.
+
+## Asset 360 — permission de consultation des pièces liées — 15 octobre 2026
+
+L’onglet Pièces filtrait auparavant seulement l’action de retrait sur le droit d’édition Actifs; le nom et la description des pièces liées restaient visibles sans permission de lecture Pièces. Il applique maintenant le droit QPM `PARTS_AND_MULTIPARTS`, masque les données en lecture refusée et empêche également le retrait si cette permission est absente. Le droit d’édition Actifs reste requis pour retirer une association. Aucun endpoint, payload ni contrôle serveur ne change. Test de régression ajouté; valider avec comptes de rôles distincts sur appareil.
+
+Contrôles du lot : 15 suites mobiles, TypeScript, Prettier, `git diff --check` et bundle Expo Android (2 213 modules) réussis. APK 1.0.58 à reconstruire pour inclure le masquage; le contrôle serveur reste nécessaire indépendamment de l’interface.
+
+## Scanner QR — verrou synchrone contre les lectures répétées — 15 octobre 2026
+
+La modal code-barres/QR s’appuyait sur un état React pour ignorer les callbacks suivants; plusieurs détections dans la même séquence pouvaient appeler le traitement du formulaire plusieurs fois avant le rendu. Elle verrouille maintenant le premier callback avec un `ref` synchrone et supprime l’état devenu inutile. La valeur scannée et le flux existant restent inchangés. Test ciblé, TypeScript, suite mobile et export Expo Android à vérifier; essai avec caméra sur appareil encore requis.
+
+Validation QR : 15 suites, TypeScript, Prettier, `git diff --check` et bundle Expo Android (2 213 modules) réussis. Cadence scanner, callback après retour et test tactile à faire sur Android réel. APK 1.0.58 doit être rebâti pour contenir le verrou synchrone.
+
+## Caméra des formulaires — reprise après échec de prévisualisation — 15 octobre 2026
+
+La modal caméra utilise désormais l’événement `onMountError` d’Expo Camera pour remplacer l’aperçu impossible par un message lisible, une action de relance et un retour. Les couleurs du nouvel état suivent le thème actif. Aucune permission, capture ou API ne change. Test de régression et traductions FR/EN ajoutés; valider erreur simulée, réessai et capture sur appareils réels.
+
+Vérifications : 15 suites, TypeScript, Prettier, `git diff --check` et export Expo Android (2 213 modules) réussis. Le build installé 1.0.58 doit être rebâti pour inclure la reprise caméra; tester la panne et la capture sur Android/iOS réel.
+
+## Scanner QR — reprise de caméra réutilisable — 15 octobre 2026
+
+Le lecteur QR-code gère l’événement caméra `onMountError` et présente le composant partagé `CameraPreviewError`, désormais utilisé aussi par la prise de photo intégrée aux formulaires. Le message, les boutons et les surfaces respectent le thème actif, en gardant la prévention de scan répété. Les routes, payloads et permissions restent inchangés. Régression et exports à valider; erreur native et relance à tester sur téléphone.
+
+Vérifications du lot : 15 suites mobiles, TypeScript, Prettier, `git diff --check` et export Expo Android (2 214 modules) réussis. APK 1.0.58 à rebâtir pour inclure la reprise caméra unifiée; tester le parcours sur appareil.
+
+## Asset 360 — menu contextuel vide pour les rôles lecture seule — 15 octobre 2026
+
+Le bouton d’options de la fiche actif s’affiche maintenant uniquement si le rôle dispose d’au moins une des actions existantes (édition/suppression d’actif, création WO ou actif enfant). La fiche et l’action sheet partagent le même helper de visibilité, afin que le bouton ne conduise plus à un panneau vide. Les permissions et flux métier ne changent pas. Test unitaire des combinaisons sans action/avec action ajouté; rôles réels à valider sur appareil.
+
+Vérifications : 15 suites, TypeScript, Prettier, `git diff --check` et export Expo Android (2 215 modules) réussis. L’APK 1.0.58 doit être rebâti pour intégrer le masquage; le contrôle des rôles réels reste à faire sur appareil.
+
+## Tableau de bord — commutateur de périmètre sans double mutation — 15 octobre 2026
+
+Le réglage de périmètre des WO était déjà désactivé pendant son enregistrement, mais le changement d’état React n’empêchait pas deux événements simultanés. Le verrou partagé `createAsyncActionLock`, déjà couvert par un test de concurrence et de reprise, protège maintenant la sauvegarde sans changer le droit utilisateur, l’API ni la préférence choisie. Les 15 suites mobiles, TypeScript, Prettier, vérification du diff et export Expo Android (2 215 modules) réussissent. Vérifier la réactivité et la reprise après panne sur téléphone; la release 1.0.58 existante précède cette modification.
+
+## Scanner NFC Android — compatibilité avec les tags UID — 15 octobre 2026
+
+Le flux de scan ne demandait que la technologie NDEF, ce qui ignorait les tags Android non formatés NDEF. `SelectNfcModal` demande désormais la liste Android des technologies prises en charge avec NDEF en premier; le module NFC natif du projet tente les technologies disponibles du tag, puis l’écran continue d’utiliser son identifiant UID pour la résolution Asset existante. Pas de changement d’API, d’identifiant, de permission QPM ni de règle métier. Une régression couvre la liste et son branchement sur `requestTechnology`; 15 suites mobiles, TypeScript, Prettier et `git diff --check` passent. L’APK 1.0.58 a ensuite été reconstruit depuis l’arbre courant; l’essai avec tags physiques reste à confirmer.
+
+## Release APK 1.0.58 après les lots mobiles — 15 octobre 2026
+
+Le build release de 09:41 inclut les changements mobiles présents à cet instant, bundle Expo Android 2 216 modules, version `1.0.58` / code 41, signature v2 valide. SHA-256 `2918eeafbf1f6a65986198e592db076b645ad9ca43a77494846527488314d49e`. `npm run test:mobile-regression` (15 suites), `npx tsc --noEmit`, Prettier et `git diff --check` réussissent. La build n’a pas encore été installée sur un téléphone; voir le guide de test visuel pour la recette matérielle, notamment tags NFC NDEF et UID non NDEF.
+
+
+## Clients et Fournisseurs — concurrence recherche et pagination — 15 octobre 2026
+
+Les annuaires Clients et Fournisseurs appliquent un identifiant séquentiel aux chargements de liste. Un résultat, une erreur ou un `finally` obsolète ne peut donc plus écraser les données ou l’état de chargement de la requête récente. Le chargement des fiches reste indépendant. Tests différés couvrent les réponses de recherche inversées et une pagination qui revient après actualisation. Aucun contrat API, filtre ou droit n’a changé. `test:mobile-regression` (16 suites), TypeScript, Prettier, `git diff --check` et export Expo Android (2 216 modules) réussissent. APK 1.0.58 rebâti; vérifier le scénario sous réseau ralenti avec comptes représentatifs sur appareil.
+
+
+Le rebuild APK Release 1.0.58 post-correctif a réussi le 15 octobre 2026. Version 1.0.58/code 41 conservée, bundle 2 216 modules, signature v2 valide. SHA-256 : `16bc0319414950cc17ed8e6900c24144a39a4f90c128fa0500d1cac37237b4e3`. L’installation matérielle et le test de courses réseau restent à faire.
+
+
+## Feedback — envoi protégé contre double appui — 15 octobre 2026
+
+L’écran de retour utilisateur utilise maintenant `createAsyncActionLock`, déjà partagé par les formulaires, en plus de l’état visuel `submitting`. Les pressions rapprochées partagent une seule requête; la tentative peut toujours être relancée après sa fin ou une erreur. Le payload et `POST reviews/feedback` sont inchangés. Test ajouté pour le branchement au verrou et le maintien du contrat. `test:mobile-regression` (17 suites), TypeScript, Prettier, `git diff --check` et export Expo Android (2 216 modules) passent. Double appui réel reste à vérifier sur appareil. APK 1.0.58 antérieur au lot.
+
+
+## Suppression de pièce jointe — double appui bloqué dans le composant partagé — 15 octobre 2026
+
+`AttachmentList` bloque désormais de façon synchrone une seconde suppression avant le rendu de l’état `deleting`. Il expose l’état busy/désactivé à l’accessibilité; la boîte de confirmation demeure ouverte après un échec et reste réessayable. Les trois écrans consommateurs (Actif, Emplacement, Pièce) gardent leur callback, leurs permissions et leurs API. Test ciblé ajouté; `test:mobile-regression` (18 suites), TypeScript, Prettier, `git diff --check` et export Expo Android (2 216 modules) passent. Vérifier confirmation et reprise sur appareil.
+
+
+## Scanner équipement — NFC Android/iOS natif et QR multiplateforme — 15 octobre 2026
+
+La restriction Android-only précédente était trop large : le projet configure déjà le module et les capacités de lecture NFC iOS. Le helper `isNfcSupportedOnPlatform` active maintenant le parcours sur Android/iOS natifs et le masque uniquement sur Web. La lecture choisit les technologies propres à chaque plateforme; scanner et formulaire partagent la même règle. Le QR/code-barres reste disponible sur les trois plateformes. Contrats API, identifiants scannés, droits de licence et routes restent inchangés. Le test couvre plateforme et mapping de technologies; 18 suites, TypeScript, Prettier, `git diff --check`, export Web (1 880 modules) et iOS (2 207 modules) passent. APK 1.0.58 reconstruit, signature v2 valide, SHA-256 `dddc4e9deeae74b7355aa53fa0d501c28670ec12533c19f852c91023c3972984`. NFC réel sur Android/iPhone et autorisations de provisioning iOS restent à vérifier sur appareils.
+
+## Accueil — cartes de statut adaptables aux libellés longs — 15 octobre 2026
+
+Le libellé de chaque carte du tableau de bord n’est plus limité à une seule ligne; les traductions longues et la police agrandie peuvent donc rester lisibles sans ellipses. Les traductions courtes gardent une ligne en largeur normale. Le nom d’accessibilité demeure complet. Valeurs, filtres et accès aux ordres ne changent pas. 18 suites mobiles, TypeScript, Prettier et `git diff --check` réussissent. Faire la recette visuelle sur téléphone et avec plusieurs tailles de police dans le Dev Client Expo; l’APK 1.0.58 courant est antérieur à ce changement.
+
+## Formulaire d’actif — champ NFC iOS aligné sur le scanner — 15 octobre 2026
+
+La relecture a trouvé une incohérence : le scanner d’actif acceptait déjà Android et iOS, mais `getAssetFields` masquait le champ NFC sur iOS à cause d’une exclusion héritée. Le champ est désormais déclaré sur les deux plateformes natives; le formulaire partagé le filtre toujours sur Web, et la licence contrôle toujours l’accès au lecteur. Aucune API, permission, donnée métier ni navigation ne change. Une assertion de régression couvre l’absence d’exclusion iOS; `test:mobile-regression` (18 suites), TypeScript, Prettier, export Web et `git diff --check` passent. Le guide demande le contrôle visuel sous Expo Dev Client; iPhone et tag compatible non testés. APK 1.0.58 à reconstruire seulement si une version installable est demandée.
+
+## Formulaires d’actif — boutons NFC et code-barres/QR — 15 octobre 2026
+
+Les entrées de scan étaient deux zones tactiles textuelles qui n’indiquaient pas visuellement l’ouverture du lecteur et n’avaient ni rôle, ni nom, ni aide accessibles. `ScanIdentifierField` fournit maintenant le bouton encadré avec icône, la valeur lue, une cible minimale de 44 dp, un nom accessible qui contient type et valeur, une aide localisée et l’état désactivé pendant l’envoi. Les deux branches continuent d’appeler leurs routes de scan existantes; aucun payload, droit ou contrat API ne change. Test de régression dédié; 18 suites, TypeScript, Prettier, diff-check et exports Expo Web/Android/iOS réussis. Vérifier visuellement clair/sombre et TalkBack/VoiceOver sur appareil; APK 1.0.58 à reconstruire pour test installable.
+
+## Détail WO — affectations prestataires toujours visibles — 15 octobre 2026
+
+La visibilité du bloc dépendait de `assignedTo.length`, alors qu’il rendait aussi `customers`; un WO avec uniquement des prestataires n’affichait donc aucun de ses intervenants. Les groupes sont séparés et libellés avec les clés existantes `assigned_to` et `assigned_customers`; les noms ne sont plus rendus comme contrôles tactiles sans action. La donnée et les droits restent ceux déjà fournis à la fiche. Test de non-régression ajouté; 18 suites, TypeScript, Prettier et `git diff --check` passent. Recette visuelle et annonce lecteur d’écran restent à confirmer. Expo/AAB/APK non rebâtis.
+
+## Asset 360 — liens relationnels accessibles — 15 octobre 2026
+
+Les liens Technicien principal et Emplacement étaient des zones tactiles étroites sans rôle ou libellé accessible explicite. La fiche leur fournit maintenant le rôle `link`, un nom localisé avec le type de relation et sa valeur, et une cible de 44 dp minimum. Les routes et identifiants transmis ne changent pas. Test de non-régression ajouté. 18 suites mobiles réussies, TypeScript, Prettier, diff-check et export Expo Android (2 217 modules) validés; tester les annonces et le déplacement au doigt sur Android/iOS. APK 1.0.58 non rebâti.
+
+## Emplacements — bouton d’accès à la hiérarchie accessible — 15 octobre 2026
+
+Le bouton qui ouvre les emplacements enfants n’identifiait pas l’emplacement parent aux lecteurs d’écran. Il reprend maintenant le modèle accessible des actifs avec nom localisé parent+code et aide localisée; le lien `Locations` conserve son id et sa hiérarchie. Test couvrant libellé et traductions ajouté. Les 18 suites, TypeScript et Prettier passent; test appareil de l’annonce attendu. Expo et APK non rebâtis.

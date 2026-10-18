@@ -25,6 +25,7 @@ public class WebhookEndpointPostDTO {
     private String code;
 
     @Schema(description = "Webhook event type")
+    @NotNull
     private WebhookEvent event;
 
     @Schema(description = "Filter by asset statuses")

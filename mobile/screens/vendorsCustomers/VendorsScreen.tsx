@@ -1,7 +1,7 @@
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View
 } from 'react-native';
@@ -15,7 +15,7 @@ import { FilterField, SearchCriteria } from '../../models/page';
 import { Button, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { Vendor } from '../../models/vendor';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { useAppTheme } from '../../custom-theme';
@@ -29,7 +29,7 @@ export default function VendorsScreen({
 }: RootStackScreenProps<'VendorsCustomers'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
-  const { vendors, loadingGet, currentPageNum, lastPage } = useSelector(
+  const { vendors, listLoading, currentPageNum, lastPage } = useSelector(
     (state) => state.vendors
   );
   const theme = useAppTheme();
@@ -43,6 +43,8 @@ export default function VendorsScreen({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
+  const listRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -68,6 +70,10 @@ export default function VendorsScreen({
   );
   const loadVendors = useCallback(async () => {
     if (!canView) return;
+    const requestId = ++listRequestSequence.current;
+    paginationRequestSequence.current += 1;
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
     setLoadError(false);
     setLoadMoreError(false);
     try {
@@ -75,9 +81,9 @@ export default function VendorsScreen({
         getVendors({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
     } catch (_error) {
-      setLoadError(true);
+      if (requestId === listRequestSequence.current) setLoadError(true);
     } finally {
-      setHasLoadedList(true);
+      if (requestId === listRequestSequence.current) setHasLoadedList(true);
     }
   }, [canView, criteria, dispatch]);
 
@@ -100,7 +106,7 @@ export default function VendorsScreen({
       if (
         !canView ||
         loadingMoreRef.current ||
-        loadingGet ||
+        listLoading ||
         lastPage ||
         (loadMoreError && !retry)
       )
@@ -109,13 +115,25 @@ export default function VendorsScreen({
       loadingMoreRef.current = true;
       setLoadingMore(true);
       setLoadMoreError(false);
+      const listRequestId = listRequestSequence.current;
+      const requestId = ++paginationRequestSequence.current;
       try {
         await dispatch(getMoreVendors(criteria, currentPageNum + 1));
       } catch (_error) {
-        setLoadMoreError(true);
+        if (
+          listRequestId === listRequestSequence.current &&
+          requestId === paginationRequestSequence.current
+        ) {
+          setLoadMoreError(true);
+        }
       } finally {
-        loadingMoreRef.current = false;
-        setLoadingMore(false);
+        if (
+          listRequestId === listRequestSequence.current &&
+          requestId === paginationRequestSequence.current
+        ) {
+          loadingMoreRef.current = false;
+          setLoadingMore(false);
+        }
       }
     },
     [
@@ -125,7 +143,7 @@ export default function VendorsScreen({
       dispatch,
       lastPage,
       loadMoreError,
-      loadingGet
+      listLoading
     ]
   );
 
@@ -161,11 +179,48 @@ export default function VendorsScreen({
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
       )}
-      <ScrollView
+      <FlatList
         style={styles.scrollView}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) void loadMoreVendors();
-        }}
+        contentContainerStyle={styles.listContent}
+        data={canView ? vendors.content : []}
+        keyExtractor={(vendor) => String(vendor.id)}
+        renderItem={({ item: vendor }) => (
+          <DirectoryCard
+            title={vendor.name}
+            icon="store-outline"
+            accessibilityLabel={`${vendor.name}${
+              vendor.vendorType ? `, ${vendor.vendorType}` : ''
+            }`}
+            details={[
+              ...(vendor.vendorType
+                ? [
+                    {
+                      label: vendor.vendorType,
+                      icon: 'truck-outline' as const
+                    }
+                  ]
+                : []),
+              ...(vendor.address
+                ? [
+                    {
+                      label: vendor.address,
+                      icon: 'map-marker-outline' as const
+                    }
+                  ]
+                : [])
+            ]}
+            onPress={() =>
+              navigation.push('VendorDetails', {
+                id: vendor.id,
+                vendorProp: vendor
+              })
+            }
+          />
+        )}
+        onEndReached={() => void loadMoreVendors()}
+        onEndReachedThreshold={0.4}
+        initialNumToRender={8}
+        windowSize={7}
         refreshControl={
           canView ? (
             <RefreshControl
@@ -176,115 +231,84 @@ export default function VendorsScreen({
             />
           ) : undefined
         }
-        scrollEventThrottle={400}
-      >
-        {loadError && vendors.content.length > 0 && (
-          <AsyncStateFeedback
-            mode="banner"
-            message={t('directory_load_error')}
-            onRetry={() => void loadVendors()}
-          />
-        )}
-        {canView && vendors.content.length > 0 ? (
-          vendors.content.map((vendor) => (
-            <DirectoryCard
-              key={vendor.id}
-              title={vendor.name}
-              icon="store-outline"
-              accessibilityLabel={`${vendor.name}${
-                vendor.vendorType ? `, ${vendor.vendorType}` : ''
-              }`}
-              details={[
-                ...(vendor.vendorType
-                  ? [
-                      {
-                        label: vendor.vendorType,
-                        icon: 'truck-outline' as const
-                      }
-                    ]
-                  : []),
-                ...(vendor.address
-                  ? [
-                      {
-                        label: vendor.address,
-                        icon: 'map-marker-outline' as const
-                      }
-                    ]
-                  : [])
-              ]}
-              onPress={() =>
-                navigation.push('VendorDetails', {
-                  id: vendor.id,
-                  vendorProp: vendor
-                })
-              }
+        ListHeaderComponent={
+          loadError && vendors.content.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('directory_load_error')}
+              onRetry={() => void loadVendors()}
             />
-          ))
-        ) : canView && (loadingGet || !hasLoadedList) ? (
-          <View
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 24
-            }}
-            accessibilityRole="progressbar"
-            accessibilityLabel={t('loading')}
-          >
-            <ActivityIndicator color={theme.colors.primary} size="large" />
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>
-              {t('loading')}
-            </Text>
-          </View>
-        ) : !canView ? (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text style={{ color: theme.colors.onSurface }}>
-              {t('no_access_vendors_customers')}
-            </Text>
-          </View>
-        ) : loadError ? (
-          <View style={styles.emptyState}>
-            <Text style={{ color: theme.colors.onSurface }}>
-              {t('directory_load_error')}
-            </Text>
-            <Button onPress={() => void loadVendors()}>{t('retry')}</Button>
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface }}
+          ) : null
+        }
+        ListEmptyComponent={
+          canView && (listLoading || !hasLoadedList) ? (
+            <View
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 24
+              }}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('loading')}
             >
-              {searchQuery.trim()
-                ? t('no_element_match_criteria')
-                : t('no_vendors_available')}
-            </Text>
-          </View>
-        )}
-        {canView && vendors.content.length > 0 && !lastPage && (
-          <DirectoryPaginationFooter
-            loading={loadingMore}
-            error={loadMoreError}
-            loadingMessage={t('vendors_page_loading')}
-            onRetry={() => void loadMoreVendors(true)}
-          />
-        )}
-      </ScrollView>
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('loading')}
+              </Text>
+            </View>
+          ) : !canView ? (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('no_access_vendors_customers')}
+              </Text>
+            </View>
+          ) : loadError ? (
+            <View style={styles.emptyState}>
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('directory_load_error')}
+              </Text>
+              <Button onPress={() => void loadVendors()}>{t('retry')}</Button>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {searchQuery.trim()
+                  ? t('no_element_match_criteria')
+                  : t('no_vendors_available')}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          canView && vendors.content.length > 0 && !lastPage ? (
+            <DirectoryPaginationFooter
+              loading={loadingMore}
+              error={loadMoreError}
+              loadingMessage={t('vendors_page_loading')}
+              onRetry={() => void loadMoreVendors(true)}
+            />
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -303,6 +327,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flex: 1
   },
+  listContent: { flexGrow: 1, paddingBottom: 24 },
   search: {
     marginHorizontal: 16,
     marginTop: 12,

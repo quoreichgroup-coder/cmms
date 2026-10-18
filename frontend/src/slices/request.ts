@@ -2,29 +2,34 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from 'src/store';
 import Request from '../models/owns/request';
-import api from '../utils/api';
+import api, { getErrorMessage } from '../utils/api';
 import WorkOrder from '../models/owns/workOrder';
 import { getInitialPage, Page, SearchCriteria } from 'src/models/owns/page';
 import { revertAll } from 'src/utils/redux';
-import {
-  cancellableFetch,
-} from 'src/utils/cancellableRequest';
+import { cancellableFetch } from 'src/utils/cancellableRequest';
 import { AssetStatus } from '../models/owns/asset';
 
 const basePath = 'requests';
+let latestSingleRequestLoad = 0;
 
 interface RequestState {
   requests: Page<Request>;
   singleRequest: Request;
   pendingCount: number;
   loadingGet: boolean;
+  requestsError: string | null;
+  singleRequestLoading: boolean;
+  singleRequestError: string | null;
 }
 
 const initialState: RequestState = {
   requests: getInitialPage<Request>(),
   singleRequest: null,
   pendingCount: 0,
-  loadingGet: false
+  loadingGet: false,
+  requestsError: null,
+  singleRequestLoading: false,
+  singleRequestError: null
 };
 
 const slice = createSlice({
@@ -45,6 +50,18 @@ const slice = createSlice({
     ) {
       const { request } = action.payload;
       state.singleRequest = request;
+      state.singleRequestError = null;
+    },
+    startSingleRequest(state: RequestState) {
+      state.singleRequest = null;
+      state.singleRequestLoading = true;
+      state.singleRequestError = null;
+    },
+    finishSingleRequest(state: RequestState) {
+      state.singleRequestLoading = false;
+    },
+    setSingleRequestError(state: RequestState, action: PayloadAction<string>) {
+      state.singleRequestError = action.payload;
     },
     addRequest(
       state: RequestState,
@@ -90,6 +107,9 @@ const slice = createSlice({
         }
         return request;
       });
+      if (state.singleRequest?.id === id) {
+        state.singleRequest = { ...state.singleRequest, workOrder };
+      }
     },
     cancelRequest(state: RequestState, action: PayloadAction<{ id: number }>) {
       const { id } = action.payload;
@@ -99,6 +119,9 @@ const slice = createSlice({
         }
         return request;
       });
+      if (state.singleRequest?.id === id) {
+        state.singleRequest = { ...state.singleRequest, cancelled: true };
+      }
     },
     setLoadingGet(
       state: RequestState,
@@ -107,8 +130,16 @@ const slice = createSlice({
       const { loading } = action.payload;
       state.loadingGet = loading;
     },
-    clearSingleRequest(state: RequestState, action: PayloadAction<{}>) {
+    setRequestsError(
+      state: RequestState,
+      action: PayloadAction<string | null>
+    ) {
+      state.requestsError = action.payload;
+    },
+    clearSingleRequest(state: RequestState) {
       state.singleRequest = null;
+      state.singleRequestError = null;
+      state.singleRequestLoading = false;
     },
     getPendingCount(
       state: RequestState,
@@ -131,22 +162,40 @@ export const reducer = slice.reducer;
 export const getRequests =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
-    await cancellableFetch(
-      dispatch,
-      'getRequests',
-      (signal) => api.post<Page<Request>>(`${basePath}/search`, criteria, { signal }),
-      (requests) => dispatch(slice.actions.getRequests({ requests })),
-      (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
-    );
+    dispatch(slice.actions.setRequestsError(null));
+    try {
+      await cancellableFetch(
+        dispatch,
+        'getRequests',
+        (signal) =>
+          api.post<Page<Request>>(`${basePath}/search`, criteria, { signal }),
+        (requests) => dispatch(slice.actions.getRequests({ requests })),
+        (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
+      );
+    } catch (error) {
+      dispatch(slice.actions.setRequestsError(getErrorMessage(error)));
+    }
   };
 
 export const getSingleRequest =
   (id: number): AppThunk =>
   async (dispatch) => {
+    const loadId = ++latestSingleRequestLoad;
+    dispatch(slice.actions.startSingleRequest());
     dispatch(slice.actions.setLoadingGet({ loading: true }));
-    const request = await api.get<Request>(`${basePath}/${id}`);
-    dispatch(slice.actions.getSingleRequest({ request }));
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+    try {
+      const request = await api.get<Request>(`${basePath}/${id}`);
+      if (loadId !== latestSingleRequestLoad) return;
+      dispatch(slice.actions.getSingleRequest({ request }));
+    } catch (error) {
+      if (loadId === latestSingleRequestLoad)
+        dispatch(slice.actions.setSingleRequestError(getErrorMessage(error)));
+    } finally {
+      if (loadId === latestSingleRequestLoad) {
+        dispatch(slice.actions.finishSingleRequest());
+        dispatch(slice.actions.setLoadingGet({ loading: false }));
+      }
+    }
   };
 export const addRequest =
   (request): AppThunk =>
@@ -178,6 +227,7 @@ export const deleteRequest =
       dispatch(slice.actions.deleteRequest({ id }));
       if (wasPending) dispatch(slice.actions.decrementPendingCount());
     }
+    return success;
   };
 
 export const approveRequest =
@@ -193,8 +243,8 @@ export const approveRequest =
 export const cancelRequest =
   (id: number, reason: string): AppThunk =>
   async (dispatch) => {
-    const request = await api.patch<WorkOrder>(
-      `${basePath}/${id}/cancel?reason=${reason}`,
+    const request = await api.patch<Request>(
+      `${basePath}/${id}/cancel?reason=${encodeURIComponent(reason)}`,
       {}
     );
     dispatch(slice.actions.cancelRequest({ id }));
@@ -211,7 +261,7 @@ export const getPendingRequestsCount = (): AppThunk => async (dispatch) => {
   );
 };
 export const clearSingleRequest = (): AppThunk => async (dispatch) => {
-  dispatch(slice.actions.clearSingleRequest({}));
+  dispatch(slice.actions.clearSingleRequest());
 };
 
 export interface SubmitPublicRequestDTO {

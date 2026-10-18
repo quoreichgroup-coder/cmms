@@ -33,7 +33,7 @@ import { CompanySettingsContext } from '../../../../contexts/CompanySettingsCont
 import { PermissionEntity } from '../../../../models/owns/role';
 import PermissionErrorMessage from '../../components/PermissionErrorMessage';
 import useAuth from '../../../../hooks/useAuth';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AssetMeters from './AssetMeters';
 import { handleFileUpload } from '../../../../utils/overall';
@@ -47,6 +47,7 @@ import {
   getCustomFieldsValues
 } from '../../type';
 import { getAssetUrl } from '../../../../utils/urlPaths';
+import { useLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
 
 interface PropsType {}
 
@@ -56,6 +57,7 @@ const ShowAsset = ({}: PropsType) => {
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
   const [copyAssetData, setCopyAssetData] = useState<AssetDTO | null>(null);
   const { setTitle } = useContext(TitleContext);
+  const hasNfcBarcode = useLicenseEntitlement('NFC_BARCODE');
   const { uploadFiles } = useContext(CompanySettingsContext);
   const location = useLocation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -92,10 +94,14 @@ const ShowAsset = ({}: PropsType) => {
     setCopyAssetData(null);
   };
 
-  const handleDelete = () => {
-    dispatch(deleteAsset(asset.id))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
+  const handleDelete = async () => {
+    try {
+      const deleted = await dispatch(deleteAsset(asset.id));
+      if (deleted) onDeleteSuccess();
+      else onDeleteFailure(new Error('Asset deletion was not confirmed'));
+    } catch (error) {
+      onDeleteFailure(error);
+    }
   };
   const getAssetFormValues = (entity: AssetDTO) => ({
     ...entity,
@@ -106,7 +112,10 @@ const ShowAsset = ({}: PropsType) => {
         }
       : null,
     site: entity?.siteId
-      ? { label: entity.siteName || `Site ${entity.siteId}`, value: entity.siteId }
+      ? {
+          label: entity.siteName || `Site ${entity.siteId}`,
+          value: entity.siteId
+        }
       : null,
     category: entity?.category
       ? {
@@ -248,6 +257,18 @@ const ShowAsset = ({}: PropsType) => {
       placeholder: t('barcode'),
       midWidth: true
     },
+    ...(hasNfcBarcode
+      ? [
+          {
+            name: 'nfcId',
+            type: 'text' as const,
+            label: t('nfc_tag'),
+            placeholder: t('nfc_tag'),
+            helperText: t('nfc_web_assignment_help'),
+            midWidth: true
+          }
+        ]
+      : []),
     {
       name: 'serialNumber',
       type: 'text',
@@ -490,7 +511,7 @@ const ShowAsset = ({}: PropsType) => {
             ? t('to_delete')
             : null
         }
-        secondActionIcon={<DeleteTwoToneIcon />}
+        secondActionIcon={<DeleteOutlinedIcon />}
         withoutCard
         editAction
       >

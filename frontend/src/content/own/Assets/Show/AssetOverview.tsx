@@ -33,6 +33,7 @@ import {
 import useAuth from '../../../../hooks/useAuth';
 import { getAssetWorkOrders } from '../../../../slices/asset';
 import { useDispatch, useSelector } from '../../../../store';
+import { getSafeHttpUrl } from '../../../../utils/safeWindow';
 
 interface PropsType {
   asset: AssetDTO;
@@ -506,7 +507,11 @@ const AssetOverview = ({ asset }: PropsType) => {
                       user.ownsCompany ? (
                         <Button
                           component={Link}
-                          to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
+                          to={
+                            isCloudVersion
+                              ? '/app/subscription/plans'
+                              : '/app/account/company-profile'
+                          }
                           color="inherit"
                         >
                           {t('upgrade_now')}
@@ -518,18 +523,27 @@ const AssetOverview = ({ asset }: PropsType) => {
                   </Alert>
                 ) : asset.files?.length ? (
                   <Stack divider={<Divider />}>
-                    {asset.files.slice(0, 4).map((file) => (
-                      <Box key={file.id} sx={{ py: 1.5, minWidth: 0 }}>
-                        <MuiLink
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{ overflowWrap: 'anywhere' }}
-                        >
-                          {file.name}
-                        </MuiLink>
-                      </Box>
-                    ))}
+                    {asset.files.slice(0, 4).map((file) => {
+                      const safeUrl = getSafeHttpUrl(file.url);
+                      return (
+                        <Box key={file.id} sx={{ py: 1.5, minWidth: 0 }}>
+                          {safeUrl ? (
+                            <MuiLink
+                              href={safeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ overflowWrap: 'anywhere' }}
+                            >
+                              {file.name}
+                            </MuiLink>
+                          ) : (
+                            <Typography color="text.secondary">
+                              {file.name}
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Stack>
                 ) : (
                   <Typography color="text.secondary" sx={{ py: 2 }}>

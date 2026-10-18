@@ -44,11 +44,13 @@ export default function SelectPartQuantities({
         partQuantities={partQuantities}
         onChange={onPartQuantityChange}
         disabled={false}
-        onDelete={(partQuantity) =>
-          setPartQuantities((prevState) =>
-            prevState.filter((pq) => pq.id !== partQuantity.id)
-          )
-        }
+        onDelete={(partQuantity) => {
+          const updatedPartQuantities = partQuantities.filter(
+            (pq) => pq.id !== partQuantity.id
+          );
+          setPartQuantities(updatedPartQuantities);
+          onChange(updatedPartQuantities);
+        }}
       />
       <SelectParts
         selected={partQuantities.map((partQuantity) => partQuantity.part.id)}
@@ -65,6 +67,7 @@ export default function SelectPartQuantities({
             };
           });
           setPartQuantities(newPartQuantities);
+          onChange(newPartQuantities);
         }}
       />
     </>

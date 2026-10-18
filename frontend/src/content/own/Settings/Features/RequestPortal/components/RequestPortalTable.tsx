@@ -2,9 +2,9 @@ import { Box, Button, IconButton, Link } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useContext, useEffect, useState } from 'react';
-import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
-import ShareTwoToneIcon from '@mui/icons-material/ShareTwoTone';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { useDispatch, useSelector } from '../../../../../../store';
 import {
   addRequestPortal,
@@ -97,10 +97,14 @@ export default function RequestPortalTable({
   const handleDelete = async () => {
     if (!selectedPortal) return;
     try {
-      await dispatch(deleteRequestPortal(selectedPortal.id));
-      showSnackBar(t('request_portal_delete_success'), 'success');
-      setConfirmDeleteOpen(false);
-      setSelectedPortal(null);
+      const deleted = await dispatch(deleteRequestPortal(selectedPortal.id));
+      if (deleted) {
+        showSnackBar(t('request_portal_delete_success'), 'success');
+        setConfirmDeleteOpen(false);
+        setSelectedPortal(null);
+      } else {
+        showSnackBar(t('request_portal_delete_failure'), 'error');
+      }
     } catch (err) {
       showSnackBar(t('request_portal_delete_failure'), 'error');
     }
@@ -187,7 +191,7 @@ export default function RequestPortalTable({
             onClick={(e) => openShareDialog(params.row, e)}
             title={t('share')}
           >
-            <ShareTwoToneIcon />
+            <ShareOutlinedIcon />
           </IconButton>
           <IconButton
             size="small"
@@ -195,7 +199,7 @@ export default function RequestPortalTable({
             onClick={(e) => openDeleteConfirm(params.row, e)}
             title={t('delete')}
           >
-            <DeleteTwoToneIcon />
+            <DeleteOutlinedIcon />
           </IconButton>
         </Box>
       )
@@ -215,7 +219,7 @@ export default function RequestPortalTable({
         {hasCreatePermission(PermissionEntity.SETTINGS) && (
           <Box display="flex" flexDirection="row" alignItems="center">
             <Button
-              startIcon={<AddTwoToneIcon />}
+              startIcon={<AddOutlinedIcon />}
               variant="contained"
               onClick={() => onOpenModal(undefined, 'edit')}
             >

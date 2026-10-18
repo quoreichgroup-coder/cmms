@@ -18,7 +18,7 @@ import {
   resetLocationsHierarchy
 } from '../../../../slices/location';
 import { LocationMiniDTO } from '../../../../models/owns/location';
-import ReplayTwoToneIcon from '@mui/icons-material/ReplayTwoTone';
+import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
 import NoRowsMessageWrapper from '../NoRowsMessageWrapper';
 import { usePrevious } from '../../../../hooks/usePrevious';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -280,7 +280,7 @@ const SelectLocationModal: React.FC<SelectLocationModalProps> = ({
           color="primary"
           size="small"
         >
-          <ReplayTwoToneIcon />
+          <ReplayOutlinedIcon />
         </IconButton>
       </DialogTitle>
 

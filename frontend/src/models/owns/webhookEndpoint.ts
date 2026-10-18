@@ -25,6 +25,20 @@ export const WEBHOOK_EVENTS = [
   'WORK_REQUEST_STATUS_CHANGE'
 ] as const;
 
+// These names exist in the API enum but have no dispatch call in the current
+// backend. Keep them in the DTO type for existing configurations, but do not
+// offer new subscriptions that can never be triggered.
+const WEBHOOK_EVENTS_WITHOUT_DISPATCH = new Set<WebhookEvent>([
+  'NEW_PURCHASE_ORDER',
+  'PURCHASE_ORDER_CHANGE',
+  'PURCHASE_ORDER_STATUS_CHANGE',
+  'WORK_ORDER_OVERDUE'
+]);
+
+export const CONFIGURABLE_WEBHOOK_EVENTS = WEBHOOK_EVENTS.filter(
+  (event) => !WEBHOOK_EVENTS_WITHOUT_DISPATCH.has(event)
+);
+
 export type WebhookEvent = typeof WEBHOOK_EVENTS[number];
 
 export const getWebhookEventLabelKey = (event: WebhookEvent) =>
@@ -125,7 +139,8 @@ export interface WebhookEndpointShowDTO extends Audit {
   url: string;
   code: string;
   event: WebhookEvent;
-  secret: string;
+  /** Returned only by create/rotate responses; list and update responses omit it. */
+  secret?: string;
   assetStatuses: string[];
   workOrderStatuses: string[];
   approved: boolean | null;

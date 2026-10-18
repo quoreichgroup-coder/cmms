@@ -161,10 +161,22 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
     setIsCustomerDetailsOpen(false);
   };
 
-  const handleDelete = (id: number) => {
-    handleCloseDetails();
-    dispatch(deleteCustomer(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteCustomer(id));
+      setOpenDelete(false);
+      if (deleted) {
+        handleCloseDetails();
+        onDeleteSuccess();
+      } else {
+        setIsCustomerDetailsOpen(true);
+        onDeleteFailure(new Error('Customer deletion was not confirmed'));
+      }
+    } catch (err) {
+      setOpenDelete(false);
+      setIsCustomerDetailsOpen(true);
+      onDeleteFailure(err);
+    }
   };
   const onCreationSuccess = () => {
     handleCloseModal();

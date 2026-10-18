@@ -1,9 +1,9 @@
 import {
   Alert,
+  FlatList,
   Image,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View as RNView
 } from 'react-native';
@@ -89,6 +89,11 @@ export default function MeterDetails({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { t } = useTranslation();
   const { user, hasEditPermission, hasDeletePermission } = useAuth();
+  const canOpenMeterActions = Boolean(
+    meter &&
+      (hasEditPermission(PermissionEntity.METERS, meter) ||
+        hasDeletePermission(PermissionEntity.METERS, meter))
+  );
   const dispatch = useDispatch();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const [deleting, setDeleting] = useState(false);
@@ -317,25 +322,24 @@ export default function MeterDetails({
   useEffect(() => {
     navigation.setOptions({
       title: meter?.name ?? t('loading'),
-      headerRight: () => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('more_options')}
-          onPress={() => {
-            SheetManager.show('meter-details-sheet', {
-              payload: {
-                onEdit: () => navigation.navigate('EditMeter', { meter }),
-                onDelete: () => setOpenDelete(true),
-                meter
-              }
-            });
-          }}
-        >
-          <IconButton icon="dots-vertical" />
-        </Pressable>
-      )
+      headerRight: () =>
+        canOpenMeterActions && meter ? (
+          <IconButton
+            icon="dots-vertical"
+            accessibilityLabel={t('more_options')}
+            onPress={() => {
+              SheetManager.show('meter-details-sheet', {
+                payload: {
+                  onEdit: () => navigation.navigate('EditMeter', { meter }),
+                  onDelete: () => setOpenDelete(true),
+                  meter
+                }
+              });
+            }}
+          />
+        ) : null
     });
-  }, [meter]);
+  }, [canOpenMeterActions, meter, navigation, t]);
 
   const onAddReading = () => {
     if (!isValidReading(readingValue)) return;
@@ -398,326 +402,340 @@ export default function MeterDetails({
   };
   if (meter)
     return (
-      <ScrollView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={(meterLoading && !!meter) || readingsLoading}
-            onRefresh={() => {
-              void loadMeter();
-              void loadTriggers();
-              void loadReadings();
-            }}
-          />
-        }
-      >
+      <>
         {renderConfirmDelete()}
         {renderAddReading()}
         {renderEditReading()}
-        {meterLoadError && (
-          <AsyncStateFeedback
-            mode="banner"
-            message={t('meter_details_load_error')}
-            onRetry={() => void loadMeter()}
-          />
-        )}
-        {meter.image && (
-          <Image style={styles.meterImage} source={{ uri: meter.image.url }} />
-        )}
-        <Card
-          mode="outlined"
-          style={[
-            styles.summaryCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineVariant
-            }
-          ]}
-        >
-          <Card.Content>
-            <View style={styles.summaryHeading}>
-              <View style={styles.summaryTitle}>
-                <Text variant="titleLarge" style={styles.meterName}>
-                  {meter.name}
-                </Text>
-                <Text
-                  variant="bodyMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {meter.asset?.name || '—'}
-                </Text>
-              </View>
-              <Chip
-                compact
-                icon="gauge"
-                style={{ backgroundColor: theme.colors.primaryContainer }}
-                textStyle={{ color: theme.colors.onPrimaryContainer }}
-              >
-                {meter.unit}
-              </Chip>
-            </View>
-            <View
-              style={[
-                styles.readingSummary,
-                { backgroundColor: theme.colors.surfaceVariant }
-              ]}
-            >
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {t('last_reading')}
-              </Text>
-              <Text variant="headlineSmall" style={styles.latestValue}>
-                {latestReading
-                  ? `${latestReading.value} ${meter.unit}`
-                  : readingsLoading
-                  ? t('loading')
-                  : readingsLoadError
-                  ? '—'
-                  : t('meter_no_readings')}
-              </Text>
-              {latestReading && (
-                <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {getFormattedDate(latestReading.createdAt)}
-                </Text>
-              )}
-              {meter.nextReading && (
-                <Text
-                  variant="bodySmall"
-                  style={{
-                    color: canAddReading(meter)
-                      ? theme.colors.error
-                      : theme.colors.onSurfaceVariant,
-                    marginTop: 6
-                  }}
-                >
-                  {t('next_reading_due')}: {getFormattedDate(meter.nextReading)}
-                </Text>
-              )}
-            </View>
-          </Card.Content>
-        </Card>
-        <Card
-          mode="outlined"
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineVariant
-            }
-          ]}
-        >
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              {t('meter_details')}
-            </Text>
-            {fieldsToRender.map((field) => (
-              <BasicField
-                key={field.label}
-                label={field.label}
-                value={field.value}
-                isLink={(field as any).isLink}
-              />
-            ))}
-            <ListField
-              values={meter?.users}
-              label={t('assigned_to')}
-              getHref={(user: UserMiniDTO) => getUserUrl(user.id)}
-              getValueLabel={(user: UserMiniDTO) =>
-                `${user.firstName} ${user.lastName}`
-              }
-            />
-          </Card.Content>
-        </Card>
-        {canAddReading(meter) &&
-          !addedReading &&
-          user.role.code !== 'VIEW_ONLY' && (
-            <Button
-              onPress={() => {
-                setReadingValue('');
-                setOpenModal(true);
-              }}
-              mode={'contained'}
-              style={styles.addReadingButton}
-            >
-              {t('add_reading')}
-            </Button>
-          )}
-        {(triggersLoading ||
-          triggersLoadError ||
-          !!currentMeterTriggers.length) && (
-          <Card
-            mode="outlined"
-            style={[
-              styles.sectionCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                {t('wo_triggers')}
-              </Text>
-              {triggersLoadError && (
+        <FlatList<Reading>
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+          contentContainerStyle={styles.content}
+          data={[...currentMeterReadings].reverse()}
+          keyExtractor={(reading) => String(reading.id)}
+          initialNumToRender={10}
+          windowSize={7}
+          ListHeaderComponent={
+            <>
+              {meterLoadError && (
                 <AsyncStateFeedback
                   mode="banner"
-                  message={t('meter_triggers_load_error')}
-                  onRetry={() => void loadTriggers()}
+                  message={t('meter_details_load_error')}
+                  onRetry={() => void loadMeter()}
                 />
               )}
-              {triggersLoading && !currentMeterTriggers.length && (
-                <ActivityIndicator color={theme.colors.primary} />
+              {meter.image && (
+                <Image
+                  style={styles.meterImage}
+                  source={{ uri: meter.image.url }}
+                />
               )}
-              {currentMeterTriggers.map((trigger) => (
-                <View
-                  style={[
-                    styles.triggerRow,
-                    { borderTopColor: theme.colors.outlineVariant }
-                  ]}
-                  key={trigger.id}
-                >
-                  <Text variant="bodyMedium" style={styles.triggerName}>
-                    {trigger.name}
+              <Card
+                mode="outlined"
+                style={[
+                  styles.summaryCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Card.Content>
+                  <View style={styles.summaryHeading}>
+                    <View style={styles.summaryTitle}>
+                      <Text variant="titleLarge" style={styles.meterName}>
+                        {meter.name}
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {meter.asset?.name || '—'}
+                      </Text>
+                    </View>
+                    <Chip
+                      compact
+                      icon="gauge"
+                      style={{ backgroundColor: theme.colors.primaryContainer }}
+                      textStyle={{ color: theme.colors.onPrimaryContainer }}
+                    >
+                      {meter.unit}
+                    </Chip>
+                  </View>
+                  <View
+                    style={[
+                      styles.readingSummary,
+                      { backgroundColor: theme.colors.surfaceVariant }
+                    ]}
+                  >
+                    <Text
+                      variant="labelMedium"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {t('last_reading')}
+                    </Text>
+                    <Text variant="headlineSmall" style={styles.latestValue}>
+                      {latestReading
+                        ? `${latestReading.value} ${meter.unit}`
+                        : readingsLoading
+                        ? t('loading')
+                        : readingsLoadError
+                        ? '—'
+                        : t('meter_no_readings')}
+                    </Text>
+                    {latestReading && (
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {getFormattedDate(latestReading.createdAt)}
+                      </Text>
+                    )}
+                    {meter.nextReading && (
+                      <Text
+                        variant="bodySmall"
+                        style={{
+                          color: canAddReading(meter)
+                            ? theme.colors.error
+                            : theme.colors.onSurfaceVariant,
+                          marginTop: 6
+                        }}
+                      >
+                        {t('next_reading_due')}:{' '}
+                        {getFormattedDate(meter.nextReading)}
+                      </Text>
+                    )}
+                  </View>
+                </Card.Content>
+              </Card>
+              <Card
+                mode="outlined"
+                style={[
+                  styles.sectionCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Card.Content>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>
+                    {t('meter_details')}
                   </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >{`${
-                    trigger.triggerCondition === 'MORE_THAN'
-                      ? t('greater_than')
-                      : t('lower_than')
-                  } ${trigger.value} ${meter.unit}`}</Text>
-                </View>
-              ))}
-            </Card.Content>
-          </Card>
-        )}
-        <Text
-          variant="titleMedium"
-          style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
-        >
-          {t('reading_history')}
-        </Text>
-        {readingsLoadError && (
-          <AsyncStateFeedback
-            mode="banner"
-            message={t('meter_readings_load_error')}
-            onRetry={() => void loadReadings()}
-          />
-        )}
-        {readingsLoading && !currentMeterReadings.length && (
-          <RNView
-            style={styles.readingsLoading}
-            accessibilityRole="progressbar"
-            accessibilityLabel={t('please_wait')}
-          >
-            <ActivityIndicator color={theme.colors.primary} />
-            <Text
-              variant="bodyMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t('please_wait')}
-            </Text>
-          </RNView>
-        )}
-        {[...currentMeterReadings].reverse().map((reading) => (
-          <Card
-            key={reading.id}
-            mode="outlined"
-            style={[
-              styles.readingCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Card.Content style={styles.readingRow}>
-              <View style={styles.readingInfo}>
-                <Text variant="titleSmall">
-                  {reading.value} {meter.unit}
-                </Text>
-                <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {getFormattedDate(reading.createdAt)}
-                </Text>
-              </View>
-              <RNView style={{ flexDirection: 'row' }}>
-                {hasEditPermission(PermissionEntity.METERS, meter) && (
-                  <IconButton
-                    icon="pencil"
-                    iconColor={theme.colors.primary}
-                    size={20}
-                    disabled={deletingReadingIds.includes(reading.id)}
-                    accessibilityLabel={`${t('edit_reading')}: ${
-                      reading.value
-                    }`}
-                    onPress={() => {
-                      setEditReadingValue(String(reading.value));
-                      setEditingReading(reading);
-                    }}
-                  />
-                )}
-                {hasDeletePermission(PermissionEntity.METERS, meter) &&
-                  (deletingReadingIds.includes(reading.id) ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.primary}
-                      accessibilityRole="progressbar"
-                      accessibilityLabel={t('loading')}
-                      style={{ marginHorizontal: 12 }}
-                    />
-                  ) : (
-                    <IconButton
-                      icon="delete"
-                      iconColor={theme.colors.error}
-                      size={20}
-                      accessibilityLabel={`${t('to_delete')}: ${reading.value}`}
-                      onPress={() => handleDeleteReading(reading)}
+                  {fieldsToRender.map((field) => (
+                    <BasicField
+                      key={field.label}
+                      label={field.label}
+                      value={field.value}
+                      isLink={(field as any).isLink}
                     />
                   ))}
-              </RNView>
-            </Card.Content>
-          </Card>
-        ))}
-        {!readingsLoading &&
-          !readingsLoadError &&
-          !currentMeterReadings.length && (
-            <RNView
+                  <ListField
+                    values={meter?.users}
+                    label={t('assigned_to')}
+                    getHref={(user: UserMiniDTO) => getUserUrl(user.id)}
+                    getValueLabel={(user: UserMiniDTO) =>
+                      `${user.firstName} ${user.lastName}`
+                    }
+                  />
+                </Card.Content>
+              </Card>
+              {canAddReading(meter) &&
+                !addedReading &&
+                user.role.code !== 'VIEW_ONLY' && (
+                  <Button
+                    onPress={() => {
+                      setReadingValue('');
+                      setOpenModal(true);
+                    }}
+                    mode={'contained'}
+                    style={styles.addReadingButton}
+                  >
+                    {t('add_reading')}
+                  </Button>
+                )}
+              {(triggersLoading ||
+                triggersLoadError ||
+                !!currentMeterTriggers.length) && (
+                <Card
+                  mode="outlined"
+                  style={[
+                    styles.sectionCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outlineVariant
+                    }
+                  ]}
+                >
+                  <Card.Content>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                      {t('wo_triggers')}
+                    </Text>
+                    {triggersLoadError && (
+                      <AsyncStateFeedback
+                        mode="banner"
+                        message={t('meter_triggers_load_error')}
+                        onRetry={() => void loadTriggers()}
+                      />
+                    )}
+                    {triggersLoading && !currentMeterTriggers.length && (
+                      <ActivityIndicator color={theme.colors.primary} />
+                    )}
+                    {currentMeterTriggers.map((trigger) => (
+                      <View
+                        style={[
+                          styles.triggerRow,
+                          { borderTopColor: theme.colors.outlineVariant }
+                        ]}
+                        key={trigger.id}
+                      >
+                        <Text variant="bodyMedium" style={styles.triggerName}>
+                          {trigger.name}
+                        </Text>
+                        <Text
+                          variant="bodySmall"
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >{`${
+                          trigger.triggerCondition === 'MORE_THAN'
+                            ? t('greater_than')
+                            : t('lower_than')
+                        } ${trigger.value} ${meter.unit}`}</Text>
+                      </View>
+                    ))}
+                  </Card.Content>
+                </Card>
+              )}
+              <Text
+                variant="titleMedium"
+                style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+              >
+                {t('reading_history')}
+              </Text>
+              {readingsLoadError && (
+                <AsyncStateFeedback
+                  mode="banner"
+                  message={t('meter_readings_load_error')}
+                  onRetry={() => void loadReadings()}
+                />
+              )}
+              {readingsLoading && !currentMeterReadings.length && (
+                <RNView
+                  style={styles.readingsLoading}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel={t('please_wait')}
+                >
+                  <ActivityIndicator color={theme.colors.primary} />
+                  <Text
+                    variant="bodyMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t('please_wait')}
+                  </Text>
+                </RNView>
+              )}
+            </>
+          }
+          renderItem={({ item: reading }) => (
+            <Card
+              mode="outlined"
               style={[
-                styles.emptyReadingsCard,
+                styles.readingCard,
                 {
                   backgroundColor: theme.colors.surface,
                   borderColor: theme.colors.outlineVariant
                 }
               ]}
             >
-              <Icon
-                source="chart-box-outline"
-                size={24}
-                color={theme.colors.onSurfaceVariant}
-              />
-              <Text
-                variant="bodyMedium"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: 'center'
-                }}
-              >
-                {t('meter_no_readings')}
-              </Text>
-            </RNView>
+              <Card.Content style={styles.readingRow}>
+                <View style={styles.readingInfo}>
+                  <Text variant="titleSmall">
+                    {reading.value} {meter.unit}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {getFormattedDate(reading.createdAt)}
+                  </Text>
+                </View>
+                <RNView style={{ flexDirection: 'row' }}>
+                  {hasEditPermission(PermissionEntity.METERS, meter) && (
+                    <IconButton
+                      icon="pencil"
+                      iconColor={theme.colors.primary}
+                      size={20}
+                      disabled={deletingReadingIds.includes(reading.id)}
+                      accessibilityLabel={`${t('edit_reading')}: ${
+                        reading.value
+                      }`}
+                      onPress={() => {
+                        setEditReadingValue(String(reading.value));
+                        setEditingReading(reading);
+                      }}
+                    />
+                  )}
+                  {hasDeletePermission(PermissionEntity.METERS, meter) &&
+                    (deletingReadingIds.includes(reading.id) ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.primary}
+                        accessibilityRole="progressbar"
+                        accessibilityLabel={t('loading')}
+                        style={{ marginHorizontal: 12 }}
+                      />
+                    ) : (
+                      <IconButton
+                        icon="delete"
+                        iconColor={theme.colors.error}
+                        size={20}
+                        accessibilityLabel={`${t('to_delete')}: ${
+                          reading.value
+                        }`}
+                        onPress={() => handleDeleteReading(reading)}
+                      />
+                    ))}
+                </RNView>
+              </Card.Content>
+            </Card>
           )}
-      </ScrollView>
+          ListEmptyComponent={
+            !readingsLoading && !readingsLoadError ? (
+              <RNView
+                style={[
+                  styles.emptyReadingsCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Icon
+                  source="chart-box-outline"
+                  size={24}
+                  color={theme.colors.onSurfaceVariant}
+                />
+                <Text
+                  variant="bodyMedium"
+                  style={{
+                    color: theme.colors.onSurfaceVariant,
+                    textAlign: 'center'
+                  }}
+                >
+                  {t('meter_no_readings')}
+                </Text>
+              </RNView>
+            ) : null
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={(meterLoading && !!meter) || readingsLoading}
+              onRefresh={() => {
+                void loadMeter();
+                void loadTriggers();
+                void loadReadings();
+              }}
+            />
+          }
+        />
+      </>
     );
   else if (meterLoading)
     return <AsyncStateFeedback mode="loading" message={t('please_wait')} />;

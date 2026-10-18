@@ -164,18 +164,13 @@ export const getMoreRequests =
 export const getRequestDetails =
   (id: number): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
-    try {
-      const request = await api.get<Request>(`${basePath}/${id}`);
-      dispatch(
-        slice.actions.getRequestDetails({
-          id,
-          request
-        })
-      );
-    } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
-    }
+    const request = await api.get<Request>(`${basePath}/${id}`);
+    dispatch(
+      slice.actions.getRequestDetails({
+        id,
+        request
+      })
+    );
   };
 export const addRequest =
   (request): AppThunk =>

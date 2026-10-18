@@ -16,6 +16,8 @@ interface UserState {
   disabledUsersMini: UserMiniDTO[];
   currentPageNum: number;
   lastPage: boolean;
+  listLoading: boolean;
+  latestListRequestId: number;
   loadingGet: boolean;
 }
 
@@ -27,6 +29,8 @@ const initialState: UserState = {
   disabledUsersMini: [],
   currentPageNum: 0,
   lastPage: true,
+  listLoading: false,
+  latestListRequestId: 0,
   loadingGet: false
 };
 
@@ -35,17 +39,22 @@ const slice = createSlice({
   initialState,
   extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
-    getUsers(state: UserState, action: PayloadAction<{ users: Page<User> }>) {
-      const { users } = action.payload;
+    getUsers(
+      state: UserState,
+      action: PayloadAction<{ users: Page<User>; requestId: number }>
+    ) {
+      const { users, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.users = users;
       state.currentPageNum = 0;
       state.lastPage = users.last;
     },
     getMoreUsers(
       state: UserState,
-      action: PayloadAction<{ users: Page<User> }>
+      action: PayloadAction<{ users: Page<User>; requestId: number }>
     ) {
-      const { users } = action.payload;
+      const { users, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.users.content = state.users.content.concat(users.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = users.last;
@@ -104,7 +113,13 @@ const slice = createSlice({
     deleteUser(state: UserState, action: PayloadAction<{ id: number }>) {
       const { id } = action.payload;
       const userIndex = state.users.content.findIndex((user) => user.id === id);
-      state.users.content.splice(userIndex, 1);
+      if (userIndex !== -1) state.users.content.splice(userIndex, 1);
+      state.usersMini = state.usersMini.filter((user) => user.id !== id);
+      state.allUsersMini = state.allUsersMini.filter((user) => user.id !== id);
+      state.disabledUsersMini = state.disabledUsersMini.filter(
+        (user) => user.id !== id
+      );
+      delete state.userInfos[id];
     },
     setLoadingGet(
       state: UserState,
@@ -112,33 +127,46 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: UserState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: UserState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getUsers =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const users = await api.post<Page<User>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getUsers({ users }));
+      dispatch(slice.actions.getUsers({ users, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreUsers =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
     criteria = { ...criteria, pageNum };
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(slice.actions.beginListRequest(requestId));
       const users = await api.post<Page<User>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getMoreUsers({ users }));
+      dispatch(slice.actions.getMoreUsers({ users, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 
@@ -147,15 +175,13 @@ export const getUserDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const user = await api.get<User>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getUserDetails({
-        id,
-        user
-      })
-    );
-
+      const user = await api.get<User>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getUserDetails({
+          id,
+          user
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -176,15 +202,18 @@ export const getUsersMini =
   (withRequesters?: boolean): AppThunk =>
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
-    const query =
-      withRequesters !== undefined ? `?withRequesters=${withRequesters}` : '';
-    const users = await api.get<UserMiniDTO[]>(`users/mini${query}`);
-    dispatch(
-      withRequesters
-        ? slice.actions.getAllUsersMini({ users })
-        : slice.actions.getUsersMini({ users })
-    );
-    dispatch(slice.actions.setLoadingGet({ loading: false }));
+    try {
+      const query =
+        withRequesters !== undefined ? `?withRequesters=${withRequesters}` : '';
+      const users = await api.get<UserMiniDTO[]>(`users/mini${query}`);
+      dispatch(
+        withRequesters
+          ? slice.actions.getAllUsersMini({ users })
+          : slice.actions.getUsersMini({ users })
+      );
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
   };
 export const getDisabledUsersMini = (): AppThunk => async (dispatch) => {
   const users = await api.get<UserMiniDTO[]>('users/mini/disabled');

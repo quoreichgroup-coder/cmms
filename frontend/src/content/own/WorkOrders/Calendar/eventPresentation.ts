@@ -1,0 +1,34 @@
+import { isBefore, isValid, parseISO, startOfDay } from 'date-fns';
+import { qpmWorkOrderStatusTokens } from 'src/theme/tokens';
+
+interface CalendarEventPresentationInput {
+  status?: string;
+  dueDate?: string | null;
+}
+
+export function getCalendarEventStatus(
+  event: CalendarEventPresentationInput,
+  now: Date = new Date()
+): string | null {
+  if (event.status === 'COMPLETE') return 'COMPLETE';
+
+  if (event.dueDate) {
+    const dueDate = parseISO(event.dueDate);
+    if (isValid(dueDate) && isBefore(dueDate, startOfDay(now))) {
+      return 'OVERDUE';
+    }
+  }
+
+  return event.status &&
+    Object.prototype.hasOwnProperty.call(qpmWorkOrderStatusTokens, event.status)
+    ? event.status
+    : null;
+}
+
+export function getCalendarEventColor(
+  event: CalendarEventPresentationInput,
+  now: Date = new Date()
+): string | null {
+  const status = getCalendarEventStatus(event, now);
+  return status ? qpmWorkOrderStatusTokens[status].foreground : null;
+}

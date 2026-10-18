@@ -46,7 +46,7 @@ export default function AsyncStateFeedback({
           {message}
         </Text>
         {onRetry && (
-          <Button compact onPress={onRetry}>
+          <Button compact onPress={onRetry} style={styles.retryButton}>
             {t('retry')}
           </Button>
         )}
@@ -57,7 +57,10 @@ export default function AsyncStateFeedback({
   if (mode === 'permissionDenied') {
     return (
       <View
-        style={[styles.permissionDenied, { backgroundColor: theme.colors.surface }]}
+        style={[
+          styles.permissionDenied,
+          { backgroundColor: theme.colors.surface }
+        ]}
         accessibilityRole="alert"
       >
         <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>
@@ -79,7 +82,7 @@ export default function AsyncStateFeedback({
     >
       <Text variant="titleMedium">{message}</Text>
       {onRetry && (
-        <Button mode="contained" onPress={onRetry}>
+        <Button mode="contained" onPress={onRetry} style={styles.retryButton}>
           {t('retry')}
         </Button>
       )}
@@ -120,5 +123,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: qpmLayoutTokens.space.md,
     paddingVertical: qpmLayoutTokens.space.sm,
     borderRadius: qpmLayoutTokens.radius.control
+  },
+  retryButton: {
+    minHeight: qpmLayoutTokens.touchTarget.minimum,
+    justifyContent: 'center'
   }
 });

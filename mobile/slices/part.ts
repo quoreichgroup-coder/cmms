@@ -14,6 +14,9 @@ interface PartState {
   partsMini: PartMiniDTO[];
   currentPageNum: number;
   lastPage: boolean;
+  listLoading: boolean;
+  latestListRequestId: number;
+  partsMiniLoading: boolean;
   loadingGet: boolean;
 }
 
@@ -23,6 +26,9 @@ const initialState: PartState = {
   partsMini: [],
   currentPageNum: 0,
   lastPage: true,
+  listLoading: false,
+  latestListRequestId: 0,
+  partsMiniLoading: false,
   loadingGet: false
 };
 
@@ -31,17 +37,22 @@ const slice = createSlice({
   initialState,
   extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
   reducers: {
-    getParts(state: PartState, action: PayloadAction<{ parts: Page<Part> }>) {
-      const { parts } = action.payload;
+    getParts(
+      state: PartState,
+      action: PayloadAction<{ parts: Page<Part>; requestId: number }>
+    ) {
+      const { parts, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.parts = parts;
       state.currentPageNum = 0;
       state.lastPage = parts.last;
     },
     getMoreParts(
       state: PartState,
-      action: PayloadAction<{ parts: Page<Part> }>
+      action: PayloadAction<{ parts: Page<Part>; requestId: number }>
     ) {
-      const { parts } = action.payload;
+      const { parts, requestId } = action.payload;
+      if (requestId !== state.latestListRequestId) return;
       state.parts.content = state.parts.content.concat(parts.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = parts.last;
@@ -68,6 +79,12 @@ const slice = createSlice({
       const { parts } = action.payload;
       state.partsMini = parts;
     },
+    setPartsMiniLoading(
+      state: PartState,
+      action: PayloadAction<{ loading: boolean }>
+    ) {
+      state.partsMiniLoading = action.payload.loading;
+    },
     addPart(state: PartState, action: PayloadAction<{ part: Part }>) {
       const { part } = action.payload;
       state.parts.content = [...state.parts.content, part];
@@ -77,6 +94,8 @@ const slice = createSlice({
       const { id } = action.payload;
       const partIndex = state.parts.content.findIndex((part) => part.id === id);
       if (partIndex !== -1) state.parts.content.splice(partIndex, 1);
+      state.partsMini = state.partsMini.filter((part) => part.id !== id);
+      delete state.partInfos[id];
     },
     setLoadingGet(
       state: PartState,
@@ -84,33 +103,46 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    beginListRequest(state: PartState, action: PayloadAction<number>) {
+      state.latestListRequestId = action.payload;
+      state.listLoading = true;
+    },
+    finishListRequest(state: PartState, action: PayloadAction<number>) {
+      if (action.payload === state.latestListRequestId) {
+        state.listLoading = false;
+      }
     }
   }
 });
 
 export const reducer = slice.reducer;
 
+let listRequestSequence = 0;
+
 export const getParts =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const parts = await api.post<Page<Part>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getParts({ parts }));
+      dispatch(slice.actions.getParts({ parts, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getMoreParts =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch) => {
     criteria = { ...criteria, pageNum };
+    const requestId = ++listRequestSequence;
+    dispatch(slice.actions.beginListRequest(requestId));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const parts = await api.post<Page<Part>>(`${basePath}/search`, criteria);
-      dispatch(slice.actions.getMoreParts({ parts }));
+      dispatch(slice.actions.getMoreParts({ parts, requestId }));
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishListRequest(requestId));
     }
   };
 export const getPartDetails =
@@ -118,15 +150,13 @@ export const getPartDetails =
   async (dispatch) => {
     dispatch(slice.actions.setLoadingGet({ loading: true }));
     try {
-
-    const part = await api.get<Part>(`${basePath}/${id}`);
-    dispatch(
-      slice.actions.getPartDetails({
-        id,
-        part
-      })
-    );
-
+      const part = await api.get<Part>(`${basePath}/${id}`);
+      dispatch(
+        slice.actions.getPartDetails({
+          id,
+          part
+        })
+      );
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }
@@ -139,10 +169,13 @@ export const editPart =
     dispatch(slice.actions.editPart({ part: partResponse }));
   };
 export const getPartsMini = (): AppThunk => async (dispatch) => {
-  dispatch(slice.actions.setLoadingGet({ loading: true }));
-  const parts = await api.get<PartMiniDTO[]>(`${basePath}/mini`);
-  dispatch(slice.actions.getPartsMini({ parts }));
-  dispatch(slice.actions.setLoadingGet({ loading: false }));
+  dispatch(slice.actions.setPartsMiniLoading({ loading: true }));
+  try {
+    const parts = await api.get<PartMiniDTO[]>(`${basePath}/mini`);
+    dispatch(slice.actions.getPartsMini({ parts }));
+  } finally {
+    dispatch(slice.actions.setPartsMiniLoading({ loading: false }));
+  }
 };
 export const addPart =
   (part): AppThunk =>

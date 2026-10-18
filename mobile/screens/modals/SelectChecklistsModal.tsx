@@ -1,22 +1,17 @@
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet } from 'react-native';
 import { View } from '../../components/Themed';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Avatar,
-  Button,
   Searchbar,
   Text,
   useTheme
 } from 'react-native-paper';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { getTaskFromTaskBase } from '../../utils/formatters';
 import { getChecklists } from '../../slices/checklist';
 import { useDispatch, useSelector } from '../../store';
@@ -29,16 +24,24 @@ export default function SelectChecklistsModal({
   const theme = useTheme();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { loadingGet, checklists } = useSelector((state) => state.checklists);
+  const { checklists } = useSelector((state) => state.checklists);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadError, setLoadError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(false);
 
   const loadChecklists = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
     setLoadError(false);
     try {
       await dispatch(getChecklists());
     } catch (_error) {
       setLoadError(true);
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
     }
   }, [dispatch]);
 
@@ -57,100 +60,97 @@ export default function SelectChecklistsModal({
     >
       <Searchbar
         placeholder={t('search')}
+        accessibilityLabel={t('search')}
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={{ backgroundColor: theme.colors.background }}
       />
-      <ScrollView
+      {loadError && checklists.length > 0 ? (
+        <AsyncStateFeedback
+          mode="banner"
+          message={t('checklists_load_error')}
+          onRetry={() => void loadChecklists()}
+        />
+      ) : null}
+      <FlatList
+        data={filteredChecklists}
+        keyExtractor={(checklist) => String(checklist.id)}
+        refreshing={loading}
+        onRefresh={loadChecklists}
         style={{ flex: 1, backgroundColor: theme.colors.background }}
-        refreshControl={
-          <RefreshControl refreshing={loadingGet} onRefresh={loadChecklists} />
-        }
-      >
-        {loadingGet && !checklists.length ? (
-          <ActivityIndicator
-            animating
-            accessibilityLabel={t('loading')}
-            style={{ marginTop: 24 }}
-          />
-        ) : (
-          filteredChecklists.map((checklist) => (
-            <Pressable
-              key={checklist.id}
-              accessibilityRole="button"
-              accessibilityLabel={checklist.name}
-              onPress={() => {
-                onChange([
-                  ...selected,
-                  ...checklist.taskBases.map((taskBase) =>
-                    getTaskFromTaskBase(taskBase)
-                  )
-                ]);
-                navigation.pop(2);
-              }}
-            >
-              <View
-                style={[styles.card, { backgroundColor: theme.colors.surface }]}
-              >
-                <View style={styles.cardRow}>
-                  <Avatar.Icon
-                    size={50}
-                    icon="format-list-checks"
-                    style={{ backgroundColor: theme.colors.primaryContainer }}
-                    color={theme.colors.primary}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text variant="titleMedium" style={styles.cardTitle}>
-                      {checklist.name}
-                    </Text>
-                    <Text
-                      variant="bodySmall"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                    >{`#${checklist.id}`}</Text>
-                  </View>
-                  <Text
-                    variant="labelMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {checklist.taskBases.length}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          ))
-        )}
-        {loadError && (
-          <View style={styles.messageContainer}>
-            <Text
-              accessibilityRole="alert"
-              style={{ color: theme.colors.error, textAlign: 'center' }}
-            >
-              {t('an_error_occured')}
-            </Text>
-            <Button
-              mode="text"
-              onPress={loadChecklists}
-              accessibilityLabel={t('retry')}
-            >
-              {t('retry')}
-            </Button>
-          </View>
-        )}
-        {!loadingGet && !loadError && filteredChecklists.length === 0 && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              textAlign: 'center',
-              marginTop: 24,
-              color: theme.colors.onSurfaceVariant
+        renderItem={({ item: checklist }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={checklist.name}
+            onPress={() => {
+              onChange([
+                ...selected,
+                ...checklist.taskBases.map((taskBase) =>
+                  getTaskFromTaskBase(taskBase)
+                )
+              ]);
+              navigation.pop(2);
             }}
           >
-            {checklists.length
-              ? t('no_results_found')
-              : t('no_checklists_available')}
-          </Text>
+            <View
+              style={[styles.card, { backgroundColor: theme.colors.surface }]}
+            >
+              <View style={styles.cardRow}>
+                <Avatar.Icon
+                  size={50}
+                  icon="format-list-checks"
+                  style={{ backgroundColor: theme.colors.primaryContainer }}
+                  color={theme.colors.primary}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text variant="titleMedium" style={styles.cardTitle}>
+                    {checklist.name}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >{`#${checklist.id}`}</Text>
+                </View>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {checklist.taskBases.length}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
         )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading && !checklists.length ? (
+            <ActivityIndicator
+              animating
+              accessibilityLabel={t('loading')}
+              style={{ marginTop: 24 }}
+            />
+          ) : loadError && !checklists.length ? (
+            <AsyncStateFeedback
+              mode="error"
+              message={t('checklists_load_error')}
+              onRetry={() => void loadChecklists()}
+            />
+          ) : filteredChecklists.length === 0 ? (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                textAlign: 'center',
+                marginTop: 24,
+                color: theme.colors.onSurfaceVariant
+              }}
+            >
+              {checklists.length
+                ? t('no_results_found')
+                : t('no_checklists_available')}
+            </Text>
+          ) : null
+        }
+        keyboardShouldPersistTaps="handled"
+      />
     </View>
   );
 }
@@ -171,9 +171,5 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: 'bold',
     flexShrink: 1
-  },
-  messageContainer: {
-    alignItems: 'center',
-    padding: 20
   }
 });

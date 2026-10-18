@@ -15,7 +15,7 @@ import {
 } from '@mui/x-data-grid';
 import NoRowsMessageWrapper from '../../components/NoRowsMessageWrapper';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
-import CircleTwoToneIcon from '@mui/icons-material/CircleTwoTone';
+import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
 import PriorityWrapper from '../../components/PriorityWrapper';
 import { UserMiniDTO } from '../../../../models/user';
 import UserAvatars from '../../components/UserAvatars';
@@ -64,7 +64,7 @@ export default function WOModal({
       width: 150,
       renderCell: (params: GridRenderCellParams<string>) => (
         <Box display="flex" flexDirection="row" justifyContent="center">
-          <CircleTwoToneIcon
+          <CircleOutlinedIcon
             fontSize="small"
             color={
               params.value === 'IN_PROGRESS'

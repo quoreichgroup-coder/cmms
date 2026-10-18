@@ -18,8 +18,8 @@ import {
 import CommentItem from './CommentItem';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import FileUpload from '../../components/FileUpload';
-import SendTwoToneIcon from '@mui/icons-material/SendTwoTone';
-import AttachFileTwoToneIcon from '@mui/icons-material/AttachFileTwoTone';
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
 import { MentionsTextField } from '@jackstenglein/mui-mentions';
 import { getUsersMini } from '../../../../slices/user';
 import { useSearchParams } from 'react-router-dom';
@@ -150,7 +150,7 @@ export default function CommentsSection(props: CommentsSectionProps) {
             onClick={() => setShowFileUpload(!showFileUpload)}
             color={showFileUpload ? 'primary' : 'default'}
           >
-            <AttachFileTwoToneIcon />
+            <AttachFileOutlinedIcon />
           </IconButton>
           <Button
             variant="contained"
@@ -158,7 +158,7 @@ export default function CommentsSection(props: CommentsSectionProps) {
               loadingCreate ? (
                 <CircularProgress size="1rem" />
               ) : (
-                <SendTwoToneIcon />
+                <SendOutlinedIcon />
               )
             }
             onClick={handleSubmit}

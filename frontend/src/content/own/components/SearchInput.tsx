@@ -1,5 +1,5 @@
 import { InputAdornment, TextField } from '@mui/material';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -17,7 +17,7 @@ export default function SearchInput({ onChange }: OwnProps) {
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
-            <SearchTwoToneIcon color="primary" />
+            <SearchOutlinedIcon color="primary" />
           </InputAdornment>
         )
       }}

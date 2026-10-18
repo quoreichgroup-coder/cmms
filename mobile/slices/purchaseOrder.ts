@@ -79,7 +79,8 @@ const slice = createSlice({
       const purchaseOrderIndex = state.purchaseOrders.content.findIndex(
         (purchaseOrder) => purchaseOrder.id === id
       );
-      state.purchaseOrders.content.splice(purchaseOrderIndex, 1);
+      if (purchaseOrderIndex !== -1)
+        state.purchaseOrders.content.splice(purchaseOrderIndex, 1);
     },
     setLoadingGet(
       state: PurchaseOrderState,

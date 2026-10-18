@@ -1,7 +1,7 @@
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View
 } from 'react-native';
@@ -15,7 +15,7 @@ import { FilterField, SearchCriteria } from '../../models/page';
 import { Button, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import Team from '../../models/team';
-import { isCloseToBottom, onSearchQueryChange } from '../../utils/overall';
+import { onSearchQueryChange } from '../../utils/overall';
 import { RootStackScreenProps } from '../../types';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
@@ -28,7 +28,7 @@ export default function Teams({
 }: RootStackScreenProps<'PeopleTeams'>) {
   const { t } = useTranslation();
   const [startedSearch, setStartedSearch] = useState<boolean>(false);
-  const { teams, loadingGet, currentPageNum, lastPage } = useSelector(
+  const { teams, listLoading, currentPageNum, lastPage } = useSelector(
     (state) => state.teams
   );
   const theme = useAppTheme();
@@ -42,6 +42,7 @@ export default function Teams({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
+  const activeListLoadId = useRef(0);
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -67,6 +68,7 @@ export default function Teams({
   );
   const loadTeams = useCallback(async () => {
     if (!canView) return;
+    const requestId = ++activeListLoadId.current;
     setLoadError(false);
     setLoadMoreError(false);
     try {
@@ -75,9 +77,9 @@ export default function Teams({
       );
     } catch (error) {
       console.warn('Could not load teams:', error);
-      setLoadError(true);
+      if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
-      setHasLoadedList(true);
+      if (activeListLoadId.current === requestId) setHasLoadedList(true);
     }
   }, [canView, criteria, dispatch]);
 
@@ -100,20 +102,21 @@ export default function Teams({
       if (
         !canView ||
         loadingMoreRef.current ||
-        loadingGet ||
+        listLoading ||
         lastPage ||
         (loadMoreError && !retry)
       )
         return;
 
       loadingMoreRef.current = true;
+      const listRequestId = activeListLoadId.current;
       setLoadingMore(true);
       setLoadMoreError(false);
       try {
         await dispatch(getMoreTeams(criteria, currentPageNum + 1));
       } catch (error) {
         console.warn('Could not load more teams:', error);
-        setLoadMoreError(true);
+        if (activeListLoadId.current === listRequestId) setLoadMoreError(true);
       } finally {
         loadingMoreRef.current = false;
         setLoadingMore(false);
@@ -126,7 +129,7 @@ export default function Teams({
       dispatch,
       lastPage,
       loadMoreError,
-      loadingGet
+      listLoading
     ]
   );
 
@@ -157,11 +160,35 @@ export default function Teams({
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
       )}
-      <ScrollView
+      <FlatList
         style={styles.scrollView}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent)) void loadMoreTeams();
-        }}
+        contentContainerStyle={styles.listContent}
+        data={canView ? teams.content : []}
+        keyExtractor={(team) => String(team.id)}
+        renderItem={({ item: team }) => (
+          <DirectoryCard
+            title={team.name}
+            icon="account-group-outline"
+            accessibilityLabel={`${team.name}, ${t('team_members_count', {
+              count: team.users.length
+            })}`}
+            details={[
+              {
+                label: t('team_members_count', {
+                  count: team.users.length
+                }),
+                icon: 'account-multiple-outline'
+              }
+            ]}
+            onPress={() =>
+              navigation.push('TeamDetails', { id: team.id, teamProp: team })
+            }
+          />
+        )}
+        onEndReached={() => void loadMoreTeams()}
+        onEndReachedThreshold={0.4}
+        initialNumToRender={8}
+        windowSize={7}
         refreshControl={
           canView ? (
             <RefreshControl
@@ -172,101 +199,83 @@ export default function Teams({
             />
           ) : undefined
         }
-        scrollEventThrottle={400}
-      >
-        {loadError && teams.content.length > 0 && (
-          <AsyncStateFeedback
-            mode="banner"
-            message={t('directory_load_error')}
-            onRetry={loadTeams}
-          />
-        )}
-        {canView && teams.content.length > 0 ? (
-          teams.content.map((team) => (
-            <DirectoryCard
-              key={team.id}
-              title={team.name}
-              icon="account-group-outline"
-              accessibilityLabel={`${team.name}, ${t('team_members_count', {
-                count: team.users.length
-              })}`}
-              details={[
+        ListHeaderComponent={
+          loadError && teams.content.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('directory_load_error')}
+              onRetry={loadTeams}
+            />
+          ) : null
+        }
+        ListEmptyComponent={
+          canView && (listLoading || !hasLoadedList) ? (
+            <View
+              style={styles.loadingState}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('loading')}
+            >
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('loading')}
+              </Text>
+            </View>
+          ) : !canView ? (
+            <View
+              style={[
+                styles.emptyState,
                 {
-                  label: t('team_members_count', {
-                    count: team.users.length
-                  }),
-                  icon: 'account-multiple-outline'
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
                 }
               ]}
-              onPress={() =>
-                navigation.push('TeamDetails', { id: team.id, teamProp: team })
-              }
+            >
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t('no_access_people_team')}
+              </Text>
+            </View>
+          ) : loadError ? (
+            <View style={styles.emptyState} accessibilityRole="alert">
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {t('directory_load_error')}
+              </Text>
+              <Button onPress={loadTeams}>{t('retry')}</Button>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant
+                }
+              ]}
+            >
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.onSurface }}
+              >
+                {searchQuery.trim()
+                  ? t('no_element_match_criteria')
+                  : t('no_teams_available')}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          canView && !!teams.content.length && !lastPage ? (
+            <DirectoryPaginationFooter
+              loading={loadingMore}
+              error={loadMoreError}
+              loadingMessage={t('teams_page_loading')}
+              onRetry={() => void loadMoreTeams(true)}
             />
-          ))
-        ) : canView && (loadingGet || !hasLoadedList) ? (
-          <View
-            style={styles.loadingState}
-            accessibilityRole="progressbar"
-            accessibilityLabel={t('loading')}
-          >
-            <ActivityIndicator color={theme.colors.primary} size="large" />
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>
-              {t('loading')}
-            </Text>
-          </View>
-        ) : !canView ? (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text style={{ color: theme.colors.onSurface }}>
-              {t('no_access_people_team')}
-            </Text>
-          </View>
-        ) : loadError ? (
-          <View style={styles.emptyState} accessibilityRole="alert">
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface }}
-            >
-              {t('directory_load_error')}
-            </Text>
-            <Button onPress={loadTeams}>{t('retry')}</Button>
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineVariant
-              }
-            ]}
-          >
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface }}
-            >
-              {searchQuery.trim()
-                ? t('no_element_match_criteria')
-                : t('no_teams_available')}
-            </Text>
-          </View>
-        )}
-        {canView && !!teams.content.length && !lastPage && (
-          <DirectoryPaginationFooter
-            loading={loadingMore}
-            error={loadMoreError}
-            loadingMessage={t('teams_page_loading')}
-            onRetry={() => void loadMoreTeams(true)}
-          />
-        )}
-      </ScrollView>
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -285,6 +294,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flex: 1
   },
+  listContent: { flexGrow: 1, paddingBottom: 24 },
   loadingState: {
     minHeight: 180,
     alignItems: 'center',
