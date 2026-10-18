@@ -110,11 +110,18 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
     .filter((cf) => cf.entityType === entityType)
     .sort((a, b) => a.order - b.order);
 
-  const handleDelete = (id: number) => {
-    dispatch(deleteCustomField(id))
-      .then(onDeleteSuccess)
-      .catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteCustomField(id));
+      if (!deleted) {
+        onDeleteFailure(new Error('Custom field deletion was rejected'));
+        return;
+      }
+      onDeleteSuccess();
+      setOpenDelete(false);
+    } catch (error) {
+      onDeleteFailure(error);
+    }
   };
 
   useEffect(() => {

@@ -121,6 +121,7 @@ export const deleteCustomField =
     if (success) {
       dispatch(slice.actions.deleteCustomField({ id }));
     }
+    return success;
   };
 export const reorderCustomFieldsAPI =
   (reorderList: number[]): AppThunk =>

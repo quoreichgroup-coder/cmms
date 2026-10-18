@@ -172,6 +172,7 @@ export const deleteReading =
       }
       dispatch(slice.actions.deleteReading({ meterId, id }));
     }
+    return success;
   };
 
 export const updateReading =

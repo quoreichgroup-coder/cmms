@@ -81,6 +81,7 @@ export const deleteRole =
     if (success) {
       dispatch(slice.actions.deleteRole({ id }));
     }
+    return success;
   };
 
 export default slice;

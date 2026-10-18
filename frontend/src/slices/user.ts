@@ -240,6 +240,7 @@ export const deleteUser =
     if (success) {
       dispatch(slice.actions.deleteUser({ id }));
     }
+    return success;
   };
 
 export const inviteUsers =

@@ -183,10 +183,19 @@ function Roles() {
   };
   const closeConfirmDelete = () => setOpenDelete(false);
 
-  const handleDelete = (id: number) => {
-    setOpenDrawer(false);
-    dispatch(deleteRole(id)).then(onDeleteSuccess).catch(onDeleteFailure);
-    setOpenDelete(false);
+  const handleDelete = async (id: number) => {
+    try {
+      const deleted = await dispatch(deleteRole(id));
+      if (!deleted) {
+        onDeleteFailure(new Error('Role deletion was rejected'));
+        return;
+      }
+      onDeleteSuccess();
+      setOpenDrawer(false);
+      setOpenDelete(false);
+    } catch (error) {
+      onDeleteFailure(error);
+    }
   };
   useEffect(() => {
     dispatch(getRoles());

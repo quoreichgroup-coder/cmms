@@ -108,6 +108,7 @@ export const deleteRelation =
     if (success) {
       dispatch(slice.actions.deleteRelation({ workOrderId, id }));
     }
+    return success;
   };
 
 export default slice;

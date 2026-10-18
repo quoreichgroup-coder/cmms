@@ -182,6 +182,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   const commentIdParam = searchParams.get('commentId');
   const [openAddFileModal, setOpenAddFileModal] = useState<boolean>(false);
   const [openLinkModal, setOpenLinkModal] = useState<boolean>(false);
+  const [relationToDelete, setRelationToDelete] = useState<number | null>(null);
   const [openCompleteModal, setOpenCompleteModal] = useState<boolean>(false);
   const [openArchiveConfirm, setOpenArchiveConfirm] = useState<boolean>(false);
   const archiveInProgressRef = useRef(false);
@@ -212,6 +213,22 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
     (labor) => labor.logged && labor.assignedTo.id === user.id
   );
   const runningTimer = primaryTime?.status === 'RUNNING';
+  const handleDeleteRelation = async () => {
+    if (relationToDelete === null) return;
+    try {
+      const deleted = await dispatch(
+        deleteRelation(workOrder.id, relationToDelete)
+      );
+      if (!deleted) {
+        showSnackBar(t('an_error_occured'), 'error');
+        return;
+      }
+      showSnackBar(t('operation_success'), 'success');
+      setRelationToDelete(null);
+    } catch {
+      showSnackBar(t('an_error_occured'), 'error');
+    }
+  };
   const { costsByWorkOrder, loadingCosts } = useSelector(
     (state) => state.additionalCosts
   );
@@ -1156,22 +1173,23 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                                       justifyContent: 'flex-end'
                                     }}
                                   >
-                                    <IconButton
-                                      sx={{ ml: 1 }}
-                                      onClick={() =>
-                                        dispatch(
-                                          deleteRelation(
-                                            workOrder.id,
-                                            relation.id
-                                          )
-                                        )
-                                      }
-                                    >
-                                      <DeleteOutlinedIcon
-                                        fontSize="small"
-                                        color="error"
-                                      />
-                                    </IconButton>
+                                    {hasEditPermission(
+                                      PermissionEntity.WORK_ORDERS,
+                                      workOrder
+                                    ) && (
+                                      <IconButton
+                                        sx={{ ml: 1 }}
+                                        aria-label={t('delete')}
+                                        onClick={() =>
+                                          setRelationToDelete(relation.id)
+                                        }
+                                      >
+                                        <DeleteOutlinedIcon
+                                          fontSize="small"
+                                          color="error"
+                                        />
+                                      </IconButton>
+                                    )}
                                   </Box>
                                 }
                               >
@@ -1330,6 +1348,13 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         onConfirm={confirmArchive}
         confirmText={t('archive')}
         question={`${t('wo_archive_confirm')}${workOrder.title} ?`}
+      />
+      <ConfirmDialog
+        open={Boolean(relationToDelete)}
+        onCancel={() => setRelationToDelete(null)}
+        onConfirm={handleDeleteRelation}
+        confirmText={t('delete')}
+        question={t('confirm_delete_row')}
       />
       <Menu anchorEl={anchorEl} open={openMenu} onClose={handleCloseMenu}>
         <MenuItem

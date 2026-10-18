@@ -68,14 +68,20 @@ export default function MeterReadingHistory({
   const handleDelete = async () => {
     if (!deletingReading) return;
     try {
-      await dispatch(deleteReading(meter.id, deletingReading.id));
+      const deleted = await dispatch(
+        deleteReading(meter.id, deletingReading.id)
+      );
+      if (!deleted) {
+        showSnackBar(t('meter_delete_failure'), 'error');
+        return;
+      }
       showSnackBar(t('operation_success'), 'success');
       onRefreshHistogram();
+      setDeletingReading(null);
     } catch (err) {
       showSnackBar(t('an_error_occured'), 'error');
       console.error(err);
     }
-    setDeletingReading(null);
   };
 
   return (
