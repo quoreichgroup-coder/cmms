@@ -1,4 +1,6 @@
 const locale = {
+  show_password: 'Show password',
+  hide_password: 'Hide password',
   open_source_notices: 'About and open-source notices',
   open_source_modified:
     'This QPM edition is modified and maintained by QUOREICH GROUP.',
@@ -2454,6 +2456,8 @@ const locale = {
   maintenance_cost: 'Maintenance cost',
   completed_work_orders_created_in_period:
     'Completed orders created in the selected period',
+  completed_work_orders_by_completion_date:
+    'Completed work orders grouped by completion date',
   maintenance_cost_trend: 'Maintenance cost trend',
   dashboard_cost_chart_accessible_summary:
     'Total across {{periodCount}} displayed dates: {{total}}.',

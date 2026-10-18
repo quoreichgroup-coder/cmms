@@ -14,6 +14,7 @@ import { getAssetWorkOrders } from '../../../../slices/asset';
 import { useNavigate } from 'react-router-dom';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import WorkOrderStatusChip from '../../WorkOrders/WorkOrderStatusChip';
+import { isDueDateBeforeDay } from '../../WorkOrders/dueDate';
 import ContentState from '../../components/ContentState';
 
 interface PropsType {
@@ -108,7 +109,7 @@ const AssetWorkOrders = ({ asset }: PropsType) => {
                         color={
                           workOrder.dueDate &&
                           workOrder.status !== 'COMPLETE' &&
-                          new Date(workOrder.dueDate).getTime() < Date.now()
+                          isDueDateBeforeDay(workOrder.dueDate, new Date())
                             ? 'error.main'
                             : 'text.secondary'
                         }

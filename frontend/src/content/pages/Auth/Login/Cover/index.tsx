@@ -1,19 +1,11 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Card, Container, Link, styled, Typography } from '@mui/material';
+import { Box, Card, Link, Typography } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
 import JWTLogin from '../LoginJWT';
 
 import { useTranslation } from 'react-i18next';
-import Logo from 'src/components/LogoSign';
 import { ldapEnabled } from '../../../../../config';
-
-const Content = styled(Box)(
-  () => `
-    display: flex;
-    flex: 1;
-    width: 100%;
-`
-);
+import AuthPageLayout from '../../AuthPageLayout';
 
 function LoginCover() {
   const { t }: { t: any } = useTranslation();
@@ -24,68 +16,53 @@ function LoginCover() {
         <title>{t('Login')}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <Content>
-        <Container
+      <AuthPageLayout>
+        <Card
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            flexDirection: 'column'
+            p: { xs: 2.5, sm: 4 },
+            borderRadius: 3,
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            boxShadow: 'none'
           }}
-          maxWidth="sm"
         >
-          <Card
-            sx={{
-              p: 4,
-              my: 4
-            }}
-          >
-            <Box textAlign="center">
-              <Logo />
+          <Box textAlign="center">
+            <Typography variant="h2" sx={{ mb: 1 }}>
+              {t('login')}
+            </Typography>
+            <Typography
+              variant="h4"
+              color="text.secondary"
+              fontWeight="normal"
+              sx={{ mb: 3 }}
+            >
+              {t('login_description')}
+            </Typography>
+          </Box>
+          <JWTLogin />
+          {!ldapEnabled && (
+            <Box my={4}>
               <Typography
-                variant="h2"
-                sx={{
-                  mb: 1
-                }}
+                component="span"
+                variant="subtitle2"
+                color="text.primary"
+                fontWeight="bold"
               >
-                {t('login')}
-              </Typography>
-              <Typography
-                variant="h4"
-                color="text.secondary"
-                fontWeight="normal"
-                sx={{
-                  mb: 3
-                }}
-              >
-                {t('login_description')}
-              </Typography>
-            </Box>
-            <JWTLogin />
-            {!ldapEnabled && (
-              <Box my={4}>
-                <Typography
-                  component="span"
-                  variant="subtitle2"
-                  color="text.primary"
-                  fontWeight="bold"
-                >
-                  {t('no_account_yet')}
-                </Typography>{' '}
-                <Box display={{ xs: 'block', md: 'inline-block' }}>
-                  <Link component={RouterLink} to="/account/register">
-                    <b>{t('signup_here')}</b>
-                  </Link>
-                </Box>
+                {t('no_account_yet')}
+              </Typography>{' '}
+              <Box display={{ xs: 'block', md: 'inline-block' }}>
+                <Link component={RouterLink} to="/account/register">
+                  <b>{t('signup_here')}</b>
+                </Link>
               </Box>
-            )}
-            <Box mt={2} textAlign="center">
-              <Link component={RouterLink} to="/open-source-notices">
-                {t('open_source_notices')}
-              </Link>
             </Box>
-          </Card>
-        </Container>
-      </Content>
+          )}
+          <Box mt={2} textAlign="center">
+            <Link component={RouterLink} to="/open-source-notices">
+              {t('open_source_notices')}
+            </Link>
+          </Box>
+        </Card>
+      </AuthPageLayout>
     </>
   );
 }

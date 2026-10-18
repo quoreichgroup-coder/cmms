@@ -5,7 +5,10 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 const source = ts.transpileModule(
-  fs.readFileSync('src/content/own/MaintenanceDashboard/metricCalculations.ts', 'utf8'),
+  fs.readFileSync(
+    'src/content/own/MaintenanceDashboard/metricCalculations.ts',
+    'utf8'
+  ),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 ).outputText;
 const moduleExports = {};
@@ -24,6 +27,22 @@ test('backlog age bands follow the documented 0–7, 8–30, over-30 rules', () 
   assert.equal(moduleExports.agingBand(8), 'attention');
   assert.equal(moduleExports.agingBand(30), 'attention');
   assert.equal(moduleExports.agingBand(30.1), 'critical');
+});
+
+test('analytics date labels preserve the API calendar day across timezones', () => {
+  const previousTimezone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+
+  try {
+    const label = moduleExports.formatAnalyticsDateLabel(
+      '2026-10-18T00:00:00.000Z',
+      'en-US'
+    );
+    assert.equal(label, 'Oct 18');
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
 });
 
 test('currency formatter supports ISO codes and legacy display symbols', () => {

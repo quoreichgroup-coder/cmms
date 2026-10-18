@@ -10,7 +10,6 @@ import {
   Card,
   CircularProgress,
   Collapse,
-  Container,
   Dialog,
   IconButton,
   Link,
@@ -25,7 +24,7 @@ import useRefMounted from 'src/hooks/useRefMounted';
 import CloseIcon from '@mui/icons-material/Close';
 
 import { useTranslation } from 'react-i18next';
-import Logo from 'src/components/LogoSign';
+import AuthPageLayout from '../AuthPageLayout';
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import useAuth from '../../../../hooks/useAuth';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
@@ -37,17 +36,6 @@ const Transition = forwardRef(function Transition(
 ) {
   return <Slide direction="down" ref={ref} {...props} />;
 });
-
-const MainContent = styled(Box)(
-  () => `
-    height: 100%;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-`
-);
 
 const DialogWrapper = styled(Dialog)(
   () => `
@@ -96,127 +84,126 @@ function RecoverPasswordBasic() {
       <Helmet>
         <title>{t('Recover Password')}</title>
       </Helmet>
-      <MainContent>
-        <Container maxWidth="sm">
-          <Logo />
-          <Card
-            sx={{
-              mt: 3,
-              p: 4
+      <AuthPageLayout>
+        <Card
+          sx={{
+            p: { xs: 2.5, sm: 4 },
+            borderRadius: 3,
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            boxShadow: 'none'
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h2"
+              sx={{
+                mb: 1
+              }}
+            >
+              {t('Recover Password')}
+            </Typography>
+            <Typography
+              variant="h4"
+              color="text.secondary"
+              fontWeight="normal"
+              sx={{
+                mb: 3
+              }}
+            >
+              {t('recover_password_description')}
+            </Typography>
+          </Box>
+
+          <Formik
+            initialValues={{
+              email: '',
+              submit: null
+            }}
+            validationSchema={Yup.object().shape({
+              email: Yup.string()
+                .matches(emailRegExp, t('invalid_email'))
+                .max(255)
+                .required(t('required_email'))
+            })}
+            onSubmit={async (
+              values,
+              { setErrors, setStatus, setSubmitting }
+            ) => {
+              setSubmitting(true);
+              return resetPassword(values.email)
+                .then((success) => {
+                  if (success) {
+                    handleOpenDialog();
+                  } else {
+                    showSnackBar(t("The operation didn't succeed"), 'error');
+                  }
+                })
+                .catch((err) =>
+                  showSnackBar(t("The operation didn't succeed"), 'error')
+                )
+                .finally(() => setSubmitting(false));
             }}
           >
-            <Box>
-              <Typography
-                variant="h2"
-                sx={{
-                  mb: 1
-                }}
-              >
-                {t('Recover Password')}
-              </Typography>
-              <Typography
-                variant="h4"
-                color="text.secondary"
-                fontWeight="normal"
-                sx={{
-                  mb: 3
-                }}
-              >
-                {t('recover_password_description')}
-              </Typography>
-            </Box>
+            {({
+              errors,
+              handleBlur,
+              handleChange,
+              handleSubmit,
+              touched,
+              values,
+              isSubmitting
+            }) => (
+              <form noValidate onSubmit={handleSubmit}>
+                <TextField
+                  error={Boolean(touched.email && errors.email)}
+                  fullWidth
+                  helperText={touched.email && errors.email}
+                  label={t('email')}
+                  margin="normal"
+                  name="email"
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  type="email"
+                  value={values.email}
+                  variant="outlined"
+                />
 
-            <Formik
-              initialValues={{
-                email: '',
-                submit: null
-              }}
-              validationSchema={Yup.object().shape({
-                email: Yup.string()
-                  .matches(emailRegExp, t('invalid_email'))
-                  .max(255)
-                  .required(t('required_email'))
-              })}
-              onSubmit={async (
-                values,
-                { setErrors, setStatus, setSubmitting }
-              ) => {
-                setSubmitting(true);
-                return resetPassword(values.email)
-                  .then((success) => {
-                    if (success) {
-                      handleOpenDialog();
-                    } else {
-                      showSnackBar(t("The operation didn't succeed"), 'error');
-                    }
-                  })
-                  .catch((err) =>
-                    showSnackBar(t("The operation didn't succeed"), 'error')
-                  )
-                  .finally(() => setSubmitting(false));
-              }}
-            >
-              {({
-                errors,
-                handleBlur,
-                handleChange,
-                handleSubmit,
-                touched,
-                values,
-                isSubmitting
-              }) => (
-                <form noValidate onSubmit={handleSubmit}>
-                  <TextField
-                    error={Boolean(touched.email && errors.email)}
-                    fullWidth
-                    helperText={touched.email && errors.email}
-                    label={t('email')}
-                    margin="normal"
-                    name="email"
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    type="email"
-                    value={values.email}
-                    variant="outlined"
-                  />
-
-                  <Button
-                    sx={{
-                      mt: 3
-                    }}
-                    disabled={Boolean(
-                      (touched.email && errors.email) || isSubmitting
-                    )}
-                    //onClick={handleResetPassword}
-                    type="submit"
-                    fullWidth
-                    size="large"
-                    variant="contained"
-                    startIcon={
-                      isSubmitting ? <CircularProgress size="1rem" /> : null
-                    }
-                  >
-                    {t('send_me_new_password')}
-                  </Button>
-                </form>
-              )}
-            </Formik>
-          </Card>
-          <Box mt={3} textAlign="right">
-            <Typography
-              component="span"
-              variant="subtitle2"
-              color="text.primary"
-              fontWeight="bold"
-            >
-              {t('want_to_sign_in_again')}
-            </Typography>{' '}
-            <Link component={RouterLink} to="/account/login">
-              <b>{t('click_here')}</b>
-            </Link>
-          </Box>
-        </Container>
-      </MainContent>
+                <Button
+                  sx={{
+                    mt: 3
+                  }}
+                  disabled={Boolean(
+                    (touched.email && errors.email) || isSubmitting
+                  )}
+                  //onClick={handleResetPassword}
+                  type="submit"
+                  fullWidth
+                  size="large"
+                  variant="contained"
+                  startIcon={
+                    isSubmitting ? <CircularProgress size="1rem" /> : null
+                  }
+                >
+                  {t('send_me_new_password')}
+                </Button>
+              </form>
+            )}
+          </Formik>
+        </Card>
+        <Box mt={3} textAlign="right">
+          <Typography
+            component="span"
+            variant="subtitle2"
+            color="text.primary"
+            fontWeight="bold"
+          >
+            {t('want_to_sign_in_again')}
+          </Typography>{' '}
+          <Link component={RouterLink} to="/account/login">
+            <b>{t('click_here')}</b>
+          </Link>
+        </Box>
+      </AuthPageLayout>
 
       <DialogWrapper
         open={openDialog}

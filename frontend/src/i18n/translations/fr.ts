@@ -1,4 +1,6 @@
 const frJSON = {
+  show_password: 'Afficher le mot de passe',
+  hide_password: 'Masquer le mot de passe',
   open_source_notices: 'À propos et licences open source',
   open_source_modified:
     'Cette édition de QPM est modifiée et maintenue par QUOREICH GROUP.',
@@ -2701,6 +2703,8 @@ const frJSON = {
   maintenance_cost: 'Coûts de maintenance',
   completed_work_orders_created_in_period:
     'OT clôturés et créés sur la période sélectionnée',
+  completed_work_orders_by_completion_date:
+    'OT clôturés, regroupés par date de clôture',
   maintenance_cost_trend: 'Évolution des coûts de maintenance',
   dashboard_cost_chart_accessible_summary:
     'Total sur {{periodCount}} dates affichées : {{total}}.',

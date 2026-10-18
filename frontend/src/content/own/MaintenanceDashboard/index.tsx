@@ -47,6 +47,7 @@ import CustomDateRangePicker from '../Analytics/CustomDateRangePicker';
 import {
   agingBand,
   createDashboardCurrencyFormatter,
+  formatAnalyticsDateLabel,
   percentageOrNull
 } from './metricCalculations';
 import { qpmWorkOrderStatusTokens } from 'src/theme/tokens';
@@ -264,17 +265,11 @@ export default function MaintenanceDashboard() {
   const ageBand = agingBand(analytics.incompleteOverview.averageAge);
   const statusRows = analytics.statusesByDate.map((row) => ({
     ...row,
-    label: new Intl.DateTimeFormat(i18n.language, {
-      month: 'short',
-      day: 'numeric'
-    }).format(new Date(row.date))
+    label: formatAnalyticsDateLabel(row.date, i18n.language)
   }));
   const costRows = analytics.completeCostsByDate.map((row) => ({
     ...row,
-    label: new Intl.DateTimeFormat(i18n.language, {
-      month: 'short',
-      day: 'numeric'
-    }).format(new Date(row.date)),
+    label: formatAnalyticsDateLabel(row.date, i18n.language),
     total: row.laborCost + row.partCost + row.additionalCost
   }));
   const currency = createDashboardCurrencyFormatter(
@@ -580,7 +575,7 @@ export default function MaintenanceDashboard() {
         <Grid item xs={12} lg={8}>
           <ChartPanel
             title={t('maintenance_cost_trend')}
-            subtitle={t('completed_work_orders_created_in_period')}
+            subtitle={t('completed_work_orders_by_completion_date')}
             loading={analytics.loading.completeCostsByDate}
             error={analytics.errors.completeCostsByDate}
             hasData={costRows.length > 0}

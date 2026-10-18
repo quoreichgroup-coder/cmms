@@ -396,16 +396,16 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
   const overdueWOs = useMemo(() => {
     if (!unscheduled) return [];
     const now = new Date();
-    return unscheduled.workOrders.filter(
-      (wo) => isDueDateBeforeDay(wo.dueDate, now)
+    return unscheduled.workOrders.filter((wo) =>
+      isDueDateBeforeDay(wo.dueDate, now)
     );
   }, [unscheduled]);
 
   const dueSoonWOs = useMemo(() => {
     if (!unscheduled) return [];
     const now = new Date();
-    return unscheduled.workOrders.filter(
-      (wo) => isDueDateWithinNextDays(wo.dueDate, 2, now)
+    return unscheduled.workOrders.filter((wo) =>
+      isDueDateWithinNextDays(wo.dueDate, 2, now)
     );
   }, [unscheduled]);
 
@@ -827,8 +827,10 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                             {(provided, snapshot) => {
                                               const isOverdue =
                                                 wo.dueDate &&
-                                                new Date(wo.dueDate) <
-                                                  new Date();
+                                                isDueDateBeforeDay(
+                                                  wo.dueDate,
+                                                  new Date()
+                                                );
                                               return (
                                                 <WorkloadOrderCard
                                                   workOrder={wo}

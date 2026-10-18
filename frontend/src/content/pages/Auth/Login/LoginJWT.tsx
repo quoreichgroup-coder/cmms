@@ -21,6 +21,7 @@ import useRefMounted from 'src/hooks/useRefMounted';
 import { useTranslation } from 'react-i18next';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { getErrorMessage, isNetworkError } from '../../../../utils/api';
 import {
   apiUrl,
@@ -123,8 +124,14 @@ const LoginJWT: FC = () => {
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword(!showPassword)}>
-                    <VisibilityIcon />
+                  <IconButton
+                    aria-label={t(
+                      showPassword ? 'hide_password' : 'show_password'
+                    )}
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
                   </IconButton>
                 </InputAdornment>
               )

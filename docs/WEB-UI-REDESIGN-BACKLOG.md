@@ -493,3 +493,34 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Défaut confirmé : un changement rapide de période ou d’entreprise pouvait laisser les réponses des requêtes précédentes remplacer les indicateurs actuels. Cela pouvait afficher des KPI et graphiques issus de périodes différentes.
 - Les six opérations du tableau de bord (synthèse, backlog, heures, coûts, coûts par date et statuts par date) associent leurs réponses, erreurs et états de chargement à l’identifiant de la requête courante. Une réponse obsolète ne peut plus modifier l’état affiché. Les autres rapports gardent leur comportement.
 - Test de régression avec deux requêtes résolues dans l’ordre inverse : la valeur de la période courante est conservée. Aucun calcul, contrat API ni droit n’est modifié.
+
+### Tableau de bord maintenance Web — libellés de dates selon le fuseau horaire — 18 octobre 2026
+
+- Défaut confirmé dans les libellés des graphiques de statuts et de coûts : le backend part d’un `LocalDate`, le convertit en instant à minuit dans son fuseau, puis le navigateur reformatait cet instant dans le fuseau local. En fuseau négatif, le jour affiché pouvait être la veille.
+- Les graphiques interprètent maintenant la partie `yyyy-MM-dd` comme une date civile locale avant formatage. Les réponses API, plages demandées, agrégations et valeurs affichées ne changent pas.
+- Régression testée avec `America/Los_Angeles` pour un horodatage à minuit UTC; les libellés conservent le jour fourni. Le test ciblé et `git diff --check` passent; typecheck complet en cours.
+
+### Tableau de bord maintenance Web — sémantique des coûts — 18 octobre 2026
+
+- Écart confirmé entre deux API existantes : le coût agrégé sélectionne les OT clôturés selon leur date de création (`createdAt`), tandis que la tendance sélectionne et répartit les coûts selon `completed_on`. Les deux blocs pouvaient sembler comparer le même ensemble d’OT.
+- Les libellés du tableau distinguent maintenant « créés pendant la période » pour l’agrégat et « regroupés par date de clôture » pour la tendance (français et anglais). Aucun calcul, endpoint, permission ou contrat n’a changé.
+- À décider dans un chantier backend distinct : harmoniser les filtres de période ou conserver explicitement ces deux lectures métier; les valeurs de carte et de graphique ne sont donc pas directement comparables à ce stade.
+
+### Vue Charge Web — statut d’échéance des cartes planifiées — 18 octobre 2026
+
+- Défaut confirmé : le badge d’OT en retard dans les cartes glissables comparait l’horodatage d’échéance à l’heure courante, alors que le calendrier et les indicateurs de la vue utilisent une échéance au jour civil. Un OT dû aujourd’hui pouvait donc être signalé en retard selon l’heure et le fuseau.
+- La carte réutilise maintenant `isDueDateBeforeDay`, comme le reste de la vue. Aucun statut serveur, filtre, API ou action de planification ne change.
+- Test ciblé en `America/Los_Angeles` : échéance d’aujourd’hui non en retard, échéance d’hier en retard; le composant vérifie qu’il appelle le helper partagé.
+
+### Fiche Équipement Web — statut d’échéance des OT liés — 18 octobre 2026
+
+- La liste des OT liés à un équipement avait une comparaison à l’heure courante distincte de celle du calendrier et de la vue Charge. Une échéance prévue aujourd’hui pouvait apparaître en rouge trop tôt selon le fuseau.
+- La fiche réutilise maintenant le même helper de date civile; le statut `COMPLETE` garde son affichage normal. Aucun workflow ni endpoint ne change.
+- La régression vérifie l’usage commun du helper dans les cartes de charge et la fiche équipement, avec les cas de jour courant et jour précédent en fuseau négatif.
+
+### Authentification Web — cadre visuel commun — 18 octobre 2026
+
+- Les écrans Connexion, Inscription, Récupération du mot de passe et Vérification de l’adresse e-mail utilisent maintenant un cadre responsive commun, avec la couleur principale QPM, une carte de formulaire cohérente et un rendu adapté au thème MUI actif.
+- L’animation marketing latérale de l’inscription a été remplacée par ce cadre commun. Les paramètres d’inscription transmis au formulaire, les composants JWT, les validations, liens, routes et appels d’authentification restent inchangés.
+- Le contrôle d’affichage du mot de passe annonce son état aux lecteurs d’écran et change d’icône. Aucun contrat API, rôle, règle d’accès ou comportement de connexion n’a été modifié.
+- La suite frontend complète et ESLint ciblé réussissent. TypeScript et la compilation optimisée ont été lancés, mais leurs processus se sont interrompus sans résultat exploitable dans cet environnement; aucune vérification Chromium n’a été possible, le navigateur DevTools ne trouvant pas Chrome. Ces contrôles restent requis avant déploiement.
