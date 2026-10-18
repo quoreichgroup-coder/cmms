@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Button,
   Divider,
+  Icon,
   Searchbar,
   Text
 } from 'react-native-paper';
@@ -142,7 +143,9 @@ export default function SelectUsersModal({
             accessibilityRole={multiple ? 'checkbox' : 'button'}
             accessibilityLabel={`${user.firstName} ${user.lastName}`}
             accessibilityState={
-              multiple ? { checked: selectedIds.includes(user.id) } : undefined
+              multiple
+                ? { checked: selectedIds.includes(user.id) }
+                : { selected: selectedIds.includes(user.id) }
             }
           >
             <View
@@ -174,6 +177,13 @@ export default function SelectUsersModal({
                         checked={selectedIds.includes(user.id)}
                         color={theme.colors.primary}
                         uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
+                    {!multiple && selectedIds.includes(user.id) && (
+                      <Icon
+                        source="check-circle"
+                        size={24}
+                        color={theme.colors.primary}
                       />
                     )}
                   </View>

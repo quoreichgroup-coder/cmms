@@ -16,6 +16,7 @@ import {
   Avatar,
   Button,
   Divider,
+  Icon,
   Searchbar,
   Text,
   TextInput
@@ -173,7 +174,7 @@ export default function SelectCategoriesModal({
             accessibilityState={
               multiple
                 ? { checked: selectedIds.includes(category.id) }
-                : undefined
+                : { selected: selectedIds.includes(category.id) }
             }
             key={category.id}
           >
@@ -197,13 +198,19 @@ export default function SelectCategoriesModal({
                         style={{ color: theme.colors.onSurfaceVariant }}
                       >{`#${category.id}`}</Text>
                     </View>
-                    {multiple && (
+                    {multiple ? (
                       <SelectionIndicator
                         checked={selectedIds.includes(category.id)}
                         color={theme.colors.primary}
                         uncheckedColor={theme.colors.controlOutline}
                       />
-                    )}
+                    ) : selectedIds.includes(category.id) ? (
+                      <Icon
+                        source="check-circle"
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    ) : null}
                   </View>
                 </View>
               </View>

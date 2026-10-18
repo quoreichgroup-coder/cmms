@@ -28,7 +28,7 @@ export default function GrayWhiteSelector<Value extends string, Type>({
         <Grid
           style={
             index % 2 === 0
-              ? { backgroundColor: theme.colors.alpha.black[10] }
+              ? { backgroundColor: theme.palette.action.hover }
               : undefined
           }
           key={field.name}
@@ -46,7 +46,7 @@ export default function GrayWhiteSelector<Value extends string, Type>({
           >
             <Typography variant="h6">{field.label}</Typography>
             <Field
-              style={{ backgroundColor: 'white' }}
+              sx={{ backgroundColor: theme.palette.background.paper }}
               as={Select}
               onChange={(event) =>
                 onFieldChange(field.name, event.target.value, field.type)

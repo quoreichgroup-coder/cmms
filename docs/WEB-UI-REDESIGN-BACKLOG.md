@@ -548,3 +548,13 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Le recontrôle a étendu la correction au scrollbar, à l’historique de recherche, aux commentaires d’OT, au panneau de détails Personnes/Équipes, à la fenêtre Chat et aux pages 404/Coming Soon. Leurs textes, bordures et surfaces utilisent les tokens MUI (`text`, `divider`, `background.paper`, `action.hover/active`) et suivent donc le thème actif.
 - La couleur du logo de carte reste blanche volontairement; overlays d’image et couleurs dédiées du composant `Label` n’ont pas été remplacés car ils servent une composition distincte. Aucune API, route, permission ou règle opérationnelle ne change.
 - Les tests de contraste ciblés, la suite frontend (66/66), TypeScript, ESLint ciblé, Prettier et le build optimisé passent. Le build conserve les avertissements de source maps tierces manquantes et quelques avertissements ESLint préexistants hors des fichiers de ce lot. Reste la recette visuelle clair/sombre responsive dans Chromium.
+
+### UX-02 / UX-06 — étiquettes, tableaux et tâches — 18 octobre 2026
+
+- Le balayage a aussi trouvé des fonds alpha noirs dans les étiquettes neutres, les en-têtes de Datagrid et les cartes de tâche du formulaire OT. Leurs surfaces emploient maintenant `action.hover`, cohérent avec le thème actif. Les étiquettes noires explicitement demandées et les pastilles d’état sémantiques conservent leur rôle spécifique.
+- Des assertions ciblées empêchent le retour des anciens fonds dans ces trois composants. Validation finale : suite frontend **66/66**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis; le build conserve les avertissements de source maps tierces manquantes et d’ESLint préexistants hors de ce lot. Les parcours et données ne changent pas; la recette visuelle dans Chromium reste ouverte.
+
+### UX-02 — surfaces des réglages et de l’inscription — 18 octobre 2026
+
+- Les lignes alternées de `GrayWhiteSelector`, le fond de ses champs et les actions du formulaire d’inscription utilisent maintenant les tokens `action.hover` et `background.paper`, au lieu de gris alpha ou de blanc forcé.
+- Une assertion de contraste couvre ces composants. La suite frontend **67/67**, le typecheck, ESLint sur les deux fichiers TSX, Prettier, `git diff --check` et le build optimisé réussissent. Le build garde des avertissements de mise en forme préexistants dans d’autres modules; la recette visuelle responsive reste à faire dans Chromium.

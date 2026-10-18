@@ -62,6 +62,36 @@ test('persisted account cache resets before the storage flush completes', async 
   assert.match(auth, /clearPersistedAppState\(globalDispatch/);
   assert.equal((server.match(/clearServerSessionState\(/g) || []).length, 2);
 });
+test('single category picker announces and marks the current selection', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectCategoryModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /accessibilityState=\{\s*multiple\s*\?\s*\{\s*checked: selectedIds\.includes\(category\.id\)\s*\}\s*:\s*\{\s*selected: selectedIds\.includes\(category\.id\)\s*\}\s*\}/
+  );
+  assert.match(
+    source,
+    /selectedIds\.includes\(category\.id\)\s*\?\s*\(\s*<Icon\s+source="check-circle"/
+  );
+});
+test('single user picker announces and marks the current selection', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectUsersModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /accessibilityState=\{\s*multiple\s*\?\s*\{\s*checked: selectedIds\.includes\(user\.id\)\s*\}\s*:\s*\{\s*selected: selectedIds\.includes\(user\.id\)\s*\}\s*\}/
+  );
+  assert.match(
+    source,
+    /!multiple\s*&&\s*selectedIds\.includes\(user\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
+  );
+});
 test('shared error retry actions meet the QPM minimum touch target', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'components/AsyncStateFeedback.tsx'),

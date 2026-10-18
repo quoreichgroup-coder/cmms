@@ -955,3 +955,15 @@ Les valeurs soumises, routes, API, droits et règles métier ne changent pas. Un
 Quand l’aperçu caméra était actif, le lecteur QR/barcode ne montrait aucune action pour le fermer. Le scanner présente maintenant un bouton de fermeture accessible, placé dans la zone sûre supérieure pour éviter les encoches et barres système. La navigation, la lecture et la résolution d’identifiant restent inchangées; aucun endpoint ni règle métier n’a été modifié.
 
 Une régression vérifie l’action, son libellé lecteur d’écran et l’enveloppe safe-area. `npm run test:mobile-regression` passe (**30/30 fichiers**), Prettier et `git diff --check` ciblé passent. Le contrôle TypeScript a été interrompu par le système avec le code 137 (processus tué), donc il n’est pas déclaré réussi. Le placement et la cible tactile doivent encore être vérifiés dans le Dev Client sur iOS et Android; aucune APK/IPA n’a été générée.
+
+## Sélecteur de catégorie — choix courant visible — 18 octobre 2026
+
+Le sélecteur de catégories utilisait l’état sélectionné uniquement en mode multiple. En mode simple, le formulaire pouvait transmettre la catégorie existante mais aucune coche ni annonce d’état ne l’indiquait dans la liste. Le picker expose maintenant l’état « sélectionné » aux technologies d’assistance et affiche une coche QPM sur la catégorie choisie. La sélection, les listes d’options et les formulaires restent identiques.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile passe (**30/30**), le typecheck `tsc --noEmit --pretty false` et Prettier passent aussi. API, permissions et logique métier inchangées. L’affichage et le parcours restent à contrôler dans Expo sur appareil; la même vérification UX reste à mener sur les autres sélecteurs à choix unique. Aucune APK/IPA n’a été générée.
+
+## Sélecteur de personnes — choix courant visible — 18 octobre 2026
+
+Le sélecteur de personnes utilisé pour affecter un responsable pouvait recevoir une personne déjà sélectionnée sans l’indiquer visuellement ni aux technologies d’assistance en mode choix unique. Il affiche maintenant une coche sur la personne courante et expose son état « sélectionné ». Le mode multiple conserve ses cases à cocher; les callbacks, données, permissions et API ne changent pas.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les autres sélecteurs simples (équipes, localisations, fournisseurs/clients et compteurs) restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.

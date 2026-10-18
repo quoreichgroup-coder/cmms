@@ -17,7 +17,7 @@ interface LabelProps {
 
 const LabelWrapper = styled('span')(
   ({ theme }) => `
-      background-color: ${theme.colors.alpha.black[5]};
+      background-color: ${theme.palette.action.hover};
       padding: ${theme.spacing(0.5, 1)};
       font-size: ${theme.typography.pxToRem(13)};
       border-radius: ${theme.general.borderRadius};

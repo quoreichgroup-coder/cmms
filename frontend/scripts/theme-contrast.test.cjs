@@ -334,3 +334,46 @@ test('shared overlays, work-order comments, and search controls follow the activ
     );
   }
 });
+
+test('shared labels, data-grid headings, and task cards use theme surfaces', () => {
+  const cases = [
+    ['src/components/Label/index.tsx', /theme\.palette\.action\.hover/, 5],
+    [
+      'src/content/own/components/CustomDatagrid/index.tsx',
+      /theme\.palette\.action\.hover/,
+      10
+    ],
+    [
+      'src/content/own/components/form/SelectTasks/SingleTask.tsx',
+      /theme\.palette\.action\.hover/,
+      5
+    ]
+  ];
+
+  for (const [file, token, legacyAlpha] of cases) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.match(source, token, file);
+    assert.doesNotMatch(
+      source,
+      new RegExp(`theme\\.colors\\.alpha\\.black\\[${legacyAlpha}\\]`),
+      file
+    );
+  }
+});
+
+test('registration and alternating settings fields use semantic surfaces', () => {
+  const registration = fs.readFileSync(
+    'src/content/pages/Auth/Register/Wizard/index.tsx',
+    'utf8'
+  );
+  assert.match(registration, /theme\.palette\.action\.hover/);
+  assert.doesNotMatch(registration, /theme\.colors\.alpha\.black\[5\]/);
+
+  const settings = fs.readFileSync(
+    'src/content/own/Settings/components/GrayWhiteSelector.tsx',
+    'utf8'
+  );
+  assert.match(settings, /theme\.palette\.action\.hover/);
+  assert.match(settings, /theme\.palette\.background\.paper/);
+  assert.doesNotMatch(settings, /backgroundColor:\s*'white'/);
+});

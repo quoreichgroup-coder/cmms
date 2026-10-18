@@ -58,7 +58,7 @@ function CustomDataGrid(props: CustomDatagridProps) {
           ' .MuiDataGrid-columnHeader': {
             fontWeight: 'bold',
             textTransform: 'uppercase',
-            backgroundColor: theme.colors.alpha.black[10]
+            backgroundColor: theme.palette.action.hover
           },
           '.MuiDataGrid-row': {
             cursor: props.notClickable ? 'auto' : 'pointer'

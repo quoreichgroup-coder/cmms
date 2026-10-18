@@ -37,7 +37,7 @@ const MainContent = styled(Box)(
 
 const BoxActions = styled(Box)(
   ({ theme }) => `
-    background: ${theme.colors.alpha.black[5]}
+    background: ${theme.palette.action.hover}
 `
 );
 

@@ -104,7 +104,7 @@ export default function SingleTask({
       sx={{
         mt: 1,
         p: 2,
-        backgroundColor: theme.colors.alpha.black[5]
+        backgroundColor: theme.palette.action.hover
       }}
     >
       <Box display="flex" flexDirection="row" justifyContent="space-between">
