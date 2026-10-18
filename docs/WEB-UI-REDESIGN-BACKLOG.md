@@ -586,3 +586,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - La section des OT liés appliquait des couleurs dédiées incohérentes : « En cours » vert, « Clôturé » bleu et les autres statuts gris. Elle réutilise maintenant `WorkOrderStatusChip`, comme les autres historiques d’OT, afin de conserver la même couleur sémantique et le même libellé partout.
 - Aucun statut métier, droit, appel API ou action ne change. Un test de régression protège l’usage du badge partagé; la recette visuelle clair/sombre reste à faire dans Chromium.
 - Validation de ce lot : suite frontend **67/67**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis. Le build garde les avertissements de formatage connus dans quatre fichiers hors de ce lot. La recette visuelle navigateur reste ouverte.
+
+### UX-02 / UX-06 — statuts des OT sur l’aperçu Équipement — 18 octobre 2026
+
+- L’aperçu d’équipement représentait tous les OT non clôturés avec la même couleur d’avertissement et les OT clôturés en gris. Il réutilise maintenant `WorkOrderStatusChip`; ouvert, en cours, en attente et clôturé conservent leur sémantique propre.
+- Aucun calcul, permission, navigation, appel API ou statut métier n’a changé. Une assertion protège l’usage du composant commun. La recette visuelle clair/sombre dans Chromium reste ouverte.

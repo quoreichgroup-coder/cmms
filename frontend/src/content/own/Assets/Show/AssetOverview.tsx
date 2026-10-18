@@ -34,6 +34,7 @@ import useAuth from '../../../../hooks/useAuth';
 import { getAssetWorkOrders } from '../../../../slices/asset';
 import { useDispatch, useSelector } from '../../../../store';
 import { getSafeHttpUrl } from '../../../../utils/safeWindow';
+import WorkOrderStatusChip from '../../WorkOrders/WorkOrderStatusChip';
 
 interface PropsType {
   asset: AssetDTO;
@@ -398,15 +399,7 @@ const AssetOverview = ({ asset }: PropsType) => {
                               : ''}
                           </Typography>
                         </Box>
-                        <Chip
-                          size="small"
-                          label={t(workOrder.status)}
-                          color={
-                            workOrder.status === 'COMPLETE'
-                              ? 'default'
-                              : 'warning'
-                          }
-                        />
+                        <WorkOrderStatusChip status={workOrder.status} />
                       </Stack>
                     </ButtonBase>
                   ))}

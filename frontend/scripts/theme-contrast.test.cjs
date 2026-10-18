@@ -249,6 +249,19 @@ test('related work orders use the shared semantic status badge', () => {
   assert.doesNotMatch(source, /relation\.workOrder\.status === 'IN_PROGRESS'/);
 });
 
+test('asset overview work orders use the shared semantic status badge', () => {
+  const source = fs.readFileSync(
+    'src/content/own/Assets/Show/AssetOverview.tsx',
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /<WorkOrderStatusChip status=\{workOrder\.status\}\s*\/>/
+  );
+  assert.doesNotMatch(source, /label=\{t\(workOrder\.status\)\}\s+color=/);
+});
+
 test('request portal field icons use theme-aware colors', () => {
   const source = fs.readFileSync(
     'src/content/own/Settings/Features/RequestPortal/components/RequestPortalModal.tsx',
