@@ -3,6 +3,14 @@
 **Référence audit :** `docs/WEB-UI-SECURITY-AUDIT-2026-10-14.md`  
 **Statut :** backlog de référence pour l’implémentation Web. Les lignes ci-dessous restent les critères d’acceptation; l’avancement concret est suivi dans la section « Suivi d’implémentation ». Le périmètre demandé ici est exclusivement QPM Web.
 
+## Reprise et validation de production — 18 octobre 2026
+
+- Le commit `b29057f0` de `projet` est le code source déployé sur le VPS. Les images locales Docker `atlas-cmms-backend:local` et `atlas-cmms-frontend:local` ont été reconstruites depuis ce checkout et les conteneurs API/frontend recréés avec `docker-compose.license.yml`. PostgreSQL et ses volumes n’ont pas été redémarrés ni modifiés.
+- Après démarrage, `/api/health-check` répond HTTP 200, la page Web répond HTTP 200, et `/api/license/state` confirme `valid=true`, `readOnly=false`, plan ENTERPRISE. Liquibase annonce la base à jour; aucun échec de démarrage Hibernate n’apparaît dans les journaux contrôlés.
+- Contrôle HTTP non authentifié du nouvel échange OAuth : sans `Origin`, réponse 403; avec l’origine QPM configurée et sans session de grant, réponse 401. Ces refus vérifient les barrières négatives; le SSO positif Google/Microsoft, les cookies de session derrière TLS/proxy et l’échange jusqu’à la connexion restent à tester avec un compte de recette.
+- Après déploiement : suite de tests frontend `node --test --test-reporter=dot scripts/*.test.cjs`, TypeScript `npx tsc --noEmit --pretty false`, ESLint ciblé sur les fichiers OAuth/sélecteur Request et `git diff --check` réussissent. Le build Docker Web/API optimisé a également réussi.
+- La recette visuelle Chromium n’a pas pu être exécutée dans cet environnement : le Chrome DevTools configuré ne trouve pas Chrome et le binaire Snap installé refuse de démarrer faute de service AppArmor. UX-01, les captures responsive et le contrôle visuel/authentifié par rôle restent ouverts. Le contrôle direct sur le VPS prouve la santé des services, pas la réussite du workflow GitHub Actions ni la publication d’images sur Docker Hub.
+
 ## Suivi d’implémentation — 16 octobre 2026
 
 **Mise à jour du contrôle sécurité :** SEC-WEB-01 est corrigé dans le code local : lecture, rotation et suppression de clés API sont limitées par société, avec tests négatifs ajoutés. La validation Maven reste à exécuter dans un environnement disposant de Maven/Docker. Voir le recontrôle daté dans l’audit sécurité.
