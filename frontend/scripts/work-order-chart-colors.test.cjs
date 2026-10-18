@@ -8,10 +8,13 @@ const chartFiles = [
   'src/content/own/Analytics/WorkOrder/Analysis/WOByPrimaryUser.tsx',
   'src/content/own/Analytics/WorkOrder/Aging/IncompleteByAsset.tsx',
   'src/content/own/Analytics/WorkOrder/Aging/IncompleteByUser.tsx',
-  'src/content/own/Analytics/WorkOrder/TimeAndCost/TimeCostByAsset.tsx'
+  'src/content/own/Analytics/WorkOrder/TimeAndCost/TimeCostByAsset.tsx',
+  'src/content/own/Analytics/Request/Analysis/RequestsByCategory.tsx',
+  'src/content/own/Analytics/Part/Consumption/PartConsumptionByCategory.tsx',
+  'src/content/own/Analytics/Part/Consumption/PartConsumptionByWOCategory.tsx'
 ];
 
-test('work-order analytics use stable QPM chart colors for series', () => {
+test('maintenance analytics use stable QPM chart colors for series', () => {
   for (const file of chartFiles) {
     const source = fs.readFileSync(file, 'utf8');
     assert.match(source, /getQpmChartColor\(/, file);

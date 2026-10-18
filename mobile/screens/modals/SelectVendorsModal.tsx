@@ -11,7 +11,13 @@ import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getVendorsMini } from '../../slices/vendor';
-import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Avatar,
+  Icon,
+  Searchbar,
+  Text
+} from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
@@ -135,7 +141,7 @@ export default function SelectVendorsModal({
             accessibilityState={
               multiple
                 ? { checked: selectedIds.includes(vendor.id) }
-                : undefined
+                : { selected: selectedIds.includes(vendor.id) }
             }
             key={vendor.id}
           >
@@ -164,6 +170,13 @@ export default function SelectVendorsModal({
                         checked={selectedIds.includes(vendor.id)}
                         color={theme.colors.primary}
                         uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
+                    {!multiple && selectedIds.includes(vendor.id) && (
+                      <Icon
+                        source="check-circle"
+                        size={24}
+                        color={theme.colors.primary}
                       />
                     )}
                   </View>

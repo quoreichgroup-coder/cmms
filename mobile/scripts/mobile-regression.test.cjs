@@ -137,6 +137,36 @@ test('single meter picker announces and marks the current selection', () => {
     /!multiple\s*&&\s*selectedIds\.includes\(meter\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
   );
 });
+test('single vendor picker announces and marks the current selection', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectVendorsModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /accessibilityState=\{\s*multiple\s*\?\s*\{\s*checked: selectedIds\.includes\(vendor\.id\)\s*\}\s*:\s*\{\s*selected: selectedIds\.includes\(vendor\.id\)\s*\}\s*\}/
+  );
+  assert.match(
+    source,
+    /!multiple\s*&&\s*selectedIds\.includes\(vendor\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
+  );
+});
+test('single customer picker announces and marks the current selection', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectCustomersModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /accessibilityState=\{\s*multiple\s*\?\s*\{\s*checked: selectedIds\.includes\(customer\.id\)\s*\}\s*:\s*\{\s*selected: selectedIds\.includes\(customer\.id\)\s*\}\s*\}/
+  );
+  assert.match(
+    source,
+    /!multiple\s*&&\s*selectedIds\.includes\(customer\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
+  );
+});
 test('shared error retry actions meet the QPM minimum touch target', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'components/AsyncStateFeedback.tsx'),

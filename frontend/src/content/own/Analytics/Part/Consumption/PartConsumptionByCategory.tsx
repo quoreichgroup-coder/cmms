@@ -6,7 +6,7 @@ import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getCompleteByCategory } from '../../../../../slices/analytics/workOrder';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import Loading from '../../Loading';
 import { getPartConsumptionsByPartCategory } from '../../../../../slices/analytics/part';
 
@@ -44,7 +44,7 @@ function PartConsumptionByCategory({
     return {
       label: category.name,
       value: category.cost,
-      color: getRandomColor(),
+      color: getQpmChartColor(`part-category-${category.id}`),
       filters: [{ key: 'category', value: category.id }]
     };
   });
@@ -69,7 +69,7 @@ function PartConsumptionByCategory({
             cy="50%"
             outerRadius={100}
             innerRadius={50}
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
           >
             {formattedData.map((entry, index) => (
               <Cell

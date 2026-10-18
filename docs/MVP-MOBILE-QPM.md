@@ -966,7 +966,7 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite 
 
 Le sélecteur de personnes utilisé pour affecter un responsable pouvait recevoir une personne déjà sélectionnée sans l’indiquer visuellement ni aux technologies d’assistance en mode choix unique. Il affiche maintenant une coche sur la personne courante et expose son état « sélectionné ». Le mode multiple conserve ses cases à cocher; les callbacks, données, permissions et API ne changent pas.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les sélecteurs fournisseurs/clients et compteurs restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les sélecteurs clients et compteurs restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
 
 ## Sélecteur de localisation — choix courant visible — 18 octobre 2026
 
@@ -985,3 +985,15 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mob
 Le picker de compteurs affichait une case uniquement en mode multiple. En mode simple, une valeur déjà sélectionnée n’avait ni coche visible ni état accessible. La ligne de sélection montre maintenant une coche QPM pour le compteur courant et expose `selected` aux lecteurs d’écran; le mode multiple continue d’exposer `checked`. La recherche, les données, les callbacks, les API et le comportement de sélection ne changent pas.
 
 Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Vérifications sur ce lot : tests Mobile, TypeScript, Prettier et `git diff --check`. Les tests d’accessibilité sur téléphone restent à faire; aucune APK/IPA n’est produite.
+
+## Sélecteur de fournisseurs — choix courant visible — 18 octobre 2026
+
+L’audit des pickers fournisseur et client a confirmé la même lacune dans les deux implémentations : en choix unique, une valeur préchargée n’était pas marquée visuellement ni annoncée comme sélectionnée. Le picker fournisseur, utilisé dans les parcours d’approvisionnement, affiche maintenant une coche QPM et expose l’état `selected`; le contrôle `checked` des sélections multiples reste inchangé. Les valeurs, callbacks, endpoints et règles d’approbation ne changent pas. Le sélecteur client reste à traiter dans un lot ultérieur, car il ne partage pas de composant de ligne avec le picker fournisseur.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, TypeScript, Prettier et `git diff --check` passent. La vérification TalkBack/VoiceOver sur appareil reste à faire; aucune APK/IPA n’est générée.
+
+## Sélecteur de clients — choix courant visible — 18 octobre 2026
+
+Le picker client était le dernier annuaire audité dont la sélection préchargée restait invisible en choix unique et sans annonce d’état. Il affiche maintenant une coche QPM pour le client sélectionné et expose `accessibilityState.selected`; les cases et l’état `checked` du mode multiple restent inchangés. La recherche, la valeur retournée, les callbacks et les contrats API ne changent pas.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile, TypeScript, Prettier et `git diff --check` validés. TalkBack/VoiceOver et le rendu sur appareil restent à vérifier; aucune APK/IPA n’est générée.
