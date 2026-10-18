@@ -92,6 +92,21 @@ test('single user picker announces and marks the current selection', () => {
     /!multiple\s*&&\s*selectedIds\.includes\(user\.id\)\s*&&\s*\(\s*<Icon\s+source="check-circle"/
   );
 });
+test('single location picker announces and marks the current selection', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectLocationsModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /accessibilityState=\{\s*multiple\s*\?\s*\{\s*checked: isSelected\s*\}\s*:\s*\{\s*selected: isSelected\s*\}\s*\}/
+  );
+  assert.match(
+    source,
+    /!multiple\s*&&\s*isSelected\s*&&\s*\(\s*<Icon\s+source="check-circle"/
+  );
+});
 test('shared error retry actions meet the QPM minimum touch target', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'components/AsyncStateFeedback.tsx'),

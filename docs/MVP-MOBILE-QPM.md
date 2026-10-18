@@ -966,4 +966,10 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite 
 
 Le sélecteur de personnes utilisé pour affecter un responsable pouvait recevoir une personne déjà sélectionnée sans l’indiquer visuellement ni aux technologies d’assistance en mode choix unique. Il affiche maintenant une coche sur la personne courante et expose son état « sélectionné ». Le mode multiple conserve ses cases à cocher; les callbacks, données, permissions et API ne changent pas.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les autres sélecteurs simples (équipes, localisations, fournisseurs/clients et compteurs) restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les autres sélecteurs simples (équipes, fournisseurs/clients et compteurs) restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
+
+## Sélecteur de localisation — choix courant visible — 18 octobre 2026
+
+L’audit des sélecteurs d’équipes et de localisations a confirmé que les lignes en mode choix unique omettaient l’indicateur visuel et l’état d’accessibilité pour la valeur préchargée. Le composant de ligne de localisation, réutilisé par toute la liste, affiche maintenant une coche pour l’élément courant et annonce son état « sélectionné ». Les cases du mode multiple, le filtrage, les callbacks, les API et les règles de localisation restent inchangés. Le sélecteur d’équipes conserve ce défaut pour un prochain lot ciblé.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, le typecheck, Prettier et `git diff --check` passent. TalkBack/VoiceOver et le rendu sur appareil restent à tester; aucune APK/IPA n’est générée.

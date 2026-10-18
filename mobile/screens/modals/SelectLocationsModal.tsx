@@ -12,6 +12,7 @@ import {
   Button,
   ActivityIndicator,
   Divider,
+  Icon,
   Searchbar,
   Text
 } from 'react-native-paper';
@@ -43,7 +44,9 @@ const LocationItem = React.memo(
         onPress={handleToggle}
         accessibilityRole={multiple ? 'checkbox' : 'button'}
         accessibilityLabel={`${location.name}, ${location.customId}`}
-        accessibilityState={multiple ? { checked: isSelected } : undefined}
+        accessibilityState={
+          multiple ? { checked: isSelected } : { selected: isSelected }
+        }
       >
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.cardRow}>
@@ -73,6 +76,13 @@ const LocationItem = React.memo(
                     checked={isSelected}
                     color={theme.colors.primary}
                     uncheckedColor={theme.colors.controlOutline}
+                  />
+                )}
+                {!multiple && isSelected && (
+                  <Icon
+                    source="check-circle"
+                    size={24}
+                    color={theme.colors.primary}
                   />
                 )}
               </View>

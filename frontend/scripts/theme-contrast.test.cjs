@@ -358,6 +358,9 @@ test('shared labels, data-grid headings, and task cards use theme surfaces', () 
       new RegExp(`theme\\.colors\\.alpha\\.black\\[${legacyAlpha}\\]`),
       file
     );
+    if (file.includes('SingleTask')) {
+      assert.doesNotMatch(source, /backgroundColor:\s*'white'/, file);
+    }
   }
 });
 

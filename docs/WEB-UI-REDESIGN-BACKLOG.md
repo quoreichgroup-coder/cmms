@@ -551,8 +551,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 ### UX-02 / UX-06 — étiquettes, tableaux et tâches — 18 octobre 2026
 
-- Le balayage a aussi trouvé des fonds alpha noirs dans les étiquettes neutres, les en-têtes de Datagrid et les cartes de tâche du formulaire OT. Leurs surfaces emploient maintenant `action.hover`, cohérent avec le thème actif. Les étiquettes noires explicitement demandées et les pastilles d’état sémantiques conservent leur rôle spécifique.
-- Des assertions ciblées empêchent le retour des anciens fonds dans ces trois composants. Validation finale : suite frontend **66/66**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis; le build conserve les avertissements de source maps tierces manquantes et d’ESLint préexistants hors de ce lot. Les parcours et données ne changent pas; la recette visuelle dans Chromium reste ouverte.
+- Le balayage a aussi trouvé des fonds alpha noirs dans les étiquettes neutres, les en-têtes de Datagrid et les cartes de tâche du formulaire OT. Leurs surfaces emploient maintenant `action.hover`, cohérent avec le thème actif; les surfaces intérieures blanches des tâches suivent `background.paper`. Les étiquettes noires explicitement demandées et les pastilles d’état sémantiques conservent leur rôle spécifique.
+- Des assertions ciblées empêchent le retour des anciens fonds dans ces trois composants. Validation finale avant la dernière harmonisation des formulaires : suite frontend **66/66**, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis; le build conserve les avertissements de source maps tierces manquantes et d’ESLint préexistants hors de ce lot. Les parcours et données ne changent pas; la recette visuelle dans Chromium reste ouverte.
 
 ### UX-02 — surfaces des réglages et de l’inscription — 18 octobre 2026
 
