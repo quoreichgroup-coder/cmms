@@ -944,6 +944,12 @@ Les destinations `SelectTasks` et `SelectChecklists`, ainsi que les paramètres 
 - Ces contrôles valident les tests unitaires, les types et les bundles JavaScript, pas le comportement natif en situation réelle. Restent : lecture QR/caméra et NFC sur appareils compatibles, permissions après retour des paramètres, accessibilité TalkBack/VoiceOver, vérification iOS native et parcours de clôture/réouverture sur une base d’intégration.
 - Le point bloquant MVP le plus important reste l’intégration du cycle de vie WO `COMPLETE` avec la migration et les droits sur une base de test, puis les essais par rôle et sur téléphone. Le backlog correspondant décrit déjà les critères P0/P1; ne pas considérer la clôture comme validée par les seuls tests client.
 
+## Formulaires — restaurer la sélection d’un seul élément — 18 octobre 2026
+
+Les écrans de sélection attendent une liste d’identifiants, alors que les champs Formik simples (actif, équipe, personne, etc.) contiennent un seul objet `{ label, value }`. Le formulaire transformait uniquement les tableaux; lors de la réouverture d’un sélecteur depuis une fiche existante, la sélection n’était donc pas transmise. Une fonction commune normalise maintenant les valeurs simples et multiples, convertit les identifiants numériques sérialisés en nombres et conserve les tâches structurées. Le sélecteur d’actifs montre aussi une coche et un état sélectionné accessible pour l’actif déjà choisi.
+
+Les valeurs soumises, routes, API, droits et règles métier ne changent pas. Une régression vérifie les sélections simples, multiples, tâches et valeurs absentes, ainsi que leur branchement au formulaire. Le contrôle visuel de cette restauration, le typecheck et les essais sur appareil restent à faire dans Expo; aucune APK/IPA n’a été générée pour ce lot.
+
 ## Scanner QR — sortie explicite du lecteur — 18 octobre 2026
 
 Quand l’aperçu caméra était actif, le lecteur QR/barcode ne montrait aucune action pour le fermer. Le scanner présente maintenant un bouton de fermeture accessible, placé dans la zone sûre supérieure pour éviter les encoches et barres système. La navigation, la lecture et la résolution d’identifiant restent inchangées; aucun endpoint ni règle métier n’a été modifié.

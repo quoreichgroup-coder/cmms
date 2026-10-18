@@ -226,7 +226,7 @@ function HeaderSearch() {
                   mr: 2,
                   py: 0.5,
                   px: 1,
-                  background: theme.colors.alpha.black[10]
+                  background: theme.palette.action.hover
                 }}
               >
                 <Typography

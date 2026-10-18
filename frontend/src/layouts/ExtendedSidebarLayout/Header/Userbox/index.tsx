@@ -274,7 +274,7 @@ function HeaderUserbox() {
               />
               <ChevronRightIcon
                 sx={{
-                  color: `${theme.colors.alpha.black[30]}`,
+                  color: theme.palette.text.secondary,
                   opacity: 0.8
                 }}
               />
@@ -306,7 +306,7 @@ function HeaderUserbox() {
               ) : (
                 <ChevronRightIcon
                   sx={{
-                    color: `${theme.colors.alpha.black[30]}`,
+                    color: theme.palette.text.secondary,
                     opacity: 0.8
                   }}
                 />
@@ -351,7 +351,7 @@ function HeaderUserbox() {
                 <ChevronRightIcon
                   sx={{
                     ml: 1,
-                    color: `${theme.colors.alpha.black[30]}`,
+                    color: theme.palette.text.secondary,
                     opacity: 0.8
                   }}
                 />
@@ -372,7 +372,7 @@ function HeaderUserbox() {
               primary={t('open_source_notices')}
             />
             <ChevronRightIcon
-              sx={{ color: `${theme.colors.alpha.black[30]}`, opacity: 0.8 }}
+              sx={{ color: theme.palette.text.secondary, opacity: 0.8 }}
             />
           </MenuItem>
         </MenuListWrapperPrimary>

@@ -212,6 +212,13 @@ test('preventive maintenance and inventory detail labels use theme-aware text', 
     const source = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /theme\.colors\.alpha\.black\[70\]/, file);
   }
+  const profileCards = fs.readFileSync(
+    'src/content/own/UserProfile/MyCards.tsx',
+    'utf8'
+  );
+  assert.doesNotMatch(profileCards, /theme\.colors\.alpha\.black\[(5|30)\]/);
+  assert.match(profileCards, /theme\.palette\.action\.hover/);
+  assert.match(profileCards, /theme\.palette\.background\.paper/);
 });
 
 test('preventive work-order history uses the shared semantic status badge', () => {
@@ -280,4 +287,50 @@ test('shared dashboard gauge and header popovers use theme-aware text', () => {
   const gauge = fs.readFileSync(files[0], 'utf8');
   assert.doesNotMatch(gauge, /theme\.colors\.alpha\.black\[10\]/);
   assert.match(gauge, /theme\.palette\.divider/);
+});
+
+test('shared overlays, work-order comments, and search controls follow the active theme', () => {
+  const cases = [
+    [
+      'src/components/Scrollbar/index.tsx',
+      /theme\.palette\.divider/,
+      /theme\.palette\.action\.active/
+    ],
+    [
+      'src/content/own/WorkOrders/Details/CommentItem.tsx',
+      /theme\.palette\.background\.paper/,
+      /theme\.palette\.divider/
+    ],
+    [
+      'src/content/own/PeopleAndTeams/UserDetailsDrawer.tsx',
+      /theme\.palette\.action\.hover/,
+      /theme\.palette\.divider/
+    ],
+    [
+      'src/layouts/ExtendedSidebarLayout/Header/Buttons/Chat/index.tsx',
+      /theme\.palette\.background\.paper/,
+      /theme\.palette\.action\.hover/
+    ],
+    [
+      'src/content/pages/Status/ComingSoon/index.tsx',
+      /theme\.palette\.background\.paper/,
+      /theme\.palette\.text\.secondary/
+    ],
+    [
+      'src/content/pages/Status/Status404/index.tsx',
+      /theme\.palette\.background\.paper/,
+      /text\.secondary/
+    ]
+  ];
+
+  for (const [file, surfaceToken, secondaryToken] of cases) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.match(source, surfaceToken, file);
+    assert.match(source, secondaryToken, file);
+    assert.doesNotMatch(
+      source,
+      /theme\.colors\.alpha\.(black|white)\[(5|10|30|50|100)\]/,
+      file
+    );
+  }
 });

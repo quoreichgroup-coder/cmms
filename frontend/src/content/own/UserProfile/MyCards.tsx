@@ -24,7 +24,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 
 const AvatarAddWrapper = styled(Avatar)(
   ({ theme }) => `
-        background: ${theme.colors.alpha.black[5]};
+        background: ${theme.palette.action.hover};
         color: ${theme.colors.primary.main};
         width: ${theme.spacing(8)};
         height: ${theme.spacing(8)};
@@ -33,7 +33,7 @@ const AvatarAddWrapper = styled(Avatar)(
 
 const CardLogo = styled('img')(
   ({ theme }) => `
-      border: 1px solid ${theme.colors.alpha.black[30]};
+      border: 1px solid ${theme.palette.divider};
       border-radius: ${theme.general.borderRadius};
       padding: ${theme.spacing(1)};
       margin-right: ${theme.spacing(2)};
@@ -80,8 +80,8 @@ const IconButtonError = styled(IconButton)(
 
 const CardCc = styled(Card)(
   ({ theme }) => `
-     border: 1px solid ${theme.colors.alpha.black[30]};
-     background: ${theme.colors.alpha.black[5]};
+     border: 1px solid ${theme.palette.divider};
+     background: ${theme.palette.background.paper};
      box-shadow: none;
 `
 );

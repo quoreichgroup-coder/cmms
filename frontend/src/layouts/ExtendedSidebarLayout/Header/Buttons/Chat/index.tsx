@@ -49,7 +49,7 @@ const DotLegend = styled('span')(
 
 const OutlinedInputWrapper = styled(OutlinedInput)(
   ({ theme }) => `
-    background-color: ${theme.colors.alpha.white[100]};
+    background-color: ${theme.palette.background.paper};
 
     .MuiOutlinedInput-notchedOutline {
         border: 0;
@@ -186,7 +186,7 @@ function Chat() {
             alignItems="center"
             justifyContent="space-between"
             sx={{
-              background: `${alpha(theme.colors.alpha.black[100], 0.07)}`
+              background: `${alpha(theme.palette.text.primary, 0.07)}`
             }}
           >
             <Button
@@ -246,7 +246,7 @@ function Chat() {
                       sx={{
                         py: 1.5,
                         '&:hover': {
-                          background: `${theme.colors.alpha.black[5]}`
+                          background: theme.palette.action.hover
                         }
                       }}
                       secondaryAction={
@@ -334,7 +334,7 @@ function Chat() {
           <Divider />
           <Box
             sx={{
-              background: `${theme.colors.alpha.black[5]}`,
+              background: theme.palette.action.hover,
               textAlign: 'center'
             }}
             p={2}

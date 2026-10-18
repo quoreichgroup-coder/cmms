@@ -57,6 +57,8 @@ import {
   updateActiveAudioRecordingFields
 } from '../../utils/formAudioRecording';
 import { qpmLayoutTokens } from '../../theme/tokens';
+import { getSelectedFormValues } from '../../utils/formSelection';
+import type { FormSelectionValue } from '../../utils/formSelection';
 
 interface OwnProps {
   fields: Array<IField>;
@@ -373,15 +375,7 @@ export default function Form(props: OwnProps) {
       multiple: boolean;
     } = {
       onChange,
-      selected: Array.isArray(values)
-        ? values.map((value) => {
-            if (isTask(value)) {
-              return value;
-            } else {
-              return value.value;
-            }
-          })
-        : [],
+      selected: getSelectedFormValues<FormSelectionValue>(values),
       multiple: field.multiple,
       ...additionalNavigationOptions
     };

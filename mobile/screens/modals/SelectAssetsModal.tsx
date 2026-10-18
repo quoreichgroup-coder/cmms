@@ -71,7 +71,9 @@ const AssetItem = React.memo(
             onPress={handleToggle}
             accessibilityRole={multiple ? 'checkbox' : 'button'}
             accessibilityLabel={`${asset.name}, ${asset.customId}`}
-            accessibilityState={multiple ? { checked: isSelected } : undefined}
+            accessibilityState={
+              multiple ? { checked: isSelected } : { selected: isSelected }
+            }
             style={styles.selectionTarget}
           >
             <Avatar.Icon
@@ -95,13 +97,19 @@ const AssetItem = React.memo(
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >{`#${asset.customId}`}</Text>
                 </View>
-                {multiple && (
+                {multiple ? (
                   <SelectionIndicator
                     checked={isSelected}
                     color={theme.colors.primary}
                     uncheckedColor={theme.colors.controlOutline}
                   />
-                )}
+                ) : isSelected ? (
+                  <Icon
+                    source="check-circle"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                ) : null}
               </View>
             </View>
           </Pressable>

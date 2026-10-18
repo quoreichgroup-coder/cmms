@@ -41,7 +41,7 @@ const AvatarPrimary = styled(Avatar)(
 
 const TabsContainerWrapper = styled(CardContent)(
   ({ theme }) => `
-        background-color: ${theme.colors.alpha.black[5]};
+        background-color: ${theme.palette.action.hover};
 
         .MuiTabs-flexContainer {
             justify-content: center;

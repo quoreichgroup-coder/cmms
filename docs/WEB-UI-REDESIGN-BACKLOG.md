@@ -537,8 +537,14 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les états normal, survolé et sélectionné utilisent maintenant `background.paper`, `divider`, `text.secondary` et `text.primary` du thème MUI actif. Un test protège ce composant partagé contre le retour des couleurs alpha noir/blanc codées en dur. Routes, actions, permissions et API ne changent pas.
 - Validation locale : suite frontend complète, typecheck TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis. Le build garde des avertissements connus de source maps tierces et des avertissements ESLint dans des fichiers non modifiés par ce lot. Contrôle visuel réel clair/sombre et responsive dans Chromium encore requis.
 
-### UX-02 / UX-10 — contraste des jauges et menus d’en-tête — 18 octobre 2026
+### UX-02 / UX-10 — contraste des jauges, menus d’en-tête et cartes profil — 18 octobre 2026
 
 - La poursuite de l’audit a repéré du texte et des pistes de jauge fixés au noir, ainsi que des listes de résultats de recherche et de menu utilisateur à contraste clair uniquement. Ces composants transverses peuvent apparaître sur les tableaux de bord et dans le shell Web.
-- Les jauges emploient maintenant les tokens `text.primary` et `divider`; les résultats de recherche utilisent les tokens de texte et de contour du thème; le menu utilisateur utilise le texte et la surface de survol du thème. Le choix des couleurs métier des séries reste inchangé.
+- Les jauges emploient maintenant les tokens `text.primary` et `divider`; les résultats de recherche utilisent les tokens de texte et de contour du thème; le menu utilisateur utilise le texte et la surface de survol du thème. Les cartes profil et l’ajout de moyen de paiement utilisent aussi les surfaces, contours et survols sémantiques. Le fond blanc propre au logo de carte reste conservé pour préserver sa lisibilité. Le choix des couleurs métier des séries reste inchangé.
 - Une régression couvre ces composants et l’absence des anciennes couleurs alpha noires. Les 66 tests frontend, TypeScript, ESLint ciblé, Prettier, `git diff --check` et le build optimisé passent. Le build signale des source maps tierces manquantes et des avertissements ESLint préexistants dans des fichiers hors de ce lot. La vérification visuelle clair/sombre reste ouverte.
+
+### UX-02 / UX-06 — autres surfaces partagées Web — 18 octobre 2026
+
+- Le recontrôle a étendu la correction au scrollbar, à l’historique de recherche, aux commentaires d’OT, au panneau de détails Personnes/Équipes, à la fenêtre Chat et aux pages 404/Coming Soon. Leurs textes, bordures et surfaces utilisent les tokens MUI (`text`, `divider`, `background.paper`, `action.hover/active`) et suivent donc le thème actif.
+- La couleur du logo de carte reste blanche volontairement; overlays d’image et couleurs dédiées du composant `Label` n’ont pas été remplacés car ils servent une composition distincte. Aucune API, route, permission ou règle opérationnelle ne change.
+- Les tests de contraste ciblés, la suite frontend (66/66), TypeScript, ESLint ciblé, Prettier et le build optimisé passent. Le build conserve les avertissements de source maps tierces manquantes et quelques avertissements ESLint préexistants hors des fichiers de ce lot. Reste la recette visuelle clair/sombre responsive dans Chromium.

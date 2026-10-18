@@ -5,6 +5,39 @@ const assert = require('node:assert/strict'),
   { mobileRuntime } = require('./mobile-test-runtime.cjs');
 const response = (status, body) =>
   new Response(status === 204 ? null : JSON.stringify(body), { status });
+test('form selectors restore single and multi-selection IDs consistently', () => {
+  const runtime = mobileRuntime();
+  const { getSelectedFormValues } = runtime.load('utils/formSelection.ts');
+  const task = { id: 4, taskBase: { label: 'Inspect bearing' } };
+
+  assert.deepEqual(
+    Array.from(getSelectedFormValues({ label: 'Conveyor', value: '42' })),
+    [42]
+  );
+  assert.deepEqual(
+    Array.from(
+      getSelectedFormValues([
+        { label: 'Team A', value: 7 },
+        { label: 'Team B', value: '8' }
+      ])
+    ),
+    [7, 8]
+  );
+  assert.deepEqual(
+    Array.from(getSelectedFormValues([task, { label: 'Task', value: task }])),
+    [task, task]
+  );
+  assert.deepEqual(Array.from(getSelectedFormValues(undefined)), []);
+
+  const form = fs.readFileSync(
+    path.join(__dirname, '..', 'components/form/index.tsx'),
+    'utf8'
+  );
+  assert.match(
+    form,
+    /selected: getSelectedFormValues<FormSelectionValue>\(values\)/
+  );
+});
 test('persisted account cache resets before the storage flush completes', async () => {
   const runtime = mobileRuntime();
   const { clearPersistedAppState } = runtime.load(
