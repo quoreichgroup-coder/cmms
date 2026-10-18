@@ -129,6 +129,17 @@ test('task asset picker reopens with its current asset selected', () => {
     /navigation\.navigate\('SelectAssets',\s*\{\s*onChange: \(assets\) => setAsset\(assets\[0\]\),\s*selected: asset \? \[asset\.id\] : \[\],\s*multiple: false,\s*locationId: null\s*\}\)/
   );
 });
+test('task assignee picker reopens with its current user selected', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectTasksModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /navigation\.navigate\('SelectUsers',\s*\{\s*onChange: \(users\) => setUser\(users\[0\]\),\s*selected: user \? \[user\.id\] : \[\],\s*multiple: false\s*\}\)/
+  );
+});
 test('single team picker announces and marks the current selection', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/modals/SelectTeamsModal.tsx'),

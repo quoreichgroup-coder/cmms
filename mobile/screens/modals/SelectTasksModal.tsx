@@ -245,7 +245,7 @@ export default function SelectTasksModal({
             onPress={() =>
               navigation.navigate('SelectUsers', {
                 onChange: (users) => setUser(users[0]),
-                selected: [],
+                selected: user ? [user.id] : [],
                 multiple: false
               })
             }

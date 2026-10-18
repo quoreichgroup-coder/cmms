@@ -574,3 +574,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le pictogramme d’un champ activé dans la configuration du portail utilisait du noir fixe, ce qui ne suivait pas le thème sombre. Il utilise maintenant `theme.palette.primary.main`; l’état désactivé reste lié à `theme.palette.text.disabled`.
 - Une régression vérifie l’usage des couleurs du thème et l’absence du noir fixe. Le formulaire, ses actions, l’API et les permissions restent inchangés. La recette visuelle clair/sombre reste nécessaire.
+
+### UX-02 — cartes Paramètres → Fonctionnalités — 18 octobre 2026
+
+- Les cartes de la page Fonctionnalités imposaient un fond blanc qui ne suivait pas le mode sombre. Elles utilisent maintenant la surface `background.paper` du thème MUI.
+- Une régression protège la surface thématique. Le contenu, les fonctions, routes et droits ne changent pas; une recette visuelle en thème sombre reste à effectuer.

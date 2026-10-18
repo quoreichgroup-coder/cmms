@@ -1018,6 +1018,12 @@ Dans l’ajout d’une tâche avec équipement associé, rouvrir le sélecteur d
 
 Une régression vérifie le préremplissage du sélecteur. Les interactions TalkBack/VoiceOver et le rendu sur appareil restent à valider; aucun build APK/IPA n’est effectué.
 
+## Tâche — responsable conservé à la réouverture — 18 octobre 2026
+
+Le formulaire de tâche conservait le responsable choisi dans son résumé, mais rouvrait le sélecteur de personnes avec une sélection vide. La personne courante n’était donc ni cochée ni exposée comme sélectionnée dans la liste. Le picker reçoit désormais l’identifiant du responsable courant; la première ouverture reste sans sélection. Le flux d’affectation, les données et l’API ne changent pas.
+
+Une régression vérifie la valeur initiale transmise au sélecteur. Essai TalkBack/VoiceOver sur appareil restant; aucune APK/IPA n’est générée.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.

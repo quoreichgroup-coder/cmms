@@ -248,6 +248,16 @@ test('request portal field icons use theme-aware colors', () => {
   assert.doesNotMatch(source, /config\.enabled\s*\?\s*['"]#000000['"]/);
 });
 
+test('settings feature cards use the active theme surface', () => {
+  const source = fs.readFileSync(
+    'src/content/own/Settings/Features/index.tsx',
+    'utf8'
+  );
+
+  assert.match(source, /backgroundColor: 'background\.paper'/);
+  assert.doesNotMatch(source, /backgroundColor: 'white'/);
+});
+
 test('work-order analytics charts use the centralized status colors', () => {
   const daily = fs.readFileSync(
     'src/content/own/Analytics/WorkOrder/Status/StatusByDate.tsx',
