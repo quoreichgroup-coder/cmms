@@ -31,6 +31,9 @@ test('maintenance analytics use stable QPM chart colors for series', () => {
   assert.match(helper, /qpmAnalyticsTokens/);
   assert.match(helper, /Math\.imul/);
   assert.doesNotMatch(helper, /Math\.random/);
+
+  const overallUtilities = fs.readFileSync('src/utils/overall.ts', 'utf8');
+  assert.doesNotMatch(overallUtilities, /getRandomColor/);
 });
 
 test('time-series chart colors remain stable through theme tokens', () => {

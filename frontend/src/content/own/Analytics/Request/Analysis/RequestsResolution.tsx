@@ -17,7 +17,6 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getIncompleteByAsset } from '../../../../../slices/analytics/workOrder';
 import Loading from '../../Loading';
-import { getRandomColor } from '../../../../../utils/overall';
 import { getRequestsResolvedByDate } from '../../../../../slices/analytics/request';
 import { getDayAndMonth } from '../../../../../utils/dates';
 

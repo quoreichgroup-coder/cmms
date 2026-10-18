@@ -17,7 +17,6 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
 import { getDowntimesByAsset } from '../../../../../slices/analytics/asset';
-import { getRandomColor } from '../../../../../utils/overall';
 
 interface WOStatusIncompleteProps {
   handleOpenModal: (

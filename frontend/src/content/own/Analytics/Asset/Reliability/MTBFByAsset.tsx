@@ -20,7 +20,6 @@ import {
   getDowntimesByAsset,
   getMTBFByAsset
 } from '../../../../../slices/analytics/asset';
-import { getRandomColor } from '../../../../../utils/overall';
 
 interface WOStatusIncompleteProps {
   handleOpenModal: (

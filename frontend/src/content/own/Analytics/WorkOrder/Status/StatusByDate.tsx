@@ -13,7 +13,6 @@ import AnalyticsCard from '../../AnalyticsCard';
 import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getRandomColor } from '../../../../../utils/overall';
 import Loading from '../../Loading';
 import { getDayAndMonth } from '../../../../../utils/dates';
 import { getStatusesByDate } from '../../../../../slices/analytics/workOrder';
