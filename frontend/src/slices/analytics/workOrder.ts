@@ -21,6 +21,7 @@ import {
 import { revertAll } from 'src/utils/redux';
 
 const basePath = 'analytics/work-orders';
+let analyticsRequestId = 0;
 
 const companyQuery = (companyId?: number) =>
   companyId ? `?companyId=${companyId}` : '';
@@ -43,7 +44,11 @@ interface WOStatstate {
   statusesByDate: WOStatusesByDate[];
   hours: WOHours;
   errors: Partial<Record<string, string>>;
-  loading: Omit<Record<keyof WOStatstate, boolean>, 'loading' | 'errors'>;
+  requestIds: Record<string, number>;
+  loading: Omit<
+    Record<keyof WOStatstate, boolean>,
+    'loading' | 'errors' | 'requestIds'
+  >;
 }
 
 type Operation = keyof WOStatstate;
@@ -107,6 +112,7 @@ const initialState: WOStatstate = {
   completeCostsByDate: [],
   statusesByDate: [],
   errors: {},
+  requestIds: {},
   loading: {
     overview: false,
     incompleteByPriority: false,
@@ -134,15 +140,31 @@ const slice = createSlice({
   reducers: {
     getStats(
       state: WOStatstate,
-      action: PayloadAction<{ overviewStats: WoOverviewStats }>
+      action: PayloadAction<{
+        overviewStats: WoOverviewStats;
+        requestId?: number;
+      }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.overview !== action.payload.requestId
+      )
+        return;
       const { overviewStats } = action.payload;
       state.overview = overviewStats;
     },
     getIncompleteStats(
       state: WOStatstate,
-      action: PayloadAction<{ overviewStats: IncompleteWoStats }>
+      action: PayloadAction<{
+        overviewStats: IncompleteWoStats;
+        requestId?: number;
+      }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.incompleteOverview !== action.payload.requestId
+      )
+        return;
       const { overviewStats } = action.payload;
       state.incompleteOverview = overviewStats;
     },
@@ -174,14 +196,27 @@ const slice = createSlice({
       const { stats } = action.payload;
       state.incompleteByUser = stats;
     },
-    getWOHours(state: WOStatstate, action: PayloadAction<{ stats: WOHours }>) {
+    getWOHours(
+      state: WOStatstate,
+      action: PayloadAction<{ stats: WOHours; requestId?: number }>
+    ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.hours !== action.payload.requestId
+      )
+        return;
       const { stats } = action.payload;
       state.hours = stats;
     },
     getCompleteCosts(
       state: WOStatstate,
-      action: PayloadAction<{ stats: WOCostsAndTime }>
+      action: PayloadAction<{ stats: WOCostsAndTime; requestId?: number }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.completeCosts !== action.payload.requestId
+      )
+        return;
       const { stats } = action.payload;
       state.completeCosts = stats;
     },
@@ -215,8 +250,13 @@ const slice = createSlice({
     },
     getCompleteCostsByDate(
       state: WOStatstate,
-      action: PayloadAction<{ stats: WOCostByDate[] }>
+      action: PayloadAction<{ stats: WOCostByDate[]; requestId?: number }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.completeCostsByDate !== action.payload.requestId
+      )
+        return;
       const { stats } = action.payload;
       state.completeCostsByDate = stats;
     },
@@ -236,22 +276,45 @@ const slice = createSlice({
     },
     getStatusesByDate(
       state: WOStatstate,
-      action: PayloadAction<{ stats: WOStatusesByDate[] }>
+      action: PayloadAction<{ stats: WOStatusesByDate[]; requestId?: number }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds.statusesByDate !== action.payload.requestId
+      )
+        return;
       const { stats } = action.payload;
       state.statusesByDate = stats;
     },
     setError(
       state,
-      action: PayloadAction<{ operation: string; message: string }>
+      action: PayloadAction<{
+        operation: string;
+        message: string;
+        requestId?: number;
+      }>
     ) {
+      if (
+        action.payload.requestId !== undefined &&
+        state.requestIds[action.payload.operation] !== action.payload.requestId
+      )
+        return;
       state.errors[action.payload.operation] = action.payload.message;
     },
     setLoading(
       state: WOStatstate,
-      action: PayloadAction<{ loading: boolean; operation: Operation }>
+      action: PayloadAction<{
+        loading: boolean;
+        operation: Operation;
+        requestId?: number;
+      }>
     ) {
-      const { loading, operation } = action.payload;
+      const { loading, operation, requestId } = action.payload;
+      if (requestId !== undefined) {
+        if (loading) {
+          state.requestIds[operation] = requestId;
+        } else if (state.requestIds[operation] !== requestId) return;
+      }
       state.loading[operation] = loading;
       if (loading) delete state.errors[operation];
     }
@@ -263,19 +326,25 @@ export const reducer = slice.reducer;
 export const getOverviewStats =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
-      slice.actions.setLoading({ operation: 'overview', loading: true })
+      slice.actions.setLoading({
+        operation: 'overview',
+        loading: true,
+        requestId
+      })
     );
     try {
       const overviewStats = await api.post<WoOverviewStats>(
         `${basePath}/complete/overview${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getStats({ overviewStats }));
+      dispatch(slice.actions.getStats({ overviewStats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'overview',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -284,17 +353,23 @@ export const getOverviewStats =
       );
     } finally {
       dispatch(
-        slice.actions.setLoading({ operation: 'overview', loading: false })
+        slice.actions.setLoading({
+          operation: 'overview',
+          loading: false,
+          requestId
+        })
       );
     }
   };
 export const getIncompleteStats =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
       slice.actions.setLoading({
         operation: 'incompleteOverview',
-        loading: true
+        loading: true,
+        requestId
       })
     );
     try {
@@ -302,11 +377,12 @@ export const getIncompleteStats =
         `${basePath}/incomplete/overview${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getIncompleteStats({ overviewStats }));
+      dispatch(slice.actions.getIncompleteStats({ overviewStats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'incompleteOverview',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -317,7 +393,8 @@ export const getIncompleteStats =
       dispatch(
         slice.actions.setLoading({
           operation: 'incompleteOverview',
-          loading: false
+          loading: false,
+          requestId
         })
       );
     }
@@ -393,10 +470,12 @@ export const getIncompleteByStatus =
 export const getWOHours =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
       slice.actions.setLoading({
         operation: 'hours',
-        loading: true
+        loading: true,
+        requestId
       })
     );
     try {
@@ -404,11 +483,12 @@ export const getWOHours =
         `${basePath}/hours${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getWOHours({ stats }));
+      dispatch(slice.actions.getWOHours({ stats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'hours',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -419,7 +499,8 @@ export const getWOHours =
       dispatch(
         slice.actions.setLoading({
           operation: 'hours',
-          loading: false
+          loading: false,
+          requestId
         })
       );
     }
@@ -564,10 +645,12 @@ export const getCompleteByCategory =
 export const getCompleteCosts =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
       slice.actions.setLoading({
         operation: 'completeCosts',
-        loading: true
+        loading: true,
+        requestId
       })
     );
     try {
@@ -575,11 +658,12 @@ export const getCompleteCosts =
         `${basePath}/complete/costs-time${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getCompleteCosts({ stats }));
+      dispatch(slice.actions.getCompleteCosts({ stats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'completeCosts',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -590,7 +674,8 @@ export const getCompleteCosts =
       dispatch(
         slice.actions.setLoading({
           operation: 'completeCosts',
-          loading: false
+          loading: false,
+          requestId
         })
       );
     }
@@ -732,10 +817,12 @@ export const getIncompleteByUser =
 export const getCompleteCostsByDate =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
       slice.actions.setLoading({
         operation: 'completeCostsByDate',
-        loading: true
+        loading: true,
+        requestId
       })
     );
     try {
@@ -743,11 +830,12 @@ export const getCompleteCostsByDate =
         `${basePath}/complete/costs/date${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getCompleteCostsByDate({ stats }));
+      dispatch(slice.actions.getCompleteCostsByDate({ stats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'completeCostsByDate',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -758,7 +846,8 @@ export const getCompleteCostsByDate =
       dispatch(
         slice.actions.setLoading({
           operation: 'completeCostsByDate',
-          loading: false
+          loading: false,
+          requestId
         })
       );
     }
@@ -766,10 +855,12 @@ export const getCompleteCostsByDate =
 export const getStatusesByDate =
   (start: Date, end: Date, companyId?: number): AppThunk =>
   async (dispatch) => {
+    const requestId = ++analyticsRequestId;
     dispatch(
       slice.actions.setLoading({
         operation: 'statusesByDate',
-        loading: true
+        loading: true,
+        requestId
       })
     );
     try {
@@ -777,11 +868,12 @@ export const getStatusesByDate =
         `${basePath}/statuses${companyQuery(companyId)}`,
         { start, end }
       );
-      dispatch(slice.actions.getStatusesByDate({ stats }));
+      dispatch(slice.actions.getStatusesByDate({ stats, requestId }));
     } catch (error) {
       dispatch(
         slice.actions.setError({
           operation: 'statusesByDate',
+          requestId,
           message:
             error?.status === 403
               ? 'Accès refusé à ce rapport.'
@@ -792,7 +884,8 @@ export const getStatusesByDate =
       dispatch(
         slice.actions.setLoading({
           operation: 'statusesByDate',
-          loading: false
+          loading: false,
+          requestId
         })
       );
     }
