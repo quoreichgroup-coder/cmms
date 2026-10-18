@@ -40,6 +40,7 @@ import { shutdown } from '@intercom/messenger-js-sdk';
 import Clarity from '@microsoft/clarity';
 import { clarityId, IS_LOCALHOST } from '../config';
 import { logoutWithFallback } from '../utils/logoutWithFallback';
+import { clearSessionAndState } from '../utils/clearSessionAndState';
 
 interface AuthState {
   isInitialized: boolean;
@@ -683,10 +684,13 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     await logoutWithFallback(
       () => api.post('auth/logout', {}),
       () => {
-        setSession(null, null);
-        dispatch({ type: 'LOGOUT' });
-        Sentry.setUser(null);
-        if (clarityId && !IS_LOCALHOST) Clarity.identify('');
+        clearSessionAndState(() => setSession(null, null), () => {
+          // Storage can throw in privacy-restricted browser contexts. Always
+          // clear the in-memory authenticated state even when that happens.
+          dispatch({ type: 'LOGOUT' });
+          Sentry.setUser(null);
+          if (clarityId && !IS_LOCALHOST) Clarity.identify('');
+        });
       }
     );
   };

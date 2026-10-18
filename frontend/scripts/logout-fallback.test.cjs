@@ -10,6 +10,12 @@ const source = ts.transpileModule(
 ).outputText;
 const moduleExports = {};
 vm.runInNewContext(source, { exports: moduleExports });
+const clearSessionSource = ts.transpileModule(
+  fs.readFileSync('src/utils/clearSessionAndState.ts', 'utf8'),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+).outputText;
+const clearSessionExports = {};
+vm.runInNewContext(clearSessionSource, { exports: clearSessionExports });
 
 test('local session is cleared after successful server logout', async () => {
   const calls = [];
@@ -37,4 +43,23 @@ test('local session is cleared and server logout failure is preserved', async ()
   );
 
   assert.deepEqual(calls, ['server', 'local']);
+});
+
+test('application auth state is cleared when browser storage throws', () => {
+  const calls = [];
+  const storageError = new Error('Storage access denied');
+
+  assert.throws(
+    () =>
+      clearSessionExports.clearSessionAndState(
+        () => {
+          calls.push('storage');
+          throw storageError;
+        },
+        () => calls.push('application')
+      ),
+    storageError
+  );
+
+  assert.deepEqual(calls, ['storage', 'application']);
 });
