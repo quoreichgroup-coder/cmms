@@ -82,6 +82,31 @@ test('calendar marks past-due open work as overdue but keeps completed work comp
   );
 });
 
+test('calendar treats UTC midnight due dates as the same local due day', () => {
+  const originalTimezone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const now = new Date('2026-10-17T20:00:00.000Z'); // 13:00 on Oct 17 locally
+    assert.equal(
+      presentation.getCalendarEventStatus(
+        { status: 'OPEN', dueDate: '2026-10-17T00:00:00.000Z' },
+        now
+      ),
+      'OPEN'
+    );
+    assert.equal(
+      presentation.getCalendarEventStatus(
+        { status: 'OPEN', dueDate: '2026-10-16T00:00:00.000Z' },
+        now
+      ),
+      'OVERDUE'
+    );
+  } finally {
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  }
+});
+
 test('calendar leaves unknown and invalid status metadata safely unclassified', () => {
   const now = new Date(2026, 9, 17, 12);
   assert.equal(

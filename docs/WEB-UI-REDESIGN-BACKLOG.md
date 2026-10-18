@@ -463,3 +463,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Constat avant correction : le Web stocke access et refresh tokens dans `localStorage`; le refresh JSON est partagé avec le mobile. Le succès OAuth plaçait les deux JWT dans l’URL. Import/export STOMP, notifications et Zendesk utilisent l’access token côté navigateur.
 - Le succès OAuth stocke maintenant les jetons dans un grant serveur attaché à la session et redirige vers l’URL configurée sans JWT/code. `POST /auth/oauth/exchange` consomme le grant une fois, impose `no-store`; les erreurs visibles sont génériques. Les contrats JSON Mobile/API restent inchangés.
 - Le navigateur conserve toujours les jetons échangés dans `localStorage`; cette première correction évite leur fuite dans l’URL mais ne réduit pas le risque XSS de leur stockage. Les tests unitaires couvrent l’usage unique et la séparation des sessions; recette de navigateur/proxy avec SSO Google/Microsoft et les tests d’expiration sont à faire.
+
+### Calendrier Web — échéance OT et fuseau horaire — 18 octobre 2026
+
+- Défaut confirmé dans `frontend/src/content/own/WorkOrders/Calendar/eventPresentation.ts` : l’échéance est un jour métier, mais la comparaison utilisait l’instant UTC de `Date` contre le début de journée local. En fuseau négatif, une échéance sérialisée à minuit UTC pouvait apparaître « En retard » dès le matin du jour prévu.
+- La présentation compare maintenant les dates civiles `yyyy-MM-dd`, en gardant le statut `COMPLETE` prioritaire et en ignorant les dates invalides. Aucun endpoint, filtre, permission ou transition d’OT ne change.
+- Régression ajoutée pour `America/Los_Angeles` : échéance du jour reste ouverte, échéance de la veille devient en retard. `node --test scripts/calendar-event-presentation.test.cjs` passe. TypeScript lancé mais interrompu sans résultat exploitable; ESLint et `git diff --check` restent à confirmer.

@@ -1,4 +1,4 @@
-import { isBefore, isValid, parseISO, startOfDay } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { qpmWorkOrderStatusTokens } from 'src/theme/tokens';
 
 interface CalendarEventPresentationInput {
@@ -13,8 +13,16 @@ export function getCalendarEventStatus(
   if (event.status === 'COMPLETE') return 'COMPLETE';
 
   if (event.dueDate) {
+    // Due dates are day-based in the maintenance workflow. The API serializes
+    // Java Date values as UTC timestamps; comparing those instants to local
+    // midnight incorrectly marks today's due date overdue in western timezones.
     const dueDate = parseISO(event.dueDate);
-    if (isValid(dueDate) && isBefore(dueDate, startOfDay(now))) {
+    const dueDateDay = event.dueDate.slice(0, 10);
+    if (
+      isValid(dueDate) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(dueDateDay) &&
+      dueDateDay < format(now, 'yyyy-MM-dd')
+    ) {
       return 'OVERDUE';
     }
   }
