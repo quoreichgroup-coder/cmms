@@ -195,3 +195,89 @@ test('work-order analytics keep priority labels, colors, and values aligned', ()
   assert.match(completed, /qpmPriorityTokens\[priority\]\?\.foreground/);
   assert.doesNotMatch(completed, /getRandomColor/);
 });
+
+test('preventive maintenance and inventory detail labels use theme-aware text', () => {
+  const files = [
+    'src/content/own/PreventiveMaintenance/PMDetails.tsx',
+    'src/content/own/Inventory/Sets.tsx',
+    'src/content/own/Inventory/Parts.tsx',
+    'src/content/own/Inventory/PartDetails.tsx',
+    'src/content/own/WorkOrders/Details/TimeSection.tsx',
+    'src/content/own/WorkOrders/Details/CostSection.tsx',
+    'src/content/own/Locations/LocationDetails.tsx',
+    'src/content/own/UserProfile/MyCards.tsx'
+  ];
+
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(source, /theme\.colors\.alpha\.black\[70\]/, file);
+  }
+});
+
+test('preventive work-order history uses the shared semantic status badge', () => {
+  const source = fs.readFileSync(
+    'src/content/own/PreventiveMaintenance/RecentWorkOrders.tsx',
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /<WorkOrderStatusChip status=\{workOrder\.status\}\s*\/>/
+  );
+  assert.doesNotMatch(source, /theme\.colors\.success\.main/);
+  assert.doesNotMatch(source, /theme\.colors\.warning\.main/);
+});
+
+test('work-order analytics charts use the centralized status colors', () => {
+  const daily = fs.readFileSync(
+    'src/content/own/Analytics/WorkOrder/Status/StatusByDate.tsx',
+    'utf8'
+  );
+  const distribution = fs.readFileSync(
+    'src/content/own/Analytics/WorkOrder/Status/WOStatusPie.tsx',
+    'utf8'
+  );
+
+  for (const source of [daily, distribution]) {
+    assert.match(source, /qpmWorkOrderStatusTokens\.OPEN\.foreground/);
+    assert.match(source, /qpmWorkOrderStatusTokens\.IN_PROGRESS\.foreground/);
+    assert.match(source, /qpmWorkOrderStatusTokens\.ON_HOLD\.foreground/);
+    assert.doesNotMatch(source, /theme\.colors\.(success|warning)\.main/);
+  }
+  assert.match(daily, /qpmWorkOrderStatusTokens\.COMPLETE\.foreground/);
+});
+
+test('shared multi-tab layout uses theme-aware surfaces and text', () => {
+  const source = fs.readFileSync(
+    'src/content/own/components/MultipleTabsLayout.tsx',
+    'utf8'
+  );
+
+  assert.doesNotMatch(source, /theme\.colors\.alpha\.(black|white)/);
+  assert.match(source, /theme\.palette\.background\.paper/);
+  assert.match(source, /theme\.palette\.divider/);
+  assert.match(source, /theme\.palette\.text\.secondary/);
+  assert.match(source, /theme\.palette\.text\.primary/);
+});
+
+test('shared dashboard gauge and header popovers use theme-aware text', () => {
+  const files = [
+    'src/components/Gauge/index.tsx',
+    'src/layouts/ExtendedSidebarLayout/Header/Search/index.tsx',
+    'src/layouts/ExtendedSidebarLayout/Header/Userbox/index.tsx'
+  ];
+
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(
+      source,
+      /theme\.colors\.alpha\.black\[(50|100)\]/,
+      file
+    );
+    assert.match(source, /theme\.palette\.text\.(primary|secondary)/, file);
+  }
+
+  const gauge = fs.readFileSync(files[0], 'utf8');
+  assert.doesNotMatch(gauge, /theme\.colors\.alpha\.black\[10\]/);
+  assert.match(gauge, /theme\.palette\.divider/);
+});

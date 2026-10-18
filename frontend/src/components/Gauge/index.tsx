@@ -85,11 +85,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -104,11 +104,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -123,11 +123,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -142,11 +142,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -161,11 +161,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -180,11 +180,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -199,11 +199,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -218,11 +218,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {
@@ -237,11 +237,11 @@ const GaugeWrapper = styled(CircularProgressbarWithChildren)(
         }
     
         .CircularProgressbar-trail {
-          stroke: ${theme.colors.alpha.black[10]};
+          stroke: ${theme.palette.divider};
         }
     
         .CircularProgressbar-text {
-          fill: ${theme.colors.alpha.black[100]};
+          fill: ${theme.palette.text.primary};
         }
     
         .CircularProgressbar-background {

@@ -524,3 +524,21 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - L’animation marketing latérale de l’inscription a été remplacée par ce cadre commun. Les paramètres d’inscription transmis au formulaire, les composants JWT, les validations, liens, routes et appels d’authentification restent inchangés.
 - Le contrôle d’affichage du mot de passe annonce son état aux lecteurs d’écran et change d’icône. Aucun contrat API, rôle, règle d’accès ou comportement de connexion n’a été modifié.
 - La suite frontend complète et ESLint ciblé réussissent. TypeScript et la compilation optimisée ont été lancés, mais leurs processus se sont interrompus sans résultat exploitable dans cet environnement; aucune vérification Chromium n’a été possible, le navigateur DevTools ne trouvant pas Chrome. Ces contrôles restent requis avant déploiement.
+
+### UX-02 / UX-06 / UX-10 — contraste et états des OT — 18 octobre 2026
+
+- Défaut confirmé dans les fiches de maintenance préventive, ensembles de pièces, inventaire, détails de pièce, main-d’œuvre/coûts des OT et affectations de localisation : plusieurs libellés imposaient une transparence noire, qui réduisait fortement le contraste sur les surfaces sombres. Le contour d’une carte de profil avait le même défaut.
+- Ces libellés utilisent désormais `text.secondary` et le contour du thème, adaptés au mode actif. L’historique des OT préventifs réutilise `WorkOrderStatusChip` : « En cours » n’est plus vert. Les graphiques d’état des OT utilisent maintenant les couleurs sémantiques centralisées (ouvert bleu, en cours violet, en attente orange, clôturé vert) plutôt que les couleurs génériques de succès/avertissement.
+- Les données, statuts métiers, droits, API et actions restent inchangés. Un test de régression vérifie l’absence de l’ancienne couleur et la réutilisation du badge partagé; recette visuelle Light/Dark à effectuer dans Chromium.
+
+### UX-02 / UX-11 — contraste des onglets partagés — 18 octobre 2026
+
+- L’audit global a trouvé que `MultipleTabsLayout`, partagé par les Paramètres, l’Inventaire, les Actifs, Personnes/Équipes, Fournisseurs et Catégories, imposait des fonds blanc et du texte noir translucide. En mode sombre, les onglets non sélectionnés pouvaient donc perdre leur contraste avec la surface réelle.
+- Les états normal, survolé et sélectionné utilisent maintenant `background.paper`, `divider`, `text.secondary` et `text.primary` du thème MUI actif. Un test protège ce composant partagé contre le retour des couleurs alpha noir/blanc codées en dur. Routes, actions, permissions et API ne changent pas.
+- Validation locale : suite frontend complète, typecheck TypeScript, ESLint ciblé, Prettier, `git diff --check` et build optimisé réussis. Le build garde des avertissements connus de source maps tierces et des avertissements ESLint dans des fichiers non modifiés par ce lot. Contrôle visuel réel clair/sombre et responsive dans Chromium encore requis.
+
+### UX-02 / UX-10 — contraste des jauges et menus d’en-tête — 18 octobre 2026
+
+- La poursuite de l’audit a repéré du texte et des pistes de jauge fixés au noir, ainsi que des listes de résultats de recherche et de menu utilisateur à contraste clair uniquement. Ces composants transverses peuvent apparaître sur les tableaux de bord et dans le shell Web.
+- Les jauges emploient maintenant les tokens `text.primary` et `divider`; les résultats de recherche utilisent les tokens de texte et de contour du thème; le menu utilisateur utilise le texte et la surface de survol du thème. Le choix des couleurs métier des séries reste inchangé.
+- Une régression couvre ces composants et l’absence des anciennes couleurs alpha noires. Les 66 tests frontend, TypeScript, ESLint ciblé, Prettier, `git diff --check` et le build optimisé passent. Le build signale des source maps tierces manquantes et des avertissements ESLint préexistants dans des fichiers hors de ce lot. La vérification visuelle clair/sombre reste ouverte.

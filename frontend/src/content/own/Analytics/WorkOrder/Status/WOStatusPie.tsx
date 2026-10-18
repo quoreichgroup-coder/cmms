@@ -1,4 +1,3 @@
-import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
@@ -7,6 +6,7 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useCallback, useEffect } from 'react';
 import { getIncompleteByStatus } from '../../../../../slices/analytics/workOrder';
 import Loading from '../../Loading';
+import { qpmWorkOrderStatusTokens } from '../../../../../theme/tokens';
 
 interface WOStatusPieProps {
   handleOpenModal: (
@@ -26,7 +26,6 @@ function WOStatusPie({
   companyId
 }: WOStatusPieProps) {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const dispatch = useDispatch();
   const { incompleteByStatus, loading, errors } = useSelector(
     (state) => state.woAnalytics
@@ -42,25 +41,25 @@ function WOStatusPie({
     // {
     //   label: 'Complete',
     //   value: data.complete,
-    //   color: theme.colors.error.main,
+    //   color: qpmWorkOrderStatusTokens.COMPLETE.foreground,
     //   filters: [{ key: 'status', value: 'COMPLETE' }]
     // },ne
     {
       label: t('ON_HOLD'),
       value: incompleteByStatus.onHold,
-      color: theme.colors.warning.main,
+      color: qpmWorkOrderStatusTokens.ON_HOLD.foreground,
       filters: [{ key: 'status', value: 'ON_HOLD' }]
     },
     {
       label: t('IN_PROGRESS'),
       value: incompleteByStatus.inProgress,
-      color: theme.colors.success.main,
+      color: qpmWorkOrderStatusTokens.IN_PROGRESS.foreground,
       filters: [{ key: 'status', value: 'IN_PROGRESS' }]
     },
     {
       label: t('OPEN'),
       value: incompleteByStatus.open,
-      color: theme.colors.alpha.black[70],
+      color: qpmWorkOrderStatusTokens.OPEN.foreground,
       filters: [{ key: 'status', value: 'OPEN' }]
     }
   ];
@@ -103,7 +102,6 @@ function WOStatusPie({
             cy="50%"
             outerRadius={100}
             innerRadius={50}
-            fill="#8884d8"
           >
             {formattedData.map((entry, index) => (
               <Cell

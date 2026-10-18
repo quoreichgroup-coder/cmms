@@ -847,6 +847,26 @@ test('barcode scanner reports camera preview mount failures and allows retry', (
   assert.match(source, /camera_preview_loading/);
   assert.match(source, /Camera preview mount failed/);
 });
+test('barcode scanner exposes a safe-area-aware close action while previewing', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/modals/SelectBarcodeModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /import \{ SafeAreaView \} from 'react-native-safe-area-context'/
+  );
+  assert.match(source, /<SafeAreaView[\s\S]*?edges=\{\['top'\]\}/);
+  assert.match(
+    source,
+    /<IconButton[\s\S]*?icon="close"[\s\S]*?onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]*?accessibilityLabel=\{t\('go_back'\)\}/
+  );
+  assert.match(
+    source,
+    /controlsSafeArea:\s*\{\s*\.\.\.StyleSheet\.absoluteFillObject/
+  );
+});
 test('shared camera preview error is themed and offers retry and exit actions', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'components/CameraPreviewError.tsx'),

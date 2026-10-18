@@ -17,8 +17,7 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CustomDatagrid2, {
@@ -202,7 +201,6 @@ const Parts = ({ setAction }: PropsType) => {
     { value: 'list', label: t('list_view') },
     { value: 'card', label: t('card_view') }
   ];
-  const theme = useTheme();
   const handleCopyPart = (part: Part) => {
     setCopyPartData(part);
     setOpenAddModal(true);
@@ -607,7 +605,7 @@ const Parts = ({ setAction }: PropsType) => {
     return value ? (
       <Grid item xs={12}>
         <Stack spacing={1} direction="row">
-          <Typography variant="h6" sx={{ color: theme.colors.alpha.black[70] }}>
+          <Typography variant="h6" color="text.secondary">
             {label}
           </Typography>
           <Typography variant="h6">{value}</Typography>
@@ -726,7 +724,10 @@ const Parts = ({ setAction }: PropsType) => {
                 try {
                   await exportEntity(entity);
                 } catch (error) {
-                  showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
+                  showSnackBar(
+                    getErrorMessage(error, t('Export failed')),
+                    'error'
+                  );
                 }
               }}
             >

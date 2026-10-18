@@ -10,8 +10,7 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -71,7 +70,6 @@ export default function PMDetails({
 }: RequestDetailsProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const theme = useTheme();
   const getLanguage = i18n.language;
   const dateLocale = useDateLocale();
   const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
@@ -143,7 +141,8 @@ export default function PMDetails({
           {
             label: t('pm_generation_lead_days'),
             value: t('days_count', {
-              days: preventiveMaintenance.schedule.workOrderGenerationLeadDays ?? 0
+              days:
+                preventiveMaintenance.schedule.workOrderGenerationLeadDays ?? 0
             })
           }
         ]),
@@ -234,10 +233,7 @@ export default function PMDetails({
             <Grid container spacing={2}>
               {preventiveMaintenance.schedule?.endsOn && (
                 <Grid item xs={12} lg={6}>
-                  <Typography
-                    variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
-                  >
+                  <Typography variant="h6" color="text.secondary">
                     {t('ends_on')}
                   </Typography>
                   <Typography variant="h6">
@@ -254,31 +250,57 @@ export default function PMDetails({
                   {preventiveMaintenance.schedule.meterName && (
                     <BasicField
                       label={t('pm_meter')}
-                      value={`${preventiveMaintenance.schedule.meterName}${preventiveMaintenance.schedule.meterUnit ? ` (${preventiveMaintenance.schedule.meterUnit})` : ''}`}
+                      value={`${preventiveMaintenance.schedule.meterName}${
+                        preventiveMaintenance.schedule.meterUnit
+                          ? ` (${preventiveMaintenance.schedule.meterUnit})`
+                          : ''
+                      }`}
                     />
                   )}
-                  {preventiveMaintenance.schedule.meterReferenceValue != null && (
+                  {preventiveMaintenance.schedule.meterReferenceValue !=
+                    null && (
                     <BasicField
                       label={t('pm_meter_reference_value')}
-                      value={`${preventiveMaintenance.schedule.meterReferenceValue}${preventiveMaintenance.schedule.meterUnit ? ` ${preventiveMaintenance.schedule.meterUnit}` : ''}`}
+                      value={`${
+                        preventiveMaintenance.schedule.meterReferenceValue
+                      }${
+                        preventiveMaintenance.schedule.meterUnit
+                          ? ` ${preventiveMaintenance.schedule.meterUnit}`
+                          : ''
+                      }`}
                     />
                   )}
-                  {preventiveMaintenance.schedule.meterCycleInterval != null && (
+                  {preventiveMaintenance.schedule.meterCycleInterval !=
+                    null && (
                     <BasicField
                       label={t('pm_meter_cycle_interval')}
-                      value={`${preventiveMaintenance.schedule.meterCycleInterval}${preventiveMaintenance.schedule.meterUnit ? ` ${preventiveMaintenance.schedule.meterUnit}` : ''}`}
+                      value={`${
+                        preventiveMaintenance.schedule.meterCycleInterval
+                      }${
+                        preventiveMaintenance.schedule.meterUnit
+                          ? ` ${preventiveMaintenance.schedule.meterUnit}`
+                          : ''
+                      }`}
                     />
                   )}
                   {preventiveMaintenance.schedule.meterEndValue != null && (
                     <BasicField
                       label={t('pm_meter_end_value')}
-                      value={`${preventiveMaintenance.schedule.meterEndValue}${preventiveMaintenance.schedule.meterUnit ? ` ${preventiveMaintenance.schedule.meterUnit}` : ''}`}
+                      value={`${preventiveMaintenance.schedule.meterEndValue}${
+                        preventiveMaintenance.schedule.meterUnit
+                          ? ` ${preventiveMaintenance.schedule.meterUnit}`
+                          : ''
+                      }`}
                     />
                   )}
                   {preventiveMaintenance.schedule.nextMeterValue != null && (
                     <BasicField
                       label={t('pm_meter_next_targets')}
-                      value={`${preventiveMaintenance.schedule.nextMeterValue}${preventiveMaintenance.schedule.meterUnit ? ` ${preventiveMaintenance.schedule.meterUnit}` : ''}`}
+                      value={`${preventiveMaintenance.schedule.nextMeterValue}${
+                        preventiveMaintenance.schedule.meterUnit
+                          ? ` ${preventiveMaintenance.schedule.meterUnit}`
+                          : ''
+                      }`}
                     />
                   )}
                   <Grid item xs={12}>
@@ -295,10 +317,7 @@ export default function PMDetails({
                   />
                   {preventiveMaintenance.schedule?.recurrenceBasedOn && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('based_on')}
                       </Typography>
                       <Typography variant="h6">
@@ -311,23 +330,19 @@ export default function PMDetails({
                   )}
                   {preventiveMaintenance.schedule?.startsOn && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('starts_on')}
                       </Typography>
                       <Typography variant="h6">
-                        {getFormattedDate(preventiveMaintenance.schedule.startsOn)}
+                        {getFormattedDate(
+                          preventiveMaintenance.schedule.startsOn
+                        )}
                       </Typography>
                     </Grid>
                   )}
                   {preventiveMaintenance.schedule.frequency && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('frequency')}
                       </Typography>
                       <Typography variant="h6">
@@ -343,10 +358,7 @@ export default function PMDetails({
               )}
               {preventiveMaintenance?.createdBy && (
                 <Grid item xs={12} lg={6}>
-                  <Typography
-                    variant="h6"
-                    sx={{ color: theme.colors.alpha.black[70] }}
-                  >
+                  <Typography variant="h6" color="text.secondary">
                     {t('created_by')}
                   </Typography>
                   <Link
@@ -358,24 +370,44 @@ export default function PMDetails({
                 </Grid>
               )}
             </Grid>
-            {preventiveMaintenance.schedule?.planConfiguration?.mode === 'STRATEGY' && (
+            {preventiveMaintenance.schedule?.planConfiguration?.mode ===
+              'STRATEGY' && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="h6">{t('pm_strategy_packages')}</Typography>
-                {preventiveMaintenance.schedule.planConfiguration.packages?.map((item) => (
-                  <Typography key={item.code} variant="body2">
-                    {item.name || item.code} · {t('pm_every_base_cycles', { count: item.everyBaseCycles })}
-                  </Typography>
-                ))}
+                <Typography variant="h6">
+                  {t('pm_strategy_packages')}
+                </Typography>
+                {preventiveMaintenance.schedule.planConfiguration.packages?.map(
+                  (item) => (
+                    <Typography key={item.code} variant="body2">
+                      {item.name || item.code} ·{' '}
+                      {t('pm_every_base_cycles', {
+                        count: item.everyBaseCycles
+                      })}
+                    </Typography>
+                  )
+                )}
               </Box>
             )}
-            {preventiveMaintenance.schedule?.planConfiguration?.mode === 'MULTI_COUNTER' && (
+            {preventiveMaintenance.schedule?.planConfiguration?.mode ===
+              'MULTI_COUNTER' && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="h6">{t('pm_multi_counter_rule', { combination: preventiveMaintenance.schedule.planConfiguration.combination })}</Typography>
-                {preventiveMaintenance.schedule.planConfiguration.cycles?.map((cycle) => (
-                  <Typography key={cycle.code} variant="body2">
-                    {cycle.name || cycle.code} · {cycle.interval} {cycle.dimension === 'METER' ? `(${t('pm_meter')} #${cycle.meterId})` : cycle.recurrenceType}
-                  </Typography>
-                ))}
+                <Typography variant="h6">
+                  {t('pm_multi_counter_rule', {
+                    combination:
+                      preventiveMaintenance.schedule.planConfiguration
+                        .combination
+                  })}
+                </Typography>
+                {preventiveMaintenance.schedule.planConfiguration.cycles?.map(
+                  (cycle) => (
+                    <Typography key={cycle.code} variant="body2">
+                      {cycle.name || cycle.code} · {cycle.interval}{' '}
+                      {cycle.dimension === 'METER'
+                        ? `(${t('pm_meter')} #${cycle.meterId})`
+                        : cycle.recurrenceType}
+                    </Typography>
+                  )
+                )}
               </Box>
             )}
           </Box>
@@ -413,10 +445,7 @@ export default function PMDetails({
                 ))}
                 {preventiveMaintenance?.asset && (
                   <Grid item xs={12} lg={6}>
-                    <Typography
-                      variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
-                    >
+                    <Typography variant="h6" color="text.secondary">
                       {t('asset')}
                     </Typography>
                     <Link
@@ -429,10 +458,7 @@ export default function PMDetails({
                 )}
                 {preventiveMaintenance?.location && (
                   <Grid item xs={12} lg={6}>
-                    <Typography
-                      variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
-                    >
+                    <Typography variant="h6" color="text.secondary">
                       {t('location')}
                     </Typography>
                     <Link
@@ -445,10 +471,7 @@ export default function PMDetails({
                 )}
                 {preventiveMaintenance?.primaryUser && (
                   <Grid item xs={12} lg={6}>
-                    <Typography
-                      variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
-                    >
+                    <Typography variant="h6" color="text.secondary">
                       {t('assigned_to')}
                     </Typography>
                     <Link
@@ -461,10 +484,7 @@ export default function PMDetails({
                 )}
                 {preventiveMaintenance?.team && (
                   <Grid item xs={12} lg={6}>
-                    <Typography
-                      variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
-                    >
+                    <Typography variant="h6" color="text.secondary">
                       {t('team')}
                     </Typography>
                     <Link
@@ -477,10 +497,7 @@ export default function PMDetails({
                 )}
                 {!!preventiveMaintenance.files.length && (
                   <Grid item xs={12} lg={12}>
-                    <Typography
-                      variant="h6"
-                      sx={{ color: theme.colors.alpha.black[70] }}
-                    >
+                    <Typography variant="h6" color="text.secondary">
                       {t('files')}
                     </Typography>
                     <FilesList

@@ -8,8 +8,7 @@ import {
   ListItem,
   ListItemText,
   Stack,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
@@ -46,7 +45,6 @@ export default function TimeSection({
   labors,
   loading
 }: TimeSectionProps) {
-  const theme = useTheme();
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { getFormattedCurrency } = useContext(CompanySettingsContext);
@@ -97,7 +95,7 @@ export default function TimeSection({
           <CircularProgress />
         </Stack>
       ) : !labors.filter((labor) => !labor.logged).length ? (
-        <Typography sx={{ color: theme.colors.alpha.black[70] }}>
+        <Typography color="text.secondary">
           {t('no_labor', { shortBrandName: brandConfig.shortName })}
         </Typography>
       ) : (

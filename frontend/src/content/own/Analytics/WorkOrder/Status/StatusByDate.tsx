@@ -1,4 +1,3 @@
-import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
   Bar,
@@ -18,6 +17,7 @@ import { getRandomColor } from '../../../../../utils/overall';
 import Loading from '../../Loading';
 import { getDayAndMonth } from '../../../../../utils/dates';
 import { getStatusesByDate } from '../../../../../slices/analytics/workOrder';
+import { qpmWorkOrderStatusTokens } from '../../../../../theme/tokens';
 
 interface DowntimesByMonthProps {
   handleOpenModal: (
@@ -37,7 +37,6 @@ function StatusByDate({
   companyId
 }: DowntimesByMonthProps) {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const dispatch = useDispatch();
   const { statusesByDate, loading, errors } = useSelector(
     (state) => state.woAnalytics
@@ -87,25 +86,25 @@ function StatusByDate({
           <Legend />
           <Bar
             dataKey="complete"
-            fill={theme.colors.primary.main}
+            fill={qpmWorkOrderStatusTokens.COMPLETE.foreground}
             name={t('COMPLETE')}
             stackId={'a'}
           />
           <Bar
             dataKey="onHold"
-            fill={theme.colors.warning.main}
+            fill={qpmWorkOrderStatusTokens.ON_HOLD.foreground}
             name={t('ON_HOLD')}
             stackId={'a'}
           />
           <Bar
             dataKey="inProgress"
-            fill={theme.colors.success.main}
+            fill={qpmWorkOrderStatusTokens.IN_PROGRESS.foreground}
             name={t('IN_PROGRESS')}
             stackId={'a'}
           />
           <Bar
             dataKey="open"
-            fill={theme.colors.alpha.black[70]}
+            fill={qpmWorkOrderStatusTokens.OPEN.foreground}
             name={t('OPEN')}
             stackId={'a'}
           />

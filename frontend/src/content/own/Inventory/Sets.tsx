@@ -10,8 +10,7 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CustomDatagrid2, {
@@ -46,7 +45,6 @@ interface PropsType {
 
 const Sets = ({ setAction }: PropsType) => {
   const { t }: { t: any } = useTranslation();
-  const theme = useTheme();
   const [currentTab, setCurrentTab] = useState<string>('list');
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
@@ -221,7 +219,7 @@ const Sets = ({ setAction }: PropsType) => {
     return value ? (
       <Grid item xs={12} key={label}>
         <Stack spacing={1} direction="row">
-          <Typography variant="h6" sx={{ color: theme.colors.alpha.black[70] }}>
+          <Typography variant="h6" color="text.secondary">
             {label}
           </Typography>
           <Typography variant="h6">{value}</Typography>

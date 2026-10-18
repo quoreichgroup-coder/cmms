@@ -7,8 +7,7 @@ import {
   ListItem,
   ListItemText,
   Stack,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
@@ -36,7 +35,6 @@ export default function CostSection({
   additionalCosts,
   loading
 }: CostSectionProps) {
-  const theme = useTheme();
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { getFormattedCurrency, getFormattedDate } = useContext(
@@ -90,7 +88,7 @@ export default function CostSection({
       ) : (
         <Fragment>
           {!additionalCosts.length ? (
-            <Typography sx={{ color: theme.colors.alpha.black[70] }}>
+            <Typography color="text.secondary">
               {t('no_additional_cost')}
             </Typography>
           ) : (
@@ -116,12 +114,18 @@ export default function CostSection({
                           <IconButton
                             onClick={() => handleEdit(additionalCost)}
                           >
-                            <EditOutlinedIcon fontSize="small" color="primary" />
+                            <EditOutlinedIcon
+                              fontSize="small"
+                              color="primary"
+                            />
                           </IconButton>
                           <IconButton
                             onClick={() => handleDelete(additionalCost)}
                           >
-                            <DeleteOutlinedIcon fontSize="small" color="error" />
+                            <DeleteOutlinedIcon
+                              fontSize="small"
+                              color="error"
+                            />
                           </IconButton>
                         </>
                       )}

@@ -78,9 +78,9 @@ const IconButtonWrapper = styled(IconButton)(
 const ListButton = styled(Box)(
   ({ theme }) => `
       background-color: transparent;
-      color:  ${theme.colors.alpha.black[100]};
+      color:  ${theme.palette.text.primary};
       transition: ${theme.transitions.create(['all'])};
-      border: ${theme.colors.alpha.black[10]} solid 1px;
+      border: ${theme.palette.divider} solid 1px;
       border-radius: ${theme.general.borderRadius};
       padding: ${theme.spacing(1)};
       margin: ${theme.spacing(1, 0)};
@@ -90,7 +90,7 @@ const ListButton = styled(Box)(
       justify-content: space-between;
 
       & > div > .MuiSvgIcon-root {
-        color:  ${theme.colors.alpha.black[50]};
+        color:  ${theme.palette.text.secondary};
         transition: ${theme.transitions.create(['all'])};
       }
 

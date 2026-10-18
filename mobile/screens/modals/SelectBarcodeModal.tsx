@@ -11,7 +11,13 @@ import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { RootStackScreenProps } from '../../types';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  IconButton,
+  Text,
+  useTheme
+} from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, CameraView } from 'expo-camera';
 import { ensureScannerCameraPermission } from '../../utils/mediaPermissions';
 import CameraPreviewError from '../../components/CameraPreviewError';
@@ -260,6 +266,22 @@ export default function SelectBarcodeModal({
           </View>
         </View>
       )}
+      <SafeAreaView
+        pointerEvents="box-none"
+        edges={['top']}
+        style={styles.controlsSafeArea}
+      >
+        <View pointerEvents="box-none" style={styles.topBar}>
+          <IconButton
+            icon="close"
+            iconColor="#FFFFFF"
+            containerColor="rgba(13,18,32,0.84)"
+            size={24}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel={t('go_back')}
+          />
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -267,6 +289,15 @@ export default function SelectBarcodeModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  controlsSafeArea: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2
+  },
+  topBar: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 8,
+    paddingTop: 4
   },
   permissionState: {
     flex: 1,

@@ -15,8 +15,7 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import Location from '../../../models/owns/location';
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
@@ -72,7 +71,6 @@ export default function LocationDetails(props: LocationDetailsProps) {
   const locationAssets = assetsByLocation[location.id] ?? [];
   const locationWorkOrders = workOrdersByLocation[location.id] ?? [];
   const floorPlans = floorPlansByLocation[location.id] ?? [];
-  const theme = useTheme();
   const navigate = useNavigate();
   const tabs = [
     { value: 'assets', label: t('assets') },
@@ -388,7 +386,10 @@ export default function LocationDetails(props: LocationDetailsProps) {
                               )
                                 .then((deleted) => {
                                   if (!deleted)
-                                    showSnackBar(t('an_error_occured'), 'error');
+                                    showSnackBar(
+                                      t('an_error_occured'),
+                                      'error'
+                                    );
                                 })
                                 .catch(() =>
                                   showSnackBar(t('an_error_occured'), 'error')
@@ -421,10 +422,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
           <Grid container>
             {!!location.workers.length && (
               <Grid item xs={12} lg={6}>
-                <Typography
-                  variant="h6"
-                  sx={{ color: theme.colors.alpha.black[70] }}
-                >
+                <Typography variant="h6" color="text.secondary">
                   {t('assigned_to')}
                 </Typography>
                 {location.workers.map((worker, index) => (
@@ -442,10 +440,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             )}
             {!!location.teams.length && (
               <Grid item xs={12} lg={6}>
-                <Typography
-                  variant="h6"
-                  sx={{ color: theme.colors.alpha.black[70] }}
-                >
+                <Typography variant="h6" color="text.secondary">
                   {t('assigned_teams')}
                 </Typography>
                 {location.teams.map((team, index) => (
@@ -463,10 +458,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             )}
             {!!location.customers.length && (
               <Grid item xs={12} lg={6}>
-                <Typography
-                  variant="h6"
-                  sx={{ color: theme.colors.alpha.black[70] }}
-                >
+                <Typography variant="h6" color="text.secondary">
                   {t('assigned_customers')}
                 </Typography>
                 {location.customers.map((customer, index) => (
@@ -484,10 +476,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             )}
             {!!location.vendors.length && (
               <Grid item xs={12} lg={6}>
-                <Typography
-                  variant="h6"
-                  sx={{ color: theme.colors.alpha.black[70] }}
-                >
+                <Typography variant="h6" color="text.secondary">
                   {t('assigned_vendors')}
                 </Typography>
                 {location.vendors.map((vendor, index) => (

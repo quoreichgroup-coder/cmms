@@ -12,8 +12,7 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
-  useTheme
+  Typography
 } from '@mui/material';
 import { ChangeEvent, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -64,7 +63,6 @@ export default function PartDetails(props: PartDetailsProps) {
   const [currentTab, setCurrentTab] = useState<string>('details');
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const [openRestock, setOpenRestock] = useState<boolean>(false);
-  const theme = useTheme();
   const { assetsByPart } = useSelector((state) => state.assets);
   const { workOrdersByPart } = useSelector((state) => state.workOrders);
   const navigate = useNavigate();
@@ -86,7 +84,9 @@ export default function PartDetails(props: PartDetailsProps) {
       dispatch(getAssetsByPart(part.id)).finally(() => setLoadingAssets(false));
     } else if (value === 'workOrders' && !workOrders.length) {
       setLoadingWorkOrders(true);
-      dispatch(getWorkOrdersByPart(part.id)).finally(() => setLoadingWorkOrders(false));
+      dispatch(getWorkOrdersByPart(part.id)).finally(() =>
+        setLoadingWorkOrders(false)
+      );
     }
   };
   const firstFieldsToRender = (part: Part): { label: string; value: any }[] => [
@@ -248,10 +248,7 @@ export default function PartDetails(props: PartDetailsProps) {
                 <Grid container spacing={2}>
                   {!!part.assignedTo.length && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         Assigned users
                       </Typography>
                       {part.assignedTo.map((user) => (
@@ -265,10 +262,7 @@ export default function PartDetails(props: PartDetailsProps) {
                   )}
                   {!!part.customers.length && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('assigned_customers')}
                       </Typography>
                       {part.customers.map((customer) => (
@@ -284,10 +278,7 @@ export default function PartDetails(props: PartDetailsProps) {
                   )}
                   {!!part.vendors.length && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('assigned_vendors')}
                       </Typography>
                       {part.vendors.map((vendor) => (
@@ -303,10 +294,7 @@ export default function PartDetails(props: PartDetailsProps) {
                   )}
                   {!!part.teams.length && (
                     <Grid item xs={12} lg={6}>
-                      <Typography
-                        variant="h6"
-                        sx={{ color: theme.colors.alpha.black[70] }}
-                      >
+                      <Typography variant="h6" color="text.secondary">
                         {t('assigned_teams')}
                       </Typography>
                       {part.teams.map((team) => (
@@ -328,7 +316,12 @@ export default function PartDetails(props: PartDetailsProps) {
         {currentTab === 'assets' && (
           <Box>
             {loadingAssets ? (
-              <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                py={4}
+              >
                 <CircularProgress />
               </Box>
             ) : assets.length ? (
@@ -403,7 +396,12 @@ export default function PartDetails(props: PartDetailsProps) {
         {currentTab === 'workOrders' && (
           <Box>
             {loadingWorkOrders ? (
-              <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                py={4}
+              >
                 <CircularProgress />
               </Box>
             ) : workOrders.length ? (

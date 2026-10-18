@@ -3,7 +3,6 @@ import useAuth from 'src/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  alpha,
   Avatar,
   Box,
   Button,
@@ -70,7 +69,7 @@ const MenuListWrapperPrimary = styled(MenuList)(
       min-width: 200px;
       margin-bottom: 2px;
       position: relative;
-      color: ${theme.colors.alpha.black[100]};
+      color: ${theme.palette.text.primary};
 
       &.Mui-selected,
       &:hover,
@@ -88,7 +87,7 @@ const MenuListWrapperPrimary = styled(MenuList)(
 
 const MenuUserBox = styled(Box)(
   ({ theme }) => `
-        background: ${alpha(theme.colors.alpha.black[100], 0.08)};
+        background: ${theme.palette.action.hover};
         padding: ${theme.spacing(2)};
 `
 );

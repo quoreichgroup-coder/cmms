@@ -53,13 +53,13 @@ const TabsContainerWrapper = styled(Box)(
           &.MuiButtonBase-root {
               height: 44px;
               min-height: 44px;
-              background: ${theme.colors.alpha.white[50]};
-              border: 1px solid ${theme.colors.alpha.black[10]};
+              background: ${theme.palette.background.paper};
+              border: 1px solid ${theme.palette.divider};
               border-bottom: 0;
               position: relative;
               margin-right: ${theme.spacing(1)};
               font-size: ${theme.typography.pxToRem(14)};
-              color: ${theme.colors.alpha.black[80]};
+              color: ${theme.palette.text.secondary};
               border-bottom-left-radius: 0;
               border-bottom-right-radius: 0;
 
@@ -75,18 +75,18 @@ const TabsContainerWrapper = styled(Box)(
                 bottom: 0;
                 height: 1px;
                 content: '';
-                background: ${theme.colors.alpha.black[10]};
+                background: ${theme.palette.divider};
               }
 
               &:hover {
-                color: ${theme.colors.alpha.black[100]};
+                color: ${theme.palette.text.primary};
               }
           }
 
           &.Mui-selected {
-              color: ${theme.colors.alpha.black[100]};
-              background: ${theme.colors.alpha.white[100]};
-              border-bottom-color: ${theme.colors.alpha.white[100]};
+              color: ${theme.palette.text.primary};
+              background: ${theme.palette.background.paper};
+              border-bottom-color: ${theme.palette.background.paper};
 
               &:after {
                 height: 0;

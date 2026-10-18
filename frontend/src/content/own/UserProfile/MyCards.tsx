@@ -61,7 +61,7 @@ const CardAddAction = styled(Card)(
         }
         
         &:hover {
-          border-color: ${theme.colors.alpha.black[70]};
+          border-color: ${theme.palette.divider};
         }
 `
 );
