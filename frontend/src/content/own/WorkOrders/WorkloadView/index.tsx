@@ -64,6 +64,7 @@ import ShiftConfigurationModal from 'src/content/own/PeopleAndTeams/components/S
 import { getWorkloadDestination } from './scheduleDestination';
 import WorkloadOrderCard from './WorkloadOrderCard';
 import { getWorkloadUserDisplayName } from './userDisplayName';
+import { getCapacityUtilizationPercent } from './capacityUtilization';
 
 interface WorkloadViewProps {
   handleOpenDetails: (id: number, type: string) => void;
@@ -187,21 +188,30 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
     }));
   }, [overview]);
 
-  const pct = (allocated: number, capacity: number) =>
-    capacity > 0 ? Math.round((allocated / capacity) * 100) : 0;
+  const renderCapacityBar = (allocated: number, capacity: number) => {
+    const percent = getCapacityUtilizationPercent(allocated, capacity);
+    if (percent === null) {
+      return (
+        <Tooltip title={t('capacity_utilization_unavailable')}>
+          <Typography
+            component="div"
+            variant="caption"
+            color="text.secondary"
+            aria-label={t('capacity_utilization_unavailable')}
+            sx={{ minHeight: 10, lineHeight: '10px' }}
+          >
+            —
+          </Typography>
+        </Tooltip>
+      );
+    }
 
-  const renderCapacityBar = (
-    allocated: number,
-    capacity: number,
-    disabled?: boolean
-  ) => {
-    const percent = pct(allocated, capacity);
     return (
       <Tooltip title={`${Math.round(allocated)}/${capacity} ${t('minutes')}`}>
         <LinearProgress
           variant="determinate"
           value={Math.min(percent, 100)}
-          color={disabled ? 'inherit' : barColor(percent)}
+          color={barColor(percent)}
           sx={{ height: 10, borderRadius: 1, width: '100%' }}
         />
       </Tooltip>
@@ -213,7 +223,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
     capacity: number,
     label?: string
   ) => {
-    const percent = pct(allocated, capacity);
+    const percent = getCapacityUtilizationPercent(allocated, capacity);
     return (
       <Box sx={{ p: 0.5 }}>
         {label && (
@@ -222,8 +232,11 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
           </Typography>
         )}
         {renderCapacityBar(allocated, capacity)}
-        <Typography variant="caption" color={pctTextColor(percent)}>
-          {percent}%
+        <Typography
+          variant="caption"
+          color={percent === null ? 'text.secondary' : pctTextColor(percent)}
+        >
+          {percent === null ? '—' : `${percent}%`}
         </Typography>
       </Box>
     );
@@ -768,24 +781,28 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                   <Box>
                                     {renderCapacityBar(
                                       userDayData.allocatedMinutes,
-                                      userDayData.capacityMinutes,
-                                      userDayData.capacityMinutes === 0
+                                      userDayData.capacityMinutes
                                     )}
                                     <Typography color="text.secondary">
-                                      {(() => {
-                                        const rem = Math.max(
-                                          0,
-                                          userDayData.capacityMinutes -
-                                            userDayData.allocatedMinutes
-                                        );
-                                        const h = Math.floor(rem / 60);
-                                        const m = Math.round(rem % 60);
-                                        return `${h}${t(
-                                          'hours_abbrev'
-                                        )}${String(m).padStart(2, '0')} ${t(
-                                          'hours_left'
-                                        )}`;
-                                      })()}
+                                      {getCapacityUtilizationPercent(
+                                        userDayData.allocatedMinutes,
+                                        userDayData.capacityMinutes
+                                      ) === null
+                                        ? t('capacity_utilization_unavailable')
+                                        : (() => {
+                                            const rem = Math.max(
+                                              0,
+                                              userDayData.capacityMinutes -
+                                                userDayData.allocatedMinutes
+                                            );
+                                            const h = Math.floor(rem / 60);
+                                            const m = Math.round(rem % 60);
+                                            return `${h}${t(
+                                              'hours_abbrev'
+                                            )}${String(m).padStart(2, '0')} ${t(
+                                              'hours_left'
+                                            )}`;
+                                          })()}
                                     </Typography>
                                     <Stack spacing={0.5}>
                                       {[...userDayData.workOrders]

@@ -2501,6 +2501,8 @@ const frJSON = {
   workload_view: 'Vue charge de travail',
   this_week: 'Cette semaine',
   total_resource_capacity: 'Capacité totale des ressources',
+  capacity_utilization_unavailable:
+    'Utilisation indisponible car la capacité est nulle',
   unscheduled_work_orders: 'Ordres de travail non planifiés',
   user_capacity: 'Capacité utilisateur',
   overdue: 'En retard',

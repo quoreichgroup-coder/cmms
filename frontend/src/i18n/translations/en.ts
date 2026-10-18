@@ -2270,6 +2270,8 @@ const locale = {
   workload_view: 'Workload view',
   this_week: 'This Week',
   total_resource_capacity: 'Total Resource Capacity',
+  capacity_utilization_unavailable:
+    'Utilization unavailable because capacity is zero',
   unscheduled_work_orders: 'Unscheduled Work Orders',
   user_capacity: 'User Capacity',
   overdue: 'Overdue',
