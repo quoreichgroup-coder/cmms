@@ -17,7 +17,7 @@ import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getIncompleteByUser } from '../../../../../slices/analytics/workOrder';
 import Loading from '../../Loading';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 
 interface WOStatusIncompleteProps {
   handleOpenModal: (
@@ -59,7 +59,7 @@ function IncompleteWOByUser({
       label: `${user.firstName} ${user.lastName}`,
       count: user.count,
       averageAge: user.averageAge,
-      color: getRandomColor(),
+      color: getQpmChartColor(`user-${user.id}`),
       filters: [{ key: 'user', value: user.id }]
     };
   });
@@ -81,7 +81,7 @@ function IncompleteWOByUser({
           <Legend />
           <Bar
             dataKey="count"
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
             name={t('work_orders')}
             yAxisId="left-axis"
           >
@@ -99,7 +99,7 @@ function IncompleteWOByUser({
             name={t('average_age')}
             type="monotone"
             dataKey="averageAge"
-            stroke="#ff7300"
+            stroke={theme.palette.warning.main}
             yAxisId="right-axis"
           />
         </ComposedChart>

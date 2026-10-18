@@ -6,7 +6,7 @@ import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getCountsByUser } from '../../../../../slices/analytics/workOrder';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import Loading from '../../Loading';
 
 interface WOByPrimaryUserProps {
@@ -43,7 +43,7 @@ function WOByPrimaryUser({
     return {
       label: `${user.firstName} ${user.lastName}`,
       value: user.count,
-      color: getRandomColor(),
+      color: getQpmChartColor(`user-${user.id}`),
       filters: [{ key: 'primaryUser', value: user.id }]
     };
   });
@@ -65,7 +65,7 @@ function WOByPrimaryUser({
             cy="50%"
             outerRadius={100}
             innerRadius={50}
-            fill="#8884d8"
+            fill={theme.palette.primary.main}
           >
             {formattedData.map((entry, index) => (
               <Cell

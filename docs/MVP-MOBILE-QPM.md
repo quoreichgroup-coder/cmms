@@ -966,10 +966,22 @@ Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite 
 
 Le sélecteur de personnes utilisé pour affecter un responsable pouvait recevoir une personne déjà sélectionnée sans l’indiquer visuellement ni aux technologies d’assistance en mode choix unique. Il affiche maintenant une coche sur la personne courante et expose son état « sélectionné ». Le mode multiple conserve ses cases à cocher; les callbacks, données, permissions et API ne changent pas.
 
-Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les autres sélecteurs simples (équipes, fournisseurs/clients et compteurs) restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Les sélecteurs fournisseurs/clients et compteurs restent à auditer et traiter par lots ciblés. Aucun test sur appareil ni build APK/IPA n’est inclus dans ce lot.
 
 ## Sélecteur de localisation — choix courant visible — 18 octobre 2026
 
 L’audit des sélecteurs d’équipes et de localisations a confirmé que les lignes en mode choix unique omettaient l’indicateur visuel et l’état d’accessibilité pour la valeur préchargée. Le composant de ligne de localisation, réutilisé par toute la liste, affiche maintenant une coche pour l’élément courant et annonce son état « sélectionné ». Les cases du mode multiple, le filtrage, les callbacks, les API et les règles de localisation restent inchangés. Le sélecteur d’équipes conserve ce défaut pour un prochain lot ciblé.
 
 Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. La suite Mobile, le typecheck, Prettier et `git diff --check` passent. TalkBack/VoiceOver et le rendu sur appareil restent à tester; aucune APK/IPA n’est générée.
+
+## Sélecteur d’équipe — choix courant visible — 18 octobre 2026
+
+Le sélecteur d’équipes n’indiquait pas la sélection préchargée en mode simple, alors que ce choix est notamment utilisé pour affecter des membres aux opérations. La ligne affiche maintenant une coche QPM et expose l’état « sélectionné » aux technologies d’assistance; les cases à cocher en mode multiple demeurent inchangées. Les callbacks, les données transmises, les API et les règles d’affectation sont préservés.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile, TypeScript, Prettier et `git diff --check` validés sur ce lot. TalkBack/VoiceOver et le rendu sur appareil restent à vérifier; aucune APK/IPA n’est générée.
+
+## Sélecteur de compteurs — choix courant visible — 18 octobre 2026
+
+Le picker de compteurs affichait une case uniquement en mode multiple. En mode simple, une valeur déjà sélectionnée n’avait ni coche visible ni état accessible. La ligne de sélection montre maintenant une coche QPM pour le compteur courant et expose `selected` aux lecteurs d’écran; le mode multiple continue d’exposer `checked`. La recherche, les données, les callbacks, les API et le comportement de sélection ne changent pas.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Vérifications sur ce lot : tests Mobile, TypeScript, Prettier et `git diff --check`. Les tests d’accessibilité sur téléphone restent à faire; aucune APK/IPA n’est produite.

@@ -16,7 +16,7 @@ import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
-import { getRandomColor } from '../../../../../utils/overall';
+import { getQpmChartColor } from '../../../../../utils/chartColors';
 import { getWOTimeCostByAsset } from '../../../../../slices/analytics/asset';
 
 interface WOStatusIncompleteProps {
@@ -60,7 +60,7 @@ function TimeCostByAsset({
       label: asset.name,
       time: (asset.time / 3600).toFixed(2),
       cost: Number(asset.cost.toFixed(2)),
-      color: getRandomColor(),
+      color: getQpmChartColor(`asset-${asset.id}`),
       filters: [{ key: 'asset', value: asset.id }]
     };
   });

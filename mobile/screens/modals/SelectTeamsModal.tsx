@@ -11,7 +11,13 @@ import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../store';
 import { getTeamsMini } from '../../slices/team';
-import { ActivityIndicator, Avatar, Searchbar, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Avatar,
+  Icon,
+  Searchbar,
+  Text
+} from 'react-native-paper';
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
@@ -132,7 +138,9 @@ export default function SelectTeamsModal({
             accessibilityRole={multiple ? 'checkbox' : 'button'}
             accessibilityLabel={team.name}
             accessibilityState={
-              multiple ? { checked: selectedIds.includes(team.id) } : undefined
+              multiple
+                ? { checked: selectedIds.includes(team.id) }
+                : { selected: selectedIds.includes(team.id) }
             }
             key={team.id}
           >
@@ -161,6 +169,13 @@ export default function SelectTeamsModal({
                         checked={selectedIds.includes(team.id)}
                         color={theme.colors.primary}
                         uncheckedColor={theme.colors.controlOutline}
+                      />
+                    )}
+                    {!multiple && selectedIds.includes(team.id) && (
+                      <Icon
+                        source="check-circle"
+                        size={24}
+                        color={theme.colors.primary}
                       />
                     )}
                   </View>

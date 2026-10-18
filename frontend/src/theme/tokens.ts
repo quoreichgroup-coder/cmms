@@ -4,6 +4,18 @@ export const qpmBrandTokens = {
   canvas: '#F4F6FD'
 } as const;
 
+/** Repeatable chart series colors; workflow and priority colors remain semantic. */
+export const qpmAnalyticsTokens = [
+  '#4B5FE8',
+  '#6941C6',
+  '#0086C9',
+  '#0E9384',
+  '#B54708',
+  '#B42318',
+  '#667085',
+  '#7A5AF8'
+] as const;
+
 /** QPM blue navigation surface; the selected row uses the deeper navy. */
 export const qpmNavigationTokens = {
   sidebar: '#4B5FE8',
