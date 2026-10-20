@@ -287,5 +287,5 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 ### APK 1.0.59 — rebuild validé — 20 octobre 2026
 
 - `NODE_ENV=production npm run build:apk` : bundling Expo Android (**2 228 modules**) et Gradle `BUILD SUCCESSFUL` (**1 124 tâches, 18 exécutées, 1 106 à jour**). Le script a signé l’APK avec le keystore release existant et l’a écrit dans `mobile/dist/QPM-1.0.59.apk`.
-- Métadonnées vérifiées avec `aapt`: `com.atlas.cmms`, `versionCode 42`, `versionName 1.0.59`. `apksigner verify --verbose` confirme la signature APK v2, un signataire. Taille : **101 MB**; SHA-256 : `e854402ebe00d6cf45e63e6260558f0de63b024bf274f1824d76357e849d5450`.
+- Métadonnées vérifiées avec `aapt`: `com.atlas.cmms`, `versionCode 42`, `versionName 1.0.59`. `apksigner verify --verbose` confirme la signature APK v2, un signataire. Les textes d’accueil, de gestion des OT, d’identification équipement et de planification onboarding sont présents dans `assets/index.android.bundle`. Taille : **101 MB**; SHA-256 : `e854402ebe00d6cf45e63e6260558f0de63b024bf274f1824d76357e849d5450`.
 - Le numéro de version n’a pas été incrémenté. `adb devices` n’a pas pu démarrer le daemon dans cette session (`Operation not permitted`); installation et vérification physique restent à faire sur téléphone. Aucun IPA iOS n’a été généré.
