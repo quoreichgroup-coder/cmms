@@ -25,9 +25,8 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Parameter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -105,13 +104,10 @@ public class WOAnalyticsController {
         int inProgress =
                 (int) workOrders.stream().filter(workOrder -> workOrder.getStatus().equals(Status.IN_PROGRESS)).count();
         int complete = completeWorkOrders.size();
-        int todayWO = (int) workOrders.stream().filter(workOrder -> {
-            LocalTime midnight = LocalTime.MIDNIGHT;
-            LocalDate today = LocalDate.now(ZoneId.of("UTC"));
-            LocalDateTime todayMidnight = LocalDateTime.of(today, midnight);
-            LocalDateTime tomorrowMidnight = todayMidnight.plusDays(1);
-            return workOrder.getDueDate() != null && workOrder.getDueDate().after(Helper.localDateTimeToDate(todayMidnight)) && workOrder.getDueDate().before(Helper.localDateTimeToDate(tomorrowMidnight));
-        }).count();
+        LocalDate todayUtc = LocalDate.now(ZoneId.of("UTC"));
+        int todayWO = (int) workOrders.stream()
+                .filter(workOrder -> isDueWithinUtcDay(workOrder.getDueDate(), todayUtc))
+                .count();
         int high = (int) workOrders.stream().filter(workOrder -> workOrder.getPriority().equals(Priority.HIGH)).count();
         return ResponseEntity.ok(MobileWOStats.builder()
                 .open(open)
@@ -120,6 +116,14 @@ public class WOAnalyticsController {
                 .complete(complete)
                 .today(todayWO)
                 .high(high).build());
+    }
+
+    static boolean isDueWithinUtcDay(Date dueDate, LocalDate utcDate) {
+        if (dueDate == null) return false;
+
+        Date start = Date.from(utcDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+        Date end = Date.from(utcDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        return !dueDate.before(start) && dueDate.before(end);
     }
 
     @GetMapping("/mobile/complete-compliant")
