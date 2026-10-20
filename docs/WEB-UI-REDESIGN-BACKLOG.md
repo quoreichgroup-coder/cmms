@@ -909,4 +909,4 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 ### UX-12 — erreurs 403 des rapports analytiques localisées — 20 octobre 2026
 
 - Le même libellé français codé en dur apparaissait dans 40 chemins de chargement des rapports OT, équipements, pièces, demandes et utilisateurs. Ils utilisent maintenant le helper API partagé, donc affichent le refus selon la langue Web choisie.
-- La suite de rapports injecte une traduction anglaise simulée dans tous les thunks et vérifie qu’elle remonte dans leur état d’erreur. Tests ciblés (**2/2**), suite Web complète, TypeScript, ESLint ciblé, Prettier ciblé et `git diff --check` passent. Recette visuelle/authentifiée reste ouverte.
+- La suite de rapports injecte une traduction anglaise simulée dans tous les thunks et vérifie qu’elle remonte dans leur état d’erreur. Tests ciblés (**2/2**), suite Web complète, TypeScript, ESLint ciblé, Prettier ciblé, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. Recette visuelle/authentifiée reste ouverte.
