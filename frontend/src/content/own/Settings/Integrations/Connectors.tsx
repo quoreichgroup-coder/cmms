@@ -1,6 +1,6 @@
 import {
   AccountTreeOutlined,
-  ArrowForwardRounded,
+  ArrowForwardOutlined,
   BusinessOutlined,
   CalendarMonthOutlined,
   CampaignOutlined,
@@ -227,7 +227,7 @@ function Connectors() {
                     <Button
                       variant="text"
                       color="primary"
-                      endIcon={<ArrowForwardRounded />}
+                      endIcon={<ArrowForwardOutlined />}
                       onClick={() => setSelectedProvider(id)}
                       sx={{ alignSelf: 'flex-start', ml: -1 }}
                     >
@@ -303,7 +303,7 @@ function Connectors() {
                     component={Link}
                     to="/app/settings/integrations/webhooks"
                     variant="text"
-                    endIcon={<ArrowForwardRounded />}
+                    endIcon={<ArrowForwardOutlined />}
                     sx={{ alignSelf: 'flex-start', ml: -1 }}
                   >
                     {t('integration_recipe_configure')}
@@ -399,7 +399,7 @@ function Connectors() {
                       <Typography variant="button">
                         {t('manage_integration')}
                       </Typography>
-                      <ArrowForwardRounded
+                      <ArrowForwardOutlined
                         fontSize="small"
                         aria-hidden="true"
                       />

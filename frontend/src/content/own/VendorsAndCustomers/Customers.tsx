@@ -27,7 +27,7 @@ import {
   phoneRegExp,
   websiteRegExp
 } from '../../../utils/validators';
-import { Close } from '@mui/icons-material';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { Customer } from '../../../models/owns/customer';
 import { useParams } from 'react-router-dom';
 import {
@@ -601,7 +601,7 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
             color: (theme) => theme.palette.grey[500]
           }}
         >
-          <Close />
+          <CloseOutlinedIcon />
         </IconButton>
       </DialogTitle>
 

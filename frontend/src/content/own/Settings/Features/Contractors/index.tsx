@@ -1,7 +1,7 @@
 import { Box, Button, Grid } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from '@mui/icons-material';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
 import SettingsSection from '../../components/SettingsSection';
 
 function ContractorsSettings() {
@@ -15,7 +15,7 @@ function ContractorsSettings() {
           <Box display="flex" flexDirection="column" gap={2}>
             <Button
               variant="text"
-              endIcon={<ChevronRight />}
+              endIcon={<ChevronRightOutlinedIcon />}
               onClick={() =>
                 navigate('/app/settings/features/contractors/custom-fields')
               }

@@ -42,7 +42,6 @@ import { LocationMiniDTO } from '../../../../../../models/owns/location';
 import { AssetMiniDTO } from '../../../../../../models/owns/asset';
 import { useDispatch, useSelector } from '../../../../../../store';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
-import { Business } from '@mui/icons-material';
 import { getApiErrorMessage } from '../../../../../../utils/apiError';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import LanguageIcon from '@mui/icons-material/LanguageOutlined';

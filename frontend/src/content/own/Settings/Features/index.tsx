@@ -10,17 +10,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
-  AccountTree,
-  Assignment,
-  Build,
-  Business,
-  ElectricalServices,
-  Engineering,
   EngineeringOutlined,
   GroupsOutlined,
-  Inventory,
-  LocationOn,
-  Settings,
+  SettingsOutlined,
   WebAssetOutlined
 } from '@mui/icons-material';
 import useAuth from '../../../../hooks/useAuth';
@@ -261,7 +253,7 @@ function FeaturesSettings() {
                               onClick={() =>
                                 handleSetPreferences(feature.preferencesPath)
                               }
-                              startIcon={<Settings />}
+                              startIcon={<SettingsOutlined />}
                               sx={{ ml: 2 }}
                             >
                               {t(

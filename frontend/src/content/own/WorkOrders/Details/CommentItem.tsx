@@ -25,7 +25,7 @@ import File from '../../../../models/owns/file';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import ImageViewer from 'react-simple-image-viewer';
 import mime from 'mime';
-import { InsertDriveFile } from '@mui/icons-material';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import { getUserUrl } from '../../../../utils/urlPaths';
 import { useNavigate } from 'react-router-dom';
 import { getSafeHttpUrl } from '../../../../utils/safeWindow';
@@ -349,7 +349,7 @@ export default function CommentItem(props: CommentItemProps) {
                               bgcolor: 'background.default'
                             }}
                           >
-                            <InsertDriveFile color="error" />
+                            <InsertDriveFileOutlinedIcon color="error" />
                             <Typography
                               variant="body2"
                               sx={{ flex: 1, minWidth: 0 }}

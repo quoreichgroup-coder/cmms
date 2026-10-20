@@ -20,7 +20,7 @@ import {
   GridRenderCellParams,
   GridToolbar
 } from '@mui/x-data-grid';
-import { Close } from '@mui/icons-material';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { isNumeric } from 'src/utils/validators';
 import { useParams } from 'react-router-dom';
 import {
@@ -392,7 +392,7 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
             color: (theme) => theme.palette.grey[500]
           }}
         >
-          <Close />
+          <CloseOutlinedIcon />
         </IconButton>
       </DialogTitle>
 

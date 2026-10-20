@@ -74,7 +74,7 @@ import { CompanySettingsContext } from '../../../../contexts/CompanySettingsCont
 import { getCategories } from '../../../../slices/category';
 import Category from '../../../../models/owns/category';
 import { assetStatuses } from '../../../../models/owns/asset';
-import { RotateLeft } from '@mui/icons-material';
+import RotateLeftOutlinedIcon from '@mui/icons-material/RotateLeftOutlined';
 import { onOpenApiDocs } from '../../../../utils/overall';
 import { apiUrl } from '../../../../config';
 import { getErrorMessage } from '../../../../utils/api';
@@ -269,7 +269,11 @@ function Webhooks() {
                   }}
                   disabled={isRotating}
                 >
-                  {isRotating ? <CircularProgress size={18} /> : <RotateLeft />}
+                  {isRotating ? (
+                    <CircularProgress size={18} />
+                  ) : (
+                    <RotateLeftOutlinedIcon />
+                  )}
                 </IconButton>
               </span>
             </Tooltip>

@@ -132,3 +132,26 @@ test('shared Web navigation, tables and dialogs use the outlined icon family', (
     }
   }
 });
+
+test('secondary modules use outlined icons for remaining common actions', () => {
+  const regressions = [
+    ['content/own/WorkOrders/Details/CommentItem.tsx', /\bInsertDriveFile\b/],
+    ['content/own/PeopleAndTeams/UserRoleCardList.tsx', /\bEngineering\b/],
+    ['content/own/PeopleAndTeams/Teams.tsx', /\bClose\b/],
+    ['content/own/VendorsAndCustomers/Customers.tsx', /\bClose\b/],
+    ['content/own/VendorsAndCustomers/Vendors.tsx', /\bClose\b/],
+    ['content/own/Settings/Features/Contractors/index.tsx', /\bChevronRight\b/],
+    ['content/own/Settings/Features/Request/index.tsx', /\bChevronRight\b/],
+    ['content/own/Settings/Integrations/Connectors.tsx', /ArrowForwardRounded/],
+    ['content/own/Settings/Integrations/Webhooks.tsx', /\bRotateLeft\b/]
+  ];
+
+  for (const [relativePath, legacyIcon] of regressions) {
+    const source = fs.readFileSync(path.join(sourceRoot, relativePath), 'utf8');
+    assert.doesNotMatch(
+      source,
+      legacyIcon,
+      `${relativePath} should keep its action icon in the outlined family`
+    );
+  }
+});

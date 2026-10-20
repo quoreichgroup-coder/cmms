@@ -5,7 +5,7 @@ import { Formik } from 'formik';
 import CustomSwitch from '../../../components/form/CustomSwitch';
 import useAuth from '../../../../../hooks/useAuth';
 import { GeneralPreferences } from '../../../../../models/owns/generalPreferences';
-import { ChevronRight } from '@mui/icons-material';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
 import SettingsSection from '../../components/SettingsSection';
 
 function RequestSettings() {
@@ -77,7 +77,7 @@ function RequestSettings() {
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Button
                     variant="text"
-                    endIcon={<ChevronRight />}
+                    endIcon={<ChevronRightOutlinedIcon />}
                     onClick={() =>
                       navigate(
                         '/app/settings/features/request/configure-fields'

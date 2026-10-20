@@ -38,7 +38,7 @@ import {
   phoneRegExp,
   websiteRegExp
 } from '../../../utils/validators';
-import { Close } from '@mui/icons-material';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { Vendor } from '../../../models/owns/vendor';
 import { useParams } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
@@ -556,7 +556,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
             color: (theme) => theme.palette.grey[500]
           }}
         >
-          <Close />
+          <CloseOutlinedIcon />
         </IconButton>
       </DialogTitle>
 

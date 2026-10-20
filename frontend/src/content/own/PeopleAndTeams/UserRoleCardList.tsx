@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import Text from 'src/components/Text';
-import { Engineering } from '@mui/icons-material';
+import EngineeringOutlinedIcon from '@mui/icons-material/EngineeringOutlined';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../../store';
 import { getRoles } from '../../../slices/role';
@@ -121,7 +121,7 @@ function UserRoleCardList({ onChange }: Props) {
               >
                 <ListItemAvatar>
                   <AvatarWrapperSuccess>
-                    <Engineering />
+                    <EngineeringOutlinedIcon />
                   </AvatarWrapperSuccess>
                 </ListItemAvatar>
 
