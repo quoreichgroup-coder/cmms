@@ -1069,7 +1069,10 @@ test('barcode scanner reports camera preview mount failures and allows retry', (
     source,
     /import \{ logSafeError \} from '\.\.\/\.\.\/utils\/safeErrorLog'/
   );
-  assert.match(source, /logSafeError\(\s*'\[SelectBarcodeModal\] Camera preview mount failed',\s*event\s*\)/);
+  assert.match(
+    source,
+    /logSafeError\(\s*'\[SelectBarcodeModal\] Camera preview mount failed',\s*event\s*\)/
+  );
   assert.doesNotMatch(source, /console\.error\([\s\S]{0,180}event\.message/);
   assert.match(source, /if \(cameraMountError\)/);
   assert.match(source, /<CameraPreviewError/);
@@ -1102,6 +1105,17 @@ test('barcode scanner reports camera preview mount failures and allows retry', (
   assert.match(source, /!cameraReady \? \(/);
   assert.match(source, /camera_preview_loading/);
   assert.match(source, /Camera preview mount failed/);
+});
+test('mobile scanner and cancellation paths do not write routine events to console', () => {
+  const read = (relativePath) =>
+    fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+  const barcodeScanner = read('screens/modals/SelectBarcodeModal.tsx');
+  const fileUpload = read('components/FileUpload.tsx');
+  const auth = read('contexts/AuthContext.tsx');
+
+  assert.doesNotMatch(barcodeScanner, /console\.(?:log|warn|info)\(/);
+  assert.doesNotMatch(fileUpload, /console\.log\(/);
+  assert.doesNotMatch(auth, /console\.log\('cancel'\)/);
 });
 test('barcode scanner exposes a safe-area-aware close action while previewing', () => {
   const source = fs.readFileSync(

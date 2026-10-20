@@ -168,7 +168,6 @@ export default function FileUpload({
         !result.assets ||
         result.assets.length === 0
       ) {
-        console.log('Document picker was canceled or no file selected');
         return;
       }
 

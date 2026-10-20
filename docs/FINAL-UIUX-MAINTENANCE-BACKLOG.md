@@ -424,3 +424,15 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Les derniers textes de fonctionnalités encore marqués « Atlas » étaient dans les traductions bosnienne, polonaise et hongroise (descriptions des modules, rapports, coût de main-d’œuvre et abonnements). Ils affichent maintenant QPM. L’avis de provenance amont Web et les noms opérationnels/identifiants historiques ne sont pas concernés.
 - `scripts/rebrand-copy.test.cjs` contrôle tous les fichiers de traduction Mobile; suite Mobile **35/35**, onboarding **5/5** et TypeScript passent.
 - Après ce changement, l’APK 1.0.59 a été rebâti sans incrément : 105 812 624 octets, SHA-256 `8142cbd1af1b4c69af387c50421861b9812bfbe94e221ee8b902987f3cc71b8c`, signature v2 valide, `versionCode` 42. Test sur appareil réel toujours nécessaire.
+
+### SEC-MOBILE — suppression des logs de parcours courants — 20 octobre 2026
+
+- L’ouverture et la lecture du scanner QR, l’annulation du sélecteur de documents et le refus des notifications écrivaient des événements de routine directement dans `console`. Ces sorties n’aidaient pas au diagnostic et le scanner n’a plus besoin de journaliser les métadonnées du code détecté.
+- Les quatre traces sont supprimées; les erreurs caméra continuent à passer par `logSafeError`, qui masque les détails en production. Aucun permissionnement ni comportement utilisateur n’a changé.
+- Régression Mobile **35/35**, onboarding **5/5**, TypeScript et Prettier passent. La caméra réelle et l’absence de bruit console sur appareil doivent encore être confirmées. L’APK doit être rebâti pour intégrer ce changement.
+
+### Rebuild APK de test 1.0.59 après SEC-MOBILE — 20 octobre 2026
+
+- Metro bundle **2 230 modules** et Gradle termine `BUILD SUCCESSFUL` (1 124 tâches; 18 exécutées, 1 106 à jour), sans incrément de version.
+- `mobile/dist/QPM-1.0.59.apk` : **105 812 092 octets**, SHA-256 `59eb6f3983ab0d08e1bc2931d766b2d18303738066e873b05e79bb2f6cf6d02e`. `apksigner` confirme la signature v2; `aapt` confirme `com.atlas.cmms`, version `1.0.59`, `versionCode` 42 et `minSdk` 24. La fiche `mobile/INSTALLER-APK.md` est actualisée.
+- Le bundle inclut les suppressions de logs de parcours courants. Aucun appareil n’est connecté; installation, caméra, NFC et rendu restent à vérifier sur téléphone.

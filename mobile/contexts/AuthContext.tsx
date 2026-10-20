@@ -766,7 +766,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           t('no_notification_permission'),
           t('no_notification_permission_description'),
           [
-            { text: t('cancel'), onPress: () => console.log('cancel') },
+            { text: t('cancel') },
             {
               text: t('allow'),
               onPress: () => {

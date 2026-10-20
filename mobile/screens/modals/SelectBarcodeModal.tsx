@@ -48,9 +48,6 @@ export default function SelectBarcodeModal({
     let mounted = true;
 
     const requestPermission = async () => {
-      console.warn(
-        '[SelectBarcodeModal] Tap/screen open -> request camera permission'
-      );
       const granted = await ensureScannerCameraPermission('SelectBarcodeModal');
       if (mounted) {
         setHasPermission(granted);
@@ -110,19 +107,9 @@ export default function SelectBarcodeModal({
     };
   }, []);
 
-  const handleBarCodeScanned = ({
-    type,
-    data
-  }: {
-    type: string;
-    data: string;
-  }) => {
+  const handleBarCodeScanned = ({ data }: { type: string; data: string }) => {
     if (!appIsActiveRef.current || scanHandledRef.current) return;
     scanHandledRef.current = true;
-    console.warn(
-      '[SelectBarcodeModal] Barcode scanned',
-      JSON.stringify({ type })
-    );
     navigation.goBack();
     onChange(data);
   };
