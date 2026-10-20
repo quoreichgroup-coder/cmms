@@ -383,3 +383,8 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - `npm run test:mobile-regression` réussit **34/34 scripts**, `npm run test:onboarding` réussit **5/5**, et TypeScript Mobile (`tsc --noEmit --pretty false`) passe.
 - Ces tests couvrent notamment navigation, sélecteurs d’équipement, formulaires Request, chargement et clôture WO, permissions scan/caméra, gestion de session et pipeline iOS structurel. Aucun appareil Android/iOS n’était connecté; les contrôles safe-area, caméra/NFC, installation et rendu visuel restent non vérifiés.
 - Aucun changement source/API n’a été fait pendant cette passe QA. Le P0 MOB-WO-04 attend toujours trace serveur et payload fautif, puis validation de liste/filtres/détail WO avec une session réelle.
+
+### Export iOS JavaScript — 20 octobre 2026
+
+- `npx expo export --platform ios` réussit depuis le dépôt courant et bundle **2 221 modules** en `mobile/dist`. Cela confirme le bundling JavaScript/Metro de la version présente après les changements Web; ce n’est ni une compilation Xcode ni un IPA installable.
+- La suite Mobile reste **34/34**, onboarding **5/5**, TypeScript passe. Un build macOS et la signature Apple restent nécessaires pour produire/tester un IPA; essai sur iPhone toujours ouvert.
