@@ -20,7 +20,7 @@ const cases = [
   },
   {
     path: 'src/content/own/Imports/index.tsx',
-    safeCall: /getApiErrorMessage\(error,/,
+    safeCall: /getApiErrorMessage\(\s*error\s*,/,
     unsafeCall: /error\.message/ // Import data still goes through the safe helper.
   },
   {
@@ -33,19 +33,21 @@ const cases = [
 test('server-facing UI error handlers use the API error sanitizer', () => {
   for (const entry of cases) {
     const source = fs.readFileSync(entry.path, 'utf8');
+    // Ignore explanatory comments so they cannot be mistaken for a UI sink.
+    const executableSource = source.replace(/\/\/.*$/gm, '');
     assert.match(
-      source,
+      executableSource,
       entry.safeCall,
       `${entry.path} should use safe API errors`
     );
     if (entry.path.endsWith('/Imports/index.tsx')) {
       assert.match(
-        source,
-        /getApiErrorMessage\(error,[\s\S]{0,80}t\('an_error_occured'\)/
+        executableSource,
+        /getApiErrorMessage\(\s*error\s*,[\s\S]{0,80}t\('an_error_occured'\)/
       );
     }
     assert.doesNotMatch(
-      source,
+      executableSource,
       entry.unsafeCall,
       `${entry.path} has a raw error sink`
     );

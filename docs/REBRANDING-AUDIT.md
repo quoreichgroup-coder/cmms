@@ -51,3 +51,7 @@ Do not globally replace `Atlas`. The Android application ID (`com.atlas.cmms`), 
 - Preserve upstream AGPL notices and obtain legal review before editing any upstream license or commercial-license text.
 
 No API, authentication, permissions, database, signing, or deployment configuration was changed while preparing this report.
+
+## Safe copy pass — 20 October 2026
+
+The first low-risk visible-copy pass updates the Web package title/description and Web/API README headings to QUOREICH/QPM, changes the supplier example from Atlas to QUOREICH GROUP, and changes the webhook OpenAPI descriptions from Atlas CMMS to QPM. `frontend/scripts/rebrand-visible-copy.test.cjs` checks these labels and asserts that the Android application ID, iOS bundle ID and URL scheme remain unchanged. Internal package names, public hostnames, license/payment product names, the upstream attribution notice, and native project identifiers remain unchanged pending owner/domain/legal decisions.

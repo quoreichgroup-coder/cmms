@@ -33,16 +33,16 @@ import java.util.List;
 @RequestMapping("/webhook-endpoints")
 @RequiredArgsConstructor
 @Tag(name = "Webhook Subscriptions", description = """
-        Manage webhook subscriptions to receive real-time notifications when events occur in Atlas CMMS.
+        Manage webhook subscriptions to receive real-time notifications when events occur in QPM.
         
         ## What are Webhooks?
-        Webhooks are HTTP callbacks that allow Atlas CMMS to automatically notify your application when specific events occur,
+        Webhooks are HTTP callbacks that allow QPM to automatically notify your application when specific events occur,
         such as work order status changes, new assets, part updates, and more.
         
         ## How it Works
         1. Create a webhook subscription with your endpoint URL and the events you want to receive
-        2. When an event occurs, Atlas CMMS sends an HTTP POST request to your endpoint
-        3. Each request includes a signature you can use to verify the request came from Atlas CMMS
+        2. When an event occurs, QPM sends an HTTP POST request to your endpoint
+        3. Each request includes a signature you can use to verify the request came from QPM
         4. Your application should return a 2xx status code to acknowledge receipt
         
         ## Security

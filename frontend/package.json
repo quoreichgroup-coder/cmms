@@ -1,8 +1,8 @@
 {
   "name": "atlas-cmms",
   "version": "1.8.0",
-  "title": "Atlas CMMS",
-  "description": "Free Open Source CMMS.",
+  "title": "QUOREICH GROUP · QPM",
+  "description": "QUOREICH GROUP maintenance management platform.",
   "private": true,
   "homepage": "https://atlas-cmms.com",
   "dependencies": {
