@@ -1,6 +1,6 @@
 # Guide de test visuel QPM Mobile — APK 1.0.59 / préparation iOS
 
-Le fichier `mobile/dist/QPM-1.0.59.apk` a été reconstruit le 20 octobre 2026 sans incrément de version (105 812 708 octets, SHA-256 `0e526f95195a49fd18212b3d5a6f88e04e03af5c7ef8c6426a8087ec322632bb`, package `com.atlas.cmms`, `versionName` 1.0.59, `versionCode` 42). `apksigner` confirme la signature v2; `aapt` confirme le package et `minSdk` 24. Il contient les sources courantes, notamment les corrections consignées après le build du 15 octobre. L’installation et la recette sur téléphone restent à faire.
+Le fichier `mobile/dist/QPM-1.0.59.apk` a été reconstruit le 20 octobre 2026 sans incrément de version (105 812 624 octets, SHA-256 `8142cbd1af1b4c69af387c50421861b9812bfbe94e221ee8b902987f3cc71b8c`, package `com.atlas.cmms`, `versionName` 1.0.59, `versionCode` 42). `apksigner` confirme la signature v2; `aapt` confirme le package et `minSdk` 24. Il contient les sources courantes, notamment les corrections consignées après le build du 15 octobre. L’installation et la recette sur téléphone restent à faire.
 
 Ce guide sert à vérifier le parcours mobile en parallèle du lot UI/UX Web. Les opérations de création, changement de statut, ajout de temps/pièces et clôture doivent être faites sur une instance et des comptes de test.
 

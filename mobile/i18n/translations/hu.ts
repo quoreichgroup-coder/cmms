@@ -288,7 +288,7 @@ const locale = {
   save: 'Mentés',
   customers: 'Vállalkozók',
   no_labor:
-    'Még nem adtak hozzá munkaerőköltséget. Itt jelennek meg, amikor egy felhasználó időt rögzít és van óradíja az Atlasban.',
+    'Még nem adtak hozzá munkaerőköltséget. Itt jelennek meg, amikor egy felhasználó időt rögzít és van óradíja a QPM-ben.',
   not_assigned: 'Nincs hozzárendelve',
   no_additional_cost: 'Még nem adtak hozzá további költségeket',
   parts: 'Alkatrészek',

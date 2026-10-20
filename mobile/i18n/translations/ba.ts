@@ -38,7 +38,7 @@ const locale = {
   'work-orders.descriptions.0':
     'Dosta vam je gomile papira i izgubljenih radnih naloga? Svi ti izgubljeni predmeti direktno utiču na profit i vašu reputaciju.',
   'work-orders.descriptions.1':
-    'Sa Atlasom možete lako i brzo organizovati sve svoje radne naloge, preventivno održavanje (PM) i ostale zadatke unutar vašeg tima u centralizovanoj bazi podataka kojoj se može pristupiti bilo gdje na bilo kojem uređaju.',
+    'Uz QPM možete lako i brzo organizovati sve svoje radne naloge, preventivno održavanje (PM) i ostale zadatke unutar vašeg tima u centralizovanoj bazi podataka kojoj se može pristupiti bilo gdje na bilo kojem uređaju.',
   'work-orders.checks.0':
     'Pregledajte sve svoje zadatke uključujući RN (radne naloge), PM i zahtjeve za rad',
   'work-orders.checks.1':
@@ -54,7 +54,7 @@ const locale = {
   'work-requests.descriptions.0':
     'Dosta vam je starog sistema telefona i e-pošte koji rezultira IZGUBLJENIM tiketima, stalnim dnevnim prekidima i dupliranim radom?',
   'work-requests.descriptions.1':
-    'Atlasovo rješenje za upravljanje održavanjem omogućava svakome koga ovlastite da podnese problem vašem odjelu održavanja jednostavnim skeniranjem QR koda ili posjetom URL-u i unosom zahtjeva putem mobilnog uređaja.',
+    'QPM rješenje za upravljanje održavanjem omogućava svakome koga ovlastite da podnese problem vašem odjelu održavanja jednostavnim skeniranjem QR koda ili posjetom URL-u i unosom zahtjeva putem mobilnog uređaja.',
   'work-requests.checks.0': 'Nikada više ne gubite posao.',
   'work-requests.checks.1':
     'Smanjite vrijeme utrošeno na obradu zahtjeva za rad do 34%.',
@@ -116,7 +116,7 @@ const locale = {
   'part.descriptions.0':
     'Niste sigurni koje dijelove imate na zalihi ili gdje se koriste? Ne znate kada će vam ponestati dijelova ili hoće li vaši tehničari imati potrebne dijelove za obavljanje posla?',
   'part.descriptions.1':
-    'Dizajnirali smo Atlasovo upravljanje dijelovima da riješi te probleme i više:',
+    'Dizajnirali smo QPM upravljanje dijelovima da riješi te probleme i više:',
   'part.checks.0':
     'Dobijte trenutne obavijesti kada je količina dijela niska. Održavajte pravi broj dijelova na zalihi primanjem automatskih obavještenja kada je količina ispod postavljenog praga.',
   'part.checks.1':
@@ -138,15 +138,15 @@ const locale = {
   'dashboard.descriptions.0':
     'Budimo realni, prvi korak ka poboljšanju operacija je poznavanje dobrog, lošeg i ružnog.',
   'dashboard.descriptions.1':
-    'Sa Atlasovim prilagođenim kontrolnim panelima možete konačno početi razumjeti tu zloglasnu „crnu rupu održavanja“ i početi primjenjivati planove zasnovane na podacima, što rezultira smanjenim troškovima rada, smanjenim zastojem i više.',
-  'dashboard.descriptions.2': 'Sa Atlasovim prilagođenim panelima moći ćete…',
+    'Uz prilagođene QPM kontrolne panele možete konačno početi razumjeti tu zloglasnu „crnu rupu održavanja“ i početi primjenjivati planove zasnovane na podacima, što rezultira smanjenim troškovima rada, smanjenim zastojem i više.',
+  'dashboard.descriptions.2': 'Uz prilagođene QPM kontrolne panele moći ćete…',
   'dashboard.checks.0': 'Znati gdje se troši vaš novac i zašto',
   'dashboard.checks.1': 'Znati koja imovina najviše košta i zašto',
   'dashboard.checks.2': 'Kreirati vlastite prilagođene KPI-ove.',
   'dashboard.checks.3':
     'Pregledati izvještaje koji se automatski generišu i ažuriraju na osnovu vaših metrika',
   'dashboard.checks.4':
-    'Pregledati izvještaje koji se lako dijele putem Excel tabela, PDF-ova ili unutar Atlasa',
+    'Pregledati izvještaje koji se lako dijele putem Excel tabela, PDF-ova ili unutar QPM-a',
   'dashboard.checks.5': 'I još mnogo toga...',
   'home.smarter': 'Pametniji',
   'home.work': 'Rad',
@@ -293,7 +293,7 @@ const locale = {
   save: 'Sačuvaj',
   customers: 'Izvođači',
   no_labor:
-    'Troškovi rada još nisu dodani. Pojavit će se ovdje kada korisnik evidentira vrijeme i ima unesenu satnicu u Atlasu.',
+    'Troškovi rada još nisu dodani. Pojavit će se ovdje kada korisnik evidentira vrijeme i ima unesenu satnicu u QPM-u.',
   not_assigned: 'Nije dodijeljeno',
   no_additional_cost: 'Dodatni troškovi još nisu dodani',
   parts: 'Dijelovi',

@@ -39,7 +39,7 @@ const plJSON = {
   'work-orders.descriptions.0':
     'Masz dość stert papierkowej roboty i zagubionych zleceń? Wszystkie te zagubione pozycje bezpośrednio wpływają na wynik finansowy i Twoją reputację.',
   'work-orders.descriptions.1':
-    'Dzięki Atlasowi możesz łatwo i szybko uporządkować wszystkie zlecenia robocze, projekty konserwacji i inne zadania w całym zespole w scentralizowanej bazie danych, do której dostęp masz z dowolnego miejsca i na dowolnym urządzeniu.',
+    'Dzięki QPM możesz łatwo i szybko uporządkować wszystkie zlecenia robocze, projekty konserwacji i inne zadania w całym zespole w scentralizowanej bazie danych, do której dostęp masz z dowolnego miejsca i na dowolnym urządzeniu.',
   'work-orders.checks.0':
     'Przeglądaj wszystkie swoje zadania, w tym WO, PM i żądania pracy',
   'work-orders.checks.1':
@@ -115,7 +115,7 @@ const plJSON = {
   'part.descriptions.0':
     'Nie wiesz, jakie części masz w magazynie lub gdzie są używane? Nie wiesz, kiedy części się skończą lub czy Twoi technicy będą mieli niezbędne części do wykonania swojej pracy?',
   'part.descriptions.1':
-    'Zaprojektowaliśmy system zarządzania częściami Atlasa, aby rozwiązać te i inne problemy:',
+    'Zaprojektowaliśmy system zarządzania częściami w QPM, aby rozwiązać te i inne problemy:',
   'part.checks.0':
     'Otrzymuj natychmiastowe powiadomienia push i e-mail, gdy ilość części jest niska. Utrzymuj odpowiednią liczbę części w magazynie, otrzymując natychmiastowe i automatyczne powiadomienia push/e-mail, gdy ilość części jest poniżej określonego progu.',
   'part.checks.1':
@@ -148,7 +148,7 @@ const plJSON = {
   'dashboard.checks.3':
     'Przeglądaj raporty generowane automatycznie i aktualizowane na podstawie Twoich danych',
   'dashboard.checks.4':
-    'Przeglądaj raporty, które można łatwo udostępniać za pośrednictwem arkuszy Excel, plików PDF lub w Atlasie',
+    'Przeglądaj raporty, które można łatwo udostępniać za pośrednictwem arkuszy Excel, plików PDF lub w QPM',
   'dashboard.checks.5': 'I wiele więcej...',
   'home.smarter': 'Mądrzejszy',
   'home.work': 'Praca',
@@ -291,7 +291,7 @@ const plJSON = {
   save: 'Ratować',
   customers: 'Wykonawcy',
   no_labor:
-    'Nie dodano jeszcze żadnych kosztów pracy. Będą one wyświetlane tutaj, gdy użytkownik zaloguje czas i będzie miał zapisaną stawkę godzinową w Atlasie.',
+    'Nie dodano jeszcze żadnych kosztów pracy. Będą one wyświetlane tutaj, gdy użytkownik zaloguje czas i będzie miał zapisaną stawkę godzinową w QPM.',
   not_assigned: 'Nie przypisano',
   no_additional_cost: 'Nie dodano jeszcze żadnych dodatkowych kosztów',
   parts: 'Strony',
@@ -1072,7 +1072,7 @@ const plJSON = {
   plan: 'Plan',
   current_plan: 'Aktualny plan',
   number_users_who_will_use_grash:
-    'Liczba użytkowników, którzy będą korzystać z Atlasa',
+    'Liczba użytkowników, którzy będą korzystać z QPM',
   admin_role: 'Administracja',
   technical_role: 'Techniczny',
   limited_technical_role: 'Ograniczone techniczne',
@@ -1296,7 +1296,7 @@ const plJSON = {
   upgrade: 'Aktualizacja',
   downgrade: 'Nachylenie',
   upgrade_description:
-    'Właśnie uaktualniłeś swój plan subskrypcji. Musisz włączyć wyłączonych użytkowników, którzy mogą korzystać z Atlasa. Możesz to zrobić tylko raz dla bieżącej subskrypcji. Wybierz ostrożnie',
+    'Właśnie uaktualniłeś swój plan subskrypcji. Musisz włączyć wyłączonych użytkowników, którzy mogą korzystać z QPM. Możesz to zrobić tylko raz dla bieżącej subskrypcji. Wybierz ostrożnie',
   enable_users: 'Włącz użytkowników',
   max_users_description: 'Możesz włączyć maksymalnie {{maxUsers}} użytkowników',
   downgrade_description:

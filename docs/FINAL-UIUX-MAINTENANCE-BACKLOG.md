@@ -418,3 +418,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Après le rebranding du libellé de fournisseur Mobile, l’APK Release a été reconstruit sans incrément de version. Metro a bundle **2 230 modules** et Gradle a terminé avec **BUILD SUCCESSFUL** (1 124 tâches, 18 exécutées, 1 106 à jour).
 - `mobile/dist/QPM-1.0.59.apk` : 105 812 708 octets; SHA-256 `0e526f95195a49fd18212b3d5a6f88e04e03af5c7ef8c6426a8087ec322632bb`; signature v2 valide; `com.atlas.cmms`, version `1.0.59`, `versionCode` 42, `minSdk` 24 confirmés par `aapt` et `apksigner`.
 - `mobile/INSTALLER-APK.md` reflète maintenant cette archive. Installation/régression sur appareil physique, caméra/NFC et vérification visuelle restent à faire; ce build ne constitue pas une validation sur téléphone.
+
+### Rebranding des textes produit Mobile — traductions — 20 octobre 2026
+
+- Les derniers textes de fonctionnalités encore marqués « Atlas » étaient dans les traductions bosnienne, polonaise et hongroise (descriptions des modules, rapports, coût de main-d’œuvre et abonnements). Ils affichent maintenant QPM. L’avis de provenance amont Web et les noms opérationnels/identifiants historiques ne sont pas concernés.
+- `scripts/rebrand-copy.test.cjs` contrôle tous les fichiers de traduction Mobile; suite Mobile **35/35**, onboarding **5/5** et TypeScript passent.
+- Après ce changement, l’APK 1.0.59 a été rebâti sans incrément : 105 812 624 octets, SHA-256 `8142cbd1af1b4c69af387c50421861b9812bfbe94e221ee8b902987f3cc71b8c`, signature v2 valide, `versionCode` 42. Test sur appareil réel toujours nécessaire.
