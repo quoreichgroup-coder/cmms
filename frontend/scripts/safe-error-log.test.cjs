@@ -74,3 +74,14 @@ test('auth and API error handlers use the redacting logger', () => {
     assert.match(fs.readFileSync(file, 'utf8'), /logSafeError\(/, file);
   }
 });
+
+test('service worker failures use the redacting logger', () => {
+  const serviceWorker = fs.readFileSync('src/serviceWorker.ts', 'utf8');
+  assert.match(serviceWorker, /import \{ logSafeError \}/);
+  assert.match(
+    serviceWorker,
+    /logSafeError\('Service worker registration failed'/
+  );
+  assert.match(serviceWorker, /logSafeError\('Service worker cleanup failed'/);
+  assert.doesNotMatch(serviceWorker, /console\.error\s*\(/);
+});

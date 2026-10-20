@@ -1,6 +1,8 @@
 /* eslint-disable */
 /* @ts-nocheck */
 
+import { logSafeError } from './utils/safeErrorLog';
+
 // This optional code is used to register a service worker.
 // register() is not called by default.
 
@@ -102,7 +104,7 @@ function registerValidSW(swUrl: string, config?: Config) {
       };
     })
     .catch((error) => {
-      console.error('Error during service worker registration:', error);
+      logSafeError('Service worker registration failed', error);
     });
 }
 
@@ -143,7 +145,7 @@ export function unregister() {
         registration.unregister();
       })
       .catch((error) => {
-        console.error(error.message);
+        logSafeError('Service worker cleanup failed', error);
       });
   }
 }

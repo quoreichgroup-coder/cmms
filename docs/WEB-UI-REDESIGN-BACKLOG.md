@@ -963,3 +963,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Le changement de compte énumérait directement `localStorage` pour retirer les filtres (`*_filters`); un refus du navigateur pouvait interrompre le basculement avant la reconnexion. L’énumération est remplacée par le nettoyage explicite des trois clés de filtres existantes via `removeBrowserPreference`, qui tolère un stockage absent ou une suppression refusée.
 - Le helper et le chemin de changement de compte sont couverts par `safe-browser-storage.test.cjs`. Test dédié, suite Web complète, TypeScript, ESLint ciblé, Prettier et build CRA optimisé (`Compiled successfully`) passent. Les filtres optionnels restent en mémoire / sont simplement conservés si leur suppression échoue; l’architecture JWT n’est pas modifiée.
 - Le contrôle en navigateur avec stockage restreint et le basculement entre deux comptes réels restent à faire.
+
+### SEC-WEB-07 — filtrage des erreurs Service Worker — 20 octobre 2026
+
+- Les échecs d’enregistrement et de nettoyage du Service Worker envoyaient les objets d’erreur complets ou `error.message` dans la console. Ils passent maintenant par `logSafeError`, qui filtre les champs en développement et n’écrit rien en production; les messages de cache informatifs restent inchangés.
+- Le test de journalisation vérifie les deux chemins et interdit les `console.error` directs dans `serviceWorker.ts`. Suite Web complète, test ciblé, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. Le Service Worker reste désactivé par l’entrée actuelle de l’application.
