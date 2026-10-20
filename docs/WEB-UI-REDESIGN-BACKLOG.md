@@ -1,5 +1,12 @@
 # Backlog de préparation — refonte UI Web QPM
 
+## Validation CI du frontend et du stack self-hosted — 20 octobre 2026
+
+- Le run GitHub Actions `39361040016` a validé le build et le smoke test de la pile API + frontend + Nginx; l’API répond à `/health-check` et la page frontend est servie.
+- Le run n’a pas publié les images : les tests backend ont exposé une configuration Liquibase manquante dans `api/src/test/resources/application.yml`, corrigée vers le changelog existant `classpath:/db/master.xml`. Les 9 erreurs locales restantes sont uniquement les tests Testcontainers sans daemon Docker accessible; le runner GitHub doit confirmer la suite après correction.
+- Le workflow utilise désormais `pipefail` et bloque le déploiement si le smoke test n’a pas réussi. Les identifiants Docker Hub manquants restent le blocage de publication; aucun déploiement VPS n’a eu lieu.
+- La suite de vérification des workflows frontend couvre l’injection de `HOME_URL` dans le smoke test, son nettoyage dans la configuration navigateur et le fallback vers `window.location.origin`.
+
 **Référence audit :** `docs/WEB-UI-SECURITY-AUDIT-2026-10-14.md`  
 **Statut :** backlog de référence pour l’implémentation Web. Les lignes ci-dessous restent les critères d’acceptation; l’avancement concret est suivi dans la section « Suivi d’implémentation ». Le périmètre demandé ici est exclusivement QPM Web.
 

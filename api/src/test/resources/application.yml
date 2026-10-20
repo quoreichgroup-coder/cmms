@@ -1,3 +1,5 @@
 spring:
   profiles:
     active: test
+  liquibase:
+    change-log: classpath:/db/master.xml

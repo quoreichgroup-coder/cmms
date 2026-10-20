@@ -12,6 +12,10 @@ const compose = fs.readFileSync(
   path.join(repoRoot, 'docker-compose.yml'),
   'utf8'
 );
+const runtimeConfig = fs.readFileSync(
+  path.join(repoRoot, 'frontend/src/config.ts'),
+  'utf8'
+);
 
 test('self-host smoke test runs the exact SHA-tagged images without building', () => {
   assert.match(
@@ -40,6 +44,14 @@ test('self-host smoke test runs the exact SHA-tagged images without building', (
   assert.ok(fs.existsSync(path.join(repoRoot, 'Caddyfile')));
   assert.match(compose, /\.\/Caddyfile:\/etc\/caddy\/Caddyfile:ro/);
   assert.match(compose, /HOME_URL:\s*\$\{HOME_URL:-\s+\}/);
+  assert.match(
+    runtimeConfig,
+    /window\.__RUNTIME_CONFIG__\?\.\[key\]\?\.trim\(\)/
+  );
+  assert.match(
+    runtimeConfig,
+    /rawHomeUrl\s*\?\s*rawHomeUrl\.endsWith\('\/'\)[\s\S]*window\.location\.origin/
+  );
   assert.match(
     workflow,
     /for service in frontend nginx api; do[\s\S]*docker compose logs --no-color --tail=120/
