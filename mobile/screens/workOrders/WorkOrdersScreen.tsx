@@ -42,6 +42,7 @@ import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { getUserInitials } from '../../utils/displayers';
 import { UserMiniDTO } from '../../models/user';
 import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
+import { getWorkOrderLoadErrorKey } from '../../utils/workOrderLoadError';
 
 export default function WorkOrdersScreen({
   navigation,
@@ -61,13 +62,16 @@ export default function WorkOrdersScreen({
     filterFields: FilterField[];
     searchQuery: string;
   } | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const nextPageRequestInProgress = useRef(false);
   const firstPageRequestSequence = useRef(0);
   const paginationRequestSequence = useRef(0);
   const refreshRequestSequence = useRef(0);
   const fromHomeInit = useRef<boolean>(false);
+  const getLoadErrorMessage = (error: unknown) => {
+    return t(getWorkOrderLoadErrorKey(error));
+  };
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
   );
@@ -125,13 +129,13 @@ export default function WorkOrdersScreen({
       const requestSequence = beginRequest(firstPageRequestSequence);
       beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = false;
-      setLoadMoreError(false);
+      setLoadMoreError(null);
       if (!isRefresh) {
         refreshRequestSequence.current += 1;
         setRefreshing(false);
       }
-      setLoadError(false);
-      setLoadMoreError(false);
+      setLoadError(null);
+      setLoadMoreError(null);
       try {
         await dispatch(
           getWorkOrders({
@@ -147,9 +151,9 @@ export default function WorkOrdersScreen({
             searchQuery
           });
         }
-      } catch (_error) {
+      } catch (error) {
         if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
-          setLoadError(true);
+          setLoadError(getLoadErrorMessage(error));
         }
       } finally {
         if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
@@ -173,15 +177,15 @@ export default function WorkOrdersScreen({
         return;
       const paginationSequence = beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = true;
-      setLoadMoreError(false);
+      setLoadMoreError(null);
       try {
         await dispatch(getMoreWorkOrders(criteria, currentPageNum + 1));
-      } catch (_error) {
+      } catch (error) {
         if (
           isCurrentRequest(firstPageSequence, firstPageRequestSequence) &&
           isCurrentRequest(paginationSequence, paginationRequestSequence)
         ) {
-          setLoadMoreError(true);
+          setLoadMoreError(getLoadErrorMessage(error));
         }
       } finally {
         if (
@@ -236,13 +240,13 @@ export default function WorkOrdersScreen({
     }
   };
   const onFilterChange = (newFilters: FilterField[]) => {
-    setLoadError(false);
+    setLoadError(null);
     const newCriteria = { ...criteria };
     newCriteria.filterFields = newFilters;
     setCriteria(newCriteria);
   };
   const onResetFilters = () => {
-    setLoadError(false);
+    setLoadError(null);
     setCriteria(getCriteriaFromFilterFields([]));
   };
   const hasActiveFilters = !_.isEqual(
@@ -254,7 +258,7 @@ export default function WorkOrdersScreen({
     // Keep debounced search enabled while the Searchbar remains focused so
     // the next query is applied without requiring a blur/refocus cycle.
     setStartedSearch(true);
-    setLoadError(false);
+    setLoadError(null);
     setSearchQuery('');
     setCriteria(getCriteriaFromFilterFields([]));
   };
@@ -275,7 +279,7 @@ export default function WorkOrdersScreen({
     );
   };
   const onSearchTextChange = (query: string) => {
-    setLoadError(false);
+    setLoadError(null);
     setSearchQuery(query);
   };
   useDebouncedEffect(
@@ -537,7 +541,7 @@ export default function WorkOrdersScreen({
                   <Text
                     style={{ color: theme.colors.onErrorContainer, flex: 1 }}
                   >
-                    {t('work_orders_load_error')}
+                    {loadError}
                   </Text>
                   <Button
                     compact
@@ -675,7 +679,7 @@ export default function WorkOrdersScreen({
                   variant="titleMedium"
                   style={{ color: theme.colors.error }}
                 >
-                  {t('work_orders_load_error')}
+                  {loadError}
                 </Text>
                 <Button
                   mode="contained"
@@ -727,7 +731,7 @@ export default function WorkOrdersScreen({
             ) : loadMoreError ? (
               <View style={styles.loadMoreError} accessibilityRole="alert">
                 <Text style={{ color: theme.colors.error }}>
-                  {t('work_orders_load_error')}
+                  {loadMoreError}
                 </Text>
                 <Button
                   compact

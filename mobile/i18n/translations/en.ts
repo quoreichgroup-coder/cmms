@@ -1701,8 +1701,13 @@ const locale = {
   LATE_WO: 'Late',
   TODAY_WO: 'Today',
   HIGH_WO: 'High priority',
-  work_orders_load_error:
-    'Could not load work orders. Check your connection and retry.',
+  work_orders_load_error: 'Could not load work orders. Please retry.',
+  work_orders_network_error:
+    'Could not reach the server. Check your connection and retry.',
+  work_orders_server_error:
+    'The server could not load work orders right now. Please retry later.',
+  work_orders_access_error:
+    'You do not have access to these work orders. Contact your administrator if this seems wrong.',
   dashboard_settings_load_error:
     'Could not load your dashboard settings. Check your connection and retry.',
   notifications_load_error:

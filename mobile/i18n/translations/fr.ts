@@ -1876,7 +1876,13 @@ const frJSON = {
   TODAY_WO: "Pour aujourd'hui",
   HIGH_WO: 'Priorité élevée',
   work_orders_load_error:
-    'Impossible de charger les ordres de travail. Vérifiez votre connexion et réessayez.',
+    'Impossible de charger les ordres de travail. Réessayez.',
+  work_orders_network_error:
+    'Le serveur est injoignable. Vérifiez votre connexion et réessayez.',
+  work_orders_server_error:
+    'Le serveur ne peut pas charger les ordres de travail pour le moment. Réessayez plus tard.',
+  work_orders_access_error:
+    "Vous n'avez pas accès à ces ordres de travail. Contactez votre administrateur si cela semble incorrect.",
   dashboard_settings_load_error:
     'Impossible de charger les préférences du tableau de bord. Vérifiez votre connexion et réessayez.',
   notifications_load_error:

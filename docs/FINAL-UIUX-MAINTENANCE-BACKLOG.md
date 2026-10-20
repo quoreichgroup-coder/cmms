@@ -348,3 +348,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Aucun incrément Android n’a été effectué. L’installation sur un téléphone et la recette visuelle restent à faire.
 - iOS : ce poste est Linux, donc aucun build Xcode local. Le workflow GitHub Actions macOS propose une validation d’archive non signée sans secrets Apple; un IPA Ad Hoc installable reste dépendant de certificats/profils Apple et du dépôt Fastlane Match. Aucune IPA n’est revendiquée.
 - Revalidation après push : TypeScript Mobile passe; la suite de régression Mobile passe (**33/33**) et Jest onboarding passe (**5/5**). Le test structurel `ios-build-pipeline.test.cjs` passe (**1/1**); cela ne valide pas Xcode.
+
+### MOB-WO-UX — messages d’erreur de chargement des OT — 20 octobre 2026
+
+- La liste des Work Orders distinguait l’échec par une seule valeur booléenne, puis affichait toujours un texte demandant de vérifier la connexion. Les erreurs HTTP 5xx et 401/403 étaient donc mal décrites.
+- La liste et la pagination catégorisent maintenant réseau/délai, indisponibilité serveur (5xx), refus d’accès et autre échec avec des messages FR/EN. Le texte du backend (qui peut contenir une exception interne) n’est pas affiché. Requêtes, retries, API, permissions et transitions restent inchangés.
+- Test de classification ajouté : **1/1**; régression Mobile complète **34/34**, onboarding **5/5**, TypeScript et Prettier passent. APK Release `1.0.59`, `versionCode 42`, signature v2 vérifiée : `mobile/dist/QPM-1.0.59.apk` (101 MB), SHA-256 `974ba94767b1163fc70c58399466402c07e28226656817d5e4f2a942d1f2bab5`. La vérification sur appareil n’est pas encore faite.
