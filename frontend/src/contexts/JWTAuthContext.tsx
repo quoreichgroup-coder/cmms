@@ -53,7 +53,10 @@ import Clarity from '@microsoft/clarity';
 import { clarityId, IS_LOCALHOST } from '../config';
 import { logoutWithFallback } from '../utils/logoutWithFallback';
 import { clearSessionAndState } from '../utils/clearSessionAndState';
-import { removeBrowserPreference } from '../utils/safeBrowserStorage';
+import {
+  readBrowserPreference,
+  removeBrowserPreference
+} from '../utils/safeBrowserStorage';
 import {
   getAuthRecoveryDelayMs,
   shouldRetryAuthRecovery
@@ -803,7 +806,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         ...values,
         utmParams: {
           ...utmParams,
-          referrer: utmParams.ref || localStorage.getItem('referrerData')
+          referrer: utmParams.ref || readBrowserPreference('referrerData')
         },
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       },

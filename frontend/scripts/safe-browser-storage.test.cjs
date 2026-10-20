@@ -86,6 +86,15 @@ test('account switching clears known filters through the safe storage helper', (
   assert.doesNotMatch(authContext, /Object\.keys\(localStorage\)/);
 });
 
+test('signup reads its optional referrer through the safe preference helper', () => {
+  const authContext = fs.readFileSync(
+    'src/contexts/JWTAuthContext.tsx',
+    'utf8'
+  );
+  assert.match(authContext, /readBrowserPreference\('referrerData'\)/);
+  assert.doesNotMatch(authContext, /localStorage\.getItem\('referrerData'\)/);
+});
+
 test('browser storage getters that throw are treated as unavailable', () => {
   const blockedWindow = {};
   Object.defineProperty(blockedWindow, 'localStorage', {

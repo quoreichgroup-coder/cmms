@@ -985,3 +985,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les icônes d’action encore pleines dans les commentaires WO (pièce jointe), Personnes/Équipes, Fournisseurs/Clients, paramètres Request/Contractors et Intégrations utilisent maintenant les équivalents MUI Outlined déjà installés. Les imports historiques inutilisés de la page Paramètres → Fonctionnalités ont été retirés; l’action de configuration conserve son icône avec `SettingsOutlined`.
 - Le test `web-icon-family.test.cjs` couvre maintenant ces fichiers afin d’éviter le retour des glyphes pleins. Aucun route, action, droit ou appel API n’a changé.
 - Test d’icônes, suite Web complète, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. La recette visuelle dans Chromium authentifié reste à effectuer; cette passe ne confirme pas le rendu réel.
+
+### SEC-WEB-03 — lecture sûre du référent d’inscription — 20 octobre 2026
+
+- Le formulaire de création de compte lisait directement la préférence facultative `referrerData` dans `localStorage`; si le navigateur refusait l’accès au stockage, l’inscription pouvait échouer avant l’appel API. La lecture passe maintenant par `readBrowserPreference`, qui renvoie `null` si le stockage est absent ou bloqué.
+- Le champ `utmParams.referrer` et son comportement quand il est absent restent identiques; aucune donnée de jeton, route, contrat serveur ou règle d’authentification n’est modifiée. `safe-browser-storage.test.cjs` couvre le consommateur ainsi que les refus du stockage.
+- Test ciblé, suite Web complète, typecheck TypeScript, ESLint sur `JWTAuthContext.tsx`, Prettier et `git diff --check` passent. Le parcours réel d’inscription avec stockage bloqué reste à vérifier dans un navigateur; la recette Chromium reste indisponible dans ce runner.
