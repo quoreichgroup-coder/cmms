@@ -175,7 +175,7 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 ### 19 octobre 2026 — conservation de session et bundles natifs JS
 
-- Mobile ne supprime plus les jetons lorsqu’un appel de renouvellement échoue sur une exception réseau; les réponses explicitement refusées/invalides continuent à les invalider. Test ajouté, suite Mobile **31/31** et TypeScript passent. La reprise dans la session courante reste limitée par le résultat booléen de `refreshAccessToken`; ce suivi est inscrit dans le backlog Mobile.
+- Mobile ne supprime plus les jetons lorsqu’un appel de renouvellement échoue sur une exception réseau; les réponses explicitement refusées/invalides continuent à les invalider. Cette note précédait l’ajout de la reprise progressive documentée plus bas (5 à 60 secondes, erreurs transitoires, application active).
 - Les exports Expo Android (**2 227 modules**) et iOS (**2 218 modules**) réussissent. Ils vérifient le bundle JavaScript, pas le build natif ou l’expérience sur appareil.
 - Web : les 3 tests du sidebar avaient réussi séparément et la suite Web **72/72** avec TypeScript avait passé à la vérification précédente. Un nouveau build CRA a été lancé mais interrompu sans rapport d’erreur exploitable; le rendu Chromium authentifié reste ouvert.
 - Revue de MOB-NAV-05 : les comportements de dimensionnement, Scan, FAB et tokens sont présents dans le code et protégés par la suite Mobile. Le backlog le marque implémenté côté code; la validation tactile et safe-area reste à faire sur appareil.
@@ -232,11 +232,16 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 ### Revalidation Mobile — onboarding et régressions — 20 octobre 2026
 
-- `npm run test:mobile-regression` termine avec **33/33 tests Node**; la suite inclut maintenant `test:onboarding`, qui passe **5/5** pour nouveau compte, skip, complétion, nouvelle version et serveur ancien.
+- `npm run test:mobile-regression` termine avec **34/34 tests Node**; la suite inclut `test:onboarding`, qui passe **5/5** pour nouveau compte, skip, complétion, nouvelle version et serveur ancien.
 - `./node_modules/.bin/tsc --noEmit --pretty false` passe sur Mobile. Aucun code Mobile n’a été modifié dans cette vérification; tests tactiles, NFC/QR réel et installation sur appareils Android/iOS restent à faire.
 
+### Reprise de session — vérification du suivi — 20 octobre 2026
+
+- La note antérieure sur l’absence de reprise automatique était obsolète : `AuthContext` conserve la session en cas d’erreur transitoire, réessaie avec un délai progressif plafonné à 60 secondes lorsque l’application est active et relance aussi au retour au premier plan. Logout et démontage nettoient le timer.
+- `auth-recovery.test.cjs` passe; `npm run test:mobile-regression` passe **34/34**, `test:onboarding` passe **5/5**, et le typecheck Mobile passe. Aucune modification du code Mobile dans cette vérification. L’essai réel de perte/reprise réseau et des transitions arrière-plan reste à faire sur Android/iOS.
+
 - Web UX-12 (20 octobre) : le sélecteur de vues calendrier masque ses libellés sur téléphone et les montre à partir de `sm`, sans perdre les noms accessibles. Tests dédiés **2/2**, suite complète, TypeScript, Prettier et build CRA (**Compiled successfully**) réussis; recette responsive Chromium toujours ouverte.
-- Mobile : `npm run test:mobile-regression` réussit **32/32** après la reprise de session; le typecheck Mobile `./node_modules/.bin/tsc --noEmit --pretty false` termine également avec le code **0**.
+- Mobile : `npm run test:mobile-regression` réussit **34/34**; `test:onboarding` passe **5/5**; le typecheck Mobile `./node_modules/.bin/tsc --noEmit --pretty false` termine avec le code **0**.
 - Aucun changement d’API, permission ou règle métier. Pas de rebuild Docker, APK/IPA, déploiement, commit ou push.
 
 ### Workload Web et NFC iOS — reprise des backlogs — 20 octobre 2026
