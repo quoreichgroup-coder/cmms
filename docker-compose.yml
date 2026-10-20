@@ -128,7 +128,10 @@ services:
       CUSTOM_COLORS: ${CUSTOM_COLORS:- }
       BRAND_CONFIG: ${BRAND_CONFIG:- }
       DEMO_LINK: ${DEMO_LINK:- }
-      HOME_URL: ${HOME_URL:-}
+      # runtime-env-cra requires every key in frontend/.env.example to be
+      # present and non-empty in production. The frontend trims this fallback
+      # to empty and then uses the current origin as its home URL.
+      HOME_URL: ${HOME_URL:- }
       PADDLE_SECRET_TOKEN: ${PADDLE_SECRET_TOKEN:- }
       PADDLE_ENVIRONMENT: ${PADDLE_ENVIRONMENT:-sandbox}
       RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:- }

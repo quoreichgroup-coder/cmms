@@ -848,3 +848,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - La suite complète Maven a été exécutée depuis une copie temporaire propre avec Docker/Testcontainers accessibles : **2 159 tests, 0 échec, 0 erreur, 10 ignorés** (`BUILD SUCCESS`, 4 min 58 s). Les tests d’intégration PostgreSQL et Liquibase ont été inclus.
 - Maven directement dans le dépôt ne peut pas remplacer un ancien fichier de `api/target/classes`; cette erreur locale précède la compilation. Aucun code API ni donnée de production n’a été modifié.
 - Le frontend local servi par Nginx répond HTTP 200 après le rebuild Docker documenté ci-dessus. Aucun déploiement VPS n’a été réalisé. La recette visuelle Chromium reste bloquée : binaire `/opt/google/chrome/chrome` absent du runner DevTools et Snap local incompatible avec le cgroup de cette session.
+
+### CI de livraison — smoke frontend et déploiement — 20 octobre 2026
+
+- La pipeline Web vérifie désormais que le smoke-test est requis pour toute modification de Compose, Nginx, Caddy ou du workflow, et que le déploiement VPS attend sa réussite. Maven utilise `pipefail` afin que `tee` ne masque pas les erreurs de tests.
+- Le smoke test avait isolé un 502 sur `/` : `runtime-env-cra` s’arrêtait parce que `HOME_URL` était vide. Compose fournit maintenant un fallback blanc que la configuration frontend nettoie avant d’appliquer son fallback sur l’origine.
+- Les régressions locales de workflow et la suite Web (**77/77**), le typecheck, Prettier et `docker compose config` passent. Confirmation smoke distante à faire sur le prochain run. Le précédent déploiement n’a pas démarré car les identifiants Docker Hub manquaient.

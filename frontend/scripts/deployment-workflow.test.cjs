@@ -39,6 +39,11 @@ test('self-host smoke test runs the exact SHA-tagged images without building', (
   assert.doesNotMatch(workflow, /\/tmp\/selfhost/);
   assert.ok(fs.existsSync(path.join(repoRoot, 'Caddyfile')));
   assert.match(compose, /\.\/Caddyfile:\/etc\/caddy\/Caddyfile:ro/);
+  assert.match(compose, /HOME_URL:\s*\$\{HOME_URL:-\s+\}/);
+  assert.match(
+    workflow,
+    /for service in frontend nginx api; do[\s\S]*docker compose logs --no-color --tail=120/
+  );
 });
 
 test('VPS deployment requires smoke success and uses Docker Hub image names', () => {
@@ -46,6 +51,11 @@ test('VPS deployment requires smoke success and uses Docker Hub image names', ()
   assert.ok(deployJob, 'deploy-vps job must exist');
   assert.match(deployJob, /needs:.*selfhost-smoke-test/);
   assert.match(deployJob, /needs\.selfhost-smoke-test\.result == 'success'/);
+  assert.match(deployJob, /needs\.detect-changes\.outputs\.smoke == 'true'/);
+  assert.doesNotMatch(
+    deployJob,
+    /outputs\.backend == 'true' \|\| needs\.detect-changes\.outputs\.frontend == 'true'/
+  );
   assert.match(
     deployJob,
     /QPM_API_IMAGE=intelloop\/atlas-cmms-backend:latest QPM_WEB_IMAGE=intelloop\/atlas-cmms-frontend:latest docker compose pull api frontend/
@@ -66,12 +76,16 @@ test('smoke checks stable QPM markup and keeps backend/container failure reports
   assert.match(workflow, /mvn test[^\n]*tee target\/maven-test\.log/);
   assert.match(
     workflow,
+    /Run tests[\s\S]*set -o pipefail[\s\S]*mvn test 2>&1 \| tee target\/maven-test\.log/
+  );
+  assert.match(
+    workflow,
     /name: backend-test-diagnostics-\$\{\{ github\.run_id \}\}/
   );
   assert.match(workflow, /api\/target\/surefire-reports\//);
   assert.match(
     workflow,
-    /name: Show stack status on failure[\s\S]*docker compose logs --no-color > selfhost-compose\.log/
+    /name: Show stack status on failure[\s\S]*for service in frontend nginx api; do[\s\S]*docker compose logs --no-color --tail=120/
   );
   assert.match(
     workflow,
@@ -86,7 +100,10 @@ test('Maven tests preload the Mockito inline agent from the resolved test depend
     pom,
     /<artifactId>mockito-core<\/artifactId>[\s\S]*?<scope>test<\/scope>/
   );
-  assert.match(pom, /-javaagent:\$\{settings\.localRepository\}\/org\/mockito\/mockito-core/);
+  assert.match(
+    pom,
+    /-javaagent:\$\{settings\.localRepository\}\/org\/mockito\/mockito-core/
+  );
   assert.match(workflow, /mvn test 2>&1 \| tee target\/maven-test\.log/);
   assert.doesNotMatch(workflow, /mvn test -DargLine=/);
 });

@@ -111,6 +111,7 @@ jobs:
 
       - name: Run tests
         run: |
+          set -o pipefail
           mkdir -p target
           mvn test 2>&1 | tee target/maven-test.log
         working-directory: ./api
@@ -184,9 +185,14 @@ jobs:
         if: failure()
         run: |
           docker compose ps > selfhost-docker-ps.txt 2>&1 || true
-          docker compose logs --no-color > selfhost-compose.log 2>&1 || true
+          for service in frontend nginx api; do
+            {
+              echo "===== $service ====="
+              docker compose logs --no-color --tail=120 "$service" || true
+            } >> selfhost-compose.log
+          done
           cat selfhost-docker-ps.txt
-          tail -n 250 selfhost-compose.log
+          cat selfhost-compose.log
 
       - name: Upload self-host smoke diagnostics
         if: always()
@@ -207,6 +213,8 @@ jobs:
     needs: [detect-changes, test]
     if: >-
       ${{
+        !cancelled() &&
+        needs.detect-changes.result == 'success' &&
         needs.detect-changes.outputs.backend == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped')
       }}
@@ -422,8 +430,10 @@ jobs:
     needs: [detect-changes, test, selfhost-smoke-test, push-backend-docker, push-frontend-docker]
     if: >-
       ${{
+        !cancelled() &&
+        needs.detect-changes.result == 'success' &&
         github.ref == 'refs/heads/projet' &&
-        (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') &&
+        needs.detect-changes.outputs.smoke == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped') &&
         needs.selfhost-smoke-test.result == 'success' &&
         (needs.push-backend-docker.result == 'success' || needs.push-backend-docker.result == 'skipped') &&
