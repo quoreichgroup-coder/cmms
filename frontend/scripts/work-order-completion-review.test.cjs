@@ -20,6 +20,7 @@ test('web completion form previews entered values before invoking the close API'
   assert.match(modal, /reviewValues\.feedback\?\.trim\(\)/);
   assert.match(modal, /work_order_completion_signature_captured/);
   assert.match(modal, /work_order_completion_tracked_time/);
+  assert.match(modal, /disabled=\{saving \|\| loadingExecutionTime\}/);
   assert.match(
     modal,
     /onClick=\{async \(\) => \{[\s\S]*?onComplete\([\s\S]*?reviewValues\.signature/

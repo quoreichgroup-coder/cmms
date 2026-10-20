@@ -968,3 +968,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Les échecs d’enregistrement et de nettoyage du Service Worker envoyaient les objets d’erreur complets ou `error.message` dans la console. Ils passent maintenant par `logSafeError`, qui filtre les champs en développement et n’écrit rien en production; les messages de cache informatifs restent inchangés.
 - Le test de journalisation vérifie les deux chemins et interdit les `console.error` directs dans `serviceWorker.ts`. Suite Web complète, test ciblé, TypeScript, ESLint ciblé, Prettier, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. Le Service Worker reste désactivé par l’entrée actuelle de l’application.
+
+### UX — confirmation de clôture OT attend le résumé de durée — 20 octobre 2026
+
+- Le bouton final de clôture reste désactivé tant que la lecture de `/work-orders/{id}/execution-time` n’a pas terminé. L’utilisateur voit donc la durée calculée ou l’indisponibilité issue de l’erreur avant de confirmer; la mutation de statut et le contrat API sont inchangés.
+- Test de régression `work-order-completion-review.test.cjs`, suite Web complète, TypeScript, Prettier et build CRA optimisé (`Compiled successfully`) passent. Le parcours authentifié visuel et la réponse API réelle restent à tester.

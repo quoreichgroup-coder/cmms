@@ -274,7 +274,7 @@ export default function CompleteWOModal({
               </Button>
               <Button
                 variant="contained"
-                disabled={saving}
+                disabled={saving || loadingExecutionTime}
                 onClick={async () => {
                   setSaving(true);
                   try {

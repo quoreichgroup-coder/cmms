@@ -442,3 +442,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Web : la suite complète `node --test --test-reporter=dot scripts/*.test.cjs` et le typecheck TypeScript se terminent avec le code **0**.
 - Mobile : `npm run test:mobile-regression` passe **35/35**; `npm run test:onboarding` passe **5/5**; `./node_modules/.bin/tsc --noEmit --pretty false` termine avec le code **0**.
 - Aucun code applicatif ni API n’a été modifié pendant cette passe. Chromium authentifié, migration de préférences onboarding sur API réelle, Work Orders avec le serveur et essais Android/iOS (navigation, caméra, NFC, onboarding) restent des validations externes ouvertes; aucun résultat visuel ou matériel n’est revendiqué.
+
+### UX — confirmation de clôture Mobile attend le résumé de durée — 20 octobre 2026
+
+- Dans l’écran de révision de clôture, la confirmation finale ne peut plus être soumise pendant le chargement de la durée d’exécution; elle redevient disponible une fois la durée reçue ou signalée comme indisponible. Aucun changement de workflow métier ou API.
+- `work-order-completion-load.test.cjs` passe; suite Mobile **35/35**, onboarding **5/5**, TypeScript Mobile et Prettier passent. `npx expo export --platform android` bundle **2 230 modules** avec succès; c’est une validation Metro/JS, pas un APK natif ni une recette sur téléphone.
+- La durée contre l’API réelle et le rendu tactile du dialogue restent à vérifier sur appareil authentifié.

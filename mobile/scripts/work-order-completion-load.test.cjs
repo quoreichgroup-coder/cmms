@@ -214,3 +214,11 @@ test('completion review returns entered values to the editable form', () => {
   assert.match(source, /setFormValues\(reviewValues \?\? \{\}\)/);
   assert.match(source, /setReviewValues\(values\)/);
 });
+
+test('completion is not finalised before its execution-time review finishes loading', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../screens/workOrders/CompleteWorkOrderModal.tsx'),
+    'utf8'
+  );
+  assert.match(source, /disabled=\{saving \|\| loadingExecutionTime\}/);
+});

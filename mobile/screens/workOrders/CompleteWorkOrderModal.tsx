@@ -335,7 +335,7 @@ export default function CompleteWorkOrderModal({
             </Button>
             <Button
               loading={saving}
-              disabled={saving}
+              disabled={saving || loadingExecutionTime}
               onPress={async () => {
                 if (!reviewValues) return;
                 setSaving(true);
