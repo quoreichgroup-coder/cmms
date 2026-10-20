@@ -6,10 +6,7 @@ import {
   VisibilityState,
   PaginationState
 } from '@tanstack/react-table';
-import {
-  readBrowserPreference,
-  writeBrowserPreference
-} from '../utils/safeBrowserStorage';
+import { writeBrowserPreference } from '../utils/safeBrowserStorage';
 
 interface TableState {
   sorting?: SortingState;
@@ -109,25 +106,6 @@ const useTableStatePersist = ({
       saveSnapshot();
     };
   }, [saveSnapshot]);
-
-  // Restore state from localStorage
-  useEffect(() => {
-    const savedState = readBrowserPreference(stateItem);
-    if (!savedState) return;
-
-    try {
-      const state: TableState = JSON.parse(savedState);
-
-      // Note: The actual state restoration is handled by the parent component
-      // This hook primarily handles persistence
-      console.log('Restored table state from localStorage:', {
-        ...state,
-        pinnedColumns: state.pinnedColumns || []
-      });
-    } catch (_error) {
-      // A stale preference should not affect table rendering.
-    }
-  }, [stateItem]);
 
   return { saveSnapshot };
 };

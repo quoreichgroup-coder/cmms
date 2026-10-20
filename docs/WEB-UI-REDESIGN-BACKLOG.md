@@ -950,3 +950,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - La suite `node --test --test-reporter=dot scripts/*.test.cjs` termine avec le code **0**; le typecheck `npx tsc --noEmit --pretty false` termine également avec le code **0**.
 - Aucun navigateur Chromium utilisable n’est disponible dans cette session; sidebar, états visuels responsive, clavier, rôles authentifiés et reconnexion STOMP réelle restent à vérifier dans un navigateur et contre le serveur.
 - SEC-WEB-02 (JWT dans `localStorage`) reste une décision d’architecture BFF/session; la suite ne réduit pas ce risque et aucune migration de stockage n’est revendiquée.
+
+### SEC-WEB — suppression du diagnostic de préférences de tableaux — 20 octobre 2026
+
+- Le hook `useTableStatePersist` relisait les préférences JSON des tableaux pour les écrire dans `console.log`; ce diagnostic n’appliquait aucun état à l’interface et pouvait exposer filtres, colonnes ou pagination à toute extension/script ayant accès à la console.
+- Le diagnostic mort et sa lecture sans effet sont supprimés; la sérialisation/restauration de préférences gérée par les composants appelants et la frontière `safeBrowserStorage` restent inchangées. Le test `safe-browser-storage.test.cjs` empêche le retour d’un log des préférences.
+- Test ciblé, suite Web complète, typecheck TypeScript, ESLint ciblé, Prettier et `git diff --check` passent. Chromium visuel et recette authentifiée restent ouverts; aucun risque JWT `localStorage` n’est résolu par ce correctif.

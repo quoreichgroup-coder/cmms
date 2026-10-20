@@ -83,3 +83,8 @@ test('theme and table state consumers use the safe preference boundary', () => {
     assert.doesNotMatch(content, /\blocalStorage\.(getItem|setItem)\(/);
   }
 });
+
+test('table preferences are not copied to browser console output', () => {
+  const hook = fs.readFileSync('src/hooks/useTableStatePersist.ts', 'utf8');
+  assert.doesNotMatch(hook, /console\.(?:log|info|debug)\s*\(/);
+});
