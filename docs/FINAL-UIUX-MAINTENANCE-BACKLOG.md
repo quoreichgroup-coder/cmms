@@ -471,3 +471,10 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Les guides d’exploitation Backup/Restore, mise à niveau, ports, LDAP, reset, SQL, abonnements et TLS affichent désormais QUOREICH QPM/QPM comme nom du produit.
 - Les noms de commandes, scripts (`atlas-backup.*`), conteneurs, volumes, réseau, base (`atlas`), exemples LDAP (`dc=atlas,dc=com`) et identifiants Traefik/Cloudflare restent inchangés pour ne pas casser les déploiements existants. Les contacts légaux et domaines historiques n’ont pas été modifiés.
 - Changement documentaire seulement; aucun code, dépendance, API, configuration de production ou donnée n’a changé. Vérification du diff et recherche des mentions de marque ciblées effectuées; build non pertinent pour cette passe.
+
+### Revalidation QA Web/Mobile et Chromium — 20 octobre 2026
+
+- Web : `node --test --test-reporter=dot scripts/*.test.cjs` et `npx tsc --noEmit --pretty false` terminent avec le code **0**.
+- Mobile : `npm run test:mobile-regression` réussit **35/35**; les tests Jest d’onboarding réussissent **5/5**; `./node_modules/.bin/tsc --noEmit --pretty false` termine avec le code **0**.
+- Recette navigateur toujours bloquée par l’environnement : `/snap/bin/chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --dump-dom about:blank` refuse de démarrer, car `snap-confine` exige `snapd.apparmor` actif et refuse l’exécution hors confinement. Aucune capture ni recette visuelle authentifiée n’est revendiquée.
+- Vérification seule, sans changement de source; aucun APK, rebuild Web, déploiement ou test réel appareil dans cette passe.
