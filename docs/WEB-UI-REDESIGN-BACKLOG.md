@@ -938,3 +938,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le navigateur Chromium DevTools disponible a été interrogé en lecture seule, mais ne peut pas démarrer : son exécutable Chrome stable attendu `/opt/google/chrome/chrome` n’existe pas dans le runner. Aucun login, parcours mutatif, screenshot ni audit Lighthouse n’a donc été exécuté.
 - La recette navigateur authentifiée reste ouverte; les tests automatisés et le build CRA réussi ne sont pas présentés comme preuve du rendu visuel. Reprendre sur un runner avec Chrome stable et des comptes de recette dédiés.
+
+### SEC-WEB — reconnexion STOMP avec session renouvelée — 20 octobre 2026
+
+- Notifications, import et export utilisaient le client de compatibilité `Stomp.over`. Ces flux partageaient une connexion STOMP, mais le client ne rafraîchissait pas son en-tête JWT avant une reconnexion après expiration/renouvellement de session.
+- Création d’un client partagé basé sur `Client` et `webSocketFactory` SockJS, API recommandée par la version 7 déjà installée. La reconnexion est activée; le token est relu juste avant chaque connexion, le journal protocolaire reste désactivé et la connexion est arrêtée à la déconnexion ou au changement de compte. Les messages de notification JSON mal formés sont ignorés sans casser le flux.
+- Contrats HTTP, destinations STOMP, routage et permissions inchangés. Le test de non-régression simule deux connexions et confirme que le JWT relu après renouvellement remplace l’ancien. Suite frontend, TypeScript, ESLint ciblé, Prettier et `git diff --check` passent. Deux tentatives de build CRA optimisé sont restées sans résultat exploitable dans ce runner; le prochain workflow CI doit confirmer la compilation. La reconnexion bout en bout reste à vérifier contre un serveur WebSocket authentifié.

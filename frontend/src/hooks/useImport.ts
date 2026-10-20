@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Stomp } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { apiUrl } from 'src/config';
 import api from 'src/utils/api';
 import useAuth from './useAuth';
 import { waitForStompMessage } from './stompResponse';
+import { Client } from '@stomp/stompjs';
+import { createAuthenticatedStompClient } from 'src/utils/authenticatedStompClient';
 
 interface UseImportReturn {
   importEntity: (entity: EntityType, payload: any[]) => Promise<ImportResponse>;
@@ -32,24 +31,25 @@ export interface ImportResponse {
  */
 export const useImport = (): UseImportReturn => {
   const [loadingImport, setLoadingImport] = useState<boolean>(false);
-  const [stompClient, setStompClient] = useState(null);
+  const [stompClient, setStompClient] = useState<Client | null>(null);
   const { user } = useAuth();
   // Initialize WebSocket connection
   useEffect(() => {
-    const client = Stomp.over(() => new SockJS(`${apiUrl}ws`));
-    // STOMP debug output includes CONNECT headers, which contain the JWT.
-    client.debug = () => undefined;
-    client.reconnectDelay = 5000;
-    client.connect({ token: localStorage.getItem('accessToken') }, () => {
+    if (!user?.id) {
+      setStompClient(null);
+      return;
+    }
+
+    const client = createAuthenticatedStompClient();
+    client.onConnect = () => {
       setStompClient(client);
-    });
+    };
+    client.activate();
 
     return () => {
-      if (client) {
-        client.disconnect();
-      }
+      void client.deactivate().catch(() => undefined);
     };
-  }, []);
+  }, [user?.id]);
 
   const importEntity = useCallback(
     async (entity: EntityType, payload: any[]): Promise<ImportResponse> => {

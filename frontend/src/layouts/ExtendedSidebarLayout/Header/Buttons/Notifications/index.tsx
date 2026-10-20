@@ -63,10 +63,8 @@ import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import { SearchCriteria } from '../../../../../models/owns/page';
-import SockJS from 'sockjs-client';
-import { apiUrl } from 'src/config';
 import useAuth from 'src/hooks/useAuth';
-import { Stomp } from '@stomp/stompjs';
+import { createAuthenticatedStompClient } from 'src/utils/authenticatedStompClient';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 const BoxComposed = styled(Box)(
@@ -143,43 +141,32 @@ function HeaderNotifications() {
     direction: 'DESC'
   };
   const [criteria, setCriteria] = useState<SearchCriteria>(initialCriteria);
-  const [stompClient, setStompClient] = useState(null);
   const { user } = useAuth();
   useEffect(() => {
     dispatch(getNotifications(criteria));
   }, []);
   useEffect(() => {
-    const disconnect = () => {
-      if (stompClient) {
-        stompClient.disconnect();
-        setStompClient(null);
-      }
-    };
-    if (user) {
-      if (!stompClient) {
-        const client = Stomp.over(() => new SockJS(`${apiUrl}ws`));
-        // STOMP debug output includes CONNECT headers, which contain the JWT.
-        client.debug = () => undefined;
-        client.reconnectDelay = 5000;
-        client.connect(
-          { token: localStorage.getItem('accessToken') },
-          function (frame) {
-            const subscription = client.subscribe(
-              `/user/${user.email}/notifications`,
-              function (message) {
-                const notification: Notification = JSON.parse(message.body);
-                dispatch(newReceivedNotification(notification));
-              }
-            );
-            setStompClient(client);
-          }
-        );
-      }
-    } else {
-      disconnect();
+    if (!user?.id || !user.email) {
+      return;
     }
-    return disconnect;
-  }, [user?.id, stompClient]);
+
+    const client = createAuthenticatedStompClient();
+    client.onConnect = () => {
+      client.subscribe(`/user/${user.email}/notifications`, (message) => {
+        try {
+          const notification: Notification = JSON.parse(message.body);
+          dispatch(newReceivedNotification(notification));
+        } catch {
+          // Ignore malformed broker messages; do not break the live connection.
+        }
+      });
+    };
+    client.activate();
+
+    return () => {
+      void client.deactivate().catch(() => undefined);
+    };
+  }, [user?.id, user?.email, dispatch]);
   const handleOpen = (): void => {
     setOpen(true);
   };
