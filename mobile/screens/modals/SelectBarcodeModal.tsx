@@ -22,6 +22,7 @@ import { Camera, CameraView } from 'expo-camera';
 import { ensureScannerCameraPermission } from '../../utils/mediaPermissions';
 import CameraPreviewError from '../../components/CameraPreviewError';
 import CameraPermissionError from '../../components/CameraPermissionError';
+import { logSafeError } from '../../utils/safeErrorLog';
 
 export default function SelectBarcodeModal({
   navigation,
@@ -230,9 +231,9 @@ export default function SelectBarcodeModal({
           accessibilityHint={t('scanning')}
           onMountError={(event) => {
             if (!appIsActiveRef.current) return;
-            console.error(
+            logSafeError(
               '[SelectBarcodeModal] Camera preview mount failed',
-              event.message
+              event
             );
             setCameraReady(false);
             setCameraMountError(true);

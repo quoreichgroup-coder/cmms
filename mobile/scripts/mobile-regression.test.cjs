@@ -1065,6 +1065,12 @@ test('barcode scanner reports camera preview mount failures and allows retry', (
   );
 
   assert.match(source, /onMountError=\{\(event\) => \{/);
+  assert.match(
+    source,
+    /import \{ logSafeError \} from '\.\.\/\.\.\/utils\/safeErrorLog'/
+  );
+  assert.match(source, /logSafeError\(\s*'\[SelectBarcodeModal\] Camera preview mount failed',\s*event\s*\)/);
+  assert.doesNotMatch(source, /console\.error\([\s\S]{0,180}event\.message/);
   assert.match(source, /if \(cameraMountError\)/);
   assert.match(source, /<CameraPreviewError/);
   assert.match(source, /onOpenSettings=\{\(\) => \{/);

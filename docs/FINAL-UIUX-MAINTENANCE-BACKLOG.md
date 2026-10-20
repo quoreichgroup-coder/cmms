@@ -393,3 +393,8 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 - Le helper API mobile affiche désormais un message générique localisé FR/EN pour les réponses 5xx au lieu du texte d’exception serveur. Les erreurs de validation 4xx gardent leur traitement existant; aucun endpoint ni contrat API n’a changé.
 - La régression Mobile, les **34/34** tests de régression, les **5/5** tests Jest d’onboarding et le typecheck passent. `npx expo export --platform ios` bundle **2 221 modules** avec succès; il s’agit du bundle JavaScript, pas d’une compilation Xcode/IPA. Recette sur appareil et API distante restent à faire.
+
+### SEC-MOBILE — journal d’erreur caméra du scanner QR/code-barres — 20 octobre 2026
+
+- Le callback d’échec de montage caméra de `SelectBarcodeModal` écrivait directement le message natif dans `console.error`. Il passe maintenant par `logSafeError`, qui ne conserve que les champs techniques autorisés en développement et n’écrit rien en production; le contenu du code scanné n’était déjà pas journalisé.
+- La régression du scanner vérifie le logger filtré et l’absence d’affichage direct de `event.message`; le fichier de régression et le typecheck Mobile passent. La caméra, les permissions et le rendu doivent encore être testés sur un appareil Android/iOS.
