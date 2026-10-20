@@ -19,6 +19,7 @@ import Fab from '@mui/material/Fab';
 import { useTranslation } from 'react-i18next';
 import UnfoldMoreOutlinedIcon from '@mui/icons-material/UnfoldMoreOutlined';
 import { NavLink } from 'react-router-dom';
+import { readBrowserPreference } from 'src/utils/safeBrowserStorage';
 
 const ThemeSettingsButton = styled(Box)(
   ({ theme }) => `
@@ -191,7 +192,7 @@ const ThemeSettings: FC = () => {
   };
 
   const setThemeName = useContext(ThemeContext);
-  const curThemeName = localStorage.getItem('appTheme') || 'PureLightTheme';
+  const curThemeName = readBrowserPreference('appTheme') || 'PureLightTheme';
 
   const [theme, setTheme] = useState(curThemeName);
 

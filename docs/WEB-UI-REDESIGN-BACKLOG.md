@@ -876,6 +876,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Lecture/écriture maintenant protégées, thème initial limité aux trois schémas connus et repli sur `PureLightTheme` si la valeur est inconnue ou le stockage inaccessible. Le changement reste appliqué en mémoire pendant la page courante même si sa persistance échoue. Aucun nouveau mode sombre n’est ajouté : les trois schémas Web existants restent clairs, comme le rappelle l’audit précédent.
 - Régression `theme-preference.test.cjs` couvre la préférence valide, inconnue, le stockage bloqué à la lecture/écriture et la persistance. Test dédié, suite Web complète, typecheck TypeScript, Prettier, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. La recette navigateur reste ouverte.
 
+### UX-02 — préférences optionnelles sans stockage navigateur — 20 octobre 2026
+
+- L’audit de suivi a trouvé des accès directs à `localStorage` dans le sélecteur de thème et les hooks d’état des tableaux. Sous navigation privée ou politique de stockage restrictive, ces accès pouvaient faire échouer l’ouverture des réglages ou le rendu d’une liste, alors que ces préférences ne sont pas nécessaires au fonctionnement métier.
+- Ajout d’une frontière `safeBrowserStorage` pour lire/écrire ces préférences sans interrompre l’interface. Le thème retombe sur le schéma clair si la préférence ne peut être lue; les tables conservent leur état en mémoire si la persistance est bloquée ou invalide. Aucun jeton d’authentification n’utilise ce helper.
+- `safe-browser-storage.test.cjs` vérifie stockage absent, exception lecture/écriture et usage par les composants concernés. La suite complète `node --test --test-reporter=dot scripts/*.test.cjs`, TypeScript Web, ESLint ciblé, Prettier ciblé et `git diff --check` passent. La recette navigateur en mode stockage bloqué reste à faire.
+
 ### SEC-WEB-02 — recherche sur la sortie des JWT de localStorage — 20 octobre 2026
 
 - Recherche OWASP/IETF ajoutée dans `docs/WEB-XSS-LOCALSTORAGE-RESEARCH-2026-10-20.md`, comparée aux consommateurs Web réels. `sessionStorage`, obfuscation et CSP seule ne protègent pas les JWT contre un script XSS de même origine; refresh HttpOnly + access mémoire est un palier, pas la cible finale.

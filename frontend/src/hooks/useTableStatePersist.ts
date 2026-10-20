@@ -6,6 +6,10 @@ import {
   VisibilityState,
   PaginationState
 } from '@tanstack/react-table';
+import {
+  readBrowserPreference,
+  writeBrowserPreference
+} from '../utils/safeBrowserStorage';
 
 interface TableState {
   sorting?: SortingState;
@@ -42,8 +46,6 @@ const useTableStatePersist = ({
   const isInitialMountRef = useRef(true);
 
   const saveSnapshot = useCallback(() => {
-    if (typeof localStorage === 'undefined') return;
-
     const currentState: TableState = {};
 
     if (sorting !== undefined) {
@@ -70,7 +72,7 @@ const useTableStatePersist = ({
       currentState.pinnedColumns = pinnedColumns;
     }
 
-    localStorage.setItem(stateItem, JSON.stringify(currentState));
+    writeBrowserPreference(stateItem, JSON.stringify(currentState));
   }, [
     stateItem,
     sorting,
@@ -110,9 +112,7 @@ const useTableStatePersist = ({
 
   // Restore state from localStorage
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-
-    const savedState = localStorage.getItem(stateItem);
+    const savedState = readBrowserPreference(stateItem);
     if (!savedState) return;
 
     try {
@@ -124,8 +124,8 @@ const useTableStatePersist = ({
         ...state,
         pinnedColumns: state.pinnedColumns || []
       });
-    } catch (error) {
-      console.error('Error restoring table state:', error);
+    } catch (_error) {
+      // A stale preference should not affect table rendering.
     }
   }, [stateItem]);
 

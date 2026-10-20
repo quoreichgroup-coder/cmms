@@ -10,6 +10,7 @@ import {
 import useTableStatePersist from './useTableStatePersist';
 import { SearchCriteria, SortDirection } from '../models/owns/page';
 import { restorePaginationState } from '../utils/tableState';
+import { readBrowserPreference } from '../utils/safeBrowserStorage';
 
 export interface TableStateReturn {
   sorting: SortingState;
@@ -64,9 +65,9 @@ const useTableState = ({
 
   // Restore state from localStorage on mount
   useEffect(() => {
-    if (typeof localStorage === 'undefined' || hasRestoredRef.current) return;
+    if (hasRestoredRef.current) return;
 
-    const savedState = localStorage.getItem(stateItem);
+    const savedState = readBrowserPreference(stateItem);
     if (!savedState) {
       hasRestoredRef.current = true;
       return;
@@ -98,8 +99,8 @@ const useTableState = ({
       }
 
       hasRestoredRef.current = true;
-    } catch (error) {
-      console.error('Error restoring table state:', error);
+    } catch (_error) {
+      hasRestoredRef.current = true;
     }
   }, [stateItem, persistPageIndex]);
 
