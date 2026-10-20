@@ -10,7 +10,7 @@ const source = ts.transpileModule(
 ).outputText;
 const moduleExports = {};
 vm.runInNewContext(source, { exports: moduleExports, require });
-const { restorePaginationState } = moduleExports;
+const { restorePaginationState, restoreTableState } = moduleExports;
 const assertPagination = (actual, expected) =>
   assert.deepEqual(JSON.parse(JSON.stringify(actual)), expected);
 
@@ -44,5 +44,55 @@ test('falls back safely when persisted pagination is invalid or incomplete', () 
       true
     ),
     { pageIndex: 0, pageSize: 10 }
+  );
+});
+
+test('restores only valid table preference values from persisted JSON', () => {
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        restoreTableState(
+          {
+            sorting: [
+              { id: 'updatedAt', desc: true },
+              { id: 2, desc: false }
+            ],
+            pagination: { pageIndex: 4, pageSize: 25 },
+            columnOrder: ['name', null, 3],
+            columnSizing: { name: 240, bad: 'wide', negative: -1 },
+            columnVisibility: { name: false, bad: 'hidden' },
+            pinnedColumns: ['name', 1]
+          },
+          { pageIndex: 0, pageSize: 10 },
+          true
+        )
+      )
+    ),
+    {
+      sorting: [{ id: 'updatedAt', desc: true }],
+      pagination: { pageIndex: 4, pageSize: 25 },
+      columnOrder: ['name'],
+      columnSizing: { name: 240 },
+      columnVisibility: { name: false },
+      pinnedColumns: ['name']
+    }
+  );
+});
+
+test('malformed table preference shapes fall back to empty optional state', () => {
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        restoreTableState('unexpected', { pageIndex: 1, pageSize: 20 }, false)
+      )
+    ),
+    {
+      sorting: [],
+      pagination: { pageIndex: 1, pageSize: 20 },
+      columnOrder: [],
+      columnSizing: {},
+      columnVisibility: {},
+      pinnedColumns: []
+    }
   );
 });

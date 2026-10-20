@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-table';
 import useTableStatePersist from './useTableStatePersist';
 import { SearchCriteria, SortDirection } from '../models/owns/page';
-import { restorePaginationState } from '../utils/tableState';
+import { restoreTableState } from '../utils/tableState';
 import { readBrowserPreference } from '../utils/safeBrowserStorage';
 
 export interface TableStateReturn {
@@ -74,27 +74,26 @@ const useTableState = ({
     }
 
     try {
-      const state = JSON.parse(savedState);
+      const state = restoreTableState(
+        JSON.parse(savedState),
+        initialPagination,
+        persistPageIndex
+      );
 
-      if (state.sorting && state.sorting.length > 0) {
+      if (state.sorting.length > 0) {
         setSortingState(state.sorting);
       }
-      setPaginationState(
-        restorePaginationState(state, initialPagination, persistPageIndex)
-      );
-      if (state.columnOrder && state.columnOrder.length > 0) {
+      setPaginationState(state.pagination);
+      if (state.columnOrder.length > 0) {
         setColumnOrderState(state.columnOrder);
       }
-      if (state.columnSizing && Object.keys(state.columnSizing).length > 0) {
+      if (Object.keys(state.columnSizing).length > 0) {
         setColumnSizingState(state.columnSizing);
       }
-      if (
-        state.columnVisibility &&
-        Object.keys(state.columnVisibility).length > 0
-      ) {
+      if (Object.keys(state.columnVisibility).length > 0) {
         setColumnVisibilityState(state.columnVisibility);
       }
-      if (state.pinnedColumns && Array.isArray(state.pinnedColumns)) {
+      if (state.pinnedColumns.length > 0) {
         setPinnedColumnsState(state.pinnedColumns);
       }
 
