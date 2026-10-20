@@ -157,10 +157,10 @@ function HeaderNotifications() {
     };
     if (user) {
       if (!stompClient) {
-        const socket = new SockJS(`${apiUrl}ws`);
-        const client = Stomp.over(socket);
+        const client = Stomp.over(() => new SockJS(`${apiUrl}ws`));
         // STOMP debug output includes CONNECT headers, which contain the JWT.
         client.debug = () => undefined;
+        client.reconnectDelay = 5000;
         client.connect(
           { token: localStorage.getItem('accessToken') },
           function (frame) {

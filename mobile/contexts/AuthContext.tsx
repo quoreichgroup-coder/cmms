@@ -667,10 +667,10 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         if (!stompClient) {
           // Get the current API URL
           const currentApiUrl = await getApiUrl();
-          const socket = new SockJS(`${currentApiUrl}ws`);
-          const client = Stomp.over(socket);
+          const client = Stomp.over(() => new SockJS(`${currentApiUrl}ws`));
           // STOMP debug output includes CONNECT headers, which contain the JWT.
           client.debug = () => undefined;
+          client.reconnectDelay = 5000;
           client.connect(
             { token: await AsyncStorage.getItem('accessToken') },
             function (frame) {

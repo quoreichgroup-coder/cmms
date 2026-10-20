@@ -40,6 +40,17 @@ test('all STOMP clients disable protocol logging before sending JWT headers', ()
         debugDisable > clientCreation && debugDisable < connectCall,
         `${relativePath} must disable STOMP protocol logging before connect()`
       );
+      assert.ok(
+        source
+          .slice(clientCreation, connectCall)
+          .includes('client.reconnectDelay = 5000;'),
+        `${relativePath} must configure automatic reconnect before connect()`
+      );
+      assert.match(
+        source.slice(clientCreation, connectCall),
+        /Stomp\.over\(\(\)\s*=>\s*new SockJS\(/,
+        `${relativePath} must provide a SockJS factory for reconnects`
+      );
     }
   }
 });
