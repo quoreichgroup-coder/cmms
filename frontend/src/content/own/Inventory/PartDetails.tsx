@@ -18,7 +18,7 @@ import { ChangeEvent, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutlined';
 import Part from '../../../models/owns/part';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
@@ -166,7 +166,7 @@ export default function PartDetails(props: PartDetailsProps) {
               style={{ marginRight: 10 }}
               onClick={() => onCopy(part)}
             >
-              <ContentCopyIcon color="primary" />
+              <ContentCopyOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (

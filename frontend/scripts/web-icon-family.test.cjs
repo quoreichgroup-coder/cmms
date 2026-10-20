@@ -27,3 +27,25 @@ test('Web application uses the shared outlined icon family', () => {
     'Replace TwoTone icons with the matching MUI Outlined icon.'
   );
 });
+
+test('asset, location and inventory navigation actions use outlined icons', () => {
+  const auditedFiles = [
+    'content/own/Assets/index.tsx',
+    'content/own/Assets/Show/AssetDetails.tsx',
+    'content/own/Locations/index.tsx',
+    'content/own/Locations/LocationDetails.tsx',
+    'content/own/Inventory/PartDetails.tsx'
+  ];
+
+  for (const relativePath of auditedFiles) {
+    const source = fs.readFileSync(path.join(sourceRoot, relativePath), 'utf8');
+    assert.doesNotMatch(
+      source,
+      /@mui\/icons-material\/(?:ContentCopy|MoreHoriz|ChevronRight|ExpandMore)(?:['"])/
+    );
+    assert.doesNotMatch(
+      source,
+      /<(?:ContentCopy|MoreHoriz|ChevronRight|ExpandMore)Icon\b/
+    );
+  }
+});

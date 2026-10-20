@@ -90,9 +90,26 @@ test('local cleanup failure is reported after successful server logout', async (
   const storageError = new Error('Storage access denied');
 
   await assert.rejects(
-    moduleExports.logoutWithFallback(async () => {}, () => {
-      throw storageError;
-    }),
+    moduleExports.logoutWithFallback(
+      async () => {},
+      () => {
+        throw storageError;
+      }
+    ),
     storageError
   );
+});
+
+test('authentication initialization retries after reconnecting or returning to the tab', () => {
+  const auth = fs.readFileSync('src/contexts/JWTAuthContext.tsx', 'utf8');
+
+  assert.match(auth, /networkWasOffline = useRef\(!navigator\.onLine\)/);
+  assert.match(auth, /window\.addEventListener\('offline', handleOffline\)/);
+  assert.match(auth, /window\.addEventListener\('online', handleOnline\)/);
+  assert.match(
+    auth,
+    /document\.addEventListener\('visibilitychange', handleVisibilityChange\)/
+  );
+  assert.match(auth, /if \(authInitializationInProgress\.current\) return/);
+  assert.match(auth, /getInfosRef\.current = getInfos/);
 });

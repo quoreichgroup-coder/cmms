@@ -27,6 +27,7 @@ import useAuth from '../../../../hooks/useAuth';
 import { CustomSelect } from './CustomSelect2';
 import SignaturePad from './SignaturePad';
 import DateRangePicker from './DateRangePicker';
+import { removeRelatedFieldIfPresent } from './relatedFields';
 
 interface PropsType {
   fields: Array<IField>;
@@ -128,7 +129,7 @@ export default (props: PropsType) => {
     };
 
   const filterRelatedFields = (fields: IField[], formik): IField[] => {
-    const fieldsClone = [...fields];
+    let fieldsClone = [...fields];
     const withRelatedFields = fields.filter(
       (field) => field.relatedFields?.length
     );
@@ -143,10 +144,10 @@ export default (props: PropsType) => {
           (formik.values[name] === undefined && !relatedField.value)
         ) {
           if (relatedField.hide) {
-            const fieldToDeleteIndex = fieldsClone.findIndex(
-              (field) => field.name === relatedField.field
+            fieldsClone = removeRelatedFieldIfPresent(
+              fieldsClone,
+              relatedField.field
             );
-            fieldsClone.splice(fieldToDeleteIndex, 1);
           }
         }
       });

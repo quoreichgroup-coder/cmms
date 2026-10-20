@@ -1,4 +1,7 @@
-/** NFC scanning is available in native Android/iOS builds, not on Web. */
+/**
+ * QPM's iOS project includes the Core NFC TAG entitlement and usage
+ * description. NFC is available on native platforms; Web has no reader.
+ */
 export const isNfcSupportedOnPlatform = (platform: string): boolean =>
   platform === 'android' || platform === 'ios';
 
@@ -27,6 +30,7 @@ export const getAssetScanNfcTechnologies = <Technology extends string>(
       (technology): technology is Technology => typeof technology === 'string'
     );
   }
+  if (platform !== 'android') return [];
 
   return [
     technologies.Ndef,

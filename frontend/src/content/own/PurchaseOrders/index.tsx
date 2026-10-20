@@ -109,6 +109,7 @@ function PurchaseOrders() {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const handleOpenDrawer = (purchaseOrder: PurchaseOrder) => {
     setCurrentPurchaseOrder(purchaseOrder);

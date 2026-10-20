@@ -5,4 +5,6 @@ export default interface UserSettings {
   emailUpdatesForRequests: boolean;
   emailUpdatesForPurchaseOrders: boolean;
   statsForAssignedWorkOrders: boolean;
+  onboardingVersion: number;
+  onboardingStatus: 'NOT_STARTED' | 'SKIPPED' | 'COMPLETED';
 }

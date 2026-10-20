@@ -68,8 +68,8 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
   const collapsedRail = desktopSidebarCollapsed && !inPopover;
 
   useEffect(() => {
-    if (active) setMenuToggle(true);
-  }, [active]);
+    if (openParent) setMenuToggle(true);
+  }, [openParent]);
 
   const toggleMenu = (): void => {
     setMenuToggle((Open) => !Open);
@@ -85,6 +85,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
             placement="right"
           >
             <Button
+              className={clsx({ active: active || openParent })}
               aria-label={
                 badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)
               }
@@ -144,7 +145,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
     return (
       <ListItem component="div" className="Mui-children" key={name} {...rest}>
         <Button
-          className={clsx({ active: menuToggle })}
+          className={clsx({ active, expanded: menuToggle })}
           aria-label={t(name)}
           startIcon={
             Icon &&

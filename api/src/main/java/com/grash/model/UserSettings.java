@@ -1,6 +1,6 @@
 package com.grash.model;
 
-import com.grash.model.enums.Language;
+import com.grash.model.enums.OnboardingStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -28,6 +28,15 @@ public class UserSettings {
     private boolean emailUpdatesForPurchaseOrders = true;
     @Schema(description = "Whether stats for assigned work orders are shown")
     private boolean statsForAssignedWorkOrders = true;
+
+    @Schema(description = "Last onboarding version resolved by this user")
+    @Column(name = "onboarding_version", nullable = false)
+    private int onboardingVersion = 0;
+
+    @Schema(description = "Completion state of the latest onboarding")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "onboarding_status", nullable = false, length = 16)
+    private OnboardingStatus onboardingStatus = OnboardingStatus.NOT_STARTED;
 
     public boolean shouldEmailUpdatesForWorkOrders() {
         return emailNotified && emailUpdatesForWorkOrders;

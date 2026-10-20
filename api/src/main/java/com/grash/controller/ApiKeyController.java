@@ -66,8 +66,6 @@ public class ApiKeyController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public ApiKeyShowDTO rotate(@PathVariable Long id,
                                 @Parameter(hidden = true) @CurrentUser User user) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS))
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         Pair<ApiKey, String> rotated = apiKeyService.rotateKey(id, user);
         ApiKeyShowDTO result = apiKeyMapper.toShowDto(rotated.getFirst());
         result.setCode(rotated.getSecond());
@@ -78,9 +76,6 @@ public class ApiKeyController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public ResponseEntity<SuccessResponse> delete(@PathVariable("id") Long id,
                                                   @Parameter(hidden = true) @CurrentUser User user) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS))
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-
         apiKeyService.delete(id, user);
         return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"), HttpStatus.OK);
     }

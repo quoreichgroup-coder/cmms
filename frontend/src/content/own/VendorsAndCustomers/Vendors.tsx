@@ -133,6 +133,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const handleDelete = async (id: number) => {
     try {

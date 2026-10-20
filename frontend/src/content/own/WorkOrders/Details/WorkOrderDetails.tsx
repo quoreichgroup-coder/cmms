@@ -1309,6 +1309,27 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
       <CompleteWOModal
         open={openCompleteModal}
         onClose={() => setOpenCompleteModal(false)}
+        workOrder={{
+          id: workOrder.id,
+          identifier: workOrder.customId || String(workOrder.id),
+          title: workOrder.title,
+          assetName: workOrder.asset?.name
+        }}
+        laborEntries={labors.map((labor) => ({
+          label: labor.assignedTo
+            ? `${labor.assignedTo.firstName} ${labor.assignedTo.lastName}`.trim()
+            : '—',
+          seconds:
+            (labor.duration || 0) +
+            (labor.logged && labor.status === 'RUNNING' && labor.startedAt
+              ? Math.max(
+                  0,
+                  Math.floor(
+                    (Date.now() - new Date(labor.startedAt).getTime()) / 1000
+                  )
+                )
+              : 0)
+        }))}
         fieldsConfig={{
           feedback: generalPreferences.askFeedBackOnWOClosed,
           signature: workOrder.requiredSignature

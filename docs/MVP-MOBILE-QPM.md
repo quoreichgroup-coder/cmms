@@ -1038,6 +1038,12 @@ La liste pouvait continuer à afficher les OT précédents quand les filtres cha
 
 Une régression est ajoutée à `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile (**30/30**), TypeScript, Prettier et export Expo Web (**1 889 modules**) validés; essai réseau réel et rendu téléphone restent à faire.
 
+## Inventaire Mobile — recherche de pièces sans résultats périmés — 18 octobre 2026
+
+La liste des pièces conservait les lignes précédentes pendant la recherche différée, sans vérifier qu’elles correspondaient au nouveau texte; un échec de rafraîchissement avec des lignes affichées ne présentait pas non plus d’avertissement relançable. Elle lie désormais les résultats à la recherche et aux critères chargés, empêche la pagination des anciennes lignes et affiche une bannière d’erreur quand des résultats valides restent visibles. Aucun contrat API ou calcul d’inventaire ne change.
+
+Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile (**30/30**), TypeScript, Prettier, export Expo Web (**1 889 modules**) et `git diff --check` réussis; validation sur téléphone non effectuée.
+
 ## Home — diagnostic des KPI affichés à zéro — 18 octobre 2026
 
 Le code UI ne confirme pas un zéro artificiel : `HomeScreen` affiche `—` avant que `mobileOverviewLoaded` soit vrai, puis affiche les valeurs API reçues telles quelles, y compris un zéro réel. Le store ignore les réponses obsolètes et n’indique le chargement terminé qu’après un succès; un test distingue la valeur initiale du zéro renvoyé par l’API. L’endpoint `analytics/work-orders/mobile/overview` applique le scope société ou « assignés uniquement » demandé par la préférence `statsForAssignedWorkOrders`.
@@ -1049,3 +1055,82 @@ Pour expliquer le `00` observé sur le compte concerné, comparer les six cartes
 Home et Stats consommaient la même synthèse et affichaient six cartes de compteurs d’OT en double. Home conserve maintenant les deux signaux d’action de cette réponse — échéances du jour et priorité élevée — tandis que Stats garde la répartition analytique complète. Le résumé d’OT actif dans l’en-tête, les filtres, le scope assigné/global, les permissions, la navigation et l’API restent inchangés. L’endpoint ne fournissant pas de nombre d’OT en retard, Home n’en invente pas.
 
 Régression ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Validation de ce lot : suite Mobile (**30/30**), TypeScript, Prettier, `git diff --check` et export Expo Web réussi (**1 889 modules**). L’export est temporaire et n’a pas produit d’APK/IPA; essai visuel sur appareil encore requis.
+
+## Clôture WO — aperçu obligatoire avant enregistrement — 18 octobre 2026
+
+Tous les parcours mobiles de clôture affichent maintenant un écran de récapitulatif après validation du formulaire et avant l’appel API. Il reprend le WO et l’équipement, les temps main-d’œuvre enregistrés par intervenant (avec estimation à l’instant présent pour un chronomètre encore actif), le commentaire et la présence de la signature. L’utilisateur peut revenir modifier ses saisies; seul « Confirmer et clôturer » envoie le statut `COMPLETE`.
+
+Le récapitulatif distingue explicitement le total de main-d’œuvre en personnes-heures de la durée calendaire d’exécution du WO. Le commentaire et la signature restent conservés si l’utilisateur revient à la saisie. Le payload de clôture et les règles de droits/statut restent inchangés; la lecture de durée est exposée par un endpoint additionnel. Tests ciblés du parcours d’aperçu et Prettier réussis. Reste la recette visuelle Android/iOS, thème clair/sombre et gros caractères; aucun APK/IPA n’a été généré.
+
+### Mesure de la durée active du WO
+
+L’aperçu récupère maintenant le temps actif écoulé via `GET /work-orders/{id}/execution-time`. Le calcul additionne les intervalles où le WO est `IN_PROGRESS` et exclut les intervalles `ON_HOLD`; un chronomètre encore actif est arrêté à l’heure de consultation et signalé comme tel. Le journal existant des transitions est utilisé, avec contrôle d’accès par entreprise et visibilité du WO. Aucun changement de schéma, de statut ni de payload de clôture n’est requis; l’endpoint de lecture est rétrocompatible.
+
+La mesure est déclarée indisponible si l’historique est absent, incomplet ou incohérent. Les anciens WO ne peuvent donc pas recevoir une durée exacte reconstruite après coup; seuls les changements de statut enregistrés à partir de cette mise à jour rendent le calcul fiable. Le temps de main-d’œuvre reste un indicateur distinct, cumulant les heures-personnes. Les tests Java ciblés du calcul, de l’accès au service, du contrôleur et de l’enregistrement d’une transition ont tous réussi (**7/7**, exécutés depuis une copie temporaire du backend avec Maven 3.8.6; le dépôt n’a pas de script `mvnw` exécutable). Nouvelle recette Mobile : suite complète **30/30**, TypeScript Mobile et Prettier passent. Côté Web, le test structurel ciblé et ESLint des fichiers de clôture passent; les avertissements de formatage des quatre fichiers ont ensuite été corrigés et `CI=true npm run build` réussit. Des avertissements de source maps tierces restent sans échec de compilation. Vérifier encore l’endpoint sur une API/base d’intégration et la présentation en navigateur, Android et iOS.
+
+## Navigation mobile — pilule, Scan et création contextuelle — 18 octobre 2026
+
+La barre du bas utilise maintenant les destinations Accueil, Ordres de travail, Scan, Stats et Plus (Requests prend la place d’Accueil pour Requester). Scan est l’action centrale surélevée et ouvre le scanner seulement après appui; la consultation d’équipements reste protégée par permission. Les demandes restent accessibles dans Plus si le droit de consultation et l’activation entreprise le permettent.
+
+Le bouton Create est un FAB séparé, caché pendant la saisie clavier et affiché seulement si l’utilisateur a une permission de création. Il ouvre le formulaire de demande existant pour Requester ou la feuille de création existante pour les autres rôles. Tests dédiés et suite Mobile vérifient routes, permissions et déclenchement; l’essai visuel safe-area/lecteur d’écran sur Android et iOS reste à faire. Aucun changement d’API ou de règles métier.
+
+## Harmonisation des cartes mobiles — 18 octobre 2026
+
+Les cartes de Work Orders, Home, statistiques et répertoires partagent le token QPM `radius.cardLarge`, désormais fixé à **18 dp** (contre 20 dp); le rayon standard reste à 16 dp. L’audit statique des écrans principaux ne trouve pas de couleur d’interface codée en dur : surfaces, textes et badges de statut s’appuient sur le thème et les couleurs sémantiques existantes.
+
+Le test d’apparence verrouille le rayon partagé à 18 dp. Suite Mobile (**31/31**), TypeScript et Prettier passent. Vérifier le rendu et le contraste clair/sombre avec texte agrandi sur Android et iOS; aucun APK/IPA n’a été généré.
+
+## Messages d’expiration API localisés — 19 octobre 2026
+
+Les requêtes réseau Mobile qui dépassent leur délai produisent maintenant `RequestTimeoutError` (`REQUEST_TIMEOUT`) au lieu d’une chaîne française générique. `getErrorMessage` utilise le singleton i18n pour afficher le texte dans la langue choisie : anglais, français, ou repli anglais pour les autres langues tant qu’une traduction dédiée n’existe pas. L’annulation demandée par un écran reste un `AbortError` silencieux et n’est pas présentée comme un timeout.
+
+Le test couvre timeout, annulation, sélection de langue anglaise/française. Suite Mobile **31/31**, TypeScript Mobile et Prettier ciblé passent. Les délais réseau réels et le rendu sur appareil ne sont pas testés dans cette session; aucun APK/IPA n’a été généré.
+
+## Rafraîchissement de session — conserver les jetons en cas de panne réseau — 19 octobre 2026
+
+`performRefresh` supprimait auparavant access token et refresh token pour toute exception, y compris un timeout ou une panne réseau. Le nettoyage reste appliqué aux réponses explicites non autorisées et aux réponses invalides; une exception de transport renvoie `false` sans effacer les jetons, afin qu’une nouvelle tentative puisse les réutiliser. Les contrats API et le format des jetons ne changent pas.
+
+Une régression vérifie que les deux jetons sont conservés après un échec réseau; les cas de refresh refusé gardent leurs tests existants. Suite Mobile **31/31**, TypeScript Mobile, Prettier du test et `git diff --check` passent. Limite à traiter : l’API de refresh reste booléenne, donc `AuthContext` peut afficher l’écran de connexion lors d’un démarrage hors réseau même si les jetons sont conservés; une erreur de refresh à trois états et une reprise après reconnexion restent à cadrer. Bundles Expo Android (**2 227 modules**) et iOS (**2 218 modules**) exportés avec succès; ce ne sont pas des APK/IPA et aucun build natif n’a été produit.
+
+## Navigation basse — recontrôle des critères de layout — 19 octobre 2026
+
+Le code et les régressions couvrent les cinq destinations conditionnelles selon le rôle, la réduction des libellés sous 440 dp, les noms accessibles des onglets, l’action Scan explicite et surélevée de 60 dp, les couleurs des tokens QPM, ainsi que le FAB Create séparé, permissionné et caché pendant le clavier. Les tests Navigation dédiés font partie de la suite Mobile (**31/31**); les exports Android/iOS réussissent. MOB-NAV-05 peut sortir de la file d’implémentation, mais reste en recette native : vérifier le tactile au-dessus de la pilule, les safe areas, l’accessibilité et le contenu non masqué sur téléphones/tablettes, clair/sombre et tailles de texte agrandies.
+
+## Reprise de session après une panne réseau — 19 octobre 2026
+
+Après la conservation des jetons lors d’un échec de transport, l’application ne retentait pas leur validation sans redémarrage. `AuthContext` relance maintenant l’initialisation si une connexion revient après une indisponibilité, ou au retour de l’application au premier plan. Un verrou empêche les tentatives simultanées; aucun jeton, contrat API ni règle d’authentification n’est modifié. La reprise reste conditionnée à la validité du refresh token auprès du serveur.
+
+Régression structurelle ajoutée à `mobile/scripts/mobile-regression.test.cjs` et passée (**1/1**); la suite Mobile complète précédente passe **31/31**. TypeScript et Prettier passent après le changement. Simulation d’une vraie coupure réseau, tests sur appareil et build natif non effectués.
+
+## Contrôle du démarrage de l’onboarding — 19 octobre 2026
+
+Les tests Jest du garde de première connexion passent (**5/5**) : nouvel utilisateur, reprise à une version plus récente, non-répétition après « ignoré » ou « terminé », et repli sûr lorsque les champs ne sont pas renvoyés par un ancien serveur. Ce contrôle vérifie la décision de routage uniquement; le flux complet avec réponses serveur, rôle réel et présentation sur téléphone reste à valider visuellement.
+
+## Revalidation des backlogs Web / Mobile — 20 octobre 2026
+
+- La suite Mobile `npm run test:mobile-regression` passe (**32/32**) et `npx tsc --noEmit` passe. Ce sont des régressions JavaScript/structurelles; elles ne remplacent pas une recette sur appareil Android/iOS, notamment pour safe areas, NFC/caméra, onboarding et comportement hors réseau.
+- Le contrôle backend ciblé a été exécuté dans une copie temporaire du code, car l’environnement refuse l’écriture dans `api/target` du dépôt. Une configuration Mockito `mock-maker-subclass` temporaire y évite le self-attach interdit; `SearchDateValueConverterTest` et `WrapperSpecificationTest` passent (**43/43**). Les attentes `JS_DATE` utilisent désormais `Instant.parse` : les valeurs ISO terminées par `Z` sont des instants UTC; l’ancien helper test traitait `Z` comme un caractère littéral et produisait un résultat dépendant du fuseau local. Aucun contrat API ni code de production n’a été modifié dans cette vérification.
+- Le check Web simultané confirme **75/75** tests de scripts dédiés, le typecheck TypeScript et le build CRA de production (`GENERATE_SOURCEMAP=false NODE_OPTIONS=--max-old-space-size=2048 npm run build`) réussissent.
+- L’APK `1.0.59` précédemment généré est signé et identifié comme `com.atlas.cmms`, versionCode `42`; aucun nouveau build natif n’est généré dans cette passe. Test visuel réel et distribution restent à faire.
+- `git diff --check` passe. La vérification Prettier de plusieurs scripts signale un formatage déjà présent dans `mobile/scripts/mobile-regression.test.cjs`; je l’ai laissé intact pour éviter une modification de style sans rapport avec la validation fonctionnelle.
+- Résolution EAS/Expo revérifiée avec `npx expo config --type public --json` : projet QPM `fbfaa721-adb1-463a-8757-3e256cf7337a`, app `1.0.59`, bundle iOS `com.cmms.atlas`, runtime `1.0.59` et Android `com.atlas.cmms`/versionCode 42. La documentation Mobile est corrigée : le projet est déjà lié, il ne faut pas relancer `eas init`. Le build iOS signé reste bloqué par l’absence de credentials Apple vérifiés; pas d’IPA revendiquée.
+- Points encore ouverts : recette visuelle Chromium connectée et contrôles de rôles/tenant Web; exécution des tests d’intégration backend avec profil CI sans agent Mockito inline; recette mobile sur matériel réel, vérification scanner/NFC et validation de reprise session en perte réseau.
+- Tests métier backend complémentaires, toujours dans la copie temporaire : cycle WO (statut, réouverture, événements/audit, accès) **48/48**, contrôleur WO **45/45**, tenant API Key **5/5**, onboarding user settings + calcul d’exécution **7/7**. Ces tests n’incluent pas la migration sur une base PostgreSQL réelle. La suite large du service WO a encore **34 erreurs** dans le setup des cas PDF avec le mock maker sans agent; ne pas compter cette suite comme validée.
+
+## NFC iOS — réactivation du support natif — 20 octobre 2026
+
+- L’absence de NFC dans iOS venait d’une exclusion de `react-native-nfc-manager` dans `mobile/react-native.config.js`, ajoutée parce que le chemin natif iOS n’avait pas été validé. Le contrôle a confirmé que le projet possède déjà `NFCReaderUsageDescription`, le fichier d’entitlements Core NFC `TAG`, et la bibliothèque implémente MIFARE/ISO 15693.
+- L’autolinking iOS est réactivé; le helper autorise maintenant Android/iOS, le modal charge le module natif sur les deux systèmes, et l’écran/formulaire réexposent le NFC iOS. QR/code-barres reste disponible sur Web et mobile. Aucun endpoint, identifiant, permission QPM ou règle métier ne change.
+- Les tests structurels vérifient les technologies par plateforme et l’absence de blocage d’autolinking. La lecture native reste **non vérifiée** tant que CocoaPods n’a pas régénéré le lockfile sur macOS, qu’une build iOS signée avec le capability Core NFC n’est pas installée et qu’un iPhone compatible n’a pas lu un tag. Le build iOS et la recette physique n’ont pas été exécutés dans cette session.
+
+### Garde de non-régression — configuration NFC iOS — 20 octobre 2026
+
+La suite Mobile vérifie maintenant les prérequis natifs en plus de l’autolinking : `NFCReaderUsageDescription` non vide, entitlement Core NFC `TAG` présent, et `CODE_SIGN_ENTITLEMENTS` relié au fichier du target iOS. Elle vérifie aussi la permission NFC Android et que le matériel NFC reste facultatif (`required=false`) pour ne pas exclure les téléphones sans lecteur. Cela protège la configuration source contre une désactivation accidentelle; cela ne prouve pas que le profil Apple de distribution accorde le capability, ni que la lecture fonctionne sur un appareil.
+
+Validation après ajout : `npm run test:mobile-regression` (**32/32**), TypeScript Mobile, Prettier ciblé et `git diff --check` réussis. L’export Expo iOS sans limite de workers s’est d’abord figé; la relance avec un seul worker a réussi et compilé **2 219 modules**. Cela valide le bundle JavaScript iOS seulement, pas CocoaPods, Xcode, la signature ou la lecture NFC physique. Le dossier d’export temporaire a été supprimé; aucun APK/IPA n’a été généré.
+
+## Reprise de session Mobile — état explicite pendant panne temporaire — 20 octobre 2026
+
+- Lors d’un refresh token en timeout/erreur réseau temporaire, les jetons étaient conservés et une nouvelle tentative programmée, mais l’état d’initialisation passait à « terminé non authentifié » : l’utilisateur voyait le formulaire de connexion pendant que l’app tentait déjà de récupérer sa session.
+- L’état `AUTH_RECOVERY_PENDING` maintient maintenant le démarrage en attente sans publier l’identité précédente ni ouvrir le formulaire de connexion. L’écran de chargement annonce la reconnexion en français/anglais; une validation réussie restaure la navigation, tandis qu’un refus d’authentification définitif continue d’ouvrir l’écran de connexion et applique le nettoyage prévu.
+- Cette présentation ne donne aucun accès aux données hors ligne et ne change ni les jetons, ni le contrat de refresh, ni les règles serveur. La suite Mobile passe (**32/32**), le test ciblé `auth-recovery.test.cjs` passe, TypeScript, Prettier ciblé et `git diff --check` passent. Le scénario réseau réel et le comportement de l’écran sur appareil restent à valider.

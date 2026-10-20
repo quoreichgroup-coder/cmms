@@ -73,7 +73,7 @@ test('all appearance choices meet the QPM minimum touch target', () => {
 test('QPM layout radius scale distinguishes controls, cards and dashboard cards', () => {
   assert.equal(qpmLayoutTokens.radius.control, 10);
   assert.equal(qpmLayoutTokens.radius.card, 16);
-  assert.equal(qpmLayoutTokens.radius.cardLarge, 20);
+  assert.equal(qpmLayoutTokens.radius.cardLarge, 18);
   assert.equal(qpmLayoutTokens.radius.sheet, 24);
 });
 
@@ -173,6 +173,34 @@ test('Paper tertiary roles stay paired with QPM information colors', () => {
         paperColors.tertiaryContainer
       ) >= 4.5,
       `${mode}.onTertiaryContainer`
+    );
+  }
+});
+
+test('mobile navigation colors derive from QPM theme surfaces and brand accent', () => {
+  for (const mode of ['light', 'dark']) {
+    const colors = qpmDesignTokens[mode];
+    const paperColors = createQpmPaperColors({}, colors);
+
+    assert.equal(
+      paperColors.navigationSurface,
+      colors.surface,
+      `${mode}.surface`
+    );
+    assert.equal(
+      paperColors.onNavigationSurface,
+      colors.textPrimary,
+      `${mode}.onNavigationSurface`
+    );
+    assert.equal(
+      paperColors.navigationActive,
+      colors.brandPrimary,
+      `${mode}.navigationActive`
+    );
+    assert.equal(
+      paperColors.onNavigationActive,
+      colors.onPrimary,
+      `${mode}.onNavigationActive`
     );
   }
 });
@@ -520,7 +548,7 @@ test('settings row icons are decorative instead of nested interactive buttons', 
 
   assert.doesNotMatch(source, /IconButton/);
   const leftIcons = source.match(/<List\.Icon\b/g);
-  assert.equal(leftIcons?.length, 5);
+  assert.equal(leftIcons?.length, 6);
   assert.match(
     source,
     /left=\{\(props\) => <List\.Icon \{\.\.\.props\} icon="swap-horizontal"/

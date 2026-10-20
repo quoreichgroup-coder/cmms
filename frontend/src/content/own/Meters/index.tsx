@@ -170,6 +170,7 @@ function Meters() {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);

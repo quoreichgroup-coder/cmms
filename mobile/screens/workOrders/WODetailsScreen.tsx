@@ -686,22 +686,34 @@ export default function WODetailsScreen({
         showSnackBar(t('signature_required_feature_unavailable'), 'error');
         return;
       }
-      if (completionStep === 'collect-details') {
-        navigation.navigate('CompleteWorkOrder', {
-          onComplete: onCompleteWO,
-          workOrderContext: {
-            identifier: workOrder.customId || String(workOrder.id),
-            title: workOrder.title,
-            assetName: workOrder.asset?.name
-          },
-          fieldsConfig: {
-            feedback: generalPreferences.askFeedBackOnWOClosed,
-            signature: workOrder?.requiredSignature
-          }
-        });
-        return;
-      }
-      setOpenCompleteConfirmation(true);
+      navigation.navigate('CompleteWorkOrder', {
+        onComplete: onCompleteWO,
+        workOrderContext: {
+          id: workOrder.id,
+          identifier: workOrder.customId || String(workOrder.id),
+          title: workOrder.title,
+          assetName: workOrder.asset?.name,
+          laborEntries: labors.map((labor) => ({
+            label: labor.assignedTo
+              ? `${labor.assignedTo.firstName} ${labor.assignedTo.lastName}`.trim()
+              : '—',
+            seconds:
+              (labor.duration || 0) +
+              (labor.status === 'RUNNING' && labor.startedAt
+                ? Math.max(
+                    0,
+                    Math.floor(
+                      (Date.now() - new Date(labor.startedAt).getTime()) / 1000
+                    )
+                  )
+                : 0)
+          }))
+        },
+        fieldsConfig: {
+          feedback: generalPreferences.askFeedBackOnWOClosed,
+          signature: workOrder?.requiredSignature
+        }
+      });
       return;
     }
     void submitWorkOrderStatus(status).catch((err) =>

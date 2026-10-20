@@ -69,7 +69,11 @@ export default function ReportConfigModal({
     api
       .get<GeneratedDocument[]>(`work-orders/${workOrderId}/documents`)
       .then(setDocuments)
-      .catch((error) => setDocumentError(getErrorMessage(error, t('issued_documents_load_error'))));
+      .catch((error) =>
+        setDocumentError(
+          getErrorMessage(error, t('issued_documents_load_error'))
+        )
+      );
   }, [t, workOrderId]);
 
   useEffect(() => {
@@ -84,17 +88,31 @@ export default function ReportConfigModal({
   };
 
   const handleGenerate = () => {
+    setDocumentError('');
+    // Open synchronously from the button click so browsers do not block the
+    // PDF preview after the authenticated request resolves.
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) previewWindow.opener = null;
     setGenerating(true);
-    dispatch(getPDFReport(workOrderId, config))
+    dispatch(getPDFReport(workOrderId, config, previewWindow))
       .then(() => {
         onClose();
+      })
+      .catch((error) => {
+        previewWindow?.close();
+        setDocumentError(
+          getErrorMessage(error, t('work_order_report_preview_error'))
+        );
       })
       .finally(() => setGenerating(false));
   };
 
   const downloadDocument = async (issuedDocument: GeneratedDocument) => {
     try {
-      const response = await api.get<Response>(`documents/${issuedDocument.id}/download`, { raw: true });
+      const response = await api.get<Response>(
+        `documents/${issuedDocument.id}/download`,
+        { raw: true }
+      );
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -103,7 +121,9 @@ export default function ReportConfigModal({
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setDocumentError(getErrorMessage(error, t('issued_documents_load_error')));
+      setDocumentError(
+        getErrorMessage(error, t('issued_documents_load_error'))
+      );
     }
   };
 
@@ -112,11 +132,16 @@ export default function ReportConfigModal({
     setDocumentError('');
     setDocumentSaved(false);
     try {
-      await api.post<GeneratedDocument>(`work-orders/${workOrderId}/report/issue`, config);
+      await api.post<GeneratedDocument>(
+        `work-orders/${workOrderId}/report/issue`,
+        config
+      );
       setDocumentSaved(true);
       loadDocuments();
     } catch (error) {
-      setDocumentError(getErrorMessage(error, t('issued_document_issue_error')));
+      setDocumentError(
+        getErrorMessage(error, t('issued_document_issue_error'))
+      );
     } finally {
       setIssuing(false);
     }
@@ -135,11 +160,23 @@ export default function ReportConfigModal({
       <DialogContent dividers sx={{ p: 3 }}>
         <ReportConfigFields config={config} onToggle={handleToggle} />
         <Divider sx={{ my: 2 }} />
-        <Typography variant="h5" gutterBottom>{t('issued_documents')}</Typography>
-        {documentError && <Alert severity="error" sx={{ mb: 1 }}>{documentError}</Alert>}
-        {documentSaved && <Alert severity="success" sx={{ mb: 1 }}>{t('issued_document_saved')}</Alert>}
+        <Typography variant="h5" gutterBottom>
+          {t('issued_documents')}
+        </Typography>
+        {documentError && (
+          <Alert severity="error" sx={{ mb: 1 }}>
+            {documentError}
+          </Alert>
+        )}
+        {documentSaved && (
+          <Alert severity="success" sx={{ mb: 1 }}>
+            {t('issued_document_saved')}
+          </Alert>
+        )}
         {documents.length === 0 ? (
-          <Typography color="text.secondary" variant="body2">{t('issued_documents_empty')}</Typography>
+          <Typography color="text.secondary" variant="body2">
+            {t('issued_documents_empty')}
+          </Typography>
         ) : (
           <List dense disablePadding>
             {documents.map((document) => (
@@ -147,14 +184,25 @@ export default function ReportConfigModal({
                 key={document.id}
                 divider
                 secondaryAction={
-                <Tooltip title={t('download')}>
-                  <IconButton aria-label={t('download')} onClick={() => downloadDocument(document)}>
-                    <DownloadOutlinedIcon />
-                  </IconButton>
-                </Tooltip>
-              }>
-                <ListItemText primary={document.fileName}
-                  secondary={`${new Date(document.issuedAt).toLocaleString()} · SHA-256 ${document.sha256.slice(0, 12)}…`} />
+                  <Tooltip title={t('download')}>
+                    <IconButton
+                      aria-label={t('download')}
+                      onClick={() => downloadDocument(document)}
+                    >
+                      <DownloadOutlinedIcon />
+                    </IconButton>
+                  </Tooltip>
+                }
+              >
+                <ListItemText
+                  primary={document.fileName}
+                  secondary={`${new Date(
+                    document.issuedAt
+                  ).toLocaleString()} · SHA-256 ${document.sha256.slice(
+                    0,
+                    12
+                  )}…`}
+                />
               </ListItem>
             ))}
           </List>
@@ -177,7 +225,9 @@ export default function ReportConfigModal({
           color="primary"
           onClick={handleIssue}
           disabled={issuing}
-          startIcon={issuing ? <CircularProgress size="1rem" /> : <ArchiveOutlinedIcon />}
+          startIcon={
+            issuing ? <CircularProgress size="1rem" /> : <ArchiveOutlinedIcon />
+          }
         >
           {t('issue_archive_document')}
         </Button>

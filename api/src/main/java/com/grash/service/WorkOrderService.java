@@ -11,6 +11,7 @@ import com.grash.dto.imports.WorkOrderImportDTO;
 import com.grash.dto.license.LicenseEntitlement;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
 import com.grash.dto.workOrder.WorkOrderSendReportDTO;
+import com.grash.dto.workOrder.WorkOrderExecutionTimeDTO;
 import com.grash.exception.CustomException;
 import com.grash.factory.StorageServiceFactory;
 import com.grash.mapper.PreventiveMaintenanceMapper;
@@ -258,7 +259,13 @@ public class WorkOrderService {
             WorkOrder savedWorkOrder = optionalWorkOrder.get();
             if (savedWorkOrder.canBeEditedBy(user)) {
                 em.detach(savedWorkOrder);
+                Status previousStatus = savedWorkOrder.getStatus();
                 WorkOrder patchedWorkOrder = update(id, workOrder, user);
+
+                if (previousStatus != patchedWorkOrder.getStatus()) {
+                    workOrderLifecycleEventRepository.save(new WorkOrderLifecycleEvent(patchedWorkOrder,
+                            previousStatus, patchedWorkOrder.getStatus(), user, new Date(), null));
+                }
 
                 if (patchedWorkOrder.isArchived() && !savedWorkOrder.isArchived()) {
                     Collection<Workflow> workflows =
@@ -312,6 +319,16 @@ public class WorkOrderService {
         return workOrderLifecycleEventRepository
                 .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(workOrder.getId(),
                         user.getCompany().getId());
+    }
+
+    public WorkOrderExecutionTimeDTO getExecutionTime(Long id, User user) {
+        WorkOrder workOrder = checkAccessToWorkOrderId(id, user);
+        List<WorkOrderLifecycleEvent> events = workOrderLifecycleEventRepository
+                .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtAscIdAsc(workOrder.getId(),
+                        user.getCompany().getId());
+        WorkOrderExecutionTimeCalculator.Result result = WorkOrderExecutionTimeCalculator.calculate(
+                workOrder.getStatus(), new Date(), events);
+        return new WorkOrderExecutionTimeDTO(result.measured(), result.running(), result.elapsedSeconds());
     }
 
     public Collection<WorkOrder> getAll() {
@@ -923,6 +940,7 @@ public class WorkOrderService {
                     HttpStatus.BAD_REQUEST);
         if (dto.getStatus() == Status.COMPLETE) validateCompletionRequirements(mutableWO, user);
         if (dto.getSignature() != null) mutableWO.setSignature(dto.getSignature());
+        Date statusChangedAt = new Date();
         mutableWO.setStatus(dto.getStatus());
         if (dto.getFeedback() != null) mutableWO.setFeedback(Sanitizer.cleanText(dto.getFeedback()));
 
@@ -935,7 +953,7 @@ public class WorkOrderService {
             if (!dto.getStatus().equals(Status.IN_PROGRESS)) {
                 if (dto.getStatus().equals(Status.COMPLETE)) {
                     mutableWO.setCompletedBy(user);
-                    mutableWO.setCompletedOn(new Date());
+                    mutableWO.setCompletedOn(statusChangedAt);
                     if (mutableWO.getAsset() != null) {
                         Asset asset = mutableWO.getAsset();
                         Collection<WorkOrder> workOrdersOfSameAsset = findByAsset(asset.getId());
@@ -953,9 +971,12 @@ public class WorkOrderService {
             WorkOrder patchedWorkOrder = saveAndFlushWithWebhook(mutableWO, user.getCompany(),
                     originalWorkOrder);
 
-            if (patchedWorkOrder.getStatus().equals(Status.COMPLETE) && !savedWorkOrderStatusBefore.equals(Status.COMPLETE)) {
+            if (savedWorkOrderStatusBefore != patchedWorkOrder.getStatus()) {
                 workOrderLifecycleEventRepository.save(new WorkOrderLifecycleEvent(patchedWorkOrder,
-                        savedWorkOrderStatusBefore, Status.COMPLETE, user, patchedWorkOrder.getCompletedOn(), null));
+                        savedWorkOrderStatusBefore, patchedWorkOrder.getStatus(), user, statusChangedAt, null));
+            }
+
+            if (patchedWorkOrder.getStatus().equals(Status.COMPLETE) && !savedWorkOrderStatusBefore.equals(Status.COMPLETE)) {
                 List<User> admins =
                         userService.findWorkersByCompany(user.getCompany().getId()).stream().filter(ownUser -> ownUser.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) && ownUser.isEnabled() && ownUser.getUserSettings().shouldEmailUpdatesForWorkOrders()).collect(Collectors.toList());
                 notificationService.createMultiple(admins.stream().map(admin -> new Notification(messageSource.getMessage("complete_work_order_content", new String[]{patchedWorkOrder.getTitle(), user.getFullName()}, Helper.getLocale(admin)), admin,

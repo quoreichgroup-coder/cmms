@@ -285,4 +285,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_10_14_00000000001_work_order_lifecycle_event.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_19_00000000001_user_onboarding_state.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

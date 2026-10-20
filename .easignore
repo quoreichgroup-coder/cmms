@@ -13,5 +13,15 @@
 /mobile/android/local.properties
 /mobile/.expo
 /mobile/.env*
-
 /mobile/.metro-health-check*
+
+# Mobile builds must not upload local caches or generated validation bundles.
+/mobile/.build-tools/
+/mobile/.expo-check-*/
+/mobile/.expo-export-*/
+/mobile/android/.build-tools/
+/mobile/android/.kotlin/
+/mobile/artifacts/
+/mobile/dist/
+/mobile/web-build/
+/mobile/ios/Pods/

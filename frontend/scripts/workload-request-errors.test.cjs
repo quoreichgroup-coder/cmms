@@ -32,7 +32,12 @@ const loadWorkloadSlice = (api) => {
         };
       }
       if (name === './workOrder') {
-        return { updateWorkOrderInContent: () => ({ type: 'unused' }) };
+        return {
+          updateWorkOrderInContent: (payload) => ({
+            type: 'workOrder/update',
+            payload
+          })
+        };
       }
       throw new Error(`Unexpected import: ${name}`);
     }
@@ -138,4 +143,43 @@ test('unscheduling API failure rejects without optimistic state mutations', asyn
   );
 
   assert.deepEqual(actions, []);
+});
+
+test('successful unscheduling clears the assignee and scheduled date in cached work orders', async () => {
+  const slice = loadWorkloadSlice({
+    patch: async () => ({
+      userId: null,
+      userFirstName: null,
+      userLastName: null,
+      estimatedStartDate: null
+    })
+  });
+  const workOrder = {
+    id: 617,
+    estimatedStartDate: '2026-10-20T08:00:00.000Z',
+    primaryUser: { id: 42, firstName: 'Awa', lastName: 'Diallo' }
+  };
+  const actions = [];
+
+  await slice.unscheduleWorkOrder(617, {
+    id: 617,
+    customId: 'WO-617',
+    title: 'Pump inspection',
+    status: 'OPEN',
+    estimatedDuration: 1,
+    estimatedStartDate: workOrder.estimatedStartDate,
+    dueDate: '2026-10-20'
+  })(
+    (action) => actions.push(action),
+    () => ({
+      workOrders: { workOrders: { content: [workOrder] } },
+      workload: { overview: null }
+    })
+  );
+
+  const cacheUpdate = actions.find(
+    (action) => action.type === 'workOrder/update'
+  );
+  assert.equal(cacheUpdate.payload.workOrder.primaryUser, null);
+  assert.equal(cacheUpdate.payload.workOrder.estimatedStartDate, null);
 });

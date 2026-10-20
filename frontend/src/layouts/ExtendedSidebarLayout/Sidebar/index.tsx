@@ -42,7 +42,7 @@ function Sidebar() {
             : theme.sidebar.width,
           display: {
             xs: 'none',
-            lg: 'inline-block'
+            lg: 'flex'
           },
           position: 'fixed',
           left: 0,
@@ -64,13 +64,13 @@ function Sidebar() {
               }}
             >
               <Box>
-                <Logo white />
+                <Logo />
               </Box>
             </Box>
           </Box>
           <SidebarMenu />
         </Scrollbar>
-        <SidebarFooter />
+        <SidebarFooter forceExpanded={!desktopSidebarCollapsed} />
       </SidebarWrapper>
       <Drawer
         sx={{
@@ -93,13 +93,13 @@ function Sidebar() {
                 }}
               >
                 <Box>
-                  <Logo white />
+                  <Logo />
                 </Box>
               </Box>
             </Box>
             <SidebarMenu forceExpanded />
           </Scrollbar>
-          <SidebarFooter />
+          <SidebarFooter forceExpanded />
         </SidebarWrapper>
       </Drawer>
     </>

@@ -1,6 +1,7 @@
 package com.grash.service;
 
 import com.grash.model.UserSettings;
+import com.grash.model.enums.OnboardingStatus;
 import com.grash.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,12 @@ public class UserSettingsService {
     }
 
     public UserSettings update(UserSettings UserSettings) {
+        if (UserSettings.getId() != null) {
+            userSettingsRepository.findById(UserSettings.getId()).ifPresent(existing -> {
+                UserSettings.setOnboardingVersion(existing.getOnboardingVersion());
+                UserSettings.setOnboardingStatus(existing.getOnboardingStatus());
+            });
+        }
         return userSettingsRepository.save(UserSettings);
     }
 
@@ -31,5 +38,11 @@ public class UserSettingsService {
 
     public Optional<UserSettings> findById(Long id) {
         return userSettingsRepository.findById(id);
+    }
+
+    public UserSettings updateOnboarding(UserSettings settings, int version, OnboardingStatus status) {
+        settings.setOnboardingVersion(version);
+        settings.setOnboardingStatus(status);
+        return userSettingsRepository.save(settings);
     }
 }

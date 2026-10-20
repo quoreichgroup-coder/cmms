@@ -240,6 +240,19 @@ export default function SettingsScreen({
               borderColor: theme.colors.outlineVariant
             }
           ]}
+          left={(props) => <List.Icon {...props} icon="play-circle-outline" />}
+          title={t('onboarding_replay')}
+          description={t('onboarding_replay_description')}
+          onPress={() => navigation.navigate('Onboarding', { replay: true })}
+        />
+        <List.Item
+          style={[
+            styles.settingItem,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outlineVariant
+            }
+          ]}
           left={(props) =>
             user.image ? (
               <Avatar.Image source={{ uri: user.image.url }} />

@@ -51,13 +51,13 @@ interface SelectTasksProps {
 }
 
 export default function SelectTasks({
-                                      selected,
-                                      onSelect,
-                                      onClose,
-                                      open,
-                                      action,
-                                      infos
-                                    }: SelectTasksProps) {
+  selected,
+  onSelect,
+  onClose,
+  open,
+  action,
+  infos
+}: SelectTasksProps) {
   const { t }: { t: any } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const [currentTab, setCurrentTab] = useState<string>('edit');
@@ -113,9 +113,11 @@ export default function SelectTasks({
   const onTypeChange = (value: TaskType, id: number) => {
     const newTasks = tasks.map((task) => {
       if (task.id === id) {
-        const result = { ...task, taskBase: { ...task.taskBase, taskType: value } };
-        if (value !== 'METER')
-          result.taskBase.meter = null;
+        const result = {
+          ...task,
+          taskBase: { ...task.taskBase, taskType: value }
+        };
+        if (value !== 'METER') result.taskBase.meter = null;
         return result;
       }
       return task;
@@ -167,13 +169,12 @@ export default function SelectTasks({
     setTasks(newTasks);
   };
   const onSave = () => {
-    const isChecklistAction = ['createChecklist', 'editChecklist'].includes(action);
+    const isChecklistAction = ['createChecklist', 'editChecklist'].includes(
+      action
+    );
     if ((saveAsChecklist || isChecklistAction) && !name?.trim()) {
       showError(t('required_name'));
-    } else if (
-      !tasks.length &&
-      (saveAsChecklist || isChecklistAction)
-    ) {
+    } else if (!tasks.length && (saveAsChecklist || isChecklistAction)) {
       showError(t('task_list_requires_operation'));
     } else if (tasks.some((task) => !task.taskBase.label?.trim())) {
       showError(t('remove_blank_tasks'));
@@ -181,7 +182,8 @@ export default function SelectTasks({
       tasks.some(
         (task) =>
           task.taskBase.taskType === 'MULTIPLE' &&
-          (task.taskBase.options ?? []).filter((option) => option.label.trim()).length < 2
+          (task.taskBase.options ?? []).filter((option) => option.label.trim())
+            .length < 2
       )
     ) {
       showError(t('multiple_task_requires_two_options'));
@@ -207,22 +209,32 @@ export default function SelectTasks({
             if (!hasFeature(PlanFeature.CHECKLIST)) {
               throw new Error(t('upgrade_checklist'));
             }
-            await dispatch(addChecklist({
-              name: name.trim(),
-              description: description?.trim(),
-              category: category?.trim(),
-              taskBases: tasks.map((task) => ({
-                ...task.taskBase,
-                options: (task.taskBase.options ?? []).map((option) => option.label)
-              }))
-            }, user.companySettingsId));
+            await dispatch(
+              addChecklist(
+                {
+                  name: name.trim(),
+                  description: description?.trim(),
+                  category: category?.trim(),
+                  taskBases: tasks.map((task) => ({
+                    ...task.taskBase,
+                    options: (task.taskBase.options ?? []).map(
+                      (option) => option.label
+                    )
+                  }))
+                },
+                user.companySettingsId
+              )
+            );
           }
           await onSelect(tasks, { name, description, category });
           if (saveAsChecklist) {
-            enqueueSnackbar(t('checklist_create_success', {
-              name: name.trim(),
-              taskCount: tasks.length
-            }), { variant: 'success' });
+            enqueueSnackbar(
+              t('checklist_create_success', {
+                name: name.trim(),
+                taskCount: tasks.length
+              }),
+              { variant: 'success' }
+            );
           }
           setSaveAsChecklist(false);
           onClose();
@@ -273,7 +285,12 @@ export default function SelectTasks({
   };
   return (
     <Box>
-      <Dialog fullWidth maxWidth="md" open={open} onClose={() => !submitting && onClose()}>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        open={open}
+        onClose={() => !submitting && onClose()}
+      >
         <DialogTitle
           sx={{
             p: 3
@@ -285,8 +302,8 @@ export default function SelectTasks({
               : action === 'createChecklist'
               ? t('create_checklist')
               : action === 'editChecklist'
-                ? t('edit_checklist')
-                : t('add_tasks')}
+              ? t('edit_checklist')
+              : t('add_tasks')}
           </Typography>
         </DialogTitle>
         <DialogContent
@@ -362,7 +379,10 @@ export default function SelectTasks({
             </Box>
           </Box>
           {saveAsChecklist && (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: 'secondary.light' }}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, mb: 2, borderColor: 'secondary.light' }}
+            >
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 {t('save_tasks_as_checklist_title')}
               </Typography>
@@ -371,17 +391,31 @@ export default function SelectTasks({
               </Alert>
               <Grid container spacing={1.5}>
                 <Grid item xs={12} md={4}>
-                  <TextField fullWidth required label={t('name')} value={name ?? ''}
-                    error={!name?.trim()} helperText={!name?.trim() ? t('required_name') : undefined}
-                    onChange={(event) => setName(event.target.value)} />
+                  <TextField
+                    fullWidth
+                    required
+                    label={t('name')}
+                    value={name ?? ''}
+                    error={!name?.trim()}
+                    helperText={!name?.trim() ? t('required_name') : undefined}
+                    onChange={(event) => setName(event.target.value)}
+                  />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField fullWidth label={`${t('description')} (${t('optional')})`} value={description ?? ''}
-                    onChange={(event) => setDescription(event.target.value)} />
+                  <TextField
+                    fullWidth
+                    label={`${t('description')} (${t('optional')})`}
+                    value={description ?? ''}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField fullWidth label={`${t('category')} (${t('optional')})`} value={category ?? ''}
-                    onChange={(event) => setCategory(event.target.value)} />
+                  <TextField
+                    fullWidth
+                    label={`${t('category')} (${t('optional')})`}
+                    value={category ?? ''}
+                    onChange={(event) => setCategory(event.target.value)}
+                  />
                 </Grid>
               </Grid>
               <Alert severity="info" sx={{ mt: 2, mb: 0 }}>
@@ -420,7 +454,7 @@ export default function SelectTasks({
             {currentTab === 'edit' && (
               <Box>
                 <Grid container spacing={1}>
-              {['createChecklist', 'editChecklist'].includes(action) && (
+                  {['createChecklist', 'editChecklist'].includes(action) && (
                     <>
                       <Grid item>
                         <TextField
@@ -500,8 +534,8 @@ export default function SelectTasks({
             {saveAsChecklist
               ? t('save_checklist_and_add_tasks')
               : ['createChecklist', 'editChecklist'].includes(action)
-                ? t('save_checklist')
-                : t('add_tasks')}
+              ? t('save_checklist')
+              : t('add_tasks')}
           </Button>
         </DialogActions>
       </Dialog>

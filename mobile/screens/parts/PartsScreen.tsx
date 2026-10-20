@@ -22,6 +22,8 @@ import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { IconWithLabel } from '../../components/IconWithLabel';
 import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import _ from 'lodash';
 export const getFormattedQuantityWithUnit = (
   quantity: number,
   unit: string
@@ -72,9 +74,20 @@ export default function PartsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
+  const appliedSearchQuery = useRef('');
+  const hasCurrentCriteriaResults =
+    loadedCriteria !== null &&
+    _.isEqual(loadedCriteria.filterFields, criteria.filterFields) &&
+    loadedCriteria.searchQuery === searchQuery;
+  const visibleParts = hasCurrentCriteriaResults ? parts.content : [];
   const fetchFirstPage = useCallback(
     async (isRefresh = false) => {
       const requestSequence = beginRequest(firstPageRequestSequence);
+      const requestSearchQuery = appliedSearchQuery.current;
       beginRequest(paginationRequestSequence);
       nextPageRequestInProgress.current = false;
       setLoadError(false);
@@ -92,6 +105,12 @@ export default function PartsScreen({
             direction: 'DESC'
           })
         );
+        if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
+          setLoadedCriteria({
+            filterFields: criteria.filterFields,
+            searchQuery: requestSearchQuery
+          });
+        }
       } catch (_error) {
         if (isCurrentRequest(requestSequence, firstPageRequestSequence)) {
           setLoadError(true);
@@ -113,6 +132,7 @@ export default function PartsScreen({
         nextPageRequestInProgress.current ||
         listLoading ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -142,6 +162,7 @@ export default function PartsScreen({
       criteria,
       currentPageNum,
       dispatch,
+      hasCurrentCriteriaResults,
       lastPage,
       loadMoreError,
       listLoading
@@ -167,6 +188,7 @@ export default function PartsScreen({
   };
 
   const onQueryChange = (query) => {
+    appliedSearchQuery.current = query;
     onSearchQueryChange<Part>(query, criteria, setCriteria, setSearchQuery, [
       'name',
       'description',
@@ -175,6 +197,10 @@ export default function PartsScreen({
       'barcode',
       'customFieldValues.value'
     ]);
+  };
+  const onSearchTextChange = (query: string) => {
+    setLoadError(false);
+    setSearchQuery(query);
   };
   useDebouncedEffect(
     () => {
@@ -192,7 +218,7 @@ export default function PartsScreen({
           placeholder={t('search')}
           accessibilityLabel={t('search')}
           onFocus={() => setStartedSearch(true)}
-          onChangeText={setSearchQuery}
+          onChangeText={onSearchTextChange}
           value={searchQuery}
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
@@ -200,7 +226,16 @@ export default function PartsScreen({
       <FlatList<Part>
         style={styles.list}
         contentContainerStyle={styles.listContent}
-        data={parts.content}
+        data={visibleParts}
+        ListHeaderComponent={
+          loadError && visibleParts.length > 0 ? (
+            <AsyncStateFeedback
+              mode="banner"
+              message={t('parts_load_error')}
+              onRetry={() => void fetchFirstPage()}
+            />
+          ) : null
+        }
         keyExtractor={(part) => String(part.id)}
         renderItem={({ item: part }) => (
           <Pressable
@@ -285,7 +320,10 @@ export default function PartsScreen({
           </Pressable>
         )}
         ListEmptyComponent={
-          canView && (listLoading || !hasLoadedList) ? (
+          canView &&
+          (listLoading ||
+            !hasLoadedList ||
+            (!hasCurrentCriteriaResults && !loadError)) ? (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -354,7 +392,7 @@ export default function PartsScreen({
           )
         }
         ListFooterComponent={
-          listLoading && !refreshing && parts.content.length > 0 ? (
+          listLoading && !refreshing && visibleParts.length > 0 ? (
             <View
               style={styles.loadingFooter}
               accessibilityRole="progressbar"

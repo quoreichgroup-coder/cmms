@@ -10,9 +10,9 @@ import { getAssetScanNfcTechnologies } from '../../utils/nfc';
 type NfcModule = typeof import('react-native-nfc-manager');
 
 const nfcModule: NfcModule | null =
-  Platform.OS === 'web'
-    ? null
-    : (require('react-native-nfc-manager') as NfcModule);
+  Platform.OS === 'android' || Platform.OS === 'ios'
+    ? (require('react-native-nfc-manager') as NfcModule)
+    : null;
 
 const NfcManager = nfcModule?.default;
 const NfcTech = nfcModule?.NfcTech;

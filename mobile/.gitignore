@@ -29,6 +29,8 @@ ios/**/GoogleService-Info.plist
 
 # Local Android SDK, caches and private signing material
 .build-tools/
+# iOS CI archives, IPA files and transient diagnostics
+artifacts/
 # Standalone Android release artifacts
 /dist/
 

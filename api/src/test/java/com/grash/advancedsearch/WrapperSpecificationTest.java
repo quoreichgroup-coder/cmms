@@ -3,7 +3,6 @@ package com.grash.advancedsearch;
 import com.grash.model.enums.EnumName;
 import com.grash.model.enums.Priority;
 import com.grash.model.enums.Status;
-import com.grash.utils.Helper;
 import jakarta.persistence.criteria.*;
 import jakarta.persistence.metamodel.Attribute;
 import jakarta.persistence.metamodel.EntityType;
@@ -17,6 +16,8 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -158,6 +159,16 @@ class WrapperSpecificationTest {
         }
 
         @Test
+        void equal_withDateString_shouldConvertToTheFieldDateType() {
+            String isoDate = "2024-01-15T10:30:00.000Z";
+            Date expected = Date.from(Instant.parse(isoDate));
+            when(simplePath.getJavaType()).thenReturn((Class) Date.class);
+
+            assertNotNull(buildSpec(createFilterField("createdAt", "eq", isoDate)));
+            verify(cb).equal(simplePath, expected);
+        }
+
+        @Test
         void equal_withEntityField_shouldUseIdEquality() {
             when(simplePath.getJavaType()).thenReturn((Class) ENTITY_CLASS);
             when(simplePath.get("id")).thenReturn(entityIdPath);
@@ -216,12 +227,22 @@ class WrapperSpecificationTest {
         @Test
         void greaterThanEqual_withJsDate_shouldConvertDate() {
             String jsDate = "2024-01-15T10:30:00.000Z";
-            Date expectedDate = Helper.getDateFromJsString(jsDate);
+            Date expectedDate = Date.from(Instant.parse(jsDate));
             FilterField filterField = FilterField.builder()
                     .field("createdAt").operation("ge").value(jsDate).enumName(EnumName.JS_DATE).build();
 
             assertNotNull(buildSpec(filterField));
             verify(cb).greaterThanOrEqualTo(eq(simplePath), eq(expectedDate));
+        }
+
+        @Test
+        void greaterThanEqual_withoutEnum_shouldConvertIsoStringForTimestampField() {
+            String isoDate = "2024-01-15T10:30:00.000Z";
+            Timestamp expected = Timestamp.from(Instant.parse(isoDate));
+            when(simplePath.getJavaType()).thenReturn((Class) Timestamp.class);
+
+            assertNotNull(buildSpec(createFilterField("createdAt", "ge", isoDate)));
+            verify(cb).greaterThanOrEqualTo(eq(simplePath), eq(expected));
         }
 
         @Test
@@ -239,7 +260,7 @@ class WrapperSpecificationTest {
         @Test
         void lessThanEqual_withJsDate_shouldConvertDate() {
             String jsDate = "2024-01-15T10:30:00.000Z";
-            Date expectedDate = Helper.getDateFromJsString(jsDate);
+            Date expectedDate = Date.from(Instant.parse(jsDate));
             FilterField filterField = FilterField.builder()
                     .field("createdAt").operation("le").value(jsDate).enumName(EnumName.JS_DATE).build();
 
@@ -299,7 +320,7 @@ class WrapperSpecificationTest {
         @Test
         void in_withJsDateEnum_shouldConvertValues() {
             String jsDate = "2024-01-15T10:30:00.000Z";
-            Date expectedDate = Helper.getDateFromJsString(jsDate);
+            Date expectedDate = Date.from(Instant.parse(jsDate));
             FilterField filterField = FilterField.builder()
                     .field("createdAt").operation("in").enumName(EnumName.JS_DATE)
                     .values(Arrays.asList(jsDate)).build();

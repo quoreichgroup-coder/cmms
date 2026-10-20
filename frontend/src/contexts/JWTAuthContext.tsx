@@ -1,6 +1,17 @@
-import { createContext, FC, ReactNode, useEffect, useReducer } from 'react';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useEffect,
+  useReducer,
+  useRef
+} from 'react';
 import { OwnUser, UserResponseDTO } from 'src/models/user';
-import api, { authHeader, refreshAccessToken } from 'src/utils/api';
+import api, {
+  authHeader,
+  canRetryRefreshAccessToken,
+  refreshAccessToken
+} from 'src/utils/api';
 import { verify } from 'src/utils/jwt';
 import PropTypes from 'prop-types';
 import {
@@ -41,6 +52,10 @@ import Clarity from '@microsoft/clarity';
 import { clarityId, IS_LOCALHOST } from '../config';
 import { logoutWithFallback } from '../utils/logoutWithFallback';
 import { clearSessionAndState } from '../utils/clearSessionAndState';
+import {
+  getAuthRecoveryDelayMs,
+  shouldRetryAuthRecovery
+} from '../utils/authRecovery';
 
 interface AuthState {
   isInitialized: boolean;
@@ -528,8 +543,37 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   const globalDispatch = useDispatch();
   const { children } = props;
   const [state, dispatch] = useReducer(reducer, initialAuthState);
+  const authInitializationInProgress = useRef(false);
+  const networkWasOffline = useRef(!navigator.onLine);
+  const getInfosRef = useRef<() => Promise<void>>(async () => {});
+  const authRecoveryNeeded = useRef(false);
+  const authRecoveryAttempt = useRef(0);
+  const authRecoveryTimer = useRef<number | null>(null);
   const { loginUser: loginZendesk, logoutUser: logoutZendesk } = useZendesk();
   const utmParams = useUtmTracker();
+  const clearAuthRecovery = () => {
+    authRecoveryNeeded.current = false;
+    authRecoveryAttempt.current = 0;
+    if (authRecoveryTimer.current) window.clearTimeout(authRecoveryTimer.current);
+    authRecoveryTimer.current = null;
+  };
+  const scheduleAuthRecovery = () => {
+    if (!authRecoveryNeeded.current || authRecoveryTimer.current) return;
+    const delay = getAuthRecoveryDelayMs(authRecoveryAttempt.current);
+    authRecoveryAttempt.current += 1;
+    authRecoveryTimer.current = window.setTimeout(() => {
+      authRecoveryTimer.current = null;
+      if (!authRecoveryNeeded.current) return;
+      if (navigator.onLine) void getInfosRef.current();
+      else networkWasOffline.current = true;
+    }, delay);
+  };
+  useEffect(
+    () => () => {
+      if (authRecoveryTimer.current) window.clearTimeout(authRecoveryTimer.current);
+    },
+    []
+  );
   const switchLanguage = async ({ lng }: { lng: any }) => {
     await loadLanguage(lng);
     internationalization.changeLanguage(lng);
@@ -562,6 +606,9 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     });
   };
   const getInfos = async (): Promise<void> => {
+    if (authInitializationInProgress.current) return;
+    authInitializationInProgress.current = true;
+    let retryAuthRecovery = false;
     try {
       const accessToken = window.localStorage.getItem('accessToken');
       const refreshToken = window.localStorage.getItem('refreshToken');
@@ -573,6 +620,10 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
           authenticated = true;
+        } else {
+          retryAuthRecovery =
+            Boolean(window.localStorage.getItem('refreshToken')) &&
+            canRetryRefreshAccessToken();
         }
       }
 
@@ -583,6 +634,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         const user = await updateUserInfos();
         const company = await api.get<Company>(`companies/${user.companyId}`);
         await setupUser(user, company.companySettings);
+        clearAuthRecovery();
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -593,6 +645,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           }
         });
       } else {
+        if (!retryAuthRecovery) clearAuthRecovery();
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -605,6 +658,16 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       }
     } catch (err) {
       console.error(err);
+      try {
+        const hasStoredCredentials = Boolean(
+          window.localStorage.getItem('accessToken') ||
+            window.localStorage.getItem('refreshToken')
+        );
+        retryAuthRecovery =
+          hasStoredCredentials && shouldRetryAuthRecovery(err);
+      } catch {
+        retryAuthRecovery = false;
+      }
       dispatch({
         type: 'INITIALIZE',
         payload: {
@@ -614,14 +677,21 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           company: null
         }
       });
+    } finally {
+      authInitializationInProgress.current = false;
+      authRecoveryNeeded.current = retryAuthRecovery;
+      if (retryAuthRecovery) scheduleAuthRecovery();
+      else if (!authRecoveryNeeded.current) clearAuthRecovery();
     }
   };
+  getInfosRef.current = getInfos;
   const login = async (
     email: string,
     password: string,
     ldap?: boolean,
     accountType: 'client' | 'super_admin' = 'client'
   ): Promise<void> => {
+    clearAuthRecovery();
     const response = await api.post<AuthResponse>(
       `auth/signin${ldap ? '-ldap' : ''}`,
       ldap
@@ -640,6 +710,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return loginInternal(accessToken, refreshToken);
   };
   const loginInternal = async (accessToken: string, refreshToken: string) => {
+    clearAuthRecovery();
     globalDispatch(revertAll());
     setSession(accessToken, refreshToken);
     try {
@@ -671,6 +742,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return loginInternal(accessToken, refreshToken);
   };
   const logout = async (): Promise<void> => {
+    clearAuthRecovery();
     try {
       logoutZendesk();
     } catch (err) {
@@ -684,13 +756,16 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     await logoutWithFallback(
       () => api.post('auth/logout', {}),
       () => {
-        clearSessionAndState(() => setSession(null, null), () => {
-          // Storage can throw in privacy-restricted browser contexts. Always
-          // clear the in-memory authenticated state even when that happens.
-          dispatch({ type: 'LOGOUT' });
-          Sentry.setUser(null);
-          if (clarityId && !IS_LOCALHOST) Clarity.identify('');
-        });
+        clearSessionAndState(
+          () => setSession(null, null),
+          () => {
+            // Storage can throw in privacy-restricted browser contexts. Always
+            // clear the in-memory authenticated state even when that happens.
+            dispatch({ type: 'LOGOUT' });
+            Sentry.setUser(null);
+            if (clarityId && !IS_LOCALHOST) Clarity.identify('');
+          }
+        );
       }
     );
   };
@@ -1135,6 +1210,43 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   useEffect(() => {
     getInfos();
   }, []);
+  useEffect(() => {
+    const retryInitialization = () => {
+      if (state.isInitialized && !state.isAuthenticated) {
+        networkWasOffline.current = false;
+        void getInfosRef.current();
+      }
+    };
+    const handleOffline = () => {
+      networkWasOffline.current = true;
+    };
+    const handleOnline = () => {
+      if (networkWasOffline.current) {
+        retryInitialization();
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') retryInitialization();
+    };
+
+    if (
+      networkWasOffline.current &&
+      navigator.onLine &&
+      state.isInitialized &&
+      !state.isAuthenticated
+    ) {
+      retryInitialization();
+    }
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.isAuthenticated, state.isInitialized]);
 
   return (
     <AuthContext.Provider

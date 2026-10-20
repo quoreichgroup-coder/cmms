@@ -548,6 +548,7 @@ function WorkOrders() {
       }, 1300),
     []
   );
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
   useEffect(() => {
     dispatch(getWorkOrders(criteria));
   }, [criteria]);

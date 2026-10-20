@@ -138,6 +138,7 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const onEditSuccess = () => {
     setOpenUpdateModal(false);

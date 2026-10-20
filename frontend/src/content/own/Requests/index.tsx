@@ -73,6 +73,7 @@ import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
 import SearchInput from '../components/SearchInput';
 import * as React from 'react';
 import RequestStatusChip from './RequestStatusChip';
+import { findVisibleRequestFieldConfiguration } from './requestFormFields';
 import ContentState from '../components/ContentState';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof Request>([
@@ -397,21 +398,25 @@ function Requests() {
       'team'
     ];
     fieldsToConfigure.forEach((name) => {
-      const fieldConfig =
-        workOrderRequestConfiguration.fieldConfigurations.find(
-          (fc) => fc.fieldName === name
-        );
-      const fieldIndexInFields = fields.findIndex(
-        (field) => field.name === name
+      const visibleFieldConfiguration = findVisibleRequestFieldConfiguration(
+        fields,
+        workOrderRequestConfiguration?.fieldConfigurations,
+        name
       );
+      if (!visibleFieldConfiguration) return;
+      const {
+        fieldIndex: fieldIndexInFields,
+        field,
+        configuration: fieldConfig
+      } = visibleFieldConfiguration;
       if (fieldConfig.fieldType === 'REQUIRED') {
         fields[fieldIndexInFields] = {
-          ...fields[fieldIndexInFields],
+          ...field,
           required: true
         };
         const requiredMessage = t('required_field');
         let yupSchema;
-        switch (fields[fieldIndexInFields].type) {
+        switch (field.type) {
           case 'text':
             yupSchema = Yup.string().required(requiredMessage);
             break;
@@ -446,6 +451,7 @@ function Requests() {
     );
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const onFilterChange = (newFilters: FilterField[]) => {
     setPagination((current) => ({ ...current, pageIndex: 0 }));

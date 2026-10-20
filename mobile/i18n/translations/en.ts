@@ -18,6 +18,58 @@ const locale = {
   appearance_preview_work_order_id: 'WO · QPM-2048',
   appearance_preview_work_order: 'Inspect cooling pump P-204',
   appearance_preview_action: 'Open work order',
+  onboarding_eyebrow: 'YOUR MAINTENANCE WORKSPACE',
+  onboarding_welcome_title: 'Welcome to QPM',
+  onboarding_welcome_body:
+    'Your maintenance workspace, all in one place. Keep work, equipment and teams connected from the office to the field.',
+  onboarding_work_title: 'Manage work orders',
+  onboarding_work_body:
+    'Plan, execute and track maintenance work with clear assignments, priorities and completion records.',
+  onboarding_scan_title: 'Identify equipment quickly',
+  onboarding_scan_body:
+    'Use the equipment scanner when you are ready to identify an asset and open its maintenance information.',
+  onboarding_scan_unavailable_title: 'Equipment access follows your role',
+  onboarding_scan_unavailable_body:
+    'Equipment identification is available to accounts with equipment access. Your assigned QPM workspace remains ready for you.',
+  onboarding_plan_title: 'Plan your work',
+  onboarding_plan_body:
+    'Find the maintenance modules enabled for your account and focus on the work your role can access.',
+  onboarding_ready_title: 'You’re ready to start',
+  onboarding_ready_body:
+    'Your QPM workspace is ready. Continue with the work and modules available to your account.',
+  onboarding_feature_work_orders: 'Track work from assignment to completion',
+  onboarding_feature_equipment: 'Keep equipment identity and history close',
+  onboarding_feature_maintenance: 'See planned maintenance in context',
+  onboarding_feature_workspace: 'Open the tools available to your account',
+  onboarding_role_technician:
+    'Your workspace highlights assigned work and equipment execution.',
+  onboarding_role_requester:
+    'Your workspace helps you report a maintenance need and follow its progress.',
+  onboarding_role_supervisor:
+    'Your workspace helps you follow work orders and team operations.',
+  onboarding_role_administrator:
+    'Your workspace provides the operational and configuration tools granted to your account.',
+  onboarding_role_team:
+    'Your available tools depend on the access granted to your account.',
+  onboarding_module_work_orders: 'Work orders',
+  onboarding_module_equipment: 'Equipment',
+  onboarding_module_preventive: 'Preventive maintenance',
+  onboarding_module_requests: 'Requests',
+  onboarding_no_modules:
+    'Your account has no maintenance modules enabled yet. Contact your administrator.',
+  onboarding_skip: 'Skip',
+  onboarding_back: 'Back',
+  onboarding_next: 'Continue',
+  onboarding_start: 'Start using QPM',
+  onboarding_progress: 'Introduction screen {{current}} of {{total}}',
+  onboarding_swipe_hint:
+    'Swipe horizontally to move between introduction screens.',
+  onboarding_save_error:
+    'We could not save your introduction progress. Check your connection and try again.',
+  onboarding_replay: 'Product introduction',
+  onboarding_replay_description:
+    'Review the QPM mobile workspace introduction.',
+  onboarding_close: 'Close introduction',
   remove_selected_value: 'Remove {{value}}',
   company_profile: 'Company profile',
   company_profile_mobile_description:
@@ -88,6 +140,8 @@ const locale = {
   auth_text_max_length: 'Maximum {{max}} characters.',
   auth_server_unreachable:
     'The CMMS server is unreachable. Check the server address and your connection.',
+  auth_recovering_session:
+    'Reconnecting to QPM. Your saved session will be checked when the server is available.',
   auth_signin_failure: 'Sign-in failed. Check your credentials.',
   auth_signup_failure: 'Sign-up failed. Check the information you entered.',
   license_full_seats: 'Full users',
@@ -340,6 +394,8 @@ const locale = {
   wrong_credentials: 'Wrong credentials provided',
   server_not_reachable:
     'The backend server is not reachable. You may wait for it to start and try again.',
+  request_timeout:
+    'The request timed out. Check your connection and try again.',
   lost_password: 'Lost password ?',
   //work-orders
   link_wo: 'Link Work Orders',
@@ -445,6 +501,21 @@ const locale = {
   wo_complete_success: 'The work order was completed successfully',
   work_order_completion_read_only_notice:
     'After completion, this work order becomes read-only. Reopening requires the specific permission and a recorded reason; the completion remains in its history.',
+  work_order_completion_review_title: 'Review completion details',
+  review_completion: 'Review before closing',
+  work_order_completion_review_description:
+    'Check the work order, recorded labor time and completion details before saving.',
+  work_order_completion_tracked_time: 'Recorded labor time',
+  work_order_completion_total_labor: 'Total labor',
+  work_order_completion_no_time: 'No labor time has been recorded.',
+  work_order_elapsed_execution_time: 'Elapsed execution time (excludes holds)',
+  work_order_execution_time_running: 'Still running',
+  work_order_execution_time_unavailable:
+    'Not measured: complete status history is unavailable for this work order.',
+  work_order_completion_signature_captured: 'Captured',
+  confirm_and_close_wo: 'Confirm and close work order',
+  back_to_edit: 'Back to edit',
+  not_provided: 'Not provided',
   work_order_reopen_title: 'Reopen completed work order',
   work_order_reopen_description:
     'Reopening returns this work order to Open. Enter a reason; the completion record remains in its history.',

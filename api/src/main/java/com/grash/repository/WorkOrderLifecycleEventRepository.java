@@ -10,4 +10,7 @@ public interface WorkOrderLifecycleEventRepository extends JpaRepository<WorkOrd
 
     List<WorkOrderLifecycleEvent> findByWorkOrder_IdAndCompanyIdOrderByOccurredAtDescIdDesc(Long workOrderId,
                                                                                             Long companyId);
+
+    List<WorkOrderLifecycleEvent> findByWorkOrder_IdAndCompanyIdOrderByOccurredAtAscIdAsc(Long workOrderId,
+                                                                                           Long companyId);
 }

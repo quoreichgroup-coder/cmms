@@ -2,6 +2,7 @@ package com.grash.controller;
 
 import com.grash.dto.LaborPatchDTO;
 import com.grash.dto.SuccessResponse;
+import com.grash.dto.WorkOrderChangeStatusDTO;
 import com.grash.exception.CustomException;
 import com.grash.model.Labor;
 import com.grash.model.User;
@@ -74,11 +75,10 @@ public class LaborController {
                     laborService.findByWorkOrder(id).stream().filter(labor -> labor.isLogged() && labor.getAssignedTo().getId().equals(user.getId())).findFirst();
             if (start) {
                 WorkOrder workOrder = optionalWorkOrder.get();
-                if (workOrder.getFirstTimeToReact() == null) workOrder.setFirstTimeToReact(new Date());
-
                 if (!workOrder.getStatus().equals(Status.IN_PROGRESS)) {
-                    workOrder.setStatus(Status.IN_PROGRESS);
-                    workOrderService.save(workOrder);
+                    WorkOrderChangeStatusDTO statusChange = new WorkOrderChangeStatusDTO();
+                    statusChange.setStatus(Status.IN_PROGRESS);
+                    workOrderService.changeStatus(statusChange, id, user, null);
                 }
                 if (optionalLabor.isPresent()) {
                     Labor labor = optionalLabor.get();

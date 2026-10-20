@@ -148,8 +148,10 @@
     "test:list-search-pagination": "node scripts/list-search-pagination.test.cjs",
     "test:theme-contrast": "node scripts/theme-contrast.test.cjs",
     "test:print-qr-security": "node --test scripts/print-qr-security.test.cjs",
+    "test:csp-policy": "node --test scripts/csp-policy.test.cjs",
     "test:sidebar-navigation": "node --test scripts/sidebar-navigation.test.cjs",
     "test:sidebar-state": "node --test scripts/sidebar-state.test.cjs",
+    "test:sidebar-layout": "node --test scripts/sidebar-layout.test.cjs",
     "test:maintenance-dashboard-metrics": "node --test scripts/maintenance-dashboard-metrics.test.cjs",
     "test:datagrid-hover": "node --test scripts/datagrid-hover.test.cjs",
     "test:workload-errors": "node --test scripts/workload-request-errors.test.cjs"

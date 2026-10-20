@@ -64,7 +64,10 @@ import ShiftConfigurationModal from 'src/content/own/PeopleAndTeams/components/S
 import { getWorkloadDestination } from './scheduleDestination';
 import WorkloadOrderCard from './WorkloadOrderCard';
 import { getWorkloadUserDisplayName } from './userDisplayName';
-import { getCapacityUtilizationPercent } from './capacityUtilization';
+import {
+  getCapacityBalance,
+  getCapacityUtilizationPercent
+} from './capacityUtilization';
 import { isDueDateBeforeDay, isDueDateWithinNextDays } from '../dueDate';
 
 interface WorkloadViewProps {
@@ -212,6 +215,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
         <LinearProgress
           variant="determinate"
           value={Math.min(percent, 100)}
+          aria-valuetext={t('workload_capacity_used', { percent })}
           color={barColor(percent)}
           sx={{ height: 10, borderRadius: 1, width: '100%' }}
         />
@@ -786,27 +790,43 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                       userDayData.allocatedMinutes,
                                       userDayData.capacityMinutes
                                     )}
-                                    <Typography color="text.secondary">
-                                      {getCapacityUtilizationPercent(
+                                    {(() => {
+                                      const balance = getCapacityBalance(
                                         userDayData.allocatedMinutes,
                                         userDayData.capacityMinutes
-                                      ) === null
-                                        ? t('capacity_utilization_unavailable')
-                                        : (() => {
-                                            const rem = Math.max(
-                                              0,
-                                              userDayData.capacityMinutes -
-                                                userDayData.allocatedMinutes
-                                            );
-                                            const h = Math.floor(rem / 60);
-                                            const m = Math.round(rem % 60);
-                                            return `${h}${t(
+                                      );
+                                      const balanceLabel =
+                                        balance.kind === 'unavailable'
+                                          ? t(
+                                              'capacity_utilization_unavailable'
+                                            )
+                                          : balance.kind === 'over'
+                                          ? t('workload_capacity_over', {
+                                              hours: balance.hours,
+                                              minutes: String(
+                                                balance.minutes
+                                              ).padStart(2, '0')
+                                            })
+                                          : `${balance.hours}${t(
                                               'hours_abbrev'
-                                            )}${String(m).padStart(2, '0')} ${t(
+                                            )}${String(
+                                              balance.minutes
+                                            ).padStart(2, '0')} ${t(
                                               'hours_left'
                                             )}`;
-                                          })()}
-                                    </Typography>
+                                      return (
+                                        <Typography
+                                          color={
+                                            balance.kind === 'over'
+                                              ? 'error.main'
+                                              : 'text.secondary'
+                                          }
+                                          aria-label={balanceLabel}
+                                        >
+                                          {balanceLabel}
+                                        </Typography>
+                                      );
+                                    })()}
                                     <Stack spacing={0.5}>
                                       {[...userDayData.workOrders]
                                         .sort(

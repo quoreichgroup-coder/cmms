@@ -14,7 +14,11 @@ import { useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import SidebarMenuItem from './item';
 import menuItems, { MenuItem } from './items';
-import { isSidebarPathActive } from 'src/utils/sidebarNavigation';
+import {
+  isSidebarItemPathActive,
+  isSidebarPathActive,
+  isSidebarPathExact
+} from 'src/utils/sidebarNavigation';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../../../../hooks/useAuth';
 import { useEffect } from 'react';
@@ -115,6 +119,16 @@ const SubMenuWrapper = styled(Box)(
             }
           }
 
+          &.expanded:not(.active) {
+            background-color: ${theme.sidebar.menuItemBg};
+            color: ${theme.sidebar.textColor};
+
+            .MuiButton-startIcon,
+            .MuiButton-endIcon {
+              color: ${theme.sidebar.textColor};
+            }
+          }
+
           &.active {
             background-color: ${theme.sidebar.menuItemBgActive};
             box-shadow: none;
@@ -158,6 +172,37 @@ const SubMenuWrapper = styled(Box)(
             .MuiButton-root {
               min-height: 40px;
               padding: ${theme.spacing(0.5, 1.5)};
+              border-radius: ${theme.general.borderRadius};
+              transition: ${theme.transitions.create([
+                'background-color',
+                'color'
+              ])};
+
+              &:hover {
+                background-color: ${theme.sidebar.menuItemBg};
+                color: ${theme.sidebar.menuItemColor};
+
+                .MuiButton-startIcon,
+                .MuiButton-endIcon {
+                  color: ${theme.sidebar.menuItemColor};
+                }
+              }
+
+              &.active {
+                background-color: ${theme.sidebar.menuItemBg};
+                color: ${theme.colors.primary.main};
+                font-weight: 600;
+
+                .MuiButton-startIcon,
+                .MuiButton-endIcon {
+                  color: ${theme.colors.primary.main};
+                }
+              }
+
+              &:focus-visible {
+                outline: 2px solid ${theme.colors.primary.main};
+                outline-offset: -2px;
+              }
 
               .MuiBadge-root {
                 right: ${theme.spacing(3.2)};
@@ -165,7 +210,7 @@ const SubMenuWrapper = styled(Box)(
 
               &:before {
                 content: ' ';
-                background: ${theme.colors.primary.main};
+                background: currentColor;
                 opacity: 0;
                 transition: ${theme.transitions.create([
                   'transform',
@@ -189,7 +234,7 @@ const SubMenuWrapper = styled(Box)(
               }
 
               &.active:before {
-                background: ${theme.sidebar.menuItemIconColorActive};
+                background: ${theme.colors.primary.main};
               }
             }
           }
@@ -235,16 +280,15 @@ const reduceChildRoutes = ({
   collapsed: boolean;
 }): Array<JSX.Element> => {
   const key = item.name;
-  const routeActive = isSidebarPathActive(path, item.link);
-
   if (item.items) {
-    const partialMatch = isSidebarPathActive(path, item.link);
+    const containsCurrentRoute = isSidebarItemPathActive(path, item);
+    const routeActive = isSidebarPathExact(path, item.link);
 
     ev.push(
       <SidebarMenuItem
         key={key}
-        active={partialMatch}
-        open={partialMatch}
+        active={routeActive}
+        open={containsCurrentRoute}
         name={item.name}
         icon={item.icon}
         link={item.link}
@@ -261,6 +305,7 @@ const reduceChildRoutes = ({
       </SidebarMenuItem>
     );
   } else {
+    const routeActive = isSidebarPathActive(path, item.link);
     ev.push(
       <SidebarMenuItem
         key={key}

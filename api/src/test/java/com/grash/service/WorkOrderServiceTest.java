@@ -1259,6 +1259,23 @@ class WorkOrderServiceTest {
         }
 
         @Test
+        void transitionToInProgress_recordsLifecycleEvent() {
+            dto.setStatus(Status.IN_PROGRESS);
+            stubBasic();
+
+            workOrderService.changeStatus(dto, 1L, user, "web");
+
+            ArgumentCaptor<WorkOrderLifecycleEvent> eventCaptor =
+                    ArgumentCaptor.forClass(WorkOrderLifecycleEvent.class);
+            verify(workOrderLifecycleEventRepository).save(eventCaptor.capture());
+            WorkOrderLifecycleEvent event = eventCaptor.getValue();
+            assertEquals(Status.OPEN, event.getPreviousStatus());
+            assertEquals(Status.IN_PROGRESS, event.getNewStatus());
+            assertEquals(user.getId(), event.getActorUserId());
+            assertNotNull(event.getOccurredAt());
+        }
+
+        @Test
         void transitionToComplete_skipsDownTimeIfOtherIncompleteWOSharesAsset() {
             wo.setStatus(Status.OPEN);
             dto.setStatus(Status.COMPLETE);
@@ -2177,6 +2194,51 @@ class WorkOrderServiceTest {
 
     @Nested
     class WorkOrderLifecycleEvents {
+
+        @Test
+        void getExecutionTime_calculatesFromEventsOfAccessibleCompanyWorkOrder() {
+            WorkOrder accessibleWorkOrder = buildWorkOrder(1L);
+            accessibleWorkOrder.setCreatedBy(user.getId());
+            accessibleWorkOrder.setStatus(Status.COMPLETE);
+            List<WorkOrderLifecycleEvent> events = List.of(
+                    new WorkOrderLifecycleEvent(accessibleWorkOrder, Status.OPEN, Status.IN_PROGRESS,
+                            user, new Date(1_000), null),
+                    new WorkOrderLifecycleEvent(accessibleWorkOrder, Status.IN_PROGRESS, Status.ON_HOLD,
+                            user, new Date(11_000), null),
+                    new WorkOrderLifecycleEvent(accessibleWorkOrder, Status.ON_HOLD, Status.IN_PROGRESS,
+                            user, new Date(101_000), null),
+                    new WorkOrderLifecycleEvent(accessibleWorkOrder, Status.IN_PROGRESS, Status.COMPLETE,
+                            user, new Date(121_000), null));
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId()))
+                    .thenReturn(Optional.of(accessibleWorkOrder));
+            when(workOrderLifecycleEventRepository
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtAscIdAsc(1L, company.getId()))
+                    .thenReturn(events);
+
+            var result = workOrderService.getExecutionTime(1L, user);
+
+            assertTrue(result.isMeasured());
+            assertFalse(result.isRunning());
+            assertEquals(30L, result.getElapsedSeconds());
+            verify(workOrderLifecycleEventRepository)
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtAscIdAsc(1L, company.getId());
+        }
+
+        @Test
+        void getExecutionTime_deniesInaccessibleWorkOrderBeforeQueryingEvents() {
+            WorkOrder inaccessibleWorkOrder = buildWorkOrder(1L);
+            inaccessibleWorkOrder.setCreatedBy(99L);
+            role.getViewOtherPermissions().clear();
+            when(workOrderRepository.findByIdAndCompany_Id(1L, company.getId()))
+                    .thenReturn(Optional.of(inaccessibleWorkOrder));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> workOrderService.getExecutionTime(1L, user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+            verify(workOrderLifecycleEventRepository, never())
+                    .findByWorkOrder_IdAndCompanyIdOrderByOccurredAtAscIdAsc(anyLong(), anyLong());
+        }
 
         @Test
         void getLifecycleEvents_scopesLookupToAccessibleCompanyWorkOrder() {

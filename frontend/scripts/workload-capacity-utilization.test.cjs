@@ -27,3 +27,39 @@ test('calculates utilization and preserves over-capacity values', () => {
   assert.equal(getPercent(45, 60), 75);
   assert.equal(getPercent(75, 60), 125);
 });
+
+test('reports capacity balance as unavailable, remaining, or over capacity', () => {
+  const getBalance = moduleExports.getCapacityBalance;
+  assert.deepEqual(JSON.parse(JSON.stringify(getBalance(30, 0))), {
+    kind: 'unavailable'
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(getBalance(90, 120))), {
+    kind: 'remaining',
+    hours: 0,
+    minutes: 30
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(getBalance(150, 120))), {
+    kind: 'over',
+    hours: 0,
+    minutes: 30
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(getBalance(0, 450))), {
+    kind: 'remaining',
+    hours: 7,
+    minutes: 30
+  });
+});
+
+test('workload renders over-capacity and unavailable labels explicitly', () => {
+  const view = fs.readFileSync(
+    'src/content/own/WorkOrders/WorkloadView/index.tsx',
+    'utf8'
+  );
+  assert.match(view, /getCapacityBalance\(/);
+  assert.match(view, /t\('workload_capacity_over'/);
+  assert.match(
+    view,
+    /aria-valuetext=\{t\('workload_capacity_used', \{ percent \}\)\}/
+  );
+  assert.match(view, /balance\.kind === 'unavailable'/);
+});

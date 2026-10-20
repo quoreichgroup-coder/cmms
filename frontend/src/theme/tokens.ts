@@ -16,14 +16,14 @@ export const qpmAnalyticsTokens = [
   '#7A5AF8'
 ] as const;
 
-/** QPM blue navigation surface; the selected row uses the deeper navy. */
+/** Light navigation surface with the QPM brand blue reserved for selection. */
 export const qpmNavigationTokens = {
-  sidebar: '#4B5FE8',
-  text: '#FFFFFF',
-  mutedText: '#F1F3FF',
-  divider: 'rgba(255,255,255,0.22)',
-  hover: '#4054D2',
-  active: '#111D38',
+  sidebar: '#FFFFFF',
+  text: '#344054',
+  mutedText: '#475467',
+  divider: '#E4E7EC',
+  hover: '#EEF2FF',
+  active: '#4B5FE8',
   activeText: '#FFFFFF'
 } as const;
 

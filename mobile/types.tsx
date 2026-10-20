@@ -34,8 +34,10 @@ declare global {
 
 export type RootStackParamList = {
   Root: NavigatorScreenParams<RootTabParamList> | undefined;
+  Onboarding: { replay?: boolean } | undefined;
   AddWorkOrder: { location?: Location; asset?: AssetDTO };
   WorkOrderStats: undefined;
+  Requests: undefined;
   EditWorkOrder: { workOrder: WorkOrder; tasks: Task[] };
   EditRequest: { request: Request };
   EditAsset: { asset: AssetDTO };
@@ -156,9 +158,11 @@ export type RootStackParamList = {
     ) => Promise<boolean>;
     fieldsConfig: { feedback: boolean; signature: boolean };
     workOrderContext: {
+      id: number;
       identifier: string;
       title: string;
       assetName?: string;
+      laborEntries: Array<{ label: string; seconds: number }>;
     };
   };
   NotFound: undefined;
@@ -192,7 +196,8 @@ export type RootStackScreenProps<Screen extends keyof RootStackParamList> =
 export type RootTabParamList = {
   Home: undefined;
   WorkOrders: { filterFields: FilterField[]; fromHome?: boolean };
-  AddEntities: undefined;
+  Scan: undefined;
+  Stats: undefined;
   Requests: undefined;
   MoreEntities: undefined;
 };

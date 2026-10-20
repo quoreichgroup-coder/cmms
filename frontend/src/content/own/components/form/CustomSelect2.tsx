@@ -269,20 +269,27 @@ export const CustomSelect = ({
                 }
                 InputProps={{
                   ...params.InputProps,
-                  endAdornment: hasCreatePermission(
-                    PermissionEntity.PEOPLE_AND_TEAMS
-                  ) && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/app/people-teams/people?invite=true');
-                        }}
-                      >
-                        <AddCircleOutlinedIcon />
-                      </IconButton>
-                    </InputAdornment>
+                  endAdornment: (
+                    <>
+                      {hasCreatePermission(
+                        PermissionEntity.PEOPLE_AND_TEAMS
+                      ) && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            aria-label={field.label}
+                            title={field.label}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/app/people-teams/people?invite=true');
+                            }}
+                          >
+                            <AddCircleOutlinedIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      )}
+                      {params.InputProps.endAdornment}
+                    </>
                   )
                 }}
               />
@@ -441,17 +448,22 @@ export const CustomSelect = ({
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocationModalOpen(true);
-                        }}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
+                    <>
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          aria-label={field.label}
+                          title={field.label}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocationModalOpen(true);
+                          }}
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                      {params.InputProps.endAdornment}
+                    </>
                   )
                 }}
               />
@@ -633,17 +645,22 @@ export const CustomSelect = ({
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssetModalOpen(true);
-                        }}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
+                    <>
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          aria-label={field.label}
+                          title={field.label}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssetModalOpen(true);
+                          }}
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                      {params.InputProps.endAdornment}
+                    </>
                   )
                 }}
               />
@@ -862,28 +879,33 @@ export const CustomSelect = ({
                 }
                 InputProps={{
                   ...params.InputProps,
-                  endAdornment: hasCreatePermission(
-                    PermissionEntity.CATEGORIES
-                  ) && (
-                    <InputAdornment position="end">
-                      {creatingCategory ? (
-                        <CircularProgress size="1rem" />
-                      ) : (
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const inputValue = params.inputProps.value;
-                            if (inputValue) {
-                              handleCreateCategory(inputValue as string);
-                            }
-                          }}
-                          disabled={!params.inputProps.value}
-                        >
-                          <AddCircleOutlinedIcon />
-                        </IconButton>
+                  endAdornment: (
+                    <>
+                      {hasCreatePermission(PermissionEntity.CATEGORIES) && (
+                        <InputAdornment position="end">
+                          {creatingCategory ? (
+                            <CircularProgress size="1rem" />
+                          ) : (
+                            <IconButton
+                              size="small"
+                              aria-label={field.label}
+                              title={field.label}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const inputValue = params.inputProps.value;
+                                if (inputValue) {
+                                  handleCreateCategory(inputValue as string);
+                                }
+                              }}
+                              disabled={!params.inputProps.value}
+                            >
+                              <AddCircleOutlinedIcon />
+                            </IconButton>
+                          )}
+                        </InputAdornment>
                       )}
-                    </InputAdornment>
+                      {params.InputProps.endAdornment}
+                    </>
                   )
                 }}
               />

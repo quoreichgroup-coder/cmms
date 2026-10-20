@@ -141,13 +141,6 @@ const SelectLocationModal: React.FC<SelectLocationModalProps> = ({
     }
   }, [open, initialSelectedLocations, previousInitialSelectedLocations]);
 
-  useEffect(() => {
-    if (single && open) {
-      setSelectedLocations([]);
-      setRowSelection({});
-    }
-  }, [open, single]);
-
   const handleToggleExpand = (row: LocationRow) => {
     setExpanded((prev) => ({ ...prev, [row.id]: !prev[row.id] }));
   };

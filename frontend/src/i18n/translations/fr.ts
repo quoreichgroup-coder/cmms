@@ -428,6 +428,22 @@ const frJSON = {
   wo_create_success: 'Le bon de travail a été créé avec succès',
   wo_create_failure: "Le bon de travail n'a pas pu être créé",
   wo_close_success: 'Le bon de travail a été clôturé avec succès',
+  work_order_completion_review_title: 'Vérifier les informations de clôture',
+  review_completion: 'Vérifier avant de clôturer',
+  work_order_completion_review_description:
+    'Vérifiez le bon de travail, les temps de main-d’œuvre enregistrés et les informations de clôture avant l’enregistrement.',
+  work_order_completion_tracked_time: 'Temps de main-d’œuvre enregistré',
+  work_order_completion_total_labor: 'Total main-d’œuvre',
+  work_order_completion_no_time: 'Aucun temps de main-d’œuvre enregistré.',
+  work_order_elapsed_execution_time:
+    'Durée écoulée d’exécution (hors périodes en attente)',
+  work_order_execution_time_running: 'En cours',
+  work_order_execution_time_unavailable:
+    'Non mesurée : l’historique complet des statuts de ce bon de travail est indisponible.',
+  work_order_completion_signature_captured: 'Signature recueillie',
+  confirm_and_close_wo: 'Confirmer et clôturer',
+  back_to_edit: 'Retour à la saisie',
+  not_provided: 'Non renseigné',
   wo_status_change_success: 'Le statut du bon de travail a été mis à jour',
   changes_saved_success: 'les changements ont été enregistrés',
   wo_update_failure: "Le bon de travail n'a pas pu être modifié",
@@ -2515,6 +2531,9 @@ const frJSON = {
   workload_open_order_aria: 'Ouvrir {{customId}} : {{title}}',
   no_data: 'Aucune donnée',
   hours_left: 'restantes',
+  workload_capacity_over:
+    '{{hours}} h {{minutes}} min au-dessus de la capacité',
+  workload_capacity_used: '{{percent}} % de la capacité affectée',
   export_cost_and_time: 'Exporter les coûts et le temps',
   export_work_orders: 'Exporter les ordres de travail',
   copy_wo: "Copier l'ordre de travail",
@@ -2583,6 +2602,8 @@ const frJSON = {
   issued_documents_empty:
     'Aucun document officiel n’a été émis pour cet ordre de travail.',
   issued_documents_load_error: 'Impossible de charger les documents émis.',
+  work_order_report_preview_error:
+    'Impossible de générer l’aperçu de l’ordre de travail.',
   issued_document_issue_error:
     'Impossible d’émettre et d’archiver ce document.',
   issued_document_saved: 'Le document officiel a été émis et archivé.',

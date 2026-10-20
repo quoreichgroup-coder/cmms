@@ -8,7 +8,11 @@ import {
   useState
 } from 'react';
 import { OwnUser, UserResponseDTO } from '../models/user';
-import api, { authHeader, refreshAccessToken } from '../utils/api';
+import api, {
+  authHeader,
+  canRetryRefreshAccessToken,
+  refreshAccessToken
+} from '../utils/api';
 import { verify } from '../utils/jwt';
 import { Alert, AppState, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -59,9 +63,15 @@ import Part from '../models/part';
 import Request from '../models/request';
 import { getPreferredLanguage } from '../utils/preferredLanguage';
 import { qpmDesignTokens } from '../theme/tokens';
+import NetInfo from '@react-native-community/netinfo';
+import {
+  getAuthRecoveryDelayMs,
+  shouldRetryAuthRecovery
+} from '../utils/authRecovery';
 
 interface AuthState {
   isInitialized: boolean;
+  isRecoveringSession: boolean;
   isAuthenticated: boolean;
   user: UserResponseDTO | null;
   company: Company | null;
@@ -89,6 +99,10 @@ interface AuthContextValue extends AuthState {
   deleteAccount: () => Promise<void>;
   switchAccount: (id: number) => Promise<void>;
   patchUserSettings: (values: Partial<UserSettings>) => Promise<UserSettings>;
+  updateOnboardingPreference: (
+    version: number,
+    status: 'SKIPPED' | 'COMPLETED'
+  ) => Promise<UserSettings>;
   patchUser: (values: Partial<OwnUser>) => Promise<void>;
   cancelSubscription: () => Promise<void>;
   resumeSubscription: () => Promise<void>;
@@ -140,6 +154,9 @@ type InitializeAction = {
     companySettings: CompanySettings | null;
     company: Company | null;
   };
+};
+type AuthRecoveryPendingAction = {
+  type: 'AUTH_RECOVERY_PENDING';
 };
 
 type LoginAction = {
@@ -248,6 +265,7 @@ type ReviewEligibleAction = {
 
 type Action =
   | InitializeAction
+  | AuthRecoveryPendingAction
   | LoginAction
   | LogoutAction
   | RegisterAction
@@ -270,6 +288,7 @@ type Action =
 const initialAuthState: AuthState = {
   isAuthenticated: false,
   isInitialized: false,
+  isRecoveringSession: false,
   user: null,
   company: null,
   userSettings: null,
@@ -302,17 +321,29 @@ const handlers: Record<
       ...state,
       isAuthenticated,
       isInitialized: true,
+      isRecoveringSession: false,
       user,
       companySettings,
       company
     };
   },
+  AUTH_RECOVERY_PENDING: (state: AuthState): AuthState => ({
+    ...state,
+    isAuthenticated: false,
+    isInitialized: false,
+    isRecoveringSession: true,
+    user: null,
+    company: null,
+    companySettings: null
+  }),
   LOGIN: (state: AuthState, action: LoginAction): AuthState => {
     const { user, companySettings, company } = action.payload;
 
     return {
       ...state,
       isAuthenticated: true,
+      isInitialized: true,
+      isRecoveringSession: false,
       user,
       companySettings,
       company
@@ -321,6 +352,8 @@ const handlers: Record<
   LOGOUT: (state: AuthState): AuthState => ({
     ...state,
     isAuthenticated: false,
+    isInitialized: true,
+    isRecoveringSession: false,
     user: null
   }),
   REGISTER: (state: AuthState, action: RegisterAction): AuthState => {
@@ -329,6 +362,8 @@ const handlers: Record<
     return {
       ...state,
       isAuthenticated: true,
+      isInitialized: true,
+      isRecoveringSession: false,
       user,
       companySettings,
       company
@@ -512,6 +547,7 @@ const AuthContext = createContext<AuthContextValue>({
   getInfos: () => Promise.resolve(),
   deleteAccount: () => Promise.resolve(),
   patchUserSettings: () => Promise.resolve(null),
+  updateOnboardingPreference: () => Promise.resolve(null),
   patchCompany: () => Promise.resolve(),
   patchUser: () => Promise.resolve(),
   patchSubscription: () => Promise.resolve(),
@@ -543,9 +579,39 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   const { t } = useTranslation();
   const [state, dispatch] = useReducer(reducer, initialAuthState);
   const appState = useRef(AppState.currentState);
+  const authInitializationInProgress = useRef(false);
+  const networkWasUnavailable = useRef(false);
+  const getInfosRef = useRef<() => Promise<void>>(async () => {});
+  const authRecoveryNeeded = useRef(false);
+  const authRecoveryAttempt = useRef(0);
+  const authRecoveryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openedSettings, setOpenedSettings] = useState<boolean>(false);
   const globalDispatch = useDispatch();
   const [stompClient, setStompClient] = useState(null);
+  const clearAuthRecovery = () => {
+    authRecoveryNeeded.current = false;
+    authRecoveryAttempt.current = 0;
+    if (authRecoveryTimer.current) clearTimeout(authRecoveryTimer.current);
+    authRecoveryTimer.current = null;
+  };
+  const scheduleAuthRecovery = () => {
+    if (!authRecoveryNeeded.current || authRecoveryTimer.current) return;
+    const delay = getAuthRecoveryDelayMs(authRecoveryAttempt.current);
+    authRecoveryAttempt.current += 1;
+    authRecoveryTimer.current = setTimeout(() => {
+      authRecoveryTimer.current = null;
+      if (!authRecoveryNeeded.current) return;
+      if (AppState.currentState === 'active') {
+        void getInfosRef.current();
+      }
+    }, delay);
+  };
+  useEffect(
+    () => () => {
+      if (authRecoveryTimer.current) clearTimeout(authRecoveryTimer.current);
+    },
+    []
+  );
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (
@@ -558,6 +624,9 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           );
           setOpenedSettings(false);
         }
+        if (state.isInitialized && !state.isAuthenticated) {
+          void getInfosRef.current();
+        }
       }
 
       appState.current = nextAppState;
@@ -566,7 +635,26 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return () => {
       subscription.remove();
     };
-  }, [openedSettings]);
+  }, [openedSettings, state.isAuthenticated, state.isInitialized]);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((networkState) => {
+      const available =
+        networkState.isConnected !== false &&
+        networkState.isInternetReachable !== false;
+      if (!available) {
+        networkWasUnavailable.current = true;
+      } else if (
+        networkWasUnavailable.current &&
+        state.isInitialized &&
+        !state.isAuthenticated
+      ) {
+        networkWasUnavailable.current = false;
+        void getInfosRef.current();
+      }
+    });
+
+    return unsubscribe;
+  }, [state.isAuthenticated, state.isInitialized]);
   useEffect(() => {
     const disconnect = () => {
       if (stompClient) {
@@ -745,7 +833,9 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
   const getInfos = async (): Promise<void> => {
     // AsyncStorage.clear();
-
+    if (authInitializationInProgress.current) return;
+    authInitializationInProgress.current = true;
+    let retryAuthRecovery = false;
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
       const refreshToken = await AsyncStorage.getItem('refreshToken');
@@ -757,6 +847,10 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
           authenticated = true;
+        } else {
+          retryAuthRecovery =
+            Boolean(await AsyncStorage.getItem('refreshToken')) &&
+            canRetryRefreshAccessToken();
         }
       }
 
@@ -767,6 +861,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         const user = await updateUserInfos();
         const company = await api.get<Company>(`companies/${user.companyId}`);
         await setupUser(user, company.companySettings);
+        clearAuthRecovery();
         dispatch({
           type: 'INITIALIZE',
           payload: {
@@ -776,6 +871,36 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
             company
           }
         });
+      } else {
+        if (!retryAuthRecovery) clearAuthRecovery();
+        if (retryAuthRecovery) {
+          dispatch({ type: 'AUTH_RECOVERY_PENDING' });
+        } else {
+          dispatch({
+            type: 'INITIALIZE',
+            payload: {
+              isAuthenticated: false,
+              user: null,
+              companySettings: null,
+              company: null
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      try {
+        const hasStoredCredentials = Boolean(
+          (await AsyncStorage.getItem('accessToken')) ||
+            (await AsyncStorage.getItem('refreshToken'))
+        );
+        retryAuthRecovery =
+          hasStoredCredentials && shouldRetryAuthRecovery(err);
+      } catch {
+        retryAuthRecovery = false;
+      }
+      if (retryAuthRecovery) {
+        dispatch({ type: 'AUTH_RECOVERY_PENDING' });
       } else {
         dispatch({
           type: 'INITIALIZE',
@@ -787,19 +912,14 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           }
         });
       }
-    } catch (err) {
-      console.error(err);
-      dispatch({
-        type: 'INITIALIZE',
-        payload: {
-          isAuthenticated: false,
-          user: null,
-          companySettings: null,
-          company: null
-        }
-      });
+    } finally {
+      authInitializationInProgress.current = false;
+      authRecoveryNeeded.current = retryAuthRecovery;
+      if (retryAuthRecovery) scheduleAuthRecovery();
+      else if (!authRecoveryNeeded.current) clearAuthRecovery();
     }
   };
+  getInfosRef.current = getInfos;
   const switchAccount = async (id: number): Promise<void> => {
     const response = await api.get<AuthResponse>(
       `auth/switch-account?id=${id}`
@@ -808,6 +928,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     return loginInternal(accessToken, refreshToken);
   };
   const loginInternal = async (accessToken: string, refreshToken: string) => {
+    clearAuthRecovery();
     globalDispatch(revertAll());
     await setSession(accessToken, refreshToken);
     const user = await updateUserInfos();
@@ -846,6 +967,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
 
   const logout = async (): Promise<void> => {
+    clearAuthRecovery();
     try {
       await api.post('auth/logout', {});
     } catch {
@@ -916,6 +1038,17 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         userSettings
       }
     });
+    return userSettings;
+  };
+  const updateOnboardingPreference = async (
+    version: number,
+    status: 'SKIPPED' | 'COMPLETED'
+  ): Promise<UserSettings> => {
+    const userSettings = await api.patch<UserSettings>(
+      `user-settings/${state.userSettings.id}/onboarding`,
+      { version, status }
+    );
+    dispatch({ type: 'PATCH_USER_SETTINGS', payload: { userSettings } });
     return userSettings;
   };
   const patchCompany = async (values: Partial<Company>): Promise<void> => {
@@ -1326,6 +1459,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         updatePassword,
         resetPassword,
         patchUserSettings,
+        updateOnboardingPreference,
         fetchUserSettings,
         fetchCompanySettings,
         fetchCompany,

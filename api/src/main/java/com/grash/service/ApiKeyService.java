@@ -42,10 +42,10 @@ public class ApiKeyService {
     private final LicenseService licenseService;
 
     public Pair<ApiKey, String> create(@Valid ApiKeyPostDTO apiKeyReq, User user) {
+        ensureCanManageApiKeys(user);
         if (apiKeyReq.getExpiresAt() != null && apiKeyReq.getExpiresAt().before(new Date()))
             throw new CustomException("expiring date can't be in the past", HttpStatus.NOT_ACCEPTABLE);
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
-                || !user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.API_ACCESS)
+        if (!user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.API_ACCESS)
                 || !licenseService.hasEntitlement(LicenseEntitlement.API_ACCESS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         ApiKey apiKey =
@@ -68,6 +68,7 @@ public class ApiKeyService {
 
 
     public void delete(Long id, User user) {
+        ensureCanManageApiKeys(user);
         ApiKey apiKey = findByIdAndCompany(id, user)
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
         apiKeyRepository.delete(apiKey);
@@ -78,6 +79,7 @@ public class ApiKeyService {
     }
 
     public ApiKey update(Long id, ApiKeyPatchDTO apiKeyPatchDTO, User user) {
+        ensureCanManageApiKeys(user);
         ApiKey savedApiKey =
                 findByIdAndCompany(id, user).orElseThrow(() -> new CustomException("Not found",
                         HttpStatus.NOT_FOUND));
@@ -110,6 +112,7 @@ public class ApiKeyService {
     }
 
     public Pair<ApiKey, String> rotateKey(Long id, User user) {
+        ensureCanManageApiKeys(user);
         ApiKey oldKey = findByIdAndCompany(id, user)
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
         if (!oldKey.getUser().getId().equals(user.getId())) {
@@ -132,6 +135,16 @@ public class ApiKeyService {
             }
         }
         return create(newKeyReq, user);
+    }
+
+    private void ensureCanManageApiKeys(User user) {
+        if (user.isOwnsCompany()) return;
+
+        if (user.getRole() == null
+                || !user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                || !user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
     }
 
 }

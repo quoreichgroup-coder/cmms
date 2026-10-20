@@ -45,3 +45,58 @@ test('sidebar route without a destination is never active', () => {
     false
   );
 });
+
+test('nested sidebar groups expand for a directly opened deep route', () => {
+  const routeTree = {
+    name: 'Statistics',
+    items: [
+      {
+        name: 'work_orders',
+        items: [{ name: 'wo_aging', link: '/app/analytics/work-orders/aging' }]
+      }
+    ]
+  };
+
+  assert.equal(
+    moduleExports.isSidebarItemPathActive(
+      '/app/analytics/work-orders/aging',
+      routeTree
+    ),
+    true
+  );
+  assert.equal(
+    moduleExports.isSidebarPathExact(
+      '/app/analytics/work-orders/aging',
+      undefined
+    ),
+    false
+  );
+});
+
+test('an open group is not marked selected unless its own route is current', () => {
+  assert.equal(
+    moduleExports.isSidebarPathExact('/app/inventory/parts', '/app/inventory'),
+    false
+  );
+  assert.equal(
+    moduleExports.isSidebarPathExact('/app/inventory', '/app/inventory/'),
+    true
+  );
+});
+
+test('sidebar groups use separate route-active and descendant-open states', () => {
+  const menu = fs.readFileSync(
+    'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/index.tsx',
+    'utf8'
+  );
+  const item = fs.readFileSync(
+    'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/item.tsx',
+    'utf8'
+  );
+
+  assert.match(menu, /active=\{routeActive\}\s+open=\{containsCurrentRoute\}/);
+  assert.match(
+    item,
+    /className=\{clsx\(\{ active, expanded: menuToggle \}\)\}/
+  );
+});

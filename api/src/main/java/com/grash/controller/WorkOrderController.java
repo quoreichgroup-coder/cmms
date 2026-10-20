@@ -6,6 +6,7 @@ import com.grash.dto.workOrder.WorkOrderPatchDTO;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
 import com.grash.dto.workOrder.WorkOrderReopenDTO;
 import com.grash.dto.workOrder.WorkOrderLifecycleEventShowDTO;
+import com.grash.dto.workOrder.WorkOrderExecutionTimeDTO;
 import com.grash.dto.workOrder.WorkOrderSendReportDTO;
 import com.grash.dto.workOrder.WorkOrderShowDTO;
 import com.grash.exception.CustomException;
@@ -179,6 +180,13 @@ public class WorkOrderController {
         return workOrderService.getLifecycleEvents(id, user).stream()
                 .map(WorkOrderLifecycleEventShowDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/{id}/execution-time")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public WorkOrderExecutionTimeDTO getExecutionTime(@PathVariable("id") Long id, HttpServletRequest req) {
+        User user = userService.whoami(req);
+        return workOrderService.getExecutionTime(id, user);
     }
 
     @DeleteMapping("/{id}")

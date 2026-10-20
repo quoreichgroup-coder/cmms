@@ -60,6 +60,7 @@ export default function LinkModal({
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   return (
     <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>

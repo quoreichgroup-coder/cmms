@@ -22,7 +22,7 @@ import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -200,7 +200,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
               style={{ marginRight: 10 }}
               onClick={() => onCopy(location)}
             >
-              <ContentCopyIcon color="primary" />
+              <ContentCopyOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.LOCATIONS, location) && (

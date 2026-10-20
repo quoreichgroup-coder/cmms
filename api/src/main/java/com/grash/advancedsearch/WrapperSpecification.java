@@ -3,7 +3,6 @@ package com.grash.advancedsearch;
 import com.grash.model.enums.EnumName;
 import com.grash.model.enums.Priority;
 import com.grash.model.enums.Status;
-import com.grash.utils.Helper;
 import jakarta.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,6 +14,7 @@ import jakarta.persistence.metamodel.ManagedType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 public class WrapperSpecification<T> implements Specification<T> {
@@ -78,7 +78,7 @@ public class WrapperSpecification<T> implements Specification<T> {
                 if (path.getJavaType().isAnnotationPresent(jakarta.persistence.Entity.class)) {
                     result = cb.equal(path.get("id"), filterField.getValue());
                 } else {
-                    result = cb.equal(path, filterField.getValue());
+                    result = cb.equal(path, getTypedValue(path, filterField.getValue()));
                 }
                 break;
             }
@@ -88,7 +88,7 @@ public class WrapperSpecification<T> implements Specification<T> {
                 if (path.getJavaType().isAnnotationPresent(jakarta.persistence.Entity.class)) {
                     result = cb.notEqual(path.get("id"), filterField.getValue());
                 } else {
-                    result = cb.notEqual(path, filterField.getValue());
+                    result = cb.notEqual(path, getTypedValue(path, filterField.getValue()));
                 }
                 break;
             }
@@ -99,29 +99,25 @@ public class WrapperSpecification<T> implements Specification<T> {
                 result = cb.isNotNull(resolveFieldPath(root, filterField.getField()));
                 break;
             case GREATER_THAN:
-                result = gt(cb, resolveFieldPath(root, filterField.getField()), filterField.getValue());
+                Path<?> greaterThanPath = resolveFieldPath(root, filterField.getField());
+                result = gt(cb, greaterThanPath, getTypedValue(greaterThanPath, filterField.getValue()));
                 break;
 
             case GREATER_THAN_EQUAL:
-                if (filterField.getEnumName() != null && filterField.getEnumName().equals(EnumName.JS_DATE)) {
-                    result = ge(cb, resolveFieldPath(root, filterField.getField()),
-                            Helper.getDateFromJsString(filterField.getValue().toString()));
-                } else {
-                    result = ge(cb, resolveFieldPath(root, filterField.getField()), filterField.getValue());
-                }
+                Path<?> greaterThanEqualPath = resolveFieldPath(root, filterField.getField());
+                result = ge(cb, greaterThanEqualPath,
+                        getTypedValue(greaterThanEqualPath, filterField.getValue()));
                 break;
 
             case LESS_THAN:
-                result = lt(cb, resolveFieldPath(root, filterField.getField()), filterField.getValue());
+                Path<?> lessThanPath = resolveFieldPath(root, filterField.getField());
+                result = lt(cb, lessThanPath, getTypedValue(lessThanPath, filterField.getValue()));
                 break;
 
             case LESS_THAN_EQUAL:
-                if (filterField.getEnumName() != null && filterField.getEnumName().equals(EnumName.JS_DATE)) {
-                    result = le(cb, resolveFieldPath(root, filterField.getField()),
-                            Helper.getDateFromJsString(filterField.getValue().toString()));
-                } else {
-                    result = le(cb, resolveFieldPath(root, filterField.getField()), filterField.getValue());
-                }
+                Path<?> lessThanEqualPath = resolveFieldPath(root, filterField.getField());
+                result = le(cb, lessThanEqualPath,
+                        getTypedValue(lessThanEqualPath, filterField.getValue()));
                 break;
             case IN: {
                 Path<?> path = resolveFieldPath(root, filterField.getField());
@@ -132,8 +128,7 @@ public class WrapperSpecification<T> implements Specification<T> {
                 } else {
                     inClause = cb.in(path);
                 }
-                filterField.getValues().forEach(value -> inClause.value(getRealValue(filterField.getEnumName(),
-                        value)));
+                filterField.getValues().forEach(value -> inClause.value(getTypedValue(path, value)));
                 result = inClause;
                 break;
             }
@@ -142,7 +137,7 @@ public class WrapperSpecification<T> implements Specification<T> {
                 Join<Object, Object> join = root.join(filterField.getField(), joinType);
                 CriteriaBuilder.In<Object> inClause1 = cb.in(join.get("id"));
                 filterField.getValues().forEach(value -> inClause1.value(getRealValue(filterField.getEnumName(),
-                        value)));
+                        value, join.get("id"))));
                 result = inClause1;
                 break;
             }
@@ -168,7 +163,19 @@ public class WrapperSpecification<T> implements Specification<T> {
         }
     }
 
-    private Object getRealValue(EnumName enumName, Object value) {
+    private Object getTypedValue(Path<?> path, Object value) {
+        Object enumValue = getRealValue(filterField.getEnumName(), value, path);
+        if (enumValue != value || !(value instanceof String)) {
+            return enumValue;
+        }
+
+        if (Date.class.isAssignableFrom(path.getJavaType())) {
+            return SearchDateValueConverter.convert((String) value, path.getJavaType());
+        }
+        return value;
+    }
+
+    private Object getRealValue(EnumName enumName, Object value, Path<?> path) {
         if (enumName == null) {
             return value;
         }
@@ -176,7 +183,7 @@ public class WrapperSpecification<T> implements Specification<T> {
             return switch (enumName) {
                 case PRIORITY -> Priority.getPriorityFromString(value.toString());
                 case STATUS -> Status.getStatusFromString(value.toString());
-                case JS_DATE -> Helper.getDateFromJsString(value.toString());
+                case JS_DATE -> SearchDateValueConverter.convert(value.toString(), path.getJavaType());
             };
         }
         return value;

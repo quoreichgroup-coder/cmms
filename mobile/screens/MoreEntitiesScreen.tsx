@@ -35,6 +35,15 @@ export default function MoreEntitiesScreen({
       visible: hasViewPermission(PermissionEntity.ASSETS)
     },
     {
+      label: 'requests',
+      icon: 'inbox-outline',
+      link: 'Requests',
+      visible:
+        hasViewPermission(PermissionEntity.REQUESTS) &&
+        user.uiConfiguration.requests,
+      uiConfigKey: 'requests'
+    },
+    {
       label: 'parts',
       icon: 'archive-outline',
       link: 'Parts',

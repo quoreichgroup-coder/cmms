@@ -4,8 +4,10 @@
  *
  */
 import {
+  BottomTabBar,
   createBottomTabNavigator,
-  type BottomTabBarButtonProps
+  type BottomTabBarButtonProps,
+  type BottomTabBarProps
 } from '@react-navigation/bottom-tabs';
 import {
   DarkTheme,
@@ -16,11 +18,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
 import * as Notifications from 'expo-notifications';
 import {
+  Keyboard,
   Image,
   Platform,
-  Pressable,
+  StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions
 } from 'react-native';
 import ModalScreen from '../screens/ModalScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
@@ -47,7 +51,7 @@ import {
 import LinkingConfiguration from './LinkingConfiguration';
 import useAuth from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { IconButton, Text, useTheme } from 'react-native-paper';
+import { FAB, IconButton, Text } from 'react-native-paper';
 import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
 import MoreEntitiesScreen from '../screens/MoreEntitiesScreen';
 import MetersScreen from '../screens/meters/MetersScreen';
@@ -94,6 +98,7 @@ import InviteUserScreen from '../screens/peopleTeams/InviteUserScreen';
 import { navigate, navigationRef } from './RootNavigation';
 import { getNotificationUrlFromData } from '../utils/urlPaths';
 import SettingsScreen from '../screens/SettingsScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import LicenseScreen from '../screens/LicenseScreen';
 import CompanyProfileScreen from '../screens/CompanyProfileScreen';
 import WorkOrderFilters from '../screens/workOrders/WorkOrderFilters';
@@ -116,13 +121,15 @@ import {
 import RequestsScreen from '../screens/requests/RequestsScreen';
 import SwitchAccountScreen from '../screens/superUser/SwitchAccountScreen';
 import { FontAwesome, Ionicons, Feather } from '@expo/vector-icons';
-import { Fragment, ReactElement, ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppearance } from '../contexts/AppearanceContext';
+import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
+import { shouldShowOnboarding } from '../utils/onboardingState';
 
 export default function Navigation() {
   const { colorScheme, theme } = useAppearance();
-  const { isAuthenticated, isInitialized, user } = useAuth();
+  const { isAuthenticated, isInitialized, isRecoveringSession, user } =
+    useAuth();
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   const [navigationReady, setNavigationReady] = React.useState(false);
   const navigationTheme = React.useMemo(() => {
@@ -184,7 +191,7 @@ export default function Navigation() {
           <AuthNavigator />
         )
       ) : (
-        <LoadingScreen />
+        <LoadingScreen recovering={isRecoveringSession} />
       )}
     </NavigationContainer>
   );
@@ -198,8 +205,45 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function RootNavigator() {
   const { t } = useTranslation();
+  const { hasViewPermission, user, userSettings, fetchUserSettings } =
+    useAuth();
+  const [startupRoute, setStartupRoute] = React.useState<
+    'Root' | 'Onboarding' | null
+  >(null);
+  const attemptedSettingsForUser = React.useRef<number | null>(null);
+  const canViewRequests =
+    hasViewPermission(PermissionEntity.REQUESTS) &&
+    user.uiConfiguration.requests;
+
+  React.useEffect(() => {
+    if (!user) return;
+    if (userSettings?.id === user.userSettingsId) {
+      setStartupRoute(
+        shouldShowOnboarding(userSettings) ? 'Onboarding' : 'Root'
+      );
+      return;
+    }
+    if (attemptedSettingsForUser.current === user.userSettingsId) return;
+    attemptedSettingsForUser.current = user.userSettingsId;
+    void fetchUserSettings().catch((error) => {
+      console.warn(
+        'Could not load user settings before mobile startup:',
+        error
+      );
+      // A settings service outage must not lock a user out of QPM.
+      setStartupRoute('Root');
+    });
+  }, [fetchUserSettings, user, userSettings]);
+
+  if (!startupRoute) return <LoadingScreen />;
+
   return (
-    <Stack.Navigator>
+    <Stack.Navigator initialRouteName={startupRoute}>
+      <Stack.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
       <Stack.Screen
         name="Root"
         component={BottomTabNavigator}
@@ -277,6 +321,13 @@ function RootNavigator() {
         component={WorkOrderStatsScreen}
         options={{ title: t('stats') }}
       />
+      {canViewRequests && (
+        <Stack.Screen
+          name="Requests"
+          component={RequestsScreen}
+          options={{ title: t('requests') }}
+        />
+      )}
       <Stack.Screen
         name="Meters"
         component={MetersScreen}
@@ -602,39 +653,35 @@ function SuperUserNavigator() {
  */
 const BottomTab = createBottomTabNavigator<RootTabParamList>();
 
-function CreateTabBarButton({
-  onPress,
+function ScanTabBarButton({
   children,
-  accessibilityHint,
-  accessibilityLabel,
-  accessibilityRole,
-  accessibilityState,
-  disabled,
-  onLongPress,
-  testID
-}: BottomTabBarButtonProps): ReactElement {
-  const theme = useTheme();
-
+  style,
+  ...buttonProps
+}: BottomTabBarButtonProps) {
+  const theme = useAppTheme();
   return (
     <TouchableOpacity
+      {...buttonProps}
       accessible
-      accessibilityHint={accessibilityHint}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole={accessibilityRole ?? 'button'}
-      accessibilityState={accessibilityState}
-      disabled={disabled}
-      style={{
-        top: -25,
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-      testID={testID}
-      onLongPress={onLongPress}
-      onPress={onPress}
+      accessibilityRole="button"
+      style={[
+        style,
+        { top: -18, alignItems: 'center', justifyContent: 'center' }
+      ]}
     >
       <View
         style={{
-          width: 20
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.navigationActive,
+          elevation: 7,
+          shadowColor: theme.colors.shadow,
+          shadowOpacity: 0.22,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 3 }
         }}
       >
         {children}
@@ -643,63 +690,131 @@ function CreateTabBarButton({
   );
 }
 
-function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
-  const theme = useTheme();
+function QpmBottomTabBar(props: BottomTabBarProps) {
+  const theme = useAppTheme();
   const { t } = useTranslation();
-  const { hasViewPermission, hasCreatePermission, user } = useAuth();
-  const uiConfiguration = user.uiConfiguration;
-  let leftButtonsCount = user.role.code !== 'REQUESTER' ? 1 : 0;
-  let rightButtonsCount = 0;
-  if (createEntities.some((entity) => hasCreatePermission(entity))) {
-    leftButtonsCount++;
-  }
-  if (
-    hasViewPermission(PermissionEntity.REQUESTS) &&
-    uiConfiguration.requests
-  ) {
-    rightButtonsCount++;
-  }
-  if (viewMoreEntities.some((entity) => hasViewPermission(entity))) {
-    rightButtonsCount++;
-  }
+  const insets = useSafeAreaInsets();
+  const { hasCreatePermission, user } = useAuth();
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+  const canCreate = createEntities.some((entity) =>
+    hasCreatePermission(entity)
+  );
+  const activeRoute = props.state.routes[props.state.index]?.name;
+  const showCreate =
+    canCreate && ['Home', 'WorkOrders', 'Requests'].includes(activeRoute);
+  const rootNavigation = props.navigation.getParent();
 
-  // Determine whether to show the create button big in the center
-  const showBigCreateButton = leftButtonsCount === rightButtonsCount;
+  React.useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () =>
+      setKeyboardVisible(true)
+    );
+    const hide = Keyboard.addListener('keyboardDidHide', () =>
+      setKeyboardVisible(false)
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) return null;
+
+  const handleCreate = () => {
+    if (user.role.code === 'REQUESTER') {
+      rootNavigation?.navigate('AddRequest' as never);
+      return;
+    }
+    SheetManager.show('create-entities-sheet', {
+      payload: { navigation: rootNavigation as never }
+    });
+  };
+
+  return (
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      <BottomTabBar {...props} />
+      {showCreate && (
+        <FAB
+          icon="plus"
+          accessibilityLabel={t('create')}
+          onPress={handleCreate}
+          color={theme.colors.onNavigationActive}
+          style={{
+            position: 'absolute',
+            right: 20,
+            bottom: Math.max(12, insets.bottom) + 82,
+            backgroundColor: theme.colors.navigationActive,
+            borderRadius: 28
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { t } = useTranslation();
+  const { hasViewPermission, user } = useAuth();
+  const uiConfiguration = user.uiConfiguration;
+  const isRequester = user.role.code === 'REQUESTER';
+  const canViewRequests =
+    hasViewPermission(PermissionEntity.REQUESTS) && uiConfiguration.requests;
+  const canViewMoreEntities = viewMoreEntities.some((entity) =>
+    hasViewPermission(entity)
+  );
 
   return (
     <BottomTab.Navigator
-      initialRouteName={user.role.code === 'REQUESTER' ? 'Requests' : 'Home'}
+      initialRouteName={isRequester ? 'Requests' : 'Home'}
+      tabBar={(props) => <QpmBottomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 17,
-          left: 20,
-          right: 20,
-          elevation: 8,
-          borderRadius: 15,
-          zIndex: 10,
-          height: 70,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 18 : 10,
-          borderTopWidth: 0,
-          shadowColor: theme.colors.shadow,
-          shadowOpacity: 0.15,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: -2 }
-        },
+        tabBarActiveTintColor: theme.colors.onNavigationActive,
+        tabBarInactiveTintColor: theme.colors.onNavigationSurface,
+        tabBarActiveBackgroundColor: theme.colors.navigationActive,
+        tabBarShowLabel: width >= 440,
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: -2 },
         tabBarItemStyle: {
+          height: 54,
+          marginHorizontal: 2,
+          borderRadius: qpmLayoutTokens.radius.pill,
           justifyContent: 'center',
           alignItems: 'center'
-        }
+        },
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: Math.max(12, insets.bottom) + 4,
+          left: 14,
+          right: 14,
+          elevation: 10,
+          borderRadius: qpmLayoutTokens.radius.pill,
+          zIndex: 10,
+          height: 70,
+          paddingTop: 8,
+          paddingBottom: 8,
+          paddingHorizontal: 6,
+          backgroundColor: theme.colors.navigationSurface,
+          borderTopWidth: 0,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: theme.colors.outlineVariant,
+          overflow: 'visible',
+          shadowColor: theme.colors.shadow,
+          shadowOpacity: 0.22,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 }
+        },
+        tabBarHideOnKeyboard: true
       }}
     >
-      {user.role.code !== 'REQUESTER' && (
+      {!isRequester && (
         <BottomTab.Screen
           name="Home"
           component={HomeScreen}
-          options={({ navigation }: RootTabScreenProps<'Home'>) => ({
-            headerTitle: (props) => (
+          options={({
+            navigation: homeNavigation
+          }: RootTabScreenProps<'Home'>) => ({
+            headerTitle: () => (
               <Text
                 style={{
                   color: theme.colors.primary,
@@ -711,21 +826,35 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
               </Text>
             ),
             title: t('home'),
+            tabBarAccessibilityLabel: t('home'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 color={color}
-                size={30}
+                size={24}
               />
             ),
             headerRight: () => (
               <IconButton
                 icon="cog-outline"
                 accessibilityLabel={t('settings')}
-                onPress={() => navigation.navigate('Settings')}
+                onPress={() => homeNavigation.navigate('Settings')}
               />
             )
           })}
+        />
+      )}
+      {isRequester && canViewRequests && (
+        <BottomTab.Screen
+          name="Requests"
+          component={RequestsScreen}
+          options={{
+            title: t('requests'),
+            tabBarAccessibilityLabel: t('requests'),
+            tabBarIcon: ({ color }) => (
+              <Feather name="inbox" color={color} size={22} />
+            )
+          }}
         />
       )}
       <BottomTab.Screen
@@ -733,75 +862,69 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
         component={WorkOrdersScreen}
         options={{
           title: t('work_orders'),
+          tabBarAccessibilityLabel: t('work_orders'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'clipboard' : 'clipboard-outline'}
-              size={30}
+              size={24}
               color={color}
             />
           )
         }}
       />
-      {createEntities.some((entity) => hasCreatePermission(entity)) && (
+      {hasViewPermission(PermissionEntity.ASSETS) && (
         <BottomTab.Screen
-          name="AddEntities"
+          name="Scan"
           component={View}
           listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              if (user.role.code === 'REQUESTER')
-                navigation.navigate('AddRequest');
-              else
-                SheetManager.show('create-entities-sheet', {
-                  payload: { navigation }
-                });
+            tabPress: (event) => {
+              event.preventDefault();
+              navigation.navigate('ScanAsset');
             }
           }}
           options={{
-            title: showBigCreateButton ? '' : t('create'),
-            tabBarAccessibilityLabel: t('create'),
-            tabBarIcon: ({ focused }) => (
-              <IconButton
-                icon={'plus-circle'}
-                iconColor={theme.colors.primary}
-                size={showBigCreateButton ? 60 : 35}
+            title: t('to_scan'),
+            tabBarAccessibilityLabel: t('to_scan'),
+            tabBarShowLabel: false,
+            tabBarIcon: () => (
+              <Ionicons
+                name="scan-outline"
+                size={27}
+                color={theme.colors.onNavigationActive}
               />
             ),
-            ...(showBigCreateButton
-              ? {
-                  tabBarButton: (props) => (
-                    <CreateTabBarButton onPress={props.onPress}>
-                      {props.children}
-                    </CreateTabBarButton>
-                  )
-                }
-              : {})
+            tabBarButton: (props) => <ScanTabBarButton {...props} />
           }}
         />
       )}
-      {hasViewPermission(PermissionEntity.REQUESTS) &&
-        uiConfiguration.requests && (
-          <BottomTab.Screen
-            name="Requests"
-            component={RequestsScreen}
-            options={{
-              title: t('requests'),
-              tabBarIcon: ({ color, focused }) => (
-                <Feather name="inbox" color={color} size={30} />
-              )
-            }}
-          />
-        )}
-      {viewMoreEntities.some((entity) => hasViewPermission(entity)) && (
+      {hasViewPermission(PermissionEntity.ANALYTICS) && (
+        <BottomTab.Screen
+          name="Stats"
+          component={WorkOrderStatsScreen as React.ComponentType<any>}
+          options={{
+            title: t('stats'),
+            tabBarAccessibilityLabel: t('stats'),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'stats-chart' : 'stats-chart-outline'}
+                size={23}
+                color={color}
+              />
+            )
+          }}
+        />
+      )}
+      {(canViewMoreEntities || canViewRequests) && (
         <BottomTab.Screen
           name="MoreEntities"
           component={MoreEntitiesScreen}
           options={{
             title: t('more'),
+            tabBarAccessibilityLabel: t('more'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? 'menu' : 'menu-outline'}
-                size={30}
+                name={focused ? 'grid' : 'grid-outline'}
+                size={23}
                 color={color}
               />
             )

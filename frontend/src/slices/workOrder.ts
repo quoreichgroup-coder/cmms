@@ -482,7 +482,11 @@ export interface WorkOrderSendReportDTO {
 }
 
 export const getPDFReport =
-  (id: number, config?: ReportConfig): AppThunk =>
+  (
+    id: number,
+    config?: ReportConfig,
+    previewWindow?: Window | null
+  ): AppThunk =>
   async (dispatch): Promise<void> => {
     const response = await api.post<Response>(
       `${basePath}/report/${id}/stream`,
@@ -494,6 +498,11 @@ export const getPDFReport =
     const match = disposition.match(/filename="?([^";\n]+)"?/);
     const filename = match ? match[1] : 'Work order report.pdf';
     const url = window.URL.createObjectURL(blob);
+    if (previewWindow && !previewWindow.closed) {
+      previewWindow.location.replace(url);
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+      return;
+    }
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;

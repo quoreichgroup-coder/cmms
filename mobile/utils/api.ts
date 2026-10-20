@@ -1,10 +1,20 @@
 import { getApiUrl } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import i18n from '../i18n/i18n';
 
 type Options = RequestInit & { raw?: boolean; headers?: HeadersInit };
 
 const REQUEST_TIMEOUT_MS = 30000;
+
+export class RequestTimeoutError extends Error {
+  readonly code = 'REQUEST_TIMEOUT';
+
+  constructor() {
+    super('request_timeout');
+    this.name = 'RequestTimeoutError';
+  }
+}
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
@@ -16,7 +26,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   try {
     return await fetch(url, { ...options, signal: controller.signal });
   } catch (error) {
-    if (timedOut) throw new Error('Le serveur ne répond pas. Vérifiez votre connexion puis réessayez.');
+    if (timedOut) throw new RequestTimeoutError();
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -25,6 +35,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
 }
 
 let refreshPromise: Promise<boolean> | null = null;
+let lastRefreshFailureRetryable = false;
 
 async function clearTokens(): Promise<void> {
   await AsyncStorage.removeItem('accessToken');
@@ -32,10 +43,12 @@ async function clearTokens(): Promise<void> {
 }
 
 async function performRefresh(): Promise<boolean> {
+  lastRefreshFailureRetryable = false;
   const refreshToken = await AsyncStorage.getItem('refreshToken');
   if (!refreshToken) {
     return false;
   }
+  let authorizationRejected = false;
   try {
     const currentApiUrl = await getApiUrl();
     const response = await fetchWithTimeout(currentApiUrl + 'auth/refresh', {
@@ -47,21 +60,42 @@ async function performRefresh(): Promise<boolean> {
       body: JSON.stringify({ refreshToken })
     });
     if (!response.ok) {
-      await clearTokens();
+      // A temporary server/rate-limit response does not invalidate the user's
+      // session. Only explicit authentication rejection proves the token bad.
+      if (response.status === 401 || response.status === 403) {
+        authorizationRejected = true;
+        await clearTokens();
+      } else {
+        lastRefreshFailureRetryable =
+          response.status === 408 || response.status === 429 || response.status >= 500;
+      }
       return false;
     }
-    const data = await response.json();
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      lastRefreshFailureRetryable = true;
+      return false;
+    }
     if (!data?.accessToken) {
       await clearTokens();
       return false;
     }
-    await AsyncStorage.setItem('accessToken', data.accessToken);
-    if (data.refreshToken) {
-      await AsyncStorage.setItem('refreshToken', data.refreshToken);
+    try {
+      await AsyncStorage.setItem('accessToken', data.accessToken);
+      if (data.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', data.refreshToken);
+      }
+    } catch {
+      // Storage failures cannot be resolved by repeatedly calling the API.
+      return false;
     }
     return true;
   } catch {
-    await clearTokens();
+    // A transport failure is not proof that the refresh token is invalid.
+    // Keep it so a later retry can restore the session when connectivity returns.
+    lastRefreshFailureRetryable = !authorizationRejected;
     return false;
   }
 }
@@ -73,6 +107,10 @@ export function refreshAccessToken(): Promise<boolean> {
     });
   }
   return refreshPromise;
+}
+
+export function canRetryRefreshAccessToken(): boolean {
+  return lastRefreshFailureRetryable;
 }
 
 function isRefreshRequest(url: string): boolean {
@@ -209,6 +247,9 @@ export const getErrorMessage = (
   error: any,
   defaultMessage: string = 'An error occurred'
 ): string => {
+  if (error?.code === 'REQUEST_TIMEOUT') {
+    return i18n.t('request_timeout', { defaultValue: defaultMessage });
+  }
   try {
     const parsed = JSON.parse(error.message);
     return parsed?.message ?? error.message ?? defaultMessage;

@@ -87,9 +87,9 @@ import {
   Updater
 } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined';
 import SearchInput from '../components/SearchInput';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
@@ -206,6 +206,7 @@ function Locations() {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -458,9 +459,9 @@ function Locations() {
             sx={{ padding: 0.5 }}
           >
             {isExpanded ? (
-              <ExpandMoreIcon fontSize="small" />
+              <ExpandMoreOutlinedIcon fontSize="small" />
             ) : (
-              <ChevronRightIcon fontSize="small" />
+              <ChevronRightOutlinedIcon fontSize="small" />
             )}
           </IconButton>
         );
@@ -503,7 +504,7 @@ function Locations() {
                   loadingHierarchy ? (
                     <CircularProgress size="1rem" />
                   ) : (
-                    <MoreHorizIcon />
+                    <MoreHorizOutlinedIcon />
                   )
                 }
               >

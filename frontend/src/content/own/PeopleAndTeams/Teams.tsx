@@ -79,6 +79,7 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   useEffect(() => {
     if (teamId && isNumeric(teamId)) {

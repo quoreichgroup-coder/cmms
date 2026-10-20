@@ -775,7 +775,7 @@ test('form scan callbacks update identifiers without popping the parent form', (
   assert.match(barcodeModal, /navigation\.goBack\(\);\s*onChange\(data\)/);
   assert.match(nfcModal, /navigation\.goBack\(\);\s*onChange\(tagId\)/);
 });
-test('Android asset NFC scanning accepts NDEF and UID-capable technologies', () => {
+test('NFC is enabled on native platforms with platform-specific technologies', () => {
   const { getAssetScanNfcTechnologies, isNfcSupportedOnPlatform } =
     mobileRuntime().load('utils/nfc.ts');
   const technologies = {
@@ -807,10 +807,59 @@ test('Android asset NFC scanning accepts NDEF and UID-capable technologies', () 
     path.join(__dirname, '..', 'utils/fields.ts'),
     'utf8'
   );
+  const nativeConfig = fs.readFileSync(
+    path.join(__dirname, '..', 'react-native.config.js'),
+    'utf8'
+  );
+  const iosInfoPlist = fs.readFileSync(
+    path.join(__dirname, '..', 'ios/AtlasCMMS/Info.plist'),
+    'utf8'
+  );
+  const iosEntitlements = fs.readFileSync(
+    path.join(__dirname, '..', 'ios/AtlasCMMS/AtlasCMMS.entitlements'),
+    'utf8'
+  );
+  const iosProject = fs.readFileSync(
+    path.join(__dirname, '..', 'ios/AtlasCMMS.xcodeproj/project.pbxproj'),
+    'utf8'
+  );
+  const androidManifest = fs.readFileSync(
+    path.join(__dirname, '..', 'android/app/src/main/AndroidManifest.xml'),
+    'utf8'
+  );
 
   assert.equal(isNfcSupportedOnPlatform('android'), true);
   assert.equal(isNfcSupportedOnPlatform('ios'), true);
   assert.equal(isNfcSupportedOnPlatform('web'), false);
+  assert.doesNotMatch(
+    nativeConfig,
+    /react-native-nfc-manager[\s\S]*ios:\s*null/
+  );
+  assert.match(
+    iosInfoPlist,
+    /<key>NFCReaderUsageDescription<\/key>\s*<string>\s*[^<]+<\/string>/,
+    'iOS must explain NFC use before opening a reader session'
+  );
+  assert.match(
+    iosEntitlements,
+    /<key>com\.apple\.developer\.nfc\.readersession\.formats<\/key>[\s\S]*?<string>TAG<\/string>/,
+    'the iOS target must request the Core NFC tag-reading entitlement'
+  );
+  assert.match(
+    iosProject,
+    /CODE_SIGN_ENTITLEMENTS = AtlasCMMS\/AtlasCMMS\.entitlements;/,
+    'the iOS target must attach the NFC entitlements file to signing'
+  );
+  assert.match(
+    androidManifest,
+    /<uses-permission android:name="android\.permission\.NFC"\s*\/>/,
+    'Android must declare NFC permission for native tag reads'
+  );
+  assert.match(
+    androidManifest,
+    /<uses-feature android:name="android\.hardware\.nfc" android:required="false"\s*\/>/,
+    'NFC hardware stays optional so non-NFC phones can install QPM'
+  );
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(getAssetScanNfcTechnologies(technologies))),
@@ -832,11 +881,20 @@ test('Android asset NFC scanning accepts NDEF and UID-capable technologies', () 
     ),
     ['MifareIOS', 'Iso15693IOS']
   );
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(getAssetScanNfcTechnologies(technologies, 'web'))
+    ),
+    []
+  );
   assert.match(
     scanner,
     /requestTechnology\(\s*getAssetScanNfcTechnologies\(NfcTech, Platform\.OS\)\s*\)/
   );
-  assert.match(scanner, /Platform\.OS === 'web'/);
+  assert.match(
+    scanner,
+    /Platform\.OS === 'android' \|\| Platform\.OS === 'ios'[\s\S]*?require\('react-native-nfc-manager'\)/
+  );
   assert.match(scanScreen, /isNfcSupportedOnPlatform\(Platform\.OS\)/);
   assert.match(form, /isNfcSupportedOnPlatform\(Platform\.OS\)/);
   assert.match(workOrderFields, /name: 'nfcId',[\s\S]*?type: 'nfc'/);
@@ -1291,6 +1349,26 @@ test('work-order list hides results when filters or debounced search differ from
   assert.match(
     source,
     /setLoadedCriteria\(\{\s*filterFields: criteria\.filterFields,\s*searchQuery\s*\}\)/
+  );
+});
+test('parts list hides stale search results and shows refresh failures with valid rows', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/parts/PartsScreen.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /loadedCriteria !== null &&\s*_.isEqual\(loadedCriteria\.filterFields, criteria\.filterFields\) &&\s*loadedCriteria\.searchQuery === searchQuery/
+  );
+  assert.match(source, /data=\{visibleParts\}/);
+  assert.match(
+    source,
+    /!hasCurrentCriteriaResults \|\|\s*\(loadMoreError && !retry\)/
+  );
+  assert.match(
+    source,
+    /loadError && visibleParts\.length > 0 \? \([\s\S]*?mode="banner"[\s\S]*?onRetry=\{\(\) => void fetchFirstPage\(\)\}/
   );
 });
 test('compliance stats show no data when there are no completed work orders', () => {
@@ -2704,6 +2782,44 @@ test('simultaneous 401s share a refresh and retry with fresh bearer', async () =
   assert.equal(reads, 4);
   assert.equal(r.values.get('refreshToken'), 'rotated');
 });
+test('a refresh transport failure preserves tokens for a later retry', async () => {
+  const runtime = mobileRuntime({
+    initialStorage: { accessToken: 'old', refreshToken: 'refresh' },
+    fetch: async () => {
+      throw new TypeError('Network request failed');
+    }
+  });
+  const module = runtime.load('utils/api.ts');
+
+  assert.equal(await module.refreshAccessToken(), false);
+  assert.equal(runtime.values.get('accessToken'), 'old');
+  assert.equal(runtime.values.get('refreshToken'), 'refresh');
+  assert.equal(module.canRetryRefreshAccessToken(), true);
+});
+for (const status of [429, 500, 503])
+  test(`a temporary refresh HTTP ${status} preserves tokens`, async () => {
+    const runtime = mobileRuntime({
+      initialStorage: { accessToken: 'old', refreshToken: 'refresh' },
+      fetch: async () =>
+        response(status, { message: 'temporarily unavailable' })
+    });
+    const module = runtime.load('utils/api.ts');
+
+    assert.equal(await module.refreshAccessToken(), false);
+    assert.equal(runtime.values.get('accessToken'), 'old');
+    assert.equal(runtime.values.get('refreshToken'), 'refresh');
+    assert.equal(module.canRetryRefreshAccessToken(), true);
+  });
+test('a non-retryable refresh HTTP 400 does not schedule recovery', async () => {
+  const runtime = mobileRuntime({
+    initialStorage: { accessToken: 'old', refreshToken: 'refresh' },
+    fetch: async () => response(400, { message: 'bad refresh request' })
+  });
+  const module = runtime.load('utils/api.ts');
+
+  assert.equal(await module.refreshAccessToken(), false);
+  assert.equal(module.canRetryRefreshAccessToken(), false);
+});
 for (const succeeds of [false, true])
   test(`persistent 401 is bounded; refresh success=${succeeds}`, async () => {
     let refreshes = 0,
@@ -2728,7 +2844,10 @@ for (const succeeds of [false, true])
     );
     assert.equal(refreshes, 1);
     assert.equal(reads, succeeds ? 2 : 1);
-    if (!succeeds) assert.equal(r.values.has('accessToken'), false);
+    if (!succeeds) {
+      assert.equal(r.values.has('accessToken'), false);
+      assert.equal(r.values.has('refreshToken'), false);
+    }
   });
 test('login sends no old bearer and wrong password does not refresh', async () => {
   let requests = 0;
@@ -2758,13 +2877,46 @@ test('pending requests time out and caller cancellation remains silent', async (
       })
   });
   const api = r.load('utils/api.ts').default;
-  await assert.rejects(api.get('locations'), /serveur ne répond pas/);
+  await assert.rejects(
+    api.get('locations'),
+    (error) => error.code === 'REQUEST_TIMEOUT'
+  );
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(
     api.get('assets', { signal: controller.signal }),
     (e) => e.name === 'AbortError'
   );
+});
+test('request timeout feedback follows the selected app language', async () => {
+  const runtime = mobileRuntime({
+    timers: { setTimeout: (callback) => setTimeout(callback, 5) },
+    fetch: (_, options) =>
+      new Promise((_, reject) => {
+        const fail = () =>
+          reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        if (options.signal.aborted) fail();
+        else options.signal.addEventListener('abort', fail);
+      })
+  });
+  const i18n = runtime.load('i18n/i18n.ts').default;
+  const api = runtime.load('utils/api.ts').default;
+  await i18n.changeLanguage('fr');
+  await assert.rejects(api.get('locations'), (error) => {
+    assert.equal(
+      api.getErrorMessage(error),
+      'La requête a expiré. Vérifiez votre connexion puis réessayez.'
+    );
+    return true;
+  });
+  await i18n.changeLanguage('en');
+  await assert.rejects(api.get('locations'), (error) => {
+    assert.equal(
+      api.getErrorMessage(error),
+      'The request timed out. Check your connection and try again.'
+    );
+    return true;
+  });
 });
 test('HTTP errors reach the global UI error handler', async () => {
   const module = mobileRuntime({
@@ -3263,4 +3415,25 @@ test('primary mobile workflow section titles are announced as screen reader head
     pmDetails,
     /renderSectionHeader=\{\(\{ section \}\) => \(\s*<Text\s+variant="titleLarge"\s+style=\{styles\.sectionTitle\}\s+accessibilityRole="header"/
   );
+});
+
+test('mobile auth retries a preserved session after network recovery or foregrounding', () => {
+  const auth = fs.readFileSync(
+    path.join(__dirname, '..', 'contexts/AuthContext.tsx'),
+    'utf8'
+  );
+
+  assert.match(auth, /import NetInfo from '@react-native-community\/netinfo'/);
+  assert.match(auth, /networkWasUnavailable = useRef\(false\)/);
+  assert.match(
+    auth,
+    /networkWasUnavailable\.current &&\s*state\.isInitialized &&\s*!state\.isAuthenticated/,
+    'a restored connection should retry only an initialized unauthenticated session'
+  );
+  assert.match(
+    auth,
+    /nextAppState === 'active'[\s\S]{0,300}state\.isInitialized && !state\.isAuthenticated[\s\S]{0,100}getInfosRef\.current\(\)/,
+    'returning to the foreground should retry a preserved session'
+  );
+  assert.match(auth, /if \(authInitializationInProgress\.current\) return/);
 });

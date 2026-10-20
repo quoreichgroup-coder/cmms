@@ -26,7 +26,7 @@ import {
   resetAssetsHierarchy
 } from '../../../slices/asset';
 import { getCustomFieldsIFields, getCustomFieldsValues } from '../type';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined';
 import { useDispatch, useSelector } from '../../../store';
 import * as React from 'react';
 import { useContext, useEffect, useMemo, useState } from 'react';
@@ -80,8 +80,8 @@ import {
   Updater
 } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
@@ -171,6 +171,7 @@ function Assets() {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
   const onFilterChange = (newFilters: FilterField[]) => {
     const newCriteria = { ...criteria };
     newCriteria.filterFields = newFilters;
@@ -398,9 +399,9 @@ function Assets() {
             sx={{ padding: 0.5 }}
           >
             {isExpanded ? (
-              <ExpandMoreIcon fontSize="small" />
+              <ExpandMoreOutlinedIcon fontSize="small" />
             ) : (
-              <ChevronRightIcon fontSize="small" />
+              <ChevronRightOutlinedIcon fontSize="small" />
             )}
           </IconButton>
         );
@@ -445,7 +446,7 @@ function Assets() {
                   loadingHierarchy ? (
                     <CircularProgress size="1rem" />
                   ) : (
-                    <MoreHorizIcon />
+                    <MoreHorizOutlinedIcon />
                   )
                 }
               >

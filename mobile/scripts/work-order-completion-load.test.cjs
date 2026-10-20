@@ -60,6 +60,26 @@ test('feedback and signature completion form identifies the work order and asset
   assert.match(completionForm, /workOrderContext\.assetName/);
 });
 
+test('mobile completion always shows a review before the status API is called', () => {
+  const root = path.join(__dirname, '..');
+  const details = fs.readFileSync(
+    path.join(root, 'screens/workOrders/WODetailsScreen.tsx'),
+    'utf8'
+  );
+  const form = fs.readFileSync(
+    path.join(root, 'screens/workOrders/CompleteWorkOrderModal.tsx'),
+    'utf8'
+  );
+
+  assert.match(details, /navigation\.navigate\('CompleteWorkOrder'/);
+  assert.match(form, /setReviewValues\(values\)/);
+  assert.match(form, /values=\{formValues\}/);
+  assert.match(form, /setFormValues\(reviewValues \?\? \{\}\)/);
+  assert.match(form, /work_order_completion_review_title/);
+  assert.match(form, /work_order_completion_tracked_time/);
+  assert.match(form, /onComplete\(\s*reviewValues\.signature/);
+});
+
 test('simple completion confirmation identifies its work order and asset', () => {
   const details = fs.readFileSync(
     path.join(__dirname, '..', 'screens/workOrders/WODetailsScreen.tsx'),
@@ -183,4 +203,14 @@ test('task execution is read-only for completed or non-editable work orders', ()
     true
   );
   assert.equal(isWorkOrderTaskExecutionReadOnly(undefined, true), true);
+});
+
+test('completion review returns entered values to the editable form', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../screens/workOrders/CompleteWorkOrderModal.tsx'),
+    'utf8'
+  );
+  assert.match(source, /values=\{formValues\}/);
+  assert.match(source, /setFormValues\(reviewValues \?\? \{\}\)/);
+  assert.match(source, /setReviewValues\(values\)/);
 });

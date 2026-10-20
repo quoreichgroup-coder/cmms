@@ -256,10 +256,10 @@ export const getUnscheduled =
   };
 
 interface ScheduleWorkOrderResponse {
-  userId: number;
-  userLastName: string;
-  userFirstName: string;
-  estimatedStartDate: string;
+  userId: number | null;
+  userLastName: string | null;
+  userFirstName: string | null;
+  estimatedStartDate: string | null;
 }
 export const scheduleWorkOrder =
   (
@@ -292,12 +292,15 @@ export const scheduleWorkOrder =
             estimatedStartDate: response.estimatedStartDate,
             estimatedDuration:
               woInContent.estimatedDuration ?? dto.estimatedDuration,
-            primaryUser: {
-              id: response.userId,
-              firstName: response.userFirstName,
-              lastName: response.userLastName,
-              image: null
-            }
+            primaryUser:
+              response.userId === null
+                ? null
+                : {
+                    id: response.userId,
+                    firstName: response.userFirstName,
+                    lastName: response.userLastName,
+                    image: null
+                  }
           }
         })
       );
@@ -351,12 +354,15 @@ export const unscheduleWorkOrder =
           workOrder: {
             ...wo,
             estimatedStartDate: response.estimatedStartDate,
-            primaryUser: {
-              id: response.userId,
-              firstName: response.userFirstName,
-              lastName: response.userLastName,
-              image: null
-            }
+            primaryUser:
+              response.userId === null
+                ? null
+                : {
+                    id: response.userId,
+                    firstName: response.userFirstName,
+                    lastName: response.userLastName,
+                    image: null
+                  }
           }
         })
       );

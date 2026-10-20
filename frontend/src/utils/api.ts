@@ -7,6 +7,7 @@ type Options = RequestInit & { raw?: boolean; headers?: HeadersInit };
 const REFRESH_URL = `${apiUrl}auth/refresh`;
 
 let refreshPromise: Promise<boolean> | null = null;
+let lastRefreshFailureRetryable = false;
 
 function clearTokens(): void {
   localStorage.removeItem('accessToken');
@@ -14,12 +15,14 @@ function clearTokens(): void {
 }
 
 async function performRefresh(): Promise<boolean> {
+  lastRefreshFailureRetryable = false;
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) {
     return false;
   }
+  let response: Response;
   try {
-    const response = await fetch(REFRESH_URL, {
+    response = await fetch(REFRESH_URL, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -27,22 +30,40 @@ async function performRefresh(): Promise<boolean> {
       },
       body: JSON.stringify({ refreshToken })
     });
-    if (!response.ok) {
+  } catch {
+    // A transport failure does not prove the refresh token is invalid.
+    lastRefreshFailureRetryable = true;
+    return false;
+  }
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
       clearTokens();
-      return false;
+    } else {
+      lastRefreshFailureRetryable =
+        response.status === 408 || response.status === 429 || response.status >= 500;
     }
-    const data = await response.json();
-    if (!data?.accessToken) {
-      clearTokens();
-      return false;
-    }
+    return false;
+  }
+
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    lastRefreshFailureRetryable = true;
+    return false;
+  }
+  if (!data?.accessToken) {
+    clearTokens();
+    return false;
+  }
+  try {
     localStorage.setItem('accessToken', data.accessToken);
     if (data.refreshToken) {
       localStorage.setItem('refreshToken', data.refreshToken);
     }
     return true;
   } catch {
-    clearTokens();
+    // Storage failures cannot be resolved by repeatedly calling the API.
     return false;
   }
 }
@@ -54,6 +75,10 @@ export function refreshAccessToken(): Promise<boolean> {
     });
   }
   return refreshPromise;
+}
+
+export function canRetryRefreshAccessToken(): boolean {
+  return lastRefreshFailureRetryable;
 }
 
 function isRefreshRequest(url: string): boolean {

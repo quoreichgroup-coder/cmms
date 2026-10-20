@@ -36,8 +36,10 @@ const emptyProfile: CompanyLegalProfile = {
 export default function CompanyLegalDetails() {
   const { t }: { t: any } = useTranslation();
   const { company, user } = useAuth();
-  const canEdit = user.ownsCompany || (user.role?.viewPermissions?.includes(PermissionEntity.SETTINGS)
-    && user.role?.editOtherPermissions?.includes(PermissionEntity.SETTINGS));
+  const canEdit =
+    user.ownsCompany ||
+    (user.role?.viewPermissions?.includes(PermissionEntity.SETTINGS) &&
+      user.role?.editOtherPermissions?.includes(PermissionEntity.SETTINGS));
   const [profile, setProfile] = useState<CompanyLegalProfile>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,7 +51,10 @@ export default function CompanyLegalDetails() {
     api
       .get<CompanyLegalProfile>(`companies/${company.id}/legal-profile`)
       .then((data) => active && setProfile({ ...emptyProfile, ...data }))
-      .catch((e) => active && setError(getErrorMessage(e, t('company_legal_load_error'))))
+      .catch(
+        (e) =>
+          active && setError(getErrorMessage(e, t('company_legal_load_error')))
+      )
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -77,7 +82,9 @@ export default function CompanyLegalDetails() {
 
   return (
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 3, pb: 2 }}>
+      <Box
+        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 3, pb: 2 }}
+      >
         <GavelOutlinedIcon color="primary" />
         <Box>
           <Typography variant="h4">{t('company_legal_information')}</Typography>
@@ -87,8 +94,16 @@ export default function CompanyLegalDetails() {
         </Box>
       </Box>
       <CardContent sx={{ pt: 1 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {saved && <Alert severity="success" sx={{ mb: 2 }}>{t('company_legal_saved')}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {saved && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {t('company_legal_saved')}
+          </Alert>
+        )}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
             <CircularProgress size={28} />
@@ -97,36 +112,89 @@ export default function CompanyLegalDetails() {
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label={t('legal_company_name')} value={profile.legalName}
-                  onChange={(e) => setProfile({ ...profile, legalName: e.target.value })}
-                  inputProps={{ maxLength: 160 }} disabled={!canEdit || saving} />
+                <TextField
+                  fullWidth
+                  label={t('legal_company_name')}
+                  value={profile.legalName}
+                  onChange={(e) =>
+                    setProfile({ ...profile, legalName: e.target.value })
+                  }
+                  inputProps={{ maxLength: 160 }}
+                  disabled={!canEdit || saving}
+                />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label={t('registration_country')} value={profile.registrationCountry}
-                  onChange={(e) => setProfile({ ...profile, registrationCountry: e.target.value.toUpperCase() })}
-                  inputProps={{ maxLength: 2, autoCapitalize: 'characters' }} placeholder="BF"
-                  helperText={t('registration_country_hint')} disabled={!canEdit || saving} />
+                <TextField
+                  fullWidth
+                  label={t('registration_country')}
+                  value={profile.registrationCountry}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      registrationCountry: e.target.value.toUpperCase()
+                    })
+                  }
+                  inputProps={{ maxLength: 2, autoCapitalize: 'characters' }}
+                  placeholder="BF"
+                  helperText={t('registration_country_hint')}
+                  disabled={!canEdit || saving}
+                />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label={t('business_registration_number')} value={profile.businessRegistrationNumber}
-                  onChange={(e) => setProfile({ ...profile, businessRegistrationNumber: e.target.value })}
-                  inputProps={{ maxLength: 120 }} disabled={!canEdit || saving} />
+                <TextField
+                  fullWidth
+                  label={t('business_registration_number')}
+                  value={profile.businessRegistrationNumber}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      businessRegistrationNumber: e.target.value
+                    })
+                  }
+                  inputProps={{ maxLength: 120 }}
+                  disabled={!canEdit || saving}
+                />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label={t('tax_identification_number')} value={profile.taxIdentificationNumber}
-                  onChange={(e) => setProfile({ ...profile, taxIdentificationNumber: e.target.value })}
-                  inputProps={{ maxLength: 120 }} disabled={!canEdit || saving} />
+                <TextField
+                  fullWidth
+                  label={t('tax_identification_number')}
+                  value={profile.taxIdentificationNumber}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      taxIdentificationNumber: e.target.value
+                    })
+                  }
+                  inputProps={{ maxLength: 120 }}
+                  disabled={!canEdit || saving}
+                />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth multiline minRows={2} label={t('registered_address')}
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  label={t('registered_address')}
                   value={profile.registeredAddress}
-                  onChange={(e) => setProfile({ ...profile, registeredAddress: e.target.value })}
-                  inputProps={{ maxLength: 500 }} disabled={!canEdit || saving} />
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      registeredAddress: e.target.value
+                    })
+                  }
+                  inputProps={{ maxLength: 500 }}
+                  disabled={!canEdit || saving}
+                />
               </Grid>
               {canEdit && (
                 <Grid item xs={12}>
                   <Button type="submit" variant="contained" disabled={saving}>
-                    {saving ? <CircularProgress size={20} color="inherit" /> : t('save')}
+                    {saving ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      t('save')
+                    )}
                   </Button>
                 </Grid>
               )}

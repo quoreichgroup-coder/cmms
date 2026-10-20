@@ -19,6 +19,60 @@ const frJSON = {
   appearance_preview_work_order_id: 'OT · QPM-2048',
   appearance_preview_work_order: 'Inspecter la pompe de refroidissement P-204',
   appearance_preview_action: 'Ouvrir le bon de travail',
+  onboarding_eyebrow: 'VOTRE ESPACE DE MAINTENANCE',
+  onboarding_welcome_title: 'Bienvenue dans QPM',
+  onboarding_welcome_body:
+    'Votre espace de maintenance au même endroit. Gardez les interventions, les équipements et les équipes connectés, du bureau au terrain.',
+  onboarding_work_title: 'Gérez les ordres de travail',
+  onboarding_work_body:
+    'Planifiez, exécutez et suivez les interventions grâce aux affectations, priorités et comptes rendus de clôture.',
+  onboarding_scan_title: 'Identifiez rapidement un équipement',
+  onboarding_scan_body:
+    'Ouvrez le scanner lorsque vous souhaitez identifier un équipement et consulter ses informations de maintenance.',
+  onboarding_scan_unavailable_title:
+    'L’accès aux équipements dépend de votre rôle',
+  onboarding_scan_unavailable_body:
+    'L’identification des équipements est réservée aux comptes qui y ont accès. Votre espace QPM reste disponible pour vos missions.',
+  onboarding_plan_title: 'Planifiez votre travail',
+  onboarding_plan_body:
+    'Retrouvez les modules de maintenance activés pour votre compte et les fonctions accessibles à votre rôle.',
+  onboarding_ready_title: 'Vous êtes prêt à commencer',
+  onboarding_ready_body:
+    'Votre espace QPM est prêt. Retrouvez les interventions et les modules accessibles à votre compte.',
+  onboarding_feature_work_orders:
+    'Suivez une intervention de l’affectation à la clôture',
+  onboarding_feature_equipment:
+    'Retrouvez l’identité et l’historique des équipements',
+  onboarding_feature_maintenance: 'Consultez la maintenance planifiée',
+  onboarding_feature_workspace: 'Ouvrez les outils accessibles à votre compte',
+  onboarding_role_technician:
+    'Votre espace met en avant les interventions affectées et leur exécution sur le terrain.',
+  onboarding_role_requester:
+    'Votre espace vous aide à signaler un besoin de maintenance et à suivre son avancement.',
+  onboarding_role_supervisor:
+    'Votre espace vous aide à suivre les interventions et les opérations de l’équipe.',
+  onboarding_role_administrator:
+    'Votre espace propose les outils opérationnels et de configuration autorisés pour votre compte.',
+  onboarding_role_team:
+    'Les outils disponibles dépendent des droits associés à votre compte.',
+  onboarding_module_work_orders: 'Ordres de travail',
+  onboarding_module_equipment: 'Équipements',
+  onboarding_module_preventive: 'Maintenance préventive',
+  onboarding_module_requests: 'Demandes',
+  onboarding_no_modules:
+    'Aucun module de maintenance n’est encore activé pour votre compte. Contactez votre administrateur.',
+  onboarding_skip: 'Ignorer',
+  onboarding_back: 'Retour',
+  onboarding_next: 'Continuer',
+  onboarding_start: 'Commencer avec QPM',
+  onboarding_progress: 'Écran {{current}} sur {{total}}',
+  onboarding_swipe_hint:
+    'Balayez horizontalement pour parcourir les écrans de présentation.',
+  onboarding_save_error:
+    'La progression n’a pas pu être enregistrée. Vérifiez votre connexion et réessayez.',
+  onboarding_replay: 'Présentation de l’application',
+  onboarding_replay_description: 'Revoir la présentation de QPM Mobile.',
+  onboarding_close: 'Fermer la présentation',
   remove_selected_value: 'Retirer {{value}}',
   company_profile: 'Profil de l’entreprise',
   company_profile_mobile_description:
@@ -92,6 +146,8 @@ const frJSON = {
   auth_text_max_length: '{{max}} caractères maximum.',
   auth_server_unreachable:
     'Le serveur CMMS est injoignable. Vérifiez l’adresse du serveur et votre connexion.',
+  auth_recovering_session:
+    'Reconnexion à QPM. Votre session sera vérifiée dès que le serveur sera disponible.',
   auth_signin_failure: 'Connexion impossible. Vérifiez vos identifiants.',
   auth_signup_failure:
     'Inscription impossible. Vérifiez les informations saisies.',
@@ -462,6 +518,8 @@ const frJSON = {
   wrong_credentials: "Informations d'identification erronées fournies",
   server_not_reachable:
     "Le serveur principal est inaccessible. Vous pouvez attendre qu'il démarre puis réessayer.",
+  request_timeout:
+    'La requête a expiré. Vérifiez votre connexion puis réessayez.',
   lost_password: 'Mot de passe oublié ?',
   register: "S'inscrire",
   //work-orders
@@ -575,6 +633,22 @@ const frJSON = {
   wo_complete_success: 'Le bon de travail a été clôturé avec succès',
   work_order_completion_read_only_notice:
     'Après la clôture, ce bon de travail passe en lecture seule. Sa réouverture exige le droit correspondant et un motif enregistré; la clôture reste dans son historique.',
+  work_order_completion_review_title: 'Vérifier les informations de clôture',
+  review_completion: 'Vérifier avant de clôturer',
+  work_order_completion_review_description:
+    'Vérifiez le bon de travail, les temps de main-d’œuvre enregistrés et les informations de clôture avant l’enregistrement.',
+  work_order_completion_tracked_time: 'Temps de main-d’œuvre enregistré',
+  work_order_completion_total_labor: 'Total main-d’œuvre',
+  work_order_completion_no_time: 'Aucun temps de main-d’œuvre enregistré.',
+  work_order_elapsed_execution_time:
+    'Durée écoulée d’exécution (hors périodes en attente)',
+  work_order_execution_time_running: 'En cours',
+  work_order_execution_time_unavailable:
+    'Non mesurée : l’historique complet des statuts de ce bon de travail est indisponible.',
+  work_order_completion_signature_captured: 'Signature recueillie',
+  confirm_and_close_wo: 'Confirmer et clôturer',
+  back_to_edit: 'Retour à la saisie',
+  not_provided: 'Non renseigné',
   work_order_reopen_title: 'Rouvrir le bon de travail terminé',
   work_order_reopen_description:
     'La réouverture remet le bon de travail à l’état Ouvert. Saisissez un motif; la clôture précédente reste dans son historique.',
@@ -1846,11 +1920,14 @@ const frJSON = {
   compliance_rate_no_data: 'Aucun bon de travail clôturé',
   stats: 'Statistiques',
   maintenance_dashboard: 'Tableau de bord maintenance',
-  maintenance_dashboard_subtitle: 'Charge et état des ordres de travail en un coup d’œil.',
+  maintenance_dashboard_subtitle:
+    'Charge et état des ordres de travail en un coup d’œil.',
   all_work_orders: 'Tous les ordres de travail',
   work_order_distribution: 'Répartition des ordres de travail',
-  work_order_distribution_hint: 'Comparez les volumes indiqués pour chaque statut.',
-  open_filtered_work_orders: 'Ouvre la liste des ordres de travail correspondants',
+  work_order_distribution_hint:
+    'Comparez les volumes indiqués pour chaque statut.',
+  open_filtered_work_orders:
+    'Ouvre la liste des ordres de travail correspondants',
   vendors_and_customers: 'Fournisseurs & Prestataires ',
   no_notification_message:
     "Des mises à jour importantes s'afficheront ici pour vous aider a suivre l'évolution de votre travail",

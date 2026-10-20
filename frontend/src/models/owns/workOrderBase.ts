@@ -14,13 +14,13 @@ export interface WorkOrderBase extends Audit {
   title: string;
   id: number;
   description: string;
-  estimatedStartDate: string;
+  estimatedStartDate: string | null;
   estimatedDuration: number;
   priority: Priority;
   image: FileThumbnailDTO;
   asset: AssetMiniDTO;
   location: LocationMiniDTO;
-  primaryUser: UserMiniDTO;
+  primaryUser: UserMiniDTO | null;
   assignedTo: UserMiniDTO[];
   customers: CustomerMiniDTO[];
   dueDate: string;

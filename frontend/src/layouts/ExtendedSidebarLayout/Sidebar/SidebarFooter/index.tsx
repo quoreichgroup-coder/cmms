@@ -15,6 +15,7 @@ import useAuth from 'src/hooks/useAuth';
 import UpgradeOutlinedIcon from '@mui/icons-material/UpgradeOutlined';
 import { isCloudVersion } from '../../../../config';
 import { useContext } from 'react';
+import { SidebarContext } from 'src/contexts/SidebarContext';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 
 const LightTooltip = styled(({ className, ...props }: TooltipProps) => (
@@ -32,9 +33,11 @@ const LightTooltip = styled(({ className, ...props }: TooltipProps) => (
   }
 }));
 
-function SidebarFooter() {
+function SidebarFooter({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const { t, i18n }: { t: any; i18n: any } = useTranslation();
   const theme = useTheme();
+  const { desktopSidebarCollapsed } = useContext(SidebarContext);
+  const collapsed = desktopSidebarCollapsed && !forceExpanded;
   const { logout, user } = useAuth();
   const { requestSubscriptionChange } = useContext(CompanySettingsContext);
   const navigate = useNavigate();
@@ -60,11 +63,16 @@ function SidebarFooter() {
   return (
     <Box
       sx={{
-        minHeight: 60,
+        // IconButton has a 48px minimum hit target. Three stacked actions need
+        // 144px before the vertical padding and divider are accounted for.
+        minHeight: collapsed ? 160 : 60,
         flexShrink: 0,
         borderTop: `1px solid ${theme.sidebar.dividerBg}`,
         backgroundColor: theme.sidebar.background,
-        px: 1
+        px: 1,
+        py: collapsed ? 0.5 : 0,
+        flexDirection: collapsed ? 'column' : 'row',
+        gap: collapsed ? 0.25 : 0
       }}
       display="flex"
       alignItems="center"

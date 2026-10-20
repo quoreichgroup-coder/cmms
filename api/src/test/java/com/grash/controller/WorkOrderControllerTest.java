@@ -4,6 +4,7 @@ import com.grash.dto.CalendarEvent;
 import com.grash.dto.FileShowDTO;
 import com.grash.dto.WorkOrderBaseMiniDTO;
 import com.grash.dto.WorkOrderChangeStatusDTO;
+import com.grash.dto.workOrder.WorkOrderExecutionTimeDTO;
 import com.grash.dto.workOrder.WorkOrderShowDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.FileMapper;
@@ -624,6 +625,22 @@ class WorkOrderControllerTest extends AbstractControllerTest {
                     .andExpect(jsonPath("$[0].actorName").value("Technician"));
 
             verify(workOrderService).getLifecycleEvents(1L, clientUser);
+        }
+
+        @Test
+        void executionTime_returnsMeasurementFromAuthorizedService() throws Exception {
+            setCurrentUser(clientUser);
+            when(userService.whoami(any())).thenReturn(clientUser);
+            when(workOrderService.getExecutionTime(1L, clientUser))
+                    .thenReturn(new WorkOrderExecutionTimeDTO(true, true, 3_600L));
+
+            mockMvc.perform(get("/work-orders/1/execution-time"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.measured").value(true))
+                    .andExpect(jsonPath("$.running").value(true))
+                    .andExpect(jsonPath("$.elapsedSeconds").value(3600));
+
+            verify(workOrderService).getExecutionTime(1L, clientUser);
         }
     }
 

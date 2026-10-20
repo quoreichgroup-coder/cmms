@@ -118,6 +118,10 @@ const Actions: FC<ActionsProps> = ({
                   aria-label={t('previous')}
                   onClick={onPrevious}
                   size="small"
+                  sx={{
+                    minWidth: { xs: 48, sm: 40 },
+                    minHeight: { xs: 48, sm: 40 }
+                  }}
                 >
                   <ArrowBackOutlinedIcon />
                 </IconButton>
@@ -128,6 +132,10 @@ const Actions: FC<ActionsProps> = ({
                   aria-label={t('next')}
                   onClick={onNext}
                   size="small"
+                  sx={{
+                    minWidth: { xs: 48, sm: 40 },
+                    minHeight: { xs: 48, sm: 40 }
+                  }}
                 >
                   <ArrowForwardOutlinedIcon />
                 </IconButton>
@@ -138,7 +146,11 @@ const Actions: FC<ActionsProps> = ({
               variant="outlined"
               onClick={onToday}
               startIcon={<TodayOutlinedIcon />}
-              sx={{ minHeight: 40, borderRadius: 1.75, whiteSpace: 'nowrap' }}
+              sx={{
+                minHeight: { xs: 48, sm: 40 },
+                borderRadius: 1.75,
+                whiteSpace: 'nowrap'
+              }}
             >
               {t('today')}
             </Button>
@@ -199,13 +211,18 @@ const Actions: FC<ActionsProps> = ({
                       key={viewOption.value}
                       value={viewOption.value}
                       aria-label={t(viewOption.label)}
-                      sx={{ px: { xs: 1, sm: 1.5 }, minHeight: 40, gap: 0.5 }}
+                      sx={{
+                        px: { xs: 1, sm: 1.5 },
+                        minHeight: { xs: 48, sm: 40 },
+                        minWidth: { xs: 48, sm: 'auto' },
+                        gap: 0.5
+                      }}
                     >
                       <Icon fontSize="small" />
                       <Typography
                         component="span"
                         variant="caption"
-                        sx={{ display: { xs: 'inline', sm: 'none' }, ml: 0.75 }}
+                        sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.75 }}
                       >
                         {t(viewOption.label)}
                       </Typography>

@@ -30,7 +30,7 @@ import Loading from '../../Analytics/Loading';
 import { PermissionEntity } from '../../../../models/owns/role';
 import SplitButton from '../../components/SplitButton';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import * as React from 'react';
@@ -323,7 +323,7 @@ const AssetDetails = ({ asset, loading, onCopy }: PropsType) => {
                         aria-label={t('copy_asset')}
                         title={t('copy_asset')}
                       >
-                        <ContentCopyIcon />
+                        <ContentCopyOutlinedIcon />
                       </IconButton>
                     )}
                   </Stack>

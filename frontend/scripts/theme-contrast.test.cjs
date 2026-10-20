@@ -76,7 +76,8 @@ test('web sidebar keeps one subtle shell edge and accessible navigation targets'
     /borderRight: `1px solid \$\{theme\.sidebar\.dividerBg\}`/
   );
   assert.doesNotMatch(sidebar, /\bDivider\b/);
-  assert.match(sidebar, /<Logo white\s*\/>/);
+  assert.match(sidebar, /<Logo\s*\/>/);
+  assert.doesNotMatch(sidebar, /<Logo white\s*\/>/);
   assert.match(menu, /min-height: 44px/);
   assert.match(menu, /border-radius: \$\{theme\.general\.borderRadius\}/);
   assert.match(menu, /&:focus-visible/);
@@ -101,7 +102,7 @@ test('sidebar surface is visually distinct from the application canvas', () => {
   assert.notEqual(qpmNavigationTokens.sidebar, qpmBrandTokens.canvas);
 });
 
-test('indigo sidebar text, muted labels, hover and active states meet WCAG AA', () => {
+test('light sidebar text, muted labels, hover and active states meet WCAG AA', () => {
   const { qpmNavigationTokens } = moduleExports;
   const pairs = [
     ['navigation text', qpmNavigationTokens.text, qpmNavigationTokens.sidebar],
@@ -111,6 +112,11 @@ test('indigo sidebar text, muted labels, hover and active states meet WCAG AA', 
       qpmNavigationTokens.sidebar
     ],
     ['hover text', qpmNavigationTokens.text, qpmNavigationTokens.hover],
+    [
+      'hover muted text',
+      qpmNavigationTokens.mutedText,
+      qpmNavigationTokens.hover
+    ],
     [
       'active navigation text',
       qpmNavigationTokens.activeText,
@@ -123,6 +129,18 @@ test('indigo sidebar text, muted labels, hover and active states meet WCAG AA', 
       `${name} contrast is below 4.5:1`
     );
   }
+});
+
+test('nested sidebar items show a filled hover and selected state', () => {
+  const menu = fs.readFileSync(
+    'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/index.tsx',
+    'utf8'
+  );
+  const nestedStyles = menu.slice(menu.indexOf('.MuiCollapse-root'));
+
+  assert.match(nestedStyles, /&:hover\s*\{\s*background-color:/);
+  assert.match(nestedStyles, /&\.active\s*\{\s*background-color:/);
+  assert.match(nestedStyles, /background: currentColor/);
 });
 
 test('light semantic status badge pairs meet WCAG AA for normal text', () => {

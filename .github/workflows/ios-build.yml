@@ -1,0 +1,114 @@
+name: QPM iOS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: Unsigned archive validation or signed Ad Hoc IPA
+        type: choice
+        required: true
+        default: verify
+        options:
+          - verify
+          - adhoc
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qpm-ios-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios-build:
+    name: iOS ${{ inputs.build_mode }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/mobile/Gemfile
+      IOS_SCHEME: AtlasCMMS
+      IOS_BUNDLE_IDENTIFIER: com.cmms.atlas
+      APPLE_TEAM_ID: KXW8RH26AN
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Set up Ruby and install locked Fastlane/CocoaPods
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: Install Fastlane and CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          if [ ! -f Gemfile.lock ]; then bundle lock; fi
+          bundle install --jobs 4 --retry 3
+          mkdir -p artifacts/ios
+          cp Gemfile.lock artifacts/ios/Gemfile.lock.resolved
+        working-directory: mobile
+
+      - name: Verify macOS/Xcode prerequisites
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = Darwin
+          xcodebuild -version
+          major="$(xcodebuild -version | awk '/^Xcode / { split($2, v, "."); print v[1] }')"
+          test "$major" = 26 || { echo "Expected Xcode 26.x, got $(xcodebuild -version | head -n 1)" >&2; exit 1; }
+          node --version
+          ruby --version
+          bundle exec pod --version
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            mobile/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-qpm-pods-${{ hashFiles('mobile/ios/Podfile.lock', 'mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-qpm-pods-
+
+      - name: Compile unsigned Release archive
+        if: inputs.build_mode == 'verify'
+        run: bundle exec fastlane ios verify_build
+        working-directory: mobile/ios
+
+      - name: Build signed Ad Hoc IPA
+        if: inputs.build_mode == 'adhoc'
+        env:
+          MATCH_GIT_URL: ${{ secrets.IOS_MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.IOS_MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_PASSWORD: ${{ secrets.IOS_MATCH_PASSWORD }}
+        run: bundle exec fastlane ios build_adhoc
+        working-directory: mobile/ios
+
+      - name: Collect Xcode diagnostics
+        if: failure()
+        run: |
+          mkdir -p mobile/artifacts/ios/logs
+          xcodebuild -version > mobile/artifacts/ios/logs/runner-xcode-version.txt 2>&1 || true
+          bundle exec pod env > mobile/artifacts/ios/logs/cocoapods-environment.txt 2>&1 || true
+          find ~/Library/Logs/gym -maxdepth 2 -type f -print 2>/dev/null | head -100 > mobile/artifacts/ios/logs/gym-log-index.txt || true
+
+      - name: Upload archive, IPA and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qpm-ios-${{ inputs.build_mode }}-${{ github.run_number }}
+          path: |
+            mobile/artifacts/ios/**/*.ipa
+            mobile/artifacts/ios/**/*.xcarchive.zip
+            mobile/artifacts/ios/logs/**
+            mobile/artifacts/ios/Podfile.lock.*
+            mobile/artifacts/ios/Gemfile.lock.*
+          if-no-files-found: warn
+          retention-days: 14

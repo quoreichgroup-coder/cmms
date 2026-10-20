@@ -134,6 +134,7 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
     ]);
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   const handleOpenModal = (customer: Customer) => {
     setCurrentCustomer(customer);

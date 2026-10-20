@@ -7,7 +7,11 @@ import path from 'path';
 // Keep the dynamic Expo config self-contained: Expo evaluates this file before
 // Metro's TypeScript resolver is installed, so local TS imports can fail here.
 const apiUrl = process.env.API_URL || 'https://169-58-86-7.sslip.io/api';
-const easProjectId = process.env.EAS_PROJECT_ID;
+// Keep EAS linked to the existing QPM project even when commands are run
+// without a shell-level EAS_PROJECT_ID. This is the project ID already used
+// by the native Expo Updates configuration.
+const easProjectId =
+  process.env.EAS_PROJECT_ID || 'fbfaa721-adb1-463a-8757-3e256cf7337a';
 const clarityId = process.env.CLARITY_ID;
 const googleServicesPlist = process.env.GOOGLE_SERVICES_PLIST;
 const sentryDsn = process.env.SENTRY_DSN;
@@ -77,7 +81,7 @@ if (process.env.SENTRY_AUTH_TOKEN) {
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
-  slug: 'atlas-cmms',
+  slug: 'qpm',
   version: '1.0.59',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -107,7 +111,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     buildNumber: '13',
     jsEngine: 'hermes',
     supportsTablet: false,
-    runtimeVersion: { policy: 'appVersion' },
+    // Bare React Native workflow requires a concrete runtime version for EAS Update.
+    runtimeVersion: '1.0.59',
     ...(googleServicesPlist && fs.existsSync(googleServicesPlist)
       ? { googleServicesFile: googleServicesPlist }
       : {}),
@@ -127,7 +132,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...(fs.existsSync(androidGoogleServicesPath)
       ? { googleServicesFile: androidGoogleServicesPath }
       : {}),
-    runtimeVersion: { policy: 'appVersion' } // Changed from policy object to fixed string
+    runtimeVersion: '1.0.59'
   },
   web: {
     favicon: './assets/images/favicon.png'

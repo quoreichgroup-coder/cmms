@@ -1,16 +1,16 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
-**Statut : cadrage ajouté au backlog; aucune implémentation de ce périmètre dans cette passe.**  
+**Statut : base de navigation Mobile et onboarding versionné intégrés; validation appareil et build backend restent requis. Le blocage Hibernate Work Orders demeure ouvert.**
 Ce document complète [`WEB-UI-REDESIGN-BACKLOG.md`](WEB-UI-REDESIGN-BACKLOG.md) et [`MVP-MOBILE-QPM.md`](MVP-MOBILE-QPM.md). Il conserve les routes, contrats et règles métier tant qu’un lot backend dédié n’a pas été cadré.
 
 ## Audit initial fondé sur le dépôt
 
 | Domaine | Existant vérifié | Écart / décision de backlog |
 | --- | --- | --- |
-| Mobile — navigation | `mobile/navigation/index.tsx` expose Home, Work Orders, création, Requests conditionnel et More. Le gros bouton central est actuellement **Create**; Scan existe comme destination et raccourci ailleurs. | Prototyper la matrice destinations × rôles avant de déplacer le CTA central vers Scan. Un FAB de création est acceptable seulement si les destinations, permissions et parcours actuels restent accessibles. |
-| Mobile — Home / Stats | `HomeScreen.tsx` et `WorkOrderStatsScreen.tsx` consomment le même endpoint d’overview et montrent des métriques OT similaires; les valeurs viennent de l’API avec états de chargement/erreur. | Dédoublonner la présentation : Home orienté tâches du jour et alertes réellement disponibles; Stats réservé aux métriques servies. Nouveaux KPI seulement après confirmation des sources API et permissions. Aucun chiffre fictif. |
-| Mobile — apparence | Tokens d’apparence et thème clair/sombre existent. | Construire le pill et le bouton Scan sur les tokens QPM; traiter `#A5A6FA` comme proposition, pas comme nouveau token de marque avant vérification du contraste et de la cohérence Light/Dark. Vérifier safe-area, clavier et recouvrement. |
-| Web — sidebar | `ExtendedSidebarLayout` dispose déjà d’un toggle desktop, d’une sidebar sombre indigo, d’un drawer mobile et d’états focus/actif; UX-02/UX-14 restent en recette visuelle. | La proposition de fond bleu `#4B60EE` avec sélection navy `#111D38` inverse la direction actuelle. La comparer à l’existant avant décision. Mesurer le contenu avant de fixer 216/68 px (la largeur compacte actuelle est proche de 80 px). |
+| Mobile — navigation | `mobile/navigation/index.tsx` expose Home (ou Requests pour Requester), Work Orders, Scan, Stats et More; la création contextuelle est un FAB séparé. | Implémentation incrémentale faite sur les routes et permissions existantes. Recette Android/iOS requise pour confirmer safe-area, clavier, cibles tactiles et rendu du bouton Scan. |
+| Mobile — Home / Stats | Les deux écrans consomment l’overview existant; Home montre les signaux opérationnels disponibles, Stats les répartitions analytiques. Les états de chargement/erreur viennent du store API. | Présentation dédoublonnée; aucune donnée ni KPI fictif. Recette appareil reste à faire. |
+| Mobile — apparence | Tokens QPM clair/sombre centralisés; pilule et Scan utilisent ces tokens. | Les cartes de la famille principale utilisent `cardLarge`; rayon commun ajusté de 20 à 18 dp pour respecter la cible 16–18 dp. Recette contraste/rendu physique encore requise. |
+| Web — sidebar | `ExtendedSidebarLayout` dispose d’un toggle desktop, d’un drawer mobile et d’états focus/actif; UX-02/UX-14 restent à vérifier visuellement. | Direction retenue après retour utilisateur : surface blanche, sélection QPM bleue et survol bleu pâle des sous-entrées. Routes, dimensions et permissions conservées; recette responsive requise. |
 | Équipes / horaires | `ShiftConfiguration`, `ShiftException`, `ShiftConfigurationController` et `ShiftConfigurationModal` existent; la configuration individuelle est utilisée par Workload. | Réutiliser les données personnelles existantes. Elles ne constituent pas un roster d’entreprise avec rotations, absences, affectations site/centre, relève ou approbation. Auditer DTO, règles et permissions avant extension. |
 | Arrêts planifiés | Recherche statique dans `api/src/main/java`, `frontend/src` et `mobile` : aucun module Shutdown Calendar dédié trouvé. Les traductions d’arrêt d’urgence ne prouvent pas l’existence d’un calendrier. | Nouveau domaine probable, distinct des OT et shifts; cadrer le modèle BP versionné, l’audit trail et les contrats avant création. |
 | Pièces / approvisionnement | `Part`, `PartQuantity`, `PurchaseOrder`, workflows d’achat et pages/API existent; quantités liées aux pièces, OT et commandes. | Étendre autour des objets présents : vérifier PR, réservations, réceptions partielles et suivi fournisseur avant tout nouvel écran/champ. Ne pas créer un second inventaire ou outil d’achat. |
@@ -22,11 +22,14 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 
 | ID | Priorité | Portée | Dépendances |
 | --- | --- | --- | --- |
-| MOB-NAV-01 | P1 | Prototype puis refonte incrémentale de la navigation : pilule flottante, destinations adaptées aux rôles, CTA Scan central surélevé et More pour les modules secondaires. | Frontend existant; audit du bouton Create et de chaque permission. |
-| MOB-HOME-02 | P1 | Séparer Home opérationnel et Stats analytiques; réduire les KPI répétés et mettre en avant les travaux du jour réellement assignés. | APIs actuelles d’abord; nouvel endpoint seulement si l’inventaire de données le justifie. |
-| MOB-CARD-03 | P1 | Audit ciblé des rayons, surfaces internes, contraste, alignement d’icônes, clipping et densité. | UI/tokens existants; tests Light/Dark, tailles compactes et grandes polices. |
-| WEB-SIDEBAR-01 | P1 | Recette et finition du toggle/sidebar : labels, footer, scroll indépendant, tablette et drawer mobile. | Complète UX-02/UX-14 existants; aucun changement de route/droit. |
-| WEB-SIDEBAR-02 | P2 | Comparer fond bleu QPM / sélection navy avec la sidebar sombre actuelle et décider dimensions/contraste sur captures. | Décision visuelle avec contrôles responsive et WCAG AA; tenir compte de l’accent entreprise. |
+| MOB-NAV-01 | P1 | **Base implémentée, finition en cours** : pilule flottante, Scan central surélevé, FAB Create contextuel et More; labels compacts et palette reliée aux tokens QPM ajoutés le 19 octobre. Recette appareil restante. | Frontend existant; routes et permissions existantes conservées. |
+| MOB-HOME-02 | P1 | **Implémenté** : Home centré sur les actions disponibles; Stats conserve l’analyse et les répartitions API. Recette visuelle appareil restante. | APIs existantes; aucun nouveau KPI. |
+| MOB-CARD-03 | P1 | **Audit ciblé et rayon partagé ajusté à 18 dp**; valider contraste, densité, clipping et grandes polices sur Android/iOS. | Tokens et composants existants; recette Light/Dark sur appareils. |
+| MOB-WO-04 | P0 | **Correctif de coercition implémenté; test unitaire du convertisseur 4/4** : les chaînes date sont converties en `Date`/`Timestamp` selon le type réel du champ dans le moteur de filtres avancés. Une chaîne date sans conversion était possible pour `eq`/comparaisons et peut expliquer l’erreur, sans confirmer le payload fautif du serveur. | Compilation API réussie en copie temporaire; tests d’intégration `WrapperSpecification` bloqués par Mockito/Byte Buddy dans le sandbox. Obtenir la trace et le payload production puis valider les tests d’intégration avant de fermer le P0. Aucun changement de schéma/API. |
+| MOB-NAV-05 | P1 | **Corrections intégrées et couvertes par tests** : onglet OT compact sur petits écrans, labels accessibles, Scan élevé selon les tokens QPM, FAB Add séparé, contextuel, autorisé et masqué au clavier. | Routes/droits existants conservés. Bundles Android/iOS valides; reste la recette réelle tactile, safe-area, grands textes et petits appareils. |
+| MOB-ONBOARD-06 | P2 | **Implémenté dans le code** : cinq écrans EN/FR, progression par balayage/boutons, contenu adapté aux rôles et modules autorisés, skip/fin persistés par utilisateur et replay depuis Paramètres. | Préférence dans `UserSettings`; endpoint dédié protégé à l’utilisateur courant; migration Liquibase additive. Appliquer la migration et valider l’API puis la recette Android/iOS avant livraison. Aucun changement de rôle/droit ni permission caméra/NFC pendant l’introduction. |
+| WEB-SIDEBAR-01 | P1 | Le pied compact est corrigé pour réserver 160 px aux trois actions empilées et éviter leur débordement; restent labels, scroll indépendant, tablette et drawer mobile à vérifier visuellement. | Complète UX-02/UX-14 existants; aucun changement de route/droit. Test de layout dédié passe; recette navigateur réelle encore requise. |
+| WEB-SIDEBAR-02 | P2 | Vérifier la surface claire, les sous-entrées en survol/sélection, les contrastes et les captures à plusieurs largeurs. | Décision visuelle avec contrôles responsive et WCAG AA; tenir compte de l’accent entreprise. |
 | SHIFT-ROSTER-01 | P2 | Spécifier puis étendre le roster par site/centre : shifts et rotations configurables, équipes/personnes, repos, absences, remplacements, validation, relève et présence prévue/réelle. | Réutiliser shift config et People/Teams; migration/API probable. Import/export et détection de conflits après contrats validés. |
 | SHUTDOWN-01 | P2 | Découverte, puis BP baseline/révisions immuables, planifié/réel, reports historisés, site/zone, multi-jours et import Excel avec prévisualisation. | Nouveau domaine backend, migrations, droits par site et audit. Liens OT/ressources en lecture d’abord. |
 | PROCUREMENT-01 | P2 | Cartographier PurchaseOrder, PartQuantity, workflows et statuts; spécifier suivi des besoins, PR/PO, livraisons partielles, responsable et relances. | Réutiliser achats/inventaire; modèle/API seulement après audit des champs et liens existants. Transactionnalité et imports idempotents requis. |
@@ -36,9 +39,23 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 
 ### Phase 1 — Mobile UI/UX
 
-- **MOB-NAV-01** : matrice destinations × rôles; cinq emplacements maximum; noms accessibles, état actif clair et cibles tactiles adaptées. Scan n’ouvre caméra/NFC qu’après geste explicite. Le FAB Create respecte les permissions, disparaît lorsque la création est sans objet et se masque au clavier. Vérifier safe-area Android/iOS.
+- **MOB-NAV-01 / MOB-NAV-05** : cinq destinations au maximum; l’onglet OT ne grossit pas au point de couper son libellé; icônes alignées et état actif contenu dans sa cellule. Scan reste centré, élevé de 14–18 dp, sans clipping et entièrement tactile. FAB Add de 52–56 dp, en bas à droite, au-dessus de la barre et hors du contenu important; se masque au clavier et respecte les permissions. Utiliser les tokens QPM pour clair/sombre, contrastes accessibles, safe-area et tests à petites/grandes largeurs. Le scan ne démarre qu’après action explicite.
 - **MOB-HOME-02** : Home répond à « que faire maintenant ? » avec assignations, retards, notifications et pénuries uniquement si leurs données sont accessibles. Stats regroupe les indicateurs existants; tout KPI sans source validée est absent ou indisponible.
 - **MOB-CARD-03** : tokens QPM conservés, couleurs sémantiques métier inchangées; vérification WCAG AA, petit écran, texte agrandi, thèmes, lecteur d’écran et recouvrement du FAB.
+
+### Phase 1b — Chargement des Work Orders
+
+- Reproduire l’appel API Mobile fautif avec requête, utilisateur/site et trace serveur complète; identifier le champ, la projection ou le mapping qui envoie une chaîne vers un `Timestamp`. Comparer type Java, SQL, JSON et valeurs legacy/null; documenter la sémantique temporelle et le fuseau avant correction.
+- Corriger à la frontière responsable avec un type temporel cohérent; garder le contrat existant sauf impossibilité démontrée. Ne pas masquer les enregistrements mal formés et ne pas modifier les données de production par migration non revue. Le client montre un état d’erreur/action de reprise compréhensible sans afficher la stack trace.
+- Critères: liste/filtre/détail/création/modification des OT passent; tests API/mapping/date couvrent valeur valide, null et cas legacy; aucun message de conversion Timestamp dans les journaux du scénario vérifié.
+
+### Phase 1c — Onboarding première connexion
+
+- Audit avant code : architecture Expo/navigation, tokens clair/sombre, écrans auth/Home/OT/Scan/Stats/More, droits/features déployés, préférences utilisateur et mécanismes de synchronisation déjà disponibles. Réutiliser les composants et illustratifs existants; ne pas installer de bibliothèque sans besoin établi.
+- Produire cinq écrans : accueil QPM; gestion des OT avec aperçu réaliste; scan équipement; planification (uniquement fonctions activées); écran de fin. Style SaaS maintenance haut de gamme, typographie et composition travaillées, mais identité, tokens et contraste QPM restent maîtres. Pas de permission caméra/NFC au chargement de l’onboarding.
+- Navigation accessible : swipe, Suivant, Retour, Ignorer, progression, langues française/anglaise, petites tailles Android et grossissement système. Adapter les messages aux droits existants (technicien, superviseur, planificateur, administrateur) sans demander ni attribuer un rôle.
+- Présenter une fois par utilisateur et par version; enregistrer terminé/ignoré, gérer session interrompue, reconnexion et plusieurs appareils. Préférence existante réutilisée : `UserSettings`; endpoint dédié `PATCH /user-settings/{id}/onboarding`, limité au settings de l’utilisateur authentifié. La migration marque les lignes déjà présentes comme résolues en version 1, et les nouveaux settings commencent à la version 0. « Rejouer la visite » est accessible dans Paramètres.
+- Critères: premier login, retour, ignorer, fin, redémarrage, déconnexion/reconnexion, changement langue/thème, rôle et replay; ne jamais réafficher après chaque connexion ni inclure de fonctions indisponibles.
 
 ### Phase 2 — Web UI/UX
 
@@ -73,4 +90,163 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 
 ## Prochaine étape recommandée
 
-Prototyper et tester **MOB-NAV-01 + MOB-HOME-02** sur les écrans/APIs présents, en parallèle de la recette responsive **WEB-SIDEBAR-01**. Avant tout changement backend, produire des spécifications séparées pour Shift Roster, Shutdown BP et Procurement Tracking avec propriétaires métier, définitions, droits site et transitions.
+Valider ensemble le backend/onboarding sur un environnement de test : exécuter Maven, appliquer la migration Liquibase, tester l’endpoint de préférences, puis installer le build 1.0.59 et vérifier premier login/skip/complétion/replay sur Android/iOS. Le P0 MOB-WO-04 reste à diagnostiquer avec la trace serveur complète. La recette Chromium Web reste ouverte car le wrapper Snap ne démarre pas dans cet environnement. Avant d’implémenter Shift Roster, Shutdown BP ou Procurement Tracking, produire des spécifications métier distinctes.
+
+## Historique
+
+### 19 octobre 2026 — reprise Web/Mobile et validation de régression
+
+- Relance de `npm run test:mobile-regression` : **31/31 tests réussis**. `npx expo export --platform web` bundle l’application mobile pour le Web (1 891 modules) avec succès; cela valide le bundling, pas le rendu sur appareil natif.
+- Le typecheck Web `npx tsc --noEmit --pretty false` réussit. Le typecheck Mobile réussit également avec une configuration temporaire excluant `mobile/dist`, généré par l’export Expo; aucun fichier de configuration du dépôt n’a été modifié.
+- Les points mobile restent MOB-WO-04 (trace Hibernate complète requise), recette de MOB-NAV-05 et validation backend/appareil de MOB-ONBOARD-06. Aucun APK n’est déclaré généré ou validé dans cette passe.
+- Les lots Shift Roster, Shutdown Calendar et Procurement Tracking restent à spécifier avec le site pilote avant toute évolution de modèle ou d’API; ils ne sont pas remplacés par des écrans de démonstration.
+
+### 19 octobre 2026 — MOB-WO-04, coercition des filtres date
+
+- L’inspection des Work Orders confirme des champs persistés en `java.util.Date`, alors que les filtres JSON génériques transportent `value` comme `Object`. Les constructeurs Web/Mobile utilisés pour les plages standard renseignent `JS_DATE`; le moteur générique laissait cependant les valeurs brutes pour `eq`, `ne`, `gt`, `ge`, `lt`, `le` et `in` quand le champ n’était pas marqué.
+- `WrapperSpecification` convertit désormais les valeurs ISO en fonction du type Java du chemin (dont `Timestamp`) avant de construire les prédicats; les dates invalides sont rejetées par la validation de filtre. Des tests ciblent l’égalité date et la comparaison d’un champ Timestamp.
+- C’est un chemin plausible correspondant à l’exception, pas une reproduction de l’incident original : le payload fautif et la trace complète du serveur manquent encore. La compilation Maven des sources et tests passe dans `/tmp`; `SearchDateValueConverterTest` passe **4/4**. Les tests d’intégration Mockito échouent avant leurs assertions, Byte Buddy ne pouvant pas attacher son agent JVM dans le sandbox. Le P0 reste ouvert jusqu’à exécution des tests d’intégration dans un environnement Java normal et recette API.
+
+### 18 octobre 2026 — MOB-NAV-01, première intégration
+
+- Barre mobile remplacée par une pilule flottante à cinq emplacements maximum : Accueil, OT, Scan, Stats et Plus. Pour le rôle Requester, Requests remplace Accueil; les demandes restent aussi accessibles depuis Plus lorsqu’elles sont autorisées et activées.
+- Scan ouvre l’écran du scanner uniquement après appui; ses permissions de consultation d’équipements restent appliquées.
+- Le bouton central de création devient un FAB contextuel séparé, caché au clavier et présent seulement si le rôle dispose d’au moins une permission de création. Requesters conservent la création de demande; les autres rôles réutilisent la feuille existante.
+- Les couleurs de navigation utilisent les tokens QPM clair/sombre. Aucun endpoint, contrat, permission ou transition métier n’est modifié.
+- La régression dédiée et la suite Mobile (**31 scripts de test**) passent; TypeScript, Prettier et `git diff --check` passent aussi. Les tests couvrent les routes, le déclenchement explicite du scan, les permissions de création, le masquage au clavier et l’accès aux demandes. La recette visuelle Android/iOS reste à faire sur appareil.
+
+### 18 octobre 2026 — MOB-HOME-02 / MOB-CARD-03, finition ciblée
+
+- Home et Stats sont maintenant consignés comme dédoublonnés : Home garde les indicateurs opérationnels effectivement disponibles; Stats garde les répartitions analytiques API. Aucun KPI n’est inventé.
+- L’audit statique des cartes Home, OT, statistiques et répertoires confirme l’usage des surfaces/couleurs du thème et des couleurs de statut sémantiques; aucun code couleur direct n’a été trouvé dans ces écrans. Les cartes principales partagent leurs rayons par tokens.
+- `qpmLayoutTokens.radius.cardLarge` passe de 20 à 18 dp (cible backlog 16–18 dp); les cartes qui utilisent ce token sont harmonisées sans modifier leur contenu ou leurs interactions. Le rayon `card` existant reste 16 dp.
+- La suite Mobile, TypeScript, Prettier et `git diff --check` passent après la navigation; test d’apparence mis à jour pour fixer le token à 18 dp. Le contraste réel et les tailles de texte agrandies doivent encore être contrôlés sur appareils; l’audit statique ne vaut pas validation visuelle.
+
+### 19 octobre 2026 — ajout stabilisation navigation, Work Orders et onboarding
+
+- Ajout de MOB-WO-04 P0 après signalement d’une conversion String → `java.sql.Timestamp` empêchant le chargement des Work Orders. L’implémentation attend une reproduction et l’identification du mapping exact; aucune migration ou modification API n’est présumée.
+- Ajout de MOB-NAV-05 pour corriger les défauts visibles rapportés sur l’onglet OT, l’alignement du Scan, les tokens et le FAB. La navigation existante est à auditer/corriger, pas à remplacer.
+- Ajout de MOB-ONBOARD-06 pour cadrer l’onboarding premium first-login en cinq écrans, localisé, versionné, role-aware et rejouable. Les permissions restent backend-authoritative; la persistance serveur dépend de l’audit des préférences existantes et d’un contrat dédié si nécessaire.
+- Cette mise à jour est documentaire uniquement : les trois lots restent ouverts, aucun écran, endpoint, permission ni schéma n’a été modifié.
+
+### 19 octobre 2026 — MOB-NAV-01 / MOB-NAV-05, finition responsive et tokens
+
+- Les couleurs de navigation ne reprennent plus une paire navy/lavande indépendante : la surface, son texte, l’accent actif et son texte sont dérivés respectivement des tokens QPM `surface`, `textPrimary`, `brandPrimary` et `onPrimary`, en thèmes clair et sombre.
+- À 439 dp et moins, les libellés sont masqués pour éviter que « Ordres de travail » déborde de sa cellule; les boutons gardent un `tabBarAccessibilityLabel` traduit. À partir de 440 dp, les libellés restent visibles. La composition conserve les cinq destinations autorisées par rôle.
+- Le contrôle automatique confirme que Scan reste un bouton de 60 dp, élevé de 18 dp et non rogné. Le FAB reste contextuel, autorisé par permission et masqué au clavier.
+- Tests ciblés `appearance.test.cjs` et `mobile-navigation-redesign.test.cjs`, puis suite `npm run test:mobile-regression` : **31/31 passés**; `tsc --noEmit`, Prettier ciblé et `git diff --check` passent. L’affichage sur téléphone/tablette et la zone tactile au-dessus du conteneur restent à confirmer sur appareil.
+- MOB-WO-04 n’est pas corrigé : le dépôt contient le mapping WorkOrder en `java.util.Date` et les colonnes historiques attendues en `TIMESTAMP`, mais cette inspection ne suffit pas à attribuer l’exception à un champ précis. L’environnement courant refuse l’accès au socket Docker et aucun stack trace complet du scénario fautif n’est disponible; aucune modification de schéma ou conversion spéculative n’a été faite.
+
+### 19 octobre 2026 — MOB-ONBOARD-06, première implémentation
+
+- L’audit a confirmé que `UserSettings` et `PATCH /user-settings/{id}` existent déjà et que le contrôleur vérifie l’appartenance au settings de l’utilisateur. Le modèle Mobile n’avait toutefois aucun état d’onboarding.
+- Ajout d’un état versionné (`onboardingVersion`, `onboardingStatus`) et d’un endpoint ciblé `PATCH /user-settings/{id}/onboarding`. Le endpoint ne peut écrire que sur les préférences du compte courant et n’accepte que la version d’introduction actuellement publiée et un état ignoré/terminé.
+- Migration Liquibase additive; les préférences existantes sont initialisées comme résolues pour éviter de surprendre les utilisateurs actuels. Les nouveaux comptes démarrent en `NOT_STARTED`. Les mises à jour génériques des anciens clients conservent les champs d’onboarding.
+- Cinq écrans Mobile localisés EN/FR; swipe et boutons Précédent/Suivant/Ignorer, indicateur de progression, aperçu de modules autorisés et CTA final. Aucun accès caméra/NFC n’est demandé avant une action explicite. Replay ajouté dans Paramètres.
+- Garde au démarrage authentifié : charge les préférences avant de choisir l’écran initial pour éviter un flash Home; si le service de préférences est en panne, l’application reste accessible et ouvre Home. Les anciens serveurs sans champs d’onboarding n’imposent pas l’introduction.
+- Tests ciblés d’état : 5/5; suite Mobile : **31/31**; TypeScript Mobile, Prettier ciblé et export Expo Web passent. L’unique échec de la première suite était un test d’apparence qui comptait les icônes de Settings avant l’ajout de l’action Replay; l’attendu a été ajusté et la suite complète repasse. Le build/test Maven n’est pas disponible dans cet environnement (`mvn` et `api/mvnw` absents); le XML Liquibase est valide. Test visuel natif et application de migration en base restent à faire.
+- Le contenu de bienvenue et de scan respecte les droits du compte : le scan n’est présenté que si l’accès Equipements est accordé; les aperçus de modules sont filtrés avec les permissions et la configuration déployée. Aucun état ou fonctionnalité n’est simulé comme actif.
+- Le même audit a trouvé que le PATCH générique `/user-settings/{id}` validait l’ID du chemin mais sauvegardait l’ID reçu dans le corps. Le contrôleur lie maintenant la sauvegarde à l’ID des préférences authentifiées; deux tests de régression couvrent la tentative de redirection et le refus d’une autre ligne utilisateur. Leur exécution reste à confirmer faute de Maven.
+- MOB-WO-04 reste P0 ouvert, faute de trace backend complète et d’accès Docker dans l’environnement courant.
+
+### 19 octobre 2026 — Web Request, garde des champs configurés
+
+- Le formulaire de Demande ne traitait pas le cas où la configuration d’entreprise ciblait un champ retiré par la configuration UI; un index absent pouvait corrompre la liste des champs ou empêcher l’ouverture du formulaire.
+- L’application de `REQUIRED`/`HIDDEN` est maintenant limitée aux champs présents et configurés. Test dédié **3/3**, tests CRUD/sélecteurs Request et suite Web complète **71 tests** passent; aucune API, permission ou règle métier ne change.
+- Le typecheck tenté cette session n’a pas produit de résultat observable. La recette visuelle/Chromium reste ouverte; aucune validation sur compte authentifié n’est revendiquée.
+
+### 19 octobre 2026 — vérification croisée des backlogs Web/Mobile
+
+- La suite de régression Mobile a été relancée sans changement d’application : **31/31 tests réussis**. Les parcours natifs Android/iOS et le backend MOB-WO-04 restent non vérifiés dans cette passe.
+- Le sidebar Web a été corrigé localement pour retrouver sa palette de surface indigo nuit/sélection bleue approuvée et ouvrir les groupes correspondant aux routes imbriquées; les détails sont suivis dans `WEB-UI-REDESIGN-BACKLOG.md`. Aucun flux métier Mobile, contrat API ou permission ne change.
+
+### 19 octobre 2026 — erreurs de délai API Mobile et recette statique croisée
+
+- Les expirations de requêtes Mobile émettent maintenant une erreur typée `REQUEST_TIMEOUT` et `getErrorMessage` la traduit via la langue i18n active (anglais/français, avec repli anglais pour les autres langues). Le message français codé en dur ne peut donc plus apparaître sur un compte anglophone; une expiration reste distincte d’une erreur de connexion refusée. Aucun contrat API ni comportement d’autorisation ne change.
+- Régression vérifiée pour les timeouts, l’annulation utilisateur silencieuse et le message en français/anglais. Suite Mobile complète **31/31**, TypeScript Mobile passent. Suite Web complète **72/72**, TypeScript Web et les tests sidebar navigation/state/layout passent. La recette Chromium authentifiée et Android/iOS physiques restent à faire.
+
+### 19 octobre 2026 — conservation de session et bundles natifs JS
+
+- Mobile ne supprime plus les jetons lorsqu’un appel de renouvellement échoue sur une exception réseau; les réponses explicitement refusées/invalides continuent à les invalider. Test ajouté, suite Mobile **31/31** et TypeScript passent. La reprise dans la session courante reste limitée par le résultat booléen de `refreshAccessToken`; ce suivi est inscrit dans le backlog Mobile.
+- Les exports Expo Android (**2 227 modules**) et iOS (**2 218 modules**) réussissent. Ils vérifient le bundle JavaScript, pas le build natif ou l’expérience sur appareil.
+- Web : les 3 tests du sidebar avaient réussi séparément et la suite Web **72/72** avec TypeScript avait passé à la vérification précédente. Un nouveau build CRA a été lancé mais interrompu sans rapport d’erreur exploitable; le rendu Chromium authentifié reste ouvert.
+- Revue de MOB-NAV-05 : les comportements de dimensionnement, Scan, FAB et tokens sont présents dans le code et protégés par la suite Mobile. Le backlog le marque implémenté côté code; la validation tactile et safe-area reste à faire sur appareil.
+
+### 19 octobre 2026 — renouvellement Mobile sur erreurs HTTP temporaires
+
+- Le renouvellement effaçait les jetons après n’importe quelle réponse HTTP non-2xx, y compris `429` et les erreurs serveur `5xx`. Il conserve maintenant la session sur ces réponses transitoires comme sur les erreurs réseau; seules les réponses explicites `401`/`403` ou un corps de succès invalide invalident les jetons.
+- Régressions ajoutées pour `429`, `500` et `503`; les tests existants couvrent aussi la panne réseau et le refus `401`. Suite Mobile (**31/31 scripts**), TypeScript Mobile et `git diff --check` passent. Prettier signale les deux fichiers entiers comme non formatés; aucune réécriture globale n’a été appliquée pour éviter un diff de formatage sans rapport. Aucun endpoint, stockage natif, contrat API ou permission ne change.
+- La reprise automatique reste dépendante de l’événement online/foreground déjà présent; essai de coupure réelle et validation Android/iOS sur appareil toujours requis.
+
+### 19 octobre 2026 — vérification croisée Web/Mobile
+
+- Web : suite `node --test --test-reporter=dot scripts/*.test.cjs` et typecheck TypeScript terminent avec le code retour 0. Le build de production CRA a été lancé mais n’a produit aucun résultat exploitable après l’étape de compilation optimisée; il a été interrompu et reste **non vérifié**.
+- Mobile : suite `npm run test:mobile-regression` passe **31/31**; `npx tsc --noEmit --pretty false` passe. Les exports Expo natifs du bundle JavaScript réussissent pour iOS (**2 218 modules**) et Android (**2 227 modules**). Ils ne compilent pas le code natif et ne valident ni les permissions caméra/NFC, ni les interactions sur appareil.
+- Aucun changement de code applicatif dans cette vérification. Les prochains contrôles bloquants restent : trace/payload serveur complet pour MOB-WO-04, tests Maven/API de l’onboarding et de l’isolement, recette Chromium Web authentifiée, puis essais Android/iOS sur appareils réels. Shift Roster, Shutdown Calendar et Procurement restent en cadrage, sans modèle/API ajoutés.
+
+### Reprise de session Mobile — erreurs temporaires sans changement de connectivité — 19 octobre 2026
+
+- La reprise existait au retour de l’application au premier plan et après le retour du réseau. Elle ne retentait pas nécessairement après une panne serveur temporaire lorsque le réseau demeurait disponible.
+- Le contexte Mobile programme maintenant des tentatives progressives (5, 10, 20, 40 puis 60 secondes maximum) si les jetons sont conservés et que l’erreur est réseau, timeout, `408`, `429` ou `5xx`. La requête n’est relancée que lorsque l’application est active. Les refus `4xx` — dont `401`/`403` — ne sont pas retentés; les tentatives sont nettoyées après connexion réussie, déconnexion ou démontage du contexte.
+- Aucun endpoint, schéma, permission ni contrat API ne change. Tests dédiés de délai et de classification ajoutés. Suite Mobile complète, TypeScript et vérification de build/bundle restent en cours ou à compléter dans cette passe; le comportement en arrière-plan et la reprise réseau doivent encore être vérifiés sur Android/iOS réels.
+
+### Validation finale — reprise de session Mobile — 19 octobre 2026
+
+- `npm run test:mobile-regression` passe **32/32 suites de test**; `./node_modules/.bin/tsc --noEmit --pretty false`, Prettier ciblé et `git diff --check` passent.
+- Les exports Metro réussissent pour iOS (**2 219 modules**) et Android (**2 228 modules**). Il s’agit de bundles JavaScript, pas d’un APK/IPA ou d’une validation native sur appareil.
+- Les cas HTTP 400 non retentable et transport/408/429/5xx retentables sont couverts. Essais de reprise après panne réelle, arrière-plan, Android et iOS restent à faire sur appareils/environnement de recette.
+
+### Revalidation Web/Mobile — 19 octobre 2026
+
+- Mobile : `npm run test:mobile-regression` réussit **32/32**; `./node_modules/.bin/tsc --noEmit --pretty false` passe. Expo exporte le bundle iOS (**2 219 modules**) et Android (**2 228 modules**) avec succès. Ces exports ne compilent pas les binaires natifs et ne remplacent pas un essai physique.
+- Web : la suite frontend complète et `tsc --noEmit --pretty false` passent; le build CRA optimisé termine par **Compiled successfully**. Chromium authentifié, parcours visuels à différentes largeurs et essais sur Android/iOS restent ouverts.
+- Le backend compile en Java 17 et le test autonome `SearchDateValueConverterTest` passe **4/4**. Les tests intégration ne sont pas validés : Mockito/Byte Buddy échoue lors de l’attachement JVM dans cet environnement. L’API Docker a répondu HTTP 200 au health-check, ce qui ne valide pas la route Work Orders authentifiée.
+- L’association EAS demandée pour `fbfaa721-adb1-463a-8757-3e256cf7337a` n’a pas abouti : `eas init` exige un compte Expo ou `EXPO_TOKEN`, absent de cette session. `app.config.ts` et `eas.json` n’ont pas été modifiés. Le build `--platform all --auto-submit` n’a donc pas été lancé; les profils `production` configurés impliquent une build de production et une soumission aux comptes de distribution configurés.
+
+### Recontrôle MOB-WO-04 et dépendances de recette — 19 octobre 2026
+
+- Le convertisseur date a été compilé directement avec Java 17 dans un dossier temporaire et un smoke test autonome vérifie Date, Timestamp, date seule UTC et rejet d’une chaîne invalide (**4/4**). Cela ne vérifie pas Hibernate ni l’API réelle.
+- Les tests d’intégration Spring restent bloqués : `mvn` et `api/mvnw` ne sont pas disponibles; l’accès au daemon Docker retourne `permission denied`. La trace serveur et le payload ayant déclenché l’erreur ne sont toujours pas présents. MOB-WO-04 demeure donc P0 ouvert.
+- La tentative Chromium DevTools échoue aussi sur l’absence de `/opt/google/chrome/chrome`; aucune recette visuelle Mobile Web ou captures authentifiées n’est revendiquée. Les exports Metro et tests répertoriés plus haut restent des validations de bundle/tests automatisés, pas un test sur appareil.
+
+### Vérification Docker et tests backend — 19 octobre 2026
+
+- L’accès Docker a été relancé avec `sudo`, autorisé par l’utilisateur. `atlas-cmms-backend` est `Up`; `GET http://localhost:3000/api/health-check` renvoie **HTTP 200**. Les logs API consultés ne montrent pas d’erreur Timestamp récente. Cela confirme la disponibilité générale du service, pas le chargement d’une liste Work Orders authentifiée ni la reproduction du payload fautif.
+- Maven 3.9.12 est désormais disponible sur le poste de développement. Le premier lancement depuis `api/` n’a pas pu écraser certains artefacts de `api/target` (droits existants); les tests ont été relancés depuis une copie temporaire sous `/tmp` sans modifier les sources.
+- Compilation des 823 fichiers Java réussie. `SearchDateValueConverterTest` passe **4/4**. Le lot combiné compte 311 cas et échoue sur 307 erreurs d’initialisation Mockito/Byte Buddy (`Could not self-attach to current VM`), avant les assertions métier; zéro échec d’assertion n’est interprétable comme validation. MOB-WO-04 reste **ouvert** jusqu’à test Spring dans un environnement permettant l’attachement JVM et recette de la requête authentifiée.
+- Le contrôle Chromium reste bloqué : Chrome DevTools attend `/opt/google/chrome/chrome`, absent ici. Pas de captures ni de validation visuelle authentifiée revendiquées. Aucun rebuild Docker, déploiement, commit ou push n’a été effectué.
+- Web UX-12 (20 octobre) : le sélecteur de vues calendrier masque ses libellés sur téléphone et les montre à partir de `sm`, sans perdre les noms accessibles. Tests dédiés **2/2**, suite complète, TypeScript, Prettier et build CRA (**Compiled successfully**) réussis; recette responsive Chromium toujours ouverte.
+- Mobile : `npm run test:mobile-regression` réussit **32/32** après la reprise de session; le typecheck Mobile `./node_modules/.bin/tsc --noEmit --pretty false` termine également avec le code **0**.
+- Aucun changement d’API, permission ou règle métier. Pas de rebuild Docker, APK/IPA, déploiement, commit ou push.
+
+### Workload Web et NFC iOS — reprise des backlogs — 20 octobre 2026
+
+- Web : la capacité du Workload distingue maintenant capacité indisponible, temps restant et dépassement. La surcharge n’est plus présentée comme `0h00 restant`; le dépassement est explicite, localisé et annoncé aux technologies d’assistance. Tests frontend complets, TypeScript et Prettier passent. Le build CRA a été relancé seul, mais n’a produit aucun résultat après « Creating an optimized production build » et a été interrompu; il n’est pas revendiqué comme réussi. Les écrans authentifiés restent à contrôler visuellement.
+- Mobile : NFC est activé sur iOS et Android dans la configuration source; Expo autolinking expose `react-native-nfc-manager` pour iOS. La suite Mobile passe **32/32**, le typecheck et Prettier ciblé passent. Le projet iOS contient usage description et entitlement Core NFC `TAG`.
+- Limite iOS : aucune compilation CocoaPods/Xcode signée ni lecture physique n’a été effectuée. Il faut régénérer/valider les Pods sur macOS, signer avec un profil autorisant Core NFC, installer sur un iPhone compatible puis tester MIFARE/ISO 15693. L’application ne désactive plus le NFC iOS dans le code, mais une ancienne IPA déjà installée ne change pas rétroactivement.
+- Aucun changement d’API, de permission QPM ou de règle métier; aucun APK/IPA, déploiement, commit ou push produit.
+
+### Garde de configuration native NFC — 20 octobre 2026
+
+- Une régression Mobile verrouille désormais ensemble l’autolinking iOS, `NFCReaderUsageDescription`, l’entitlement Core NFC `TAG` et sa déclaration dans `CODE_SIGN_ENTITLEMENTS`. La suite Mobile passe **32/32**, TypeScript, Prettier ciblé et `git diff --check` passent.
+- L’export Expo iOS a réussi avec un seul worker (**2 219 modules**) après qu’une tentative sans limite de workers s’est arrêtée sans résultat exploitable. L’export confirme le bundle JavaScript, pas la signature Apple, CocoaPods ou la lecture physique d’un tag.
+- Calendrier Web : précédent/suivant, Aujourd’hui et les choix de vue ont une cible minimale de 48 × 48 px sur téléphone et gardent leur densité desktop à partir de `sm`. Suite Web complète (code 0), typecheck, test responsive ciblé et Prettier passent. Le build CRA isolé termine avec succès; test tactile visuel dans Chromium reste à effectuer.
+- Mobile : le garde NFC couvre aussi la permission Android et conserve le matériel comme facultatif. Suite Mobile relancée après cet ajout : **32/32**; Prettier ciblé passe. Tests statiques uniquement pour Android; pas d’installation ou scan physique dans cette passe.
+- Web UX-11 : les actions de copie, de menu et d’arborescence des familles Équipements, Localisations et Pièces sont harmonisées avec les icônes MUI Outlined. Suite Web, test icon-family, TypeScript, Prettier ciblé et build CRA passent. La famille globale d’icônes et la revue visuelle restent à finir.
+
+### Retour de contraste sur le sidebar Web — 20 octobre 2026
+
+- Le fond navy `#101B36` était toujours perçu comme l’ancienne palette bleu-noir. Le fond passe au blanc, avec texte gris foncé, séparateurs neutres et survol bleu très pâle; le bleu QPM est conservé pour la sélection principale. Le logo du sidebar est adapté à la surface claire.
+- Les sous-entrées affichent maintenant une surface au survol et un état sélectionné lisible, avec texte bleu et focus clavier visible. Le test de contraste vérifie les libellés secondaires sur la surface et au survol. Recette visuelle Chromium authentifiée encore requise.
+- Validation : suite Web **76/76**, TypeScript, tests sidebar/contraste, Prettier et `git diff --check` passent. Le build CRA n’a pas rendu de résultat après son démarrage et a été arrêté; relancer un build de production avant toute réplication Docker.
+
+### Validation ciblée API — 20 octobre 2026
+
+- Maven direct depuis `api/` échoue avant compilation en essayant d’écraser un ancien fichier `api/target/classes` non modifiable. Dans une copie temporaire de `api/src` et `pom.xml`, la compilation de 823 sources Java réussit.
+- Les tests ciblés `SearchDateValueConverterTest` (**4/4**) et `WorkOrderExecutionTimeCalculatorTest` (**3/3**) passent. Quatre tests `UserSettingsControllerTest` / `UserSettingsServiceOnboardingTest` s’arrêtent avant assertions : Mockito/Byte Buddy ne peut pas s’attacher à cette JVM (`Could not self-attach to current VM`). Le lot total rapporte 7 réussites et 4 erreurs d’initialisation; le flux backend d’onboarding et l’intégration réelle de recherche Work Orders ne sont donc pas validés par cette exécution.
+- Mobile : suite de régression **32/32** et `tsc --noEmit --pretty false` terminent avec le code retour 0. Aucun APK/IPA, rebuild Docker ou déploiement produit.
+
+### Pipeline iOS — lancement Fastlane depuis le bon répertoire — 20 octobre 2026
+
+- Le `Fastfile` était dans `mobile/ios/fastlane`, mais GitHub Actions et Jenkins lançaient Fastlane depuis `mobile/`, ce qui empêchait la découverte standard de la configuration. Les deux lanes utilisent maintenant `mobile/ios/`; `BUNDLE_GEMFILE` pointe toujours vers `mobile/Gemfile`.
+- `mobile/scripts/ios-build-pipeline.test.cjs` vérifie les deux working directories et commandes; le test dédié, Prettier et `git diff --check` passent. Aucun runner macOS/Xcode n’est disponible pour exécuter réellement `verify_build` ou produire un IPA signé.

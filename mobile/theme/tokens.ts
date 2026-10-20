@@ -118,7 +118,7 @@ export const qpmLayoutTokens = {
   radius: {
     control: 10,
     card: 16,
-    cardLarge: 20,
+    cardLarge: 18,
     sheet: 24,
     pill: 999
   },

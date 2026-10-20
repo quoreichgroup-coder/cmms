@@ -133,13 +133,6 @@ const SelectAssetModal: React.FC<SelectAssetModalProps> = ({
     }
   }, [open, initialSelectedAssets, previousInitialSelectedAssets]);
 
-  useEffect(() => {
-    if (single && open) {
-      setSelectedAssets([]);
-      setRowSelection({});
-    }
-  }, [open, single]);
-
   const handleToggleExpand = (row: AssetRow) => {
     setExpanded((prev) => ({ ...prev, [row.id]: !prev[row.id] }));
   };
