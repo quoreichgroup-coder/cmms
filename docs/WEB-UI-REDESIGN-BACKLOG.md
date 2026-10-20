@@ -1004,3 +1004,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Le Web possède déjà un lien vers la référence API Scalar (`api-docs.html`) et le backend génère une spécification OpenAPI groupée, avec des tests d’intégration dédiés. Cette référence s’adresse aux intégrateurs, pas aux utilisateurs terrain.
 - Aucun centre d’aide utilisateur Web central n’a été repéré dans les composants `frontend/src`; les documents existants trouvés sont principalement des guides techniques/exploitants. La création d’une aide courte intégrée reste donc un besoin distinct.
 - L’OpenAPI ne doit pas être réécrite par précaution : l’audit DOC-API-01 déterminera si descriptions, schémas ou sécurité sont réellement incomplets ou inexacts avant toute modification.
+
+### DOC-API-01 — audit de l’OpenAPI/Scalar terminé, corrections différées — 20 octobre 2026
+
+- Rapport détaillé : [`OPENAPI-AUDIT-2026-10-20.md`](OPENAPI-AUDIT-2026-10-20.md). Aucune configuration, route ou règle d’accès n’a été modifiée; les changements sont différés jusqu’à la fin du travail sur l’application, selon la demande.
+- Écarts confirmés dans les sources : le schéma API key est déclaré globalement alors que le backend accepte aussi JWT et autorise certaines routes sans authentification; le contrat ne décrit pas ces variantes par opération. Les docs et le JSON OpenAPI sont publiquement permis; les tests d’intégration neutralisent les filtres et ne valident pas cette politique. Scalar utilise un proxy hébergé externe configuré et des assets CDN non épinglés. L’utilisation exacte du proxy et le transfert de headers de credentials restent à vérifier par une trace runtime; aucune fuite n’est affirmée.
+- La décision post-application devra couvrir exposition publique, modes d’authentification par endpoint, proxy/CORS et versions Scalar. L’aide utilisateurs Web reste une documentation séparée de la référence API des intégrateurs.
