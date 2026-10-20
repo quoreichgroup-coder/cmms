@@ -12,7 +12,7 @@ import { getErrorMessage } from '../../utils/api';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 import { qpmLayoutTokens } from '../../custom-theme';
-import { Button, Dialog, Divider, Portal } from 'react-native-paper';
+import { Button, Dialog, Portal } from 'react-native-paper';
 import { ScrollView } from 'react-native';
 import api from '../../utils/api';
 
@@ -168,85 +168,161 @@ export default function CompleteWorkOrderModal({
         >
           <Dialog.Title>{t('work_order_completion_review_title')}</Dialog.Title>
           <Dialog.ScrollArea>
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 24 }}>
+            <ScrollView
+              contentContainerStyle={{
+                paddingHorizontal: qpmLayoutTokens.space.lg,
+                paddingBottom: qpmLayoutTokens.space.md,
+                gap: qpmLayoutTokens.space.md
+              }}
+            >
               <Text
                 variant="bodyMedium"
                 style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginBottom: 12
+                  color: theme.colors.onSurfaceVariant
                 }}
               >
                 {t('work_order_completion_review_description')}
               </Text>
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.primary }}
+              <View
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.colors.surfaceVariant,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
               >
-                {t('work_order')} · {workOrderContext.identifier}
-              </Text>
-              <Text
-                variant="titleMedium"
-                style={{ color: theme.colors.onSurface }}
-              >
-                {workOrderContext.title}
-              </Text>
-              {workOrderContext.assetName ? (
                 <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}
+                  variant="labelMedium"
+                  style={{ color: theme.colors.primary }}
                 >
-                  {t('asset')}: {workOrderContext.assetName}
+                  {t('work_order')} · {workOrderContext.identifier}
                 </Text>
-              ) : null}
-              <Divider style={{ marginVertical: 14 }} />
-              <Text variant="titleSmall">
-                {t('work_order_elapsed_execution_time')}
-              </Text>
-              {loadingExecutionTime ? (
                 <Text
-                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 6 }}
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSurface, marginTop: 4 }}
                 >
-                  {t('loading')}
+                  {workOrderContext.title}
                 </Text>
-              ) : executionTime?.measured &&
-                executionTime.elapsedSeconds != null ? (
-                <View style={styles.summaryRow}>
+                {workOrderContext.assetName ? (
                   <Text
-                    style={{ color: theme.colors.onSurface, fontWeight: '700' }}
+                    variant="bodySmall"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 4
+                    }}
                   >
-                    {formatDuration(executionTime.elapsedSeconds)}
+                    {t('asset')}: {workOrderContext.assetName}
                   </Text>
-                  {executionTime.running ? (
-                    <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                      {t('work_order_execution_time_running')}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : (
+                ) : null}
+              </View>
+              <View
+                style={[
+                  styles.durationCard,
+                  {
+                    backgroundColor: theme.colors.primaryContainer,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+                accessibilityLiveRegion="polite"
+                accessibilityState={{ busy: loadingExecutionTime }}
+              >
                 <Text
-                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 6 }}
+                  variant="labelLarge"
+                  style={{ color: theme.colors.onPrimaryContainer }}
                 >
-                  {t('work_order_execution_time_unavailable')}
+                  {t('work_order_elapsed_execution_time')}
                 </Text>
-              )}
-              <Divider style={{ marginVertical: 14 }} />
-              <Text variant="titleSmall">
-                {t('work_order_completion_tracked_time')}
-              </Text>
-              {workOrderContext.laborEntries.length ? (
-                <>
-                  {workOrderContext.laborEntries.map((entry, index) => (
+                {loadingExecutionTime ? (
+                  <Text
+                    style={{
+                      color: theme.colors.onPrimaryContainer,
+                      marginTop: 6
+                    }}
+                  >
+                    {t('loading')}
+                  </Text>
+                ) : executionTime?.measured &&
+                  executionTime.elapsedSeconds != null ? (
+                  <View style={styles.summaryRow}>
+                    <Text
+                      variant="headlineSmall"
+                      style={{ color: theme.colors.primary, fontWeight: '700' }}
+                    >
+                      {formatDuration(executionTime.elapsedSeconds)}
+                    </Text>
+                    {executionTime.running ? (
+                      <Text style={{ color: theme.colors.onPrimaryContainer }}>
+                        {t('work_order_execution_time_running')}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : (
+                  <Text
+                    style={{
+                      color: theme.colors.onPrimaryContainer,
+                      marginTop: 6
+                    }}
+                  >
+                    {t('work_order_execution_time_unavailable')}
+                  </Text>
+                )}
+              </View>
+              <View
+                style={[
+                  styles.reviewCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outlineVariant
+                  }
+                ]}
+              >
+                <Text
+                  variant="titleSmall"
+                  style={{ color: theme.colors.onSurface }}
+                >
+                  {t('work_order_completion_tracked_time')}
+                </Text>
+                {workOrderContext.laborEntries.length ? (
+                  <>
+                    {workOrderContext.laborEntries.map((entry, index) => (
+                      <View
+                        key={`${entry.label}-${index}`}
+                        style={styles.summaryRow}
+                      >
+                        <Text
+                          style={{
+                            color: theme.colors.onSurfaceVariant,
+                            flex: 1
+                          }}
+                        >
+                          {entry.label}
+                        </Text>
+                        <Text
+                          style={{
+                            color: theme.colors.onSurface,
+                            fontWeight: '700'
+                          }}
+                        >
+                          {formatDuration(entry.seconds)}
+                        </Text>
+                      </View>
+                    ))}
                     <View
-                      key={`${entry.label}-${index}`}
-                      style={styles.summaryRow}
+                      style={[
+                        styles.summaryRow,
+                        styles.totalLaborRow,
+                        { borderTopColor: theme.colors.outlineVariant }
+                      ]}
                     >
                       <Text
                         style={{
-                          color: theme.colors.onSurfaceVariant,
+                          color: theme.colors.onSurface,
+                          fontWeight: '700',
                           flex: 1
                         }}
                       >
-                        {entry.label}
+                        {t('work_order_completion_total_labor')}
                       </Text>
                       <Text
                         style={{
@@ -254,54 +330,52 @@ export default function CompleteWorkOrderModal({
                           fontWeight: '700'
                         }}
                       >
-                        {formatDuration(entry.seconds)}
+                        {formatDuration(
+                          workOrderContext.laborEntries.reduce(
+                            (sum, entry) => sum + entry.seconds,
+                            0
+                          )
+                        )}
                       </Text>
                     </View>
-                  ))}
-                  <View style={styles.summaryRow}>
-                    <Text
-                      style={{
-                        color: theme.colors.onSurface,
-                        fontWeight: '700',
-                        flex: 1
-                      }}
-                    >
-                      {t('work_order_completion_total_labor')}
-                    </Text>
-                    <Text
-                      style={{
-                        color: theme.colors.onSurface,
-                        fontWeight: '700'
-                      }}
-                    >
-                      {formatDuration(
-                        workOrderContext.laborEntries.reduce(
-                          (sum, entry) => sum + entry.seconds,
-                          0
-                        )
-                      )}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <Text
-                  style={{ color: theme.colors.onSurfaceVariant, marginTop: 6 }}
-                >
-                  {t('work_order_completion_no_time')}
-                </Text>
-              )}
+                  </>
+                ) : (
+                  <Text
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 6
+                    }}
+                  >
+                    {t('work_order_completion_no_time')}
+                  </Text>
+                )}
+              </View>
               {fieldsConfig.feedback ? (
-                <>
-                  <Divider style={{ marginVertical: 14 }} />
+                <View
+                  style={[
+                    styles.reviewCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outlineVariant
+                    }
+                  ]}
+                >
                   <Text variant="titleSmall">{t('feedback')}</Text>
-                  <Text style={{ color: theme.colors.onSurface, marginTop: 4 }}>
+                  <Text style={{ color: theme.colors.onSurface, marginTop: 6 }}>
                     {reviewValues?.feedback?.trim() || t('not_provided')}
                   </Text>
-                </>
+                </View>
               ) : null}
               {fieldsConfig.signature ? (
-                <>
-                  <Divider style={{ marginVertical: 14 }} />
+                <View
+                  style={[
+                    styles.reviewCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.outlineVariant
+                    }
+                  ]}
+                >
                   <View style={styles.summaryRow}>
                     <Text
                       style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}
@@ -319,7 +393,7 @@ export default function CompleteWorkOrderModal({
                         : t('not_provided')}
                     </Text>
                   </View>
-                </>
+                </View>
               ) : null}
             </ScrollView>
           </Dialog.ScrollArea>
@@ -383,5 +457,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     marginTop: 8
+  },
+  reviewCard: {
+    padding: qpmLayoutTokens.space.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: qpmLayoutTokens.radius.card
+  },
+  durationCard: {
+    padding: qpmLayoutTokens.space.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: qpmLayoutTokens.radius.cardLarge
+  },
+  totalLaborRow: {
+    paddingTop: qpmLayoutTokens.space.sm,
+    marginTop: qpmLayoutTokens.space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth
   }
 });

@@ -395,7 +395,12 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
       })
     )
       .then(() => {
-        showSnackBar(t('wo_close_success'), 'success');
+        showSnackBar(
+          t('wo_close_success', {
+            identifier: workOrder.customId || workOrder.id
+          }),
+          'success'
+        );
         return dispatch(getLabors(workOrder?.id)).catch(() => undefined);
       })
       .finally(() => setChangingStatus(false));

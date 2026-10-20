@@ -77,7 +77,14 @@ test('mobile completion always shows a review before the status API is called', 
   assert.match(form, /setFormValues\(reviewValues \?\? \{\}\)/);
   assert.match(form, /work_order_completion_review_title/);
   assert.match(form, /work_order_completion_tracked_time/);
+  assert.match(form, /theme\.colors\.primaryContainer/);
+  assert.match(form, /styles\.durationCard/);
   assert.match(form, /onComplete\(\s*reviewValues\.signature/);
+  assert.match(
+    details,
+    /t\('wo_complete_success', \{[\s\S]*?identifier: workOrder\?\.customId/
+  );
+  assert.doesNotMatch(details, /t\('wo_complete_success'\)/);
 });
 
 test('simple completion confirmation identifies its work order and asset', () => {

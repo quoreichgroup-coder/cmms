@@ -675,7 +675,12 @@ export default function WODetailsScreen({
       signature
     });
     if (completed) {
-      showSnackBar(t('wo_complete_success'), 'success');
+      showSnackBar(
+        t('wo_complete_success', {
+          identifier: workOrder?.customId || workOrder?.id || id
+        }),
+        'success'
+      );
       navigation.navigate('Root');
     }
     return completed;
@@ -731,7 +736,12 @@ export default function WODetailsScreen({
       const completed = await submitWorkOrderStatus('COMPLETE');
       if (completed) {
         setOpenCompleteConfirmation(false);
-        showSnackBar(t('wo_complete_success'), 'success');
+        showSnackBar(
+          t('wo_complete_success', {
+            identifier: workOrder?.customId || workOrder?.id || id
+          }),
+          'success'
+        );
       }
     } catch (err) {
       showSnackBar(getErrorMessage(err), 'error');

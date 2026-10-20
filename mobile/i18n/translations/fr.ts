@@ -630,7 +630,7 @@ const frJSON = {
   changes_saved_success: 'Les changements ont été enregistrés',
   wo_update_failure: "Le bon de travail n'a pas pu être modifié",
   wo_delete_success: 'Le bon de travail a été supprimé avec succès',
-  wo_complete_success: 'Le bon de travail a été clôturé avec succès',
+  wo_complete_success: 'Le bon de travail {{identifier}} a été clôturé',
   work_order_completion_read_only_notice:
     'Après la clôture, ce bon de travail passe en lecture seule. Sa réouverture exige le droit correspondant et un motif enregistré; la clôture reste dans son historique.',
   work_order_completion_review_title: 'Vérifier les informations de clôture',

@@ -6,10 +6,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Stack,
   Typography
 } from '@mui/material';
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import { useTranslation } from 'react-i18next';
 import Form from '../../components/form';
 import * as Yup from 'yup';
@@ -138,7 +138,9 @@ export default function CompleteWOModal({
         }}
       >
         <Typography variant="h4" gutterBottom>
-          {t('close_wo')}
+          {reviewValues
+            ? t('work_order_completion_review_title')
+            : t('close_wo')}
         </Typography>
       </DialogTitle>
       <DialogContent
@@ -149,15 +151,23 @@ export default function CompleteWOModal({
       >
         {reviewValues ? (
           <Box>
-            <Typography color="text.secondary" sx={{ mb: 2 }}>
+            <Typography color="text.secondary" sx={{ mb: 2.5 }}>
               {t('work_order_completion_review_description')}
             </Typography>
-            <Stack spacing={1.5}>
-              <Box>
-                <Typography variant="overline" color="text.secondary">
+            <Stack spacing={2}>
+              <Box
+                sx={{
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper'
+                }}
+              >
+                <Typography variant="overline" color="primary.main">
                   {t('work_order')}
                 </Typography>
-                <Typography fontWeight={600}>
+                <Typography variant="subtitle1" fontWeight={700}>
                   {workOrder.identifier} · {workOrder.title}
                 </Typography>
                 {workOrder.assetName && (
@@ -166,17 +176,47 @@ export default function CompleteWOModal({
                   </Typography>
                 )}
               </Box>
-              <Divider />
-              <Box>
-                <Typography variant="overline" color="text.secondary">
-                  {t('work_order_elapsed_execution_time')}
-                </Typography>
+              <Box
+                sx={{
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'action.hover'
+                }}
+                aria-live="polite"
+                aria-busy={loadingExecutionTime}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ mb: 0.5 }}
+                >
+                  <TimerOutlinedIcon color="primary" fontSize="small" />
+                  <Typography variant="overline" color="text.secondary">
+                    {t('work_order_elapsed_execution_time')}
+                  </Typography>
+                </Stack>
                 {loadingExecutionTime ? (
-                  <CircularProgress size={18} aria-label={t('loading')} />
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CircularProgress size={18} aria-label={t('loading')} />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('loading')}
+                    </Typography>
+                  </Stack>
                 ) : executionTime?.measured &&
                   executionTime.elapsedSeconds != null ? (
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography fontWeight={600}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={{ xs: 0.25, sm: 1 }}
+                    alignItems={{ xs: 'flex-start', sm: 'baseline' }}
+                  >
+                    <Typography
+                      variant="h4"
+                      color="primary.main"
+                      fontWeight={700}
+                    >
                       {formatDuration(executionTime.elapsedSeconds)}
                     </Typography>
                     {executionTime.running && (
@@ -191,9 +231,21 @@ export default function CompleteWOModal({
                   </Typography>
                 )}
               </Box>
-              <Divider />
-              <Box>
-                <Typography variant="overline" color="text.secondary">
+              <Box
+                sx={{
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper'
+                }}
+              >
+                <Typography
+                  variant="overline"
+                  color="text.secondary"
+                  display="block"
+                  sx={{ mb: 1 }}
+                >
                   {t('work_order_completion_tracked_time')}
                 </Typography>
                 {laborEntries.length ? (
@@ -215,6 +267,12 @@ export default function CompleteWOModal({
                       direction="row"
                       justifyContent="space-between"
                       gap={2}
+                      sx={{
+                        pt: 1,
+                        mt: 0.5,
+                        borderTop: 1,
+                        borderColor: 'divider'
+                      }}
                     >
                       <Typography variant="body2" fontWeight={700}>
                         {t('work_order_completion_total_labor')}
@@ -236,30 +294,48 @@ export default function CompleteWOModal({
                 )}
               </Box>
               {fieldsConfig.feedback && (
-                <>
-                  <Divider />
-                  <Box>
-                    <Typography variant="overline" color="text.secondary">
-                      {t('feedback')}
-                    </Typography>
-                    <Typography sx={{ whiteSpace: 'pre-wrap' }}>
-                      {reviewValues.feedback?.trim() || t('not_provided')}
-                    </Typography>
-                  </Box>
-                </>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    bgcolor: 'background.paper'
+                  }}
+                >
+                  <Typography
+                    variant="overline"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mb: 0.5 }}
+                  >
+                    {t('feedback')}
+                  </Typography>
+                  <Typography sx={{ whiteSpace: 'pre-wrap' }}>
+                    {reviewValues.feedback?.trim() || t('not_provided')}
+                  </Typography>
+                </Box>
               )}
               {fieldsConfig.signature && (
-                <>
-                  <Divider />
-                  <Stack direction="row" justifyContent="space-between" gap={2}>
-                    <Typography variant="body2">{t('signature')}</Typography>
-                    <Typography variant="body2" fontWeight={600}>
-                      {reviewValues.signature
-                        ? t('work_order_completion_signature_captured')
-                        : t('not_provided')}
-                    </Typography>
-                  </Stack>
-                </>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  gap={2}
+                  sx={{
+                    p: 2,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    bgcolor: 'background.paper'
+                  }}
+                >
+                  <Typography variant="body2">{t('signature')}</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {reviewValues.signature
+                      ? t('work_order_completion_signature_captured')
+                      : t('not_provided')}
+                  </Typography>
+                </Stack>
               )}
             </Stack>
             <DialogActions sx={{ px: 0, pt: 3 }}>

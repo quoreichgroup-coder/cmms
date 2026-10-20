@@ -427,7 +427,7 @@ const frJSON = {
     'Les compteurs reflètent la page affichée ({{from}}–{{to}} sur {{count}} OT).',
   wo_create_success: 'Le bon de travail a été créé avec succès',
   wo_create_failure: "Le bon de travail n'a pas pu être créé",
-  wo_close_success: 'Le bon de travail a été clôturé avec succès',
+  wo_close_success: 'Le bon de travail {{identifier}} a été clôturé',
   work_order_completion_review_title: 'Vérifier les informations de clôture',
   review_completion: 'Vérifier avant de clôturer',
   work_order_completion_review_description:

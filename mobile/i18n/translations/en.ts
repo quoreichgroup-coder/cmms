@@ -498,7 +498,7 @@ const locale = {
   changes_saved_success: 'The changes have been saved',
   wo_update_failure: "The Work Order couldn't be edited",
   wo_delete_success: 'The Work Order has been deleted successfully',
-  wo_complete_success: 'The work order was completed successfully',
+  wo_complete_success: 'Work Order {{identifier}} completed successfully',
   work_order_completion_read_only_notice:
     'After completion, this work order becomes read-only. Reopening requires the specific permission and a recorded reason; the completion remains in its history.',
   work_order_completion_review_title: 'Review completion details',

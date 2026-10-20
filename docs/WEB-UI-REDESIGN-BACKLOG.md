@@ -973,3 +973,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le bouton final de clôture reste désactivé tant que la lecture de `/work-orders/{id}/execution-time` n’a pas terminé. L’utilisateur voit donc la durée calculée ou l’indisponibilité issue de l’erreur avant de confirmer; la mutation de statut et le contrat API sont inchangés.
 - Test de régression `work-order-completion-review.test.cjs`, suite Web complète, TypeScript, Prettier et build CRA optimisé (`Compiled successfully`) passent. Le parcours authentifié visuel et la réponse API réelle restent à tester.
+
+### UX — revue de clôture OT harmonisée et toast contextualisé — 20 octobre 2026
+
+- L’aperçu Web de clôture est désormais organisé en cartes QPM : identité du WO, durée écoulée mise en évidence avec l’icône horaire existante MUI, temps de main-d’œuvre avec total séparé, puis feedback et état de signature. La modal reprend le titre de revue au lieu du titre générique de fermeture à cette étape.
+- Après la réponse réussie de l’API, le toast existant confirme le numéro du WO clôturé. Aucun toast supplémentaire n’est déclenché depuis la modal; les erreurs restent affichées via le snackbar d’erreur. Design fondé sur les recommandations SAP Fiori (confirmation explicite avant action, libellé d’action clair) et Material/Carbon (toast bref et non bloquant après succès), appliqué aux tokens MUI du thème QPM. Aucun endpoint, payload ou droit n’a changé.
+- Le test `scripts/work-order-completion-review.test.cjs` couvre la revue, l’attente de la durée et l’identifiant du toast. Il passe avec la suite Web `node --test --test-reporter=dot scripts/*.test.cjs`; TypeScript Web, ESLint sur les composants concernés, Prettier et le build CRA optimisé (`Compiled successfully`) passent. La recette visuelle authentifiée reste requise.

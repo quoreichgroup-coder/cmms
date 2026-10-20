@@ -313,7 +313,7 @@ const locale = {
     'Column counts reflect the displayed page ({{from}}–{{to}} of {{count}} work orders).',
   wo_create_success: 'The Work Order has been created successfully',
   wo_create_failure: "The Work Order couldn't be created",
-  wo_close_success: 'The Work Order was closed successfully',
+  wo_close_success: 'Work Order {{identifier}} closed successfully',
   work_order_completion_review_title: 'Review completion details',
   review_completion: 'Review before closing',
   work_order_completion_review_description:
