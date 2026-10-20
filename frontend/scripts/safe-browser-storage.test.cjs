@@ -51,11 +51,31 @@ test('browser preference writes fail safely without disrupting callers', () => {
   assert.equal(persisted, 'value');
 });
 
+test('browser storage getters that throw are treated as unavailable', () => {
+  const blockedWindow = {};
+  Object.defineProperty(blockedWindow, 'localStorage', {
+    get: () => {
+      throw new Error('blocked');
+    }
+  });
+  const blockedExports = {};
+  vm.runInNewContext(source, {
+    exports: blockedExports,
+    window: blockedWindow
+  });
+
+  assert.equal(blockedExports.readBrowserPreference('theme'), null);
+  assert.equal(blockedExports.writeBrowserPreference('theme', 'dark'), false);
+});
+
 test('theme and table state consumers use the safe preference boundary', () => {
   const consumers = [
+    'src/App.tsx',
     'src/components/ThemeSettings/index.tsx',
+    'src/hooks/useMobileAppPrompt.ts',
     'src/hooks/useTableState.ts',
-    'src/hooks/useTableStatePersist.ts'
+    'src/hooks/useTableStatePersist.ts',
+    'src/utils/filter.ts'
   ];
   for (const file of consumers) {
     const content = fs.readFileSync(file, 'utf8');

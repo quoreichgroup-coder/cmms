@@ -1,4 +1,8 @@
 import { FilterField, SearchOperator } from 'src/models/owns/page';
+import {
+  readBrowserPreference,
+  writeBrowserPreference
+} from './safeBrowserStorage';
 
 export type FilterFieldType = 'simple' | 'array' | 'date' | 'dateLessThan';
 
@@ -39,7 +43,7 @@ export const loadFilterFields = (
   defaults: FilterField[]
 ): FilterField[] => {
   try {
-    const saved = localStorage.getItem(storageKey);
+    const saved = readBrowserPreference(storageKey);
     if (saved) {
       const parsed: FilterField[] = JSON.parse(saved);
       const fields = new Set(parsed.map((f) => f.field));
@@ -62,7 +66,7 @@ export const saveFilterFields = (
   excludeFields: Set<string>
 ): void => {
   const toSave = filters.filter((f) => !excludeFields.has(f.field));
-  localStorage.setItem(storageKey, JSON.stringify(toSave));
+  writeBrowserPreference(storageKey, JSON.stringify(toSave));
 };
 
 export const filterSingleField = (

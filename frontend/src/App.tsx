@@ -33,6 +33,10 @@ import { useTranslation } from 'react-i18next';
 import { UtmTrackerProvider } from '@nik0di3m/utm-tracker-hook';
 import { initializePaddle } from '@paddle/paddle-js';
 import { getDateLocale, loadLanguage, supportedLanguages } from './i18n/i18n';
+import {
+  readBrowserPreference,
+  writeBrowserPreference
+} from './utils/safeBrowserStorage';
 
 if (!IS_LOCALHOST && googleTrackingId)
   ReactGA.initialize(googleTrackingId, {
@@ -80,13 +84,13 @@ const DemoCleaningAlert = () => {
     user?.ownsCompany &&
     show &&
     userCreatedAt > sevenDaysAgo &&
-    !localStorage.getItem('demoDataCleaningHint')
+    !readBrowserPreference('demoDataCleaningHint')
   )
     return (
       <Alert
         onClose={() => {
           setShow(false);
-          localStorage.setItem('demoDataCleaningHint', 'shown');
+          writeBrowserPreference('demoDataCleaningHint', 'shown');
         }}
         sx={{
           position: 'fixed',
@@ -206,7 +210,7 @@ function App() {
   useEffect(() => {
     if (isCloudVersion) {
       const referrer = document.referrer || '';
-      localStorage.setItem('referrerData', referrer);
+      writeBrowserPreference('referrerData', referrer);
     }
   }, []);
 

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import useAuth from './useAuth';
+import {
+  readBrowserPreference,
+  writeBrowserPreference
+} from '../utils/safeBrowserStorage';
 
 interface UseMobileAppPromptReturn {
   isMobile: boolean;
@@ -33,7 +37,7 @@ export function useMobileAppPrompt(): UseMobileAppPromptReturn {
       setIsMobile(isMobileDevice);
 
       // Show prompt only if mobile and not previously dismissed
-      const isDismissed = localStorage.getItem(PROMPT_DISMISSED_KEY);
+      const isDismissed = readBrowserPreference(PROMPT_DISMISSED_KEY);
       if (isMobileDevice && !isDismissed) {
         const timer = setTimeout(() => {
           setShouldShowPrompt(true);
@@ -52,7 +56,7 @@ export function useMobileAppPrompt(): UseMobileAppPromptReturn {
 
   const dismissPrompt = () => {
     setShouldShowPrompt(false);
-    localStorage.setItem(PROMPT_DISMISSED_KEY, 'true');
+    writeBrowserPreference(PROMPT_DISMISSED_KEY, 'true');
   };
 
   return {
