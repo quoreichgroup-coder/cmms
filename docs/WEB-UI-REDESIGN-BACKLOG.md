@@ -825,12 +825,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Les contrôles de plusieurs écrans secondaires utilisaient encore les glyphes MUI pleins : authentification, intégrations, portail de demandes, personnes/équipes, compteurs, configuration préventive, champs personnalisés, détail WO et états de page. Les imports concernés passent à la famille `Outlined` quand MUI fournit l’équivalent; les marques sociales et glyphes déjà explicitement outline sont conservés.
 - Le test `web-icon-family.test.cjs` parcourt désormais toutes les sources TypeScript/TSX et échoue si un glyphe MUI avec variante `Outlined` disponible revient à l’import plein. Le test existant vérifie également les composants partagés et les familles Équipements/Localisations/Pièces. Aucun comportement, route, permission ou appel API n’a changé.
-- Vérification de cette passe : suite Node Web **77/77**, ESLint ciblé et Prettier ciblé passent. Le build production et la recette visuelle Chromium authentifiée restent à confirmer; le contrôle statique ne prouve pas l’alignement visuel de chaque icône.
+- Vérification de cette passe : suite Node Web **77/77**, ESLint ciblé, Prettier ciblé et build CRA (**Compiled successfully**) passent. La recette visuelle Chromium authentifiée reste à faire; le build ne prouve pas l’alignement visuel de chaque icône.
 
 ### WEB-SIDEBAR-02 — focus clavier des sous-entrées — 20 octobre 2026
 
 - L’implémentation avait déjà un contour de focus visible pour les sous-entrées; le test de régression contrôlait le survol et la sélection, mais pas ce chemin clavier. `theme-contrast.test.cjs` vérifie maintenant que les sous-entrées gardent un contour de 2 px dérivé du token primaire.
-- Test thème/contraste et suite Web complète passent. La vérification du code ne remplace pas l’essai clavier et le contrôle visuel authentifié dans Chromium, toujours bloqués par le lancement Snap dans cette session.
+- Test thème/contraste, suite Web complète (**77/77**) et build CRA (**Compiled successfully**) passent. La vérification du code ne remplace pas l’essai clavier réel et le contrôle visuel authentifié dans Chromium, toujours bloqués par le lancement Snap dans cette session.
 
 ### Tests Backend — préchargement de Mockito inline — 20 octobre 2026
 
