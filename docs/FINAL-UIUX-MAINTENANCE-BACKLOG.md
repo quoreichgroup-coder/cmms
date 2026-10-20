@@ -372,3 +372,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - `mobile/utils/safeErrorLog.ts` n’émet plus de diagnostic en production. En développement, il n’autorise que quelques codes de transport et un statut HTTP numérique; il exclut message, stack, configuration, en-têtes et corps de réponse. Les consommateurs d’erreurs réseau, d’authentification, de navigation, de listes, NFC, fichiers et permissions ont été migrés.
 - Test dédié vérifie le filtrage des propriétés sensibles. Suite de régression Mobile (**34/34**), onboarding et journaliseur Jest (**8/8**), TypeScript Mobile, Prettier et `git diff --check` passent; chargement d’équipements liés aux pièces/localisations (**2/2**). Le build 1.0.59 mentionné plus haut précédait ce changement; le rebuild suivant l’inclut.
 - Build suivant réussi sans incrément : `mobile/dist/QPM-1.0.59.apk`, `versionCode 42`, signature v2 confirmée, taille 101 MB, SHA-256 `dc661132c70a0931217d989ac37274941a549e798a274b762046e6088d7bc327`. `gradle.properties` a retrouvé son heap de dépôt après le build. Installation et vérification sur appareil restent à faire.
+
+### Passe QA Mobile — 20 octobre 2026
+
+- `npm run test:mobile-regression` réussit **34/34 scripts**, `npm run test:onboarding` réussit **5/5**, et TypeScript Mobile (`tsc --noEmit --pretty false`) passe.
+- Ces tests couvrent notamment navigation, sélecteurs d’équipement, formulaires Request, chargement et clôture WO, permissions scan/caméra, gestion de session et pipeline iOS structurel. Aucun appareil Android/iOS n’était connecté; les contrôles safe-area, caméra/NFC, installation et rendu visuel restent non vérifiés.
+- Aucun changement source/API n’a été fait pendant cette passe QA. Le P0 MOB-WO-04 attend toujours trace serveur et payload fautif, puis validation de liste/filtres/détail WO avec une session réelle.
