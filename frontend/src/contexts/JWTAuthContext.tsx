@@ -53,6 +53,7 @@ import Clarity from '@microsoft/clarity';
 import { clarityId, IS_LOCALHOST } from '../config';
 import { logoutWithFallback } from '../utils/logoutWithFallback';
 import { clearSessionAndState } from '../utils/clearSessionAndState';
+import { removeBrowserPreference } from '../utils/safeBrowserStorage';
 import {
   getAuthRecoveryDelayMs,
   shouldRetryAuthRecovery
@@ -739,9 +740,9 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       `auth/switch-account?id=${id}`
     );
     const { accessToken, refreshToken } = response;
-    Object.keys(localStorage)
-      .filter((key) => key.endsWith('_filters'))
-      .forEach((key) => localStorage.removeItem(key));
+    ['request_filters', 'pm_filters', 'workOrder_filters'].forEach((key) =>
+      removeBrowserPreference(key)
+    );
     return loginInternal(accessToken, refreshToken);
   };
   const logout = async (): Promise<void> => {

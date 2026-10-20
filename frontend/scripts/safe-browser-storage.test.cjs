@@ -10,7 +10,11 @@ const source = ts.transpileModule(
 ).outputText;
 const moduleExports = {};
 vm.runInNewContext(source, { exports: moduleExports });
-const { readBrowserPreference, writeBrowserPreference } = moduleExports;
+const {
+  readBrowserPreference,
+  writeBrowserPreference,
+  removeBrowserPreference
+} = moduleExports;
 
 test('browser preference reads return null when storage is blocked', () => {
   assert.equal(readBrowserPreference('table', null), null);
@@ -51,6 +55,37 @@ test('browser preference writes fail safely without disrupting callers', () => {
   assert.equal(persisted, 'value');
 });
 
+test('optional filter cleanup tolerates unavailable or blocked storage', () => {
+  assert.equal(removeBrowserPreference('workOrder_filters', null), false);
+  assert.equal(
+    removeBrowserPreference('workOrder_filters', {
+      removeItem: () => {
+        throw new Error('blocked');
+      }
+    }),
+    false
+  );
+  let removed;
+  assert.equal(
+    removeBrowserPreference('workOrder_filters', {
+      removeItem: (key) => {
+        removed = key;
+      }
+    }),
+    true
+  );
+  assert.equal(removed, 'workOrder_filters');
+});
+
+test('account switching clears known filters through the safe storage helper', () => {
+  const authContext = fs.readFileSync(
+    'src/contexts/JWTAuthContext.tsx',
+    'utf8'
+  );
+  assert.match(authContext, /removeBrowserPreference\(key\)/);
+  assert.doesNotMatch(authContext, /Object\.keys\(localStorage\)/);
+});
+
 test('browser storage getters that throw are treated as unavailable', () => {
   const blockedWindow = {};
   Object.defineProperty(blockedWindow, 'localStorage', {
@@ -80,7 +115,10 @@ test('theme and table state consumers use the safe preference boundary', () => {
   for (const file of consumers) {
     const content = fs.readFileSync(file, 'utf8');
     assert.match(content, /safeBrowserStorage/);
-    assert.doesNotMatch(content, /\blocalStorage\.(getItem|setItem)\(/);
+    assert.doesNotMatch(
+      content,
+      /\blocalStorage\.(getItem|setItem|removeItem)\(/
+    );
   }
 });
 

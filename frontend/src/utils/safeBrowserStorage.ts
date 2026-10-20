@@ -23,6 +23,18 @@ export const writeBrowserPreference = (
   }
 };
 
+export const removeBrowserPreference = (
+  key: string,
+  storage: Pick<Storage, 'removeItem'> | null = getBrowserStorage()
+): boolean => {
+  try {
+    storage?.removeItem(key);
+    return Boolean(storage);
+  } catch (_error) {
+    return false;
+  }
+};
+
 const getBrowserStorage = (): Storage | null => {
   try {
     return typeof window === 'undefined' ? null : window.localStorage;

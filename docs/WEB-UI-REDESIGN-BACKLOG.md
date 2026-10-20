@@ -957,3 +957,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Le diagnostic mort et sa lecture sans effet sont supprimés; la sérialisation/restauration de préférences gérée par les composants appelants et la frontière `safeBrowserStorage` restent inchangées. Le test `safe-browser-storage.test.cjs` empêche le retour d’un log des préférences.
 - Test ciblé, suite Web complète, typecheck TypeScript, ESLint ciblé, Prettier et `git diff --check` passent. Chromium visuel et recette authentifiée restent ouverts; aucun risque JWT `localStorage` n’est résolu par ce correctif.
 - Après ce correctif, `CI=true GENERATE_SOURCEMAP=false npm run build` termine aussi avec **Compiled successfully**; le build de production CRA est donc confirmé pour le commit suivant ce changement. Il reste des avertissements de dépendances/source maps, sans erreur de compilation.
+
+### SEC-WEB-03 — changement de compte et stockage de filtres indisponible — 20 octobre 2026
+
+- Le changement de compte énumérait directement `localStorage` pour retirer les filtres (`*_filters`); un refus du navigateur pouvait interrompre le basculement avant la reconnexion. L’énumération est remplacée par le nettoyage explicite des trois clés de filtres existantes via `removeBrowserPreference`, qui tolère un stockage absent ou une suppression refusée.
+- Le helper et le chemin de changement de compte sont couverts par `safe-browser-storage.test.cjs`. Test dédié, suite Web complète, TypeScript, ESLint ciblé, Prettier et build CRA optimisé (`Compiled successfully`) passent. Les filtres optionnels restent en mémoire / sont simplement conservés si leur suppression échoue; l’architecture JWT n’est pas modifiée.
+- Le contrôle en navigateur avec stockage restreint et le basculement entre deux comptes réels restent à faire.
