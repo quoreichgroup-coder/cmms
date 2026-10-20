@@ -1,20 +1,20 @@
-# Atlas CMMS Backup and Restore Guide
+# QUOREICH QPM Backup and Restore Guide
 
-This document provides instructions for backing up and restoring your Atlas CMMS system using the provided utility scripts. The utilities are available for both Windows and Linux operating systems.
+This document provides instructions for backing up and restoring your QUOREICH QPM system using the provided utility scripts. The utilities are available for both Windows and Linux operating systems.
 
 ## Prerequisites
 
 - Docker and Docker Compose installed and running
-- Atlas CMMS system up and running
+- QUOREICH QPM system up and running
 - Administrative access to your system
 
 ## Windows Instructions
 
 ### Setup
 
-1. Save the [atlas-backup.ps1](../scripts/backup/atlas-backup.ps1) script to your Atlas CMMS project directory
+1. Save the [atlas-backup.ps1](../scripts/backup/atlas-backup.ps1) script to your QPM project directory
 2. Open PowerShell as Administrator
-3. Navigate to your Atlas CMMS project directory:
+3. Navigate to your QPM project directory:
    ```powershell
    cd C:\path\to\your\atlas\project
    ```
@@ -25,7 +25,7 @@ This document provides instructions for backing up and restoring your Atlas CMMS
 
 ### Creating a Backup
 
-To create a complete backup of your Atlas CMMS system:
+To create a complete backup of your QUOREICH QPM system:
 
 ```powershell
 .\atlas-backup.ps1 backup
@@ -51,7 +51,7 @@ To skip backing up the files:
 
 ### Restoring from a Backup
 Ensure the backend container is stopped.
-To restore your Atlas CMMS system from a backup:
+To restore your QUOREICH QPM system from a backup:
 
 ```powershell
 .\atlas-backup.ps1 restore .\atlas_backups\atlas_backup_YYYYMMDD_HHMMSS.zip
@@ -75,9 +75,9 @@ To skip restoring the files:
 
 ### Setup
 
-1. Save the [atlas-backup.sh](../scripts/backup/atlas-backup.sh) script to your Atlas CMMS project directory
+1. Save the [atlas-backup.sh](../scripts/backup/atlas-backup.sh) script to your QPM project directory
 2. Open a terminal
-3. Navigate to your Atlas CMMS project directory:
+3. Navigate to your QPM project directory:
    ```bash
    cd /path/to/your/atlas/project
    ```
@@ -88,7 +88,7 @@ To skip restoring the files:
 
 ### Creating a Backup
 
-To create a complete backup of your Atlas CMMS system:
+To create a complete backup of your QUOREICH QPM system:
 
 ```bash
 ./atlas-backup.sh backup
@@ -114,7 +114,7 @@ To skip backing up the files:
 
 ### Restoring from a Backup
 Ensure the backend container is stopped.
-To restore your Atlas CMMS system from a backup:
+To restore your QUOREICH QPM system from a backup:
 
 ```bash
 ./atlas-backup.sh restore ./atlas_backups/atlas_backup_YYYYMMDD_HHMMSS.tar.gz
@@ -136,7 +136,7 @@ To skip restoring the files:
 
 ## Environment Configuration
 
-Both scripts automatically read credentials from a `.env` file in the same directory. If your Atlas CMMS uses custom credentials, make sure your `.env` file contains the following variables:
+Both scripts automatically read credentials from a `.env` file in the same directory. If your QPM deployment uses custom credentials, make sure your `.env` file contains the following variables:
 
 ```
 POSTGRES_USER=your_postgres_username
@@ -168,7 +168,7 @@ If you receive an error about Docker not running, ensure Docker Desktop (Windows
 
 ### Container Not Found
 
-If you see errors about containers not being found, ensure your Atlas CMMS environment is running:
+If you see errors about containers not being found, ensure your QPM environment is running:
 
 ```bash
 docker-compose ps  # Check if containers are running
@@ -191,4 +191,4 @@ If the script cannot connect to containers, verify your Docker network configura
 docker network ls
 ```
 
-If your Atlas CMMS network is not named `atlas-cmms_default`, you'll need to update the network name in the scripts.
+If your QPM network is not named `atlas-cmms_default`, you'll need to update the network name in the scripts.

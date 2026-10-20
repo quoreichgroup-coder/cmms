@@ -1,4 +1,4 @@
-# Upgrading Atlas CMMS
+# Upgrading QUOREICH QPM
 
 ## 1. Backup first
 

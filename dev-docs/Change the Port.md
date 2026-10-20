@@ -1,5 +1,5 @@
 
-# Changing Ports in Atlas CMMS Docker Setup
+# Changing Ports in the QPM Docker Setup
 
 With the nginx reverse proxy, all traffic enters through a single port.
 

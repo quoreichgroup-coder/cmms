@@ -1,6 +1,6 @@
-# Running a SQL Command on the Atlas CMMS Database
+# Running a SQL Command on the QPM Database
 
-This guide explains how to run a SQL command on the PostgreSQL database container used in the `atlas-cmms` Docker Compose setup.
+This guide explains how to run a SQL command on the PostgreSQL database container used in the `atlas-cmms` Docker Compose setup. The stack/database identifiers below are retained for compatibility.
 
 ## Prerequisites
 

@@ -1,10 +1,10 @@
-# LDAP Authentication Setup for Atlas CMMS
+# LDAP Authentication Setup for QUOREICH QPM
 
-This document describes how to configure LDAP authentication with Atlas CMMS.
+This document describes how to configure LDAP authentication with QUOREICH QPM.
 
 ## Overview
 
-Atlas CMMS supports LDAP authentication allowing users to log in using their existing LDAP/Active Directory credentials.
+QPM supports LDAP authentication, allowing users to log in using their existing LDAP/Active Directory credentials.
 The system can:
 
 - Authenticate users against your LDAP directory
@@ -18,7 +18,7 @@ Before enabling LDAP authentication, you **must first create an organization adm
 
 ### Step-by-step
 
-1. **Start Atlas CMMS with LDAP disabled:**
+1. **Start QPM with LDAP disabled:**
    ```bash
    LDAP_ENABLED=false
    ```
@@ -104,7 +104,7 @@ LDAP_SYNC_DISABLE=true
 
 ## Role Mappings
 
-The `LDAP_OU_ROLE_MAPPINGS` variable maps LDAP organizational units to Atlas CMMS roles:
+The `LDAP_OU_ROLE_MAPPINGS` variable maps LDAP organizational units to QPM roles:
 
 ```
 LDAP_OU_ROLE_MAPPINGS=Backend=ADMIN|Finance=REQUESTER
@@ -132,9 +132,9 @@ Backend=ADMIN|Finance=REQUESTER|IT=ADMIN|Operations=TECHNICIAN|Contractors=LIMIT
 ### Authentication Flow
 
 1. User enters username and password on the login page
-2. Atlas attempts to bind to LDAP using the search bases and filter
+2. QPM attempts to bind to LDAP using the search bases and filter
 3. On successful bind, user details are fetched from LDAP
-4. If the user doesn't exist in Atlas, they are created automatically
+4. If the user doesn't exist in QPM, they are created automatically
 5. User is assigned a role based on their OU membership
 6. JWT token is generated for the session
 
@@ -144,7 +144,7 @@ When `LDAP_SYNC_ENABLED=true`:
 
 - Scheduled job runs based on `LDAP_SYNC_CRON`
 - Fetches all users from configured search bases
-- Creates new users that exist in LDAP but not in Atlas (if `LDAP_SYNC_CREATE=true`)
+- Creates new users that exist in LDAP but not in QPM (if `LDAP_SYNC_CREATE=true`)
 - Updates existing user details (if `LDAP_SYNC_UPDATE=true`)
 - Disables users not in LDAP (if `LDAP_SYNC_DISABLE=true`)
 

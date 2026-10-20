@@ -1,5 +1,5 @@
 # Set up TLS
-TLS encrypts traffic between users and Atlas CMMS, enabling secure HTTPS connections. For production deployments, configure one of the options below
+TLS encrypts traffic between users and QUOREICH QPM, enabling secure HTTPS connections. For production deployments, configure one of the options below
 ## Caddy (simplest, auto-HTTPS)
 
 Caddy automatically provisions and renews Let's Encrypt certificates.
@@ -55,7 +55,7 @@ inbound traffic.
 
 ## NGINX Proxy Manager (GUI)
 
-1. Deploy NGINX Proxy Manager alongside Atlas CMMS.
+1. Deploy NGINX Proxy Manager alongside QPM.
 2. In the admin UI, add a new proxy host:
    - Domain: `cmms.example.com`
    - Forward Hostname / IP: `atlas_nginx`
