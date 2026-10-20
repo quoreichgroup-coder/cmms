@@ -20,6 +20,7 @@ import PrintIcon from '@mui/icons-material/PrintOutlined';
 import { QRCodeSVG } from 'qrcode.react';
 import { RequestPortal } from '../../../../../../models/owns/requestPortal';
 import { populateQrPrintDocument } from '../../../../../../utils/printQrCode';
+import { logSafeError } from '../../../../../../utils/safeErrorLog';
 
 interface SharePortalModalProps {
   open: boolean;
@@ -46,7 +47,7 @@ export default function SharePortalModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logSafeError('Failed to copy request portal link', err);
     }
   };
 

@@ -31,6 +31,7 @@ import { CompanySettingsContext } from '../../../../contexts/CompanySettingsCont
 import api from '../../../../utils/api';
 import { useBrand } from '../../../../hooks/useBrand';
 import { fireGa4Event } from '../../../../utils/overall';
+import { logSafeError } from '../../../../utils/safeErrorLog';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import {
   isCloudVersion,
@@ -154,7 +155,7 @@ function SubscriptionPlans() {
         }
       }
     } catch (error) {
-      console.error('Failed to update subscription:', error);
+      logSafeError('Failed to update subscription', error);
       showSnackBar(t("The Subscription couldn't be changed"), 'error');
     } finally {
       setSubmitting(false);
@@ -332,7 +333,8 @@ function SubscriptionPlans() {
                     {t('which_plan_fits_you')}
                   </Typography>
                   <Typography variant="h6">
-                    {t('checkout_our')} {t('pricing_page')} {t('for_more_details')}
+                    {t('checkout_our')} {t('pricing_page')}{' '}
+                    {t('for_more_details')}
                   </Typography>
                   <RadioGroup
                     sx={{ p: 2, my: 1 }}

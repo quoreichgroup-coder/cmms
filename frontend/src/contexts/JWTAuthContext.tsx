@@ -12,6 +12,7 @@ import api, {
   canRetryRefreshAccessToken,
   refreshAccessToken
 } from 'src/utils/api';
+import { logSafeError } from 'src/utils/safeErrorLog';
 import { verify } from 'src/utils/jwt';
 import PropTypes from 'prop-types';
 import {
@@ -554,7 +555,8 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   const clearAuthRecovery = () => {
     authRecoveryNeeded.current = false;
     authRecoveryAttempt.current = 0;
-    if (authRecoveryTimer.current) window.clearTimeout(authRecoveryTimer.current);
+    if (authRecoveryTimer.current)
+      window.clearTimeout(authRecoveryTimer.current);
     authRecoveryTimer.current = null;
   };
   const scheduleAuthRecovery = () => {
@@ -570,7 +572,8 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
   };
   useEffect(
     () => () => {
-      if (authRecoveryTimer.current) window.clearTimeout(authRecoveryTimer.current);
+      if (authRecoveryTimer.current)
+        window.clearTimeout(authRecoveryTimer.current);
     },
     []
   );
@@ -657,7 +660,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         });
       }
     } catch (err) {
-      console.error(err);
+      logSafeError('Unable to initialize the authenticated session', err);
       try {
         const hasStoredCredentials = Boolean(
           window.localStorage.getItem('accessToken') ||
@@ -716,7 +719,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     try {
       loginZendesk(accessToken);
     } catch (err) {
-      console.error(err);
+      logSafeError('Zendesk login integration failed', err);
     }
     const user = await updateUserInfos();
     const company = await api.get<Company>(`companies/${user.companyId}`);
@@ -746,12 +749,12 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     try {
       logoutZendesk();
     } catch (err) {
-      console.error(err);
+      logSafeError('Zendesk logout integration failed', err);
     }
     try {
       shutdown();
     } catch (err) {
-      console.error(err);
+      logSafeError('WebSocket shutdown failed during logout', err);
     }
     await logoutWithFallback(
       () => api.post('auth/logout', {}),

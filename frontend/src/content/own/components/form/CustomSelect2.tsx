@@ -43,6 +43,7 @@ import { PermissionEntity } from '../../../../models/owns/role';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import api from '../../../../utils/api';
 import { mergeSelectedOptions } from '../../../../utils/mergeSelectedOptions';
+import { logSafeError } from '../../../../utils/safeErrorLog';
 
 interface OptionType {
   label: string;
@@ -146,7 +147,7 @@ export const CustomSelect = ({
       setSites(result);
       setSitesLoaded(true);
     } catch (error) {
-      console.error('Could not load company sites', error);
+      logSafeError('Could not load company sites', error);
     }
   };
 
@@ -169,7 +170,7 @@ export const CustomSelect = ({
         value: newCategory.id
       });
     } catch (error) {
-      console.error(error);
+      logSafeError('Category creation failed', error);
       showSnackBar(t('category_create_failure'), 'error');
     } finally {
       setCreatingCategory(false);

@@ -14,6 +14,7 @@ import {
   getRescheduledCallDate,
   isRescheduledCallDateInFuture
 } from '../../../utils/pmCallReschedule';
+import { logSafeError } from '../../../utils/safeErrorLog';
 
 type MeterCall = {
   id: number;
@@ -87,7 +88,7 @@ const MeterCallRegister = ({ pmId }: { pmId: number }) => {
       setRescheduleTarget(null);
       setReloadKey((key) => key + 1);
     } catch (err) {
-      console.error('Failed to reschedule preventive maintenance call:', err);
+      logSafeError('Failed to reschedule preventive maintenance call', err);
       setRescheduleError(true);
     } finally {
       setRescheduling(false);
@@ -105,7 +106,7 @@ const MeterCallRegister = ({ pmId }: { pmId: number }) => {
         );
         if (!cancelled) setCalls(result);
       } catch (err) {
-        console.error('Failed to load preventive maintenance meter call register:', err);
+        logSafeError('Failed to load preventive maintenance meter call register', err);
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);

@@ -26,6 +26,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import SwitchLeftOutlinedIcon from '@mui/icons-material/SwitchLeftOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { logSafeError } from 'src/utils/safeErrorLog';
 
 const DotLegend = styled('span')(
   ({ theme }) => `
@@ -139,7 +140,7 @@ function HeaderUserbox() {
       await logout();
       navigate('/');
     } catch (err) {
-      console.error(err);
+      logSafeError('Account menu logout failed', err);
     }
   };
 

@@ -20,6 +20,7 @@ import { WorkOrderMini } from '../../../models/owns/workOrder';
 import { Page } from '../../../models/owns/page';
 import MeterCallRegister from './MeterCallRegister';
 import WorkOrderStatusChip from '../WorkOrders/WorkOrderStatusChip';
+import { logSafeError } from '../../../utils/safeErrorLog';
 
 const RecentWorkOrders = ({
   pmId,
@@ -50,8 +51,8 @@ const RecentWorkOrders = ({
         );
         if (!cancelled) setWorkOrders(response);
       } catch (error) {
-        console.error(
-          'Failed to fetch preventive maintenance work-order history:',
+        logSafeError(
+          'Failed to fetch preventive maintenance work-order history',
           error
         );
         if (!cancelled) setError(true);

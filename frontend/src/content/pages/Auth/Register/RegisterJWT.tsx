@@ -30,6 +30,7 @@ import { useUtmTracker } from '@nik0di3m/utm-tracker-hook';
 import { inviteUsers } from '../../../../slices/user';
 import { useDispatch } from '../../../../store';
 import { isNetworkError } from '../../../../utils/api';
+import { logSafeError } from '../../../../utils/safeErrorLog';
 
 function RegisterJWT({
   email,
@@ -116,7 +117,7 @@ function RegisterJWT({
           .catch((err) => {
             if (isNetworkError(err)) {
               showSnackBar(t('server_not_reachable'), 'error');
-              console.error(err);
+              logSafeError('Registration request failed', err);
               return;
             }
             let errorMessage = 'An unknown error occurred';
@@ -138,7 +139,7 @@ function RegisterJWT({
               errorMessage = 'An unknown error occurred';
             }
             showSnackBar(errorMessage, 'error');
-            console.error(err);
+            logSafeError('Registration request failed', err);
           })
           .finally(() => {
             if (isMountedRef.current) {

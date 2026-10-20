@@ -7,6 +7,7 @@ import Comment, {
 } from '../models/owns/comment';
 import api, { authHeader } from '../utils/api';
 import { revertAll } from 'src/utils/redux';
+import { logSafeError } from 'src/utils/safeErrorLog';
 
 const basePath = 'comments';
 
@@ -204,7 +205,7 @@ export const getCommentsCountByWorkOrder =
         slice.actions.setCommentsCount({ workOrderId, count: response })
       );
     } catch (error) {
-      console.error('Failed to fetch comments count:', error);
+      logSafeError('Failed to fetch comments count', error);
     }
   };
 

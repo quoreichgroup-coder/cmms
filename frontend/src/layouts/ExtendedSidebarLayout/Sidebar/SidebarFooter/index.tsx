@@ -17,6 +17,7 @@ import { isCloudVersion } from '../../../../config';
 import { useContext } from 'react';
 import { SidebarContext } from 'src/contexts/SidebarContext';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
+import { logSafeError } from '../../../../utils/safeErrorLog';
 
 const LightTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
@@ -56,7 +57,7 @@ function SidebarFooter({ forceExpanded = false }: { forceExpanded?: boolean }) {
       await logout();
       navigate('/');
     } catch (err) {
-      console.error(err);
+      logSafeError('Logout failed', err);
     }
   };
 

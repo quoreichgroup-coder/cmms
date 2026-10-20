@@ -24,6 +24,7 @@ import { MentionsTextField } from '@jackstenglein/mui-mentions';
 import { getUsersMini } from '../../../../slices/user';
 import { useSearchParams } from 'react-router-dom';
 import { boolean, number } from 'yup';
+import { logSafeError } from '../../../../utils/safeErrorLog';
 
 interface CommentsSectionProps {
   workOrderId: number;
@@ -75,7 +76,7 @@ export default function CommentsSection(props: CommentsSectionProps) {
       setFiles([]);
       setShowFileUpload(false);
     } catch (error) {
-      console.error('Failed to create comment:', error);
+      logSafeError('Failed to create comment', error);
     }
   };
 

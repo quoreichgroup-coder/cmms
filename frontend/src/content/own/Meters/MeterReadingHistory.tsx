@@ -27,6 +27,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
+import { logSafeError } from '../../../utils/safeErrorLog';
 
 interface MeterReadingHistoryProps {
   meter: Meter;
@@ -80,7 +81,7 @@ export default function MeterReadingHistory({
       setDeletingReading(null);
     } catch (err) {
       showSnackBar(t('an_error_occured'), 'error');
-      console.error(err);
+      logSafeError('Failed to update meter reading', err);
     }
   };
 
