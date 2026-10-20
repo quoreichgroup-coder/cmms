@@ -933,3 +933,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - `scripts/rebrand-visible-copy.test.cjs` vérifie les libellés et verrouille les identifiants Android/iOS et le scheme historique. Les domaines, noms de paquets internes, identifiants installés, produits de licence/paiement et mentions légales amont restent exclus jusqu’aux décisions de propriété correspondantes.
 - Vérifications : TypeScript Web et Mobile passent; suite de scripts Web passe après correction de son analyse qui prenait un commentaire pour du code; tests Mobile passent (34 régressions + 5 onboarding); build Web CRA passe (`Compiled successfully`). La compilation Maven n’a pas pu être validée : Maven ne peut pas écrire un fichier existant dans `api/target/classes` (`Operation not permitted`), y compris avec un répertoire de build temporaire. ESLint Mobile n’est pas disponible localement et son téléchargement a échoué faute de résolution DNS (`EAI_AGAIN`); aucune dépendance n’a été installée.
 - Recette visuelle authentifiée et captures natives restent à réaliser. Aucun build Mobile natif ni déploiement n’est inclus dans cette passe de textes et métadonnées.
+
+### Nouvelle tentative recette Chromium — 20 octobre 2026
+
+- Le navigateur Chromium DevTools disponible a été interrogé en lecture seule, mais ne peut pas démarrer : son exécutable Chrome stable attendu `/opt/google/chrome/chrome` n’existe pas dans le runner. Aucun login, parcours mutatif, screenshot ni audit Lighthouse n’a donc été exécuté.
+- La recette navigateur authentifiée reste ouverte; les tests automatisés et le build CRA réussi ne sont pas présentés comme preuve du rendu visuel. Reprendre sur un runner avec Chrome stable et des comptes de recette dédiés.
