@@ -813,3 +813,10 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les changements du workflow et de la configuration Compose déclenchent désormais le smoke test même lorsque les sources API/Web n’ont pas changé. Les images locales sont taguées au SHA courant et Compose les démarre sans reconstruire.
 - Le job Maven conserve sa sortie dans `api/target/maven-test.log` et publie ce journal avec Surefire/Failsafe quand le job termine, y compris en échec. Un échec du stack self-host publie l’état Compose et ses journaux; les artefacts expirent après 14 jours.
 - Le déploiement VPS reste conditionné au succès du smoke test et au succès/skip attendu des jobs d’images. Tests de workflow, parsing YAML, `docker compose config`, suite Web complète, typecheck et Prettier ciblé réussissent localement. Le diagnostic précis de l’échec Maven GitHub reste ouvert jusqu’à lecture de l’artefact du prochain run; aucun succès distant ni déploiement n’est revendiqué.
+
+### UX-11 — icônes Outlined des composants Web partagés — 20 octobre 2026
+
+- Les contrôles communs du shell (menu, retour, fermeture, chevrons), les commandes du tableau (tri, pagination, colonnes, actions de ligne), les dialogues de confirmation et le bouton scindé utilisaient encore plusieurs glyphes MUI pleins. Leurs imports passent aux variantes Outlined, dans la continuité des écrans Équipements, Localisations et Pièces.
+- `web-icon-family.test.cjs` vérifie ces imports communs afin d’éviter une régression. Les routes, actions, permissions, dispositions et appels API sont inchangés.
+- Test dédié, suite Web, TypeScript, ESLint ciblé et Prettier ciblé réussissent. La tentative du build CRA optimisé est restée sans sortie après « Creating an optimized production build »; aucun build de production réussi n’est revendiqué dans cette passe. La mémoire disponible était très basse et aucun processus Webpack ne restait actif.
+- La revue visuelle des icônes au clavier et en session authentifiée reste à faire dans Chromium. UX-11 demeure partiellement ouvert pour les modules secondaires non encore recensés et la recette visuelle.

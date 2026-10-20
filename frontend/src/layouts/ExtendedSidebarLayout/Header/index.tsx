@@ -10,12 +10,12 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { SidebarContext } from 'src/contexts/SidebarContext';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CloseIcon from '@mui/icons-material/Close';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeftOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
 
 import HeaderButtons from './Buttons';
 import HeaderUserbox from './Userbox';

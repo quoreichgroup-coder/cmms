@@ -49,3 +49,49 @@ test('asset, location and inventory navigation actions use outlined icons', () =
     );
   }
 });
+
+test('shared Web navigation, tables and dialogs use the outlined icon family', () => {
+  const auditedImports = [
+    [
+      'layouts/ExtendedSidebarLayout/Header/index.tsx',
+      ['Menu', 'ArrowBack', 'Close', 'ChevronLeft', 'ChevronRight']
+    ],
+    [
+      'layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/item.tsx',
+      ['ExpandLess', 'ExpandMore']
+    ],
+    [
+      'content/own/components/CustomDatagrid2/index.tsx',
+      [
+        'ArrowDownward',
+        'FirstPage',
+        'LastPage',
+        'KeyboardArrowLeft',
+        'KeyboardArrowRight',
+        'DragIndicator',
+        'MoreVert',
+        'PushPin',
+        'VisibilityOff',
+        'ViewColumn'
+      ]
+    ],
+    ['content/own/components/ConfirmDialog.tsx', ['Close']],
+    ['content/own/components/SplitButton.tsx', ['ArrowDropDown']]
+  ];
+
+  for (const [relativePath, icons] of auditedImports) {
+    const source = fs.readFileSync(path.join(sourceRoot, relativePath), 'utf8');
+    for (const icon of icons) {
+      assert.match(
+        source,
+        new RegExp(`@mui/icons-material/${icon}Outlined['"]`),
+        `${relativePath} must use ${icon}Outlined`
+      );
+      assert.doesNotMatch(
+        source,
+        new RegExp(`@mui/icons-material/${icon}['"]`),
+        `${relativePath} must not use the filled ${icon} glyph`
+      );
+    }
+  }
+});

@@ -16,8 +16,8 @@ import {
   Popover
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLessOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
 
 interface SidebarMenuItemProps {
   children?: ReactNode;

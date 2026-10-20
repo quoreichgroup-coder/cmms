@@ -7,7 +7,7 @@ import {
   SxProps,
   Theme
 } from '@mui/material';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDownOutlined';
 
 interface MenuItemProps {
   label: string;

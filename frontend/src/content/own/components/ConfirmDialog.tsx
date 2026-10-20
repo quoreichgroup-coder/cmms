@@ -7,7 +7,7 @@ import {
   styled,
   Typography
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 import { forwardRef, ReactElement, Ref } from 'react';
 import { TransitionProps } from '@mui/material/transitions';
 import { useTranslation } from 'react-i18next';
