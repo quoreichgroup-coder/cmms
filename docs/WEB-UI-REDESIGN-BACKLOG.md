@@ -944,3 +944,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Notifications, import et export utilisaient le client de compatibilité `Stomp.over`. Ces flux partageaient une connexion STOMP, mais le client ne rafraîchissait pas son en-tête JWT avant une reconnexion après expiration/renouvellement de session.
 - Création d’un client partagé basé sur `Client` et `webSocketFactory` SockJS, API recommandée par la version 7 déjà installée. La reconnexion est activée; le token est relu juste avant chaque connexion, le journal protocolaire reste désactivé et la connexion est arrêtée à la déconnexion ou au changement de compte. Les messages de notification JSON mal formés sont ignorés sans casser le flux.
 - Contrats HTTP, destinations STOMP, routage et permissions inchangés. Le test de non-régression simule deux connexions et confirme que le JWT relu après renouvellement remplace l’ancien. Suite frontend, TypeScript, ESLint ciblé, Prettier et `git diff --check` passent. Deux tentatives de build CRA optimisé sont restées sans résultat exploitable dans ce runner; le prochain workflow CI doit confirmer la compilation. La reconnexion bout en bout reste à vérifier contre un serveur WebSocket authentifié.
+
+### Revalidation Web — suites locale et typecheck — 20 octobre 2026
+
+- La suite `node --test --test-reporter=dot scripts/*.test.cjs` termine avec le code **0**; le typecheck `npx tsc --noEmit --pretty false` termine également avec le code **0**.
+- Aucun navigateur Chromium utilisable n’est disponible dans cette session; sidebar, états visuels responsive, clavier, rôles authentifiés et reconnexion STOMP réelle restent à vérifier dans un navigateur et contre le serveur.
+- SEC-WEB-02 (JWT dans `localStorage`) reste une décision d’architecture BFF/session; la suite ne réduit pas ce risque et aucune migration de stockage n’est revendiquée.

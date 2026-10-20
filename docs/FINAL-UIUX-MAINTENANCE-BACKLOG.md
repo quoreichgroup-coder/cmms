@@ -436,3 +436,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Metro bundle **2 230 modules** et Gradle termine `BUILD SUCCESSFUL` (1 124 tâches; 18 exécutées, 1 106 à jour), sans incrément de version.
 - `mobile/dist/QPM-1.0.59.apk` : **105 812 092 octets**, SHA-256 `59eb6f3983ab0d08e1bc2931d766b2d18303738066e873b05e79bb2f6cf6d02e`. `apksigner` confirme la signature v2; `aapt` confirme `com.atlas.cmms`, version `1.0.59`, `versionCode` 42 et `minSdk` 24. La fiche `mobile/INSTALLER-APK.md` est actualisée.
 - Le bundle inclut les suppressions de logs de parcours courants. Aucun appareil n’est connecté; installation, caméra, NFC et rendu restent à vérifier sur téléphone.
+
+### Revalidation croisée Web/Mobile — 20 octobre 2026
+
+- Web : la suite complète `node --test --test-reporter=dot scripts/*.test.cjs` et le typecheck TypeScript se terminent avec le code **0**.
+- Mobile : `npm run test:mobile-regression` passe **35/35**; `npm run test:onboarding` passe **5/5**; `./node_modules/.bin/tsc --noEmit --pretty false` termine avec le code **0**.
+- Aucun code applicatif ni API n’a été modifié pendant cette passe. Chromium authentifié, migration de préférences onboarding sur API réelle, Work Orders avec le serveur et essais Android/iOS (navigation, caméra, NFC, onboarding) restent des validations externes ouvertes; aucun résultat visuel ou matériel n’est revendiqué.
