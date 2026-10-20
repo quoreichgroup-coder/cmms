@@ -868,3 +868,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - La pipeline Web vérifie désormais que le smoke-test est requis pour toute modification de Compose, Nginx, Caddy ou du workflow, et que le déploiement VPS attend sa réussite. Maven utilise `pipefail` afin que `tee` ne masque pas les erreurs de tests.
 - Le smoke test avait isolé un 502 sur `/` : `runtime-env-cra` s’arrêtait parce que `HOME_URL` était vide. Compose fournit maintenant un fallback blanc que la configuration frontend nettoie avant d’appliquer son fallback sur l’origine.
 - Les régressions locales de workflow et la suite Web (**77/77**), le typecheck, Prettier et `docker compose config` passent. Confirmation smoke distante à faire sur le prochain run. Le précédent déploiement n’a pas démarré car les identifiants Docker Hub manquaient.
+
+### UX-02 — thème Web avec stockage navigateur indisponible — 20 octobre 2026
+
+- `ThemeProvider` lisait et écrivait `localStorage` directement. En mode privé ou sous une politique navigateur qui bloque le stockage, cette exception pouvait interrompre le rendu ou empêcher l’utilisateur de changer de thème.
+- Lecture/écriture maintenant protégées, thème initial limité aux trois schémas connus et repli sur `PureLightTheme` si la valeur est inconnue ou le stockage inaccessible. Le changement reste appliqué en mémoire pendant la page courante même si sa persistance échoue. Aucun nouveau mode sombre n’est ajouté : les trois schémas Web existants restent clairs, comme le rappelle l’audit précédent.
+- Régression `theme-preference.test.cjs` couvre la préférence valide, inconnue, le stockage bloqué à la lecture/écriture et la persistance. Test dédié, suite Web complète, typecheck TypeScript, Prettier, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. La recette navigateur reste ouverte.

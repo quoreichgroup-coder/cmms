@@ -6,6 +6,21 @@ import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import stylisRTLPlugin from 'stylis-plugin-rtl';
 import { useTranslation } from 'react-i18next';
+import { persistThemePreference, readThemePreference } from './themePreference';
+
+const availableThemes = [
+  'PureLightTheme',
+  'GreyGooseTheme',
+  'PurpleFlowTheme'
+] as const;
+
+const getThemeStorage = (): Storage | null => {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch (_error) {
+    return null;
+  }
+};
 
 const isPrerender =
   typeof navigator !== 'undefined' &&
@@ -30,13 +45,13 @@ export const ThemeContext = React.createContext(
 );
 
 const ThemeProviderWrapper: React.FC = (props) => {
-  const curThemeName = localStorage.getItem('appTheme') || 'PureLightTheme';
+  const curThemeName = readThemePreference(getThemeStorage(), availableThemes);
   const [themeName, _setThemeName] = useState(curThemeName);
   const theme = themeCreator(themeName);
   const { i18n } = useTranslation();
   const rtl = i18n.dir() === 'rtl';
   const setThemeName = (themeName: string): void => {
-    localStorage.setItem('appTheme', themeName);
+    persistThemePreference(getThemeStorage(), themeName, availableThemes);
     _setThemeName(themeName);
   };
 
