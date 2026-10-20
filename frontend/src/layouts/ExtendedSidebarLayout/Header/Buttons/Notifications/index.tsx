@@ -159,6 +159,8 @@ function HeaderNotifications() {
       if (!stompClient) {
         const socket = new SockJS(`${apiUrl}ws`);
         const client = Stomp.over(socket);
+        // STOMP debug output includes CONNECT headers, which contain the JWT.
+        client.debug = () => undefined;
         client.connect(
           { token: localStorage.getItem('accessToken') },
           function (frame) {

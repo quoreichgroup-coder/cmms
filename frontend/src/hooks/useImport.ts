@@ -38,6 +38,8 @@ export const useImport = (): UseImportReturn => {
   useEffect(() => {
     const socket = new SockJS(`${apiUrl}ws`);
     const client = Stomp.over(socket);
+    // STOMP debug output includes CONNECT headers, which contain the JWT.
+    client.debug = () => undefined;
     client.connect({ token: localStorage.getItem('accessToken') }, () => {
       setStompClient(client);
     });
@@ -78,7 +80,9 @@ export const useImport = (): UseImportReturn => {
         try {
           response = JSON.parse(message.body);
         } catch (error) {
-          throw new Error(`Réponse serveur d’import invalide : ${message.body}`);
+          throw new Error(
+            `Réponse serveur d’import invalide : ${message.body}`
+          );
         }
         if (typeof response === 'string' && response.includes('error:')) {
           throw new Error(response.split('error: ')[1] || 'Import échoué.');
