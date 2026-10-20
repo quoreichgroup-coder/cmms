@@ -18,7 +18,7 @@ import SelectAssetModal from './SelectAssetModal';
 import SelectForm from './SelectForm';
 import SelectParts from './SelectParts';
 import { useDispatch, useSelector } from '../../../../store';
-import SearchIcon from '@mui/icons-material/Search';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import SelectTasksModal from './SelectTasks';
 import { getCustomersMini } from '../../../../slices/customer';

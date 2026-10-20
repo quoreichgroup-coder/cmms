@@ -15,7 +15,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
 import useAuth from 'src/hooks/useAuth';
 import useRefMounted from 'src/hooks/useRefMounted';
 import { useTranslation } from 'react-i18next';
@@ -273,10 +273,7 @@ function RegisterJWT({
           {!invitationMode && (
             <Typography mt={2} variant="body2">
               {t('i_accept')}{' '}
-              <Typography component="span">
-                {t('terms_conditions')}
-              </Typography>
-              .
+              <Typography component="span">{t('terms_conditions')}</Typography>.
             </Typography>
           )}
         </form>

@@ -44,7 +44,7 @@ import { useDispatch, useSelector } from '../../../../../../store';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
 import { Business } from '@mui/icons-material';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import LanguageIcon from '@mui/icons-material/Language';
+import LanguageIcon from '@mui/icons-material/LanguageOutlined';
 import { useSnackbar } from 'notistack';
 import { submitPublicRequest } from '../../../../../../slices/request';
 import api from '../../../../../../utils/api';

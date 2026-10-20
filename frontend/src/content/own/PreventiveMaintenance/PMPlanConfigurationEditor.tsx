@@ -16,7 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import AddIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useEffect, useMemo } from 'react';
 import { getMetersMini } from '../../../slices/meter';

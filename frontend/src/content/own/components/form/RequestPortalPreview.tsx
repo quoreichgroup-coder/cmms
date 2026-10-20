@@ -12,7 +12,7 @@ import {
 import { FormikProvider, useFormik } from 'formik';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import SearchIcon from '@mui/icons-material/Search';
+import SearchIcon from '@mui/icons-material/SearchOutlined';
 import {
   PortalFieldType,
   RequestPortalField

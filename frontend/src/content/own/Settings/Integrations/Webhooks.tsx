@@ -64,8 +64,8 @@ import CustomDatagrid2, {
 } from '../../components/CustomDatagrid2';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CloseIcon from '@mui/icons-material/Close';
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { Form, Formik } from 'formik';

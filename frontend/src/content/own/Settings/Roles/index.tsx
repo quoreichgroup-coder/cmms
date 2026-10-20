@@ -22,7 +22,7 @@ import {
   PermissionRoot,
   Role
 } from '../../../../models/owns/role';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 import {
   forwardRef,
   ReactElement,

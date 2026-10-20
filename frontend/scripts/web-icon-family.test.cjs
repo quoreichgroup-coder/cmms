@@ -28,6 +28,43 @@ test('Web application uses the shared outlined icon family', () => {
   );
 });
 
+test('all MUI glyphs with outlined equivalents use the outlined variants', () => {
+  const iconRoot = path.join(
+    __dirname,
+    '..',
+    'node_modules',
+    '@mui',
+    'icons-material'
+  );
+  const brandIcons = new Set(['Facebook', 'Instagram', 'Twitter']);
+  const regressions = [];
+
+  for (const file of collectTsxFiles(sourceRoot)) {
+    const source = fs.readFileSync(file, 'utf8');
+    for (const [, icon] of source.matchAll(
+      /from ['"]@mui\/icons-material\/([A-Za-z0-9]+)['"]/g
+    )) {
+      if (
+        icon.endsWith('Outlined') ||
+        icon.endsWith('Outline') ||
+        brandIcons.has(icon)
+      ) {
+        continue;
+      }
+
+      if (fs.existsSync(path.join(iconRoot, `${icon}Outlined.js`))) {
+        regressions.push(`${path.relative(sourceRoot, file)}: ${icon}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    regressions,
+    [],
+    'Use an Outlined variant wherever MUI provides one; preserve brand marks and existing outline glyphs.'
+  );
+});
+
 test('asset, location and inventory navigation actions use outlined icons', () => {
   const auditedFiles = [
     'content/own/Assets/index.tsx',

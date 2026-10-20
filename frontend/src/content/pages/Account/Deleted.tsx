@@ -1,7 +1,7 @@
 import { Box, Card, Container, styled, Typography } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
 
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
 import { useTranslation } from 'react-i18next';
 import Logo from 'src/components/LogoSign';
 

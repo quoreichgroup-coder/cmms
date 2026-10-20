@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
 import type { ApexOptions } from 'apexcharts';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';

@@ -21,7 +21,7 @@ import {
 import { Helmet } from 'react-helmet-async';
 import { TransitionProps } from '@mui/material/transitions';
 import useRefMounted from 'src/hooks/useRefMounted';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 
 import { useTranslation } from 'react-i18next';
 import AuthPageLayout from '../AuthPageLayout';

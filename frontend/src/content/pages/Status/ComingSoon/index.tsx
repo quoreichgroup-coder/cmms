@@ -17,7 +17,7 @@ import { Helmet } from 'react-helmet-async';
 import Logo from 'src/components/LogoSign';
 
 import { useTranslation } from 'react-i18next';
-import FacebookIcon from '@mui/icons-material/Facebook';
+import FacebookIcon from '@mui/icons-material/FacebookOutlined';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import MailOutlinedIcon from '@mui/icons-material/MailOutlined';

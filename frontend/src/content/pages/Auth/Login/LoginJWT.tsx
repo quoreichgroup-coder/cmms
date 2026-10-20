@@ -20,8 +20,8 @@ import useAuth from 'src/hooks/useAuth';
 import useRefMounted from 'src/hooks/useRefMounted';
 import { useTranslation } from 'react-i18next';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { getErrorMessage, isNetworkError } from '../../../../utils/api';
 import {
   apiUrl,

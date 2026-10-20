@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import Text from 'src/components/Text';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForwardOutlined';
 import Scrollbar from 'src/components/Scrollbar';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 import MarkChatReadOutlinedIcon from '@mui/icons-material/MarkChatReadOutlined';

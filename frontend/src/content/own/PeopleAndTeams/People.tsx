@@ -37,7 +37,7 @@ import {
 import { OwnUser, UserResponseDTO } from '../../../models/user';
 import { PermissionEntity, Role } from '../../../models/owns/role';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import ScheduleIcon from '@mui/icons-material/Schedule';
+import ScheduleIcon from '@mui/icons-material/ScheduleOutlined';
 import useAuth from '../../../hooks/useAuth';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -47,8 +47,8 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import { SearchCriteria, SortDirection } from '../../../models/owns/page';
 import { onSearchQueryChange } from '../../../utils/overall';
 import SearchInput from '../components/SearchInput';
-import CancelIcon from '@mui/icons-material/Cancel';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/CancelOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
 import ConfirmDialog from '../components/ConfirmDialog';
 import InviteUserDialog from './components/InviteUserDialog';
 import ShiftConfigurationModal from './components/ShiftConfigurationModal';
@@ -307,7 +307,8 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   }, [criteria, enabledOnly]);
 
   useEffect(() => {
-    if (user.role.roleType === 'ROLE_CLIENT') dispatch(getLastWeekInvitations());
+    if (user.role.roleType === 'ROLE_CLIENT')
+      dispatch(getLastWeekInvitations());
   }, [user.role.roleType]);
 
   //see changes in ui on edit

@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import Meter from '../../../models/owns/meter';
 import * as Yup from 'yup';
 import Form from '../components/form';
@@ -349,7 +349,11 @@ export default function MeterDetails(props: MeterDetailsProps) {
                       user.ownsCompany ? (
                         <Button
                           component={Link}
-                          to={isCloudVersion ? '/app/subscription/plans' : '/app/account/company-profile'}
+                          to={
+                            isCloudVersion
+                              ? '/app/subscription/plans'
+                              : '/app/account/company-profile'
+                          }
                           color="inherit"
                         >
                           {t('upgrade_now')}

@@ -27,7 +27,7 @@ import { useContext, useEffect, useState } from 'react';
 import FileUpload from '../components/FileUpload';
 import { TitleContext } from 'src/contexts/TitleContext';
 import { read, utils } from 'xlsx';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined';
 import Spreadsheet, { CellBase, Matrix } from 'react-spreadsheet';
 import { arrayToAoA } from 'src/utils/overall';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';

@@ -31,11 +31,11 @@ import { useTranslation } from 'react-i18next';
 import ContactSupportOutlinedIcon from '@mui/icons-material/ContactSupportOutlined';
 import Scrollbar from 'src/components/Scrollbar';
 import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import AppSettingsAltOutlinedIcon from '@mui/icons-material/AppSettingsAltOutlined';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRightOutlined';
 
 const wait = (time: number): Promise<void> =>
   new Promise((res) => setTimeout(res, time));

@@ -20,7 +20,7 @@ import {
 import { Field, Form, Formik, FormikConfig, FormikValues } from 'formik';
 import { CheckboxWithLabel, TextField } from 'formik-mui';
 import * as Yup from 'yup';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 
 import { Helmet } from 'react-helmet-async';

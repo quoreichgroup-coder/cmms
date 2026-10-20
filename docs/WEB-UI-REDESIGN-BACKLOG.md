@@ -821,6 +821,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Test dédié, suite Web, TypeScript, ESLint ciblé et Prettier ciblé réussissent. La tentative du build CRA optimisé est restée sans sortie après « Creating an optimized production build »; aucun build de production réussi n’est revendiqué dans cette passe. La mémoire disponible était très basse et aucun processus Webpack ne restait actif.
 - La revue visuelle des icônes au clavier et en session authentifiée reste à faire dans Chromium. UX-11 demeure partiellement ouvert pour les modules secondaires non encore recensés et la recette visuelle.
 
+### UX-11 — harmonisation des icônes MUI dans les modules Web — 20 octobre 2026
+
+- Les contrôles de plusieurs écrans secondaires utilisaient encore les glyphes MUI pleins : authentification, intégrations, portail de demandes, personnes/équipes, compteurs, configuration préventive, champs personnalisés, détail WO et états de page. Les imports concernés passent à la famille `Outlined` quand MUI fournit l’équivalent; les marques sociales et glyphes déjà explicitement outline sont conservés.
+- Le test `web-icon-family.test.cjs` parcourt désormais toutes les sources TypeScript/TSX et échoue si un glyphe MUI avec variante `Outlined` disponible revient à l’import plein. Le test existant vérifie également les composants partagés et les familles Équipements/Localisations/Pièces. Aucun comportement, route, permission ou appel API n’a changé.
+- Vérification de cette passe : suite Node Web **77/77**, ESLint ciblé et Prettier ciblé passent. Le build production et la recette visuelle Chromium authentifiée restent à confirmer; le contrôle statique ne prouve pas l’alignement visuel de chaque icône.
+
 ### Tests Backend — préchargement de Mockito inline — 20 octobre 2026
 
 - Une reproduction du job `mvn test` dans l’environnement courant a atteint 1 791 tests mais compté 1 590 erreurs d’initialisation Mockito : Byte Buddy ne pouvait pas s’attacher dynamiquement à la JVM. Ce résultat caractérise cette sandbox; il ne prouve pas à lui seul que la panne GitHub avait la même cause, les journaux du run d’origine restant inaccessibles.

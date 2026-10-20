@@ -19,8 +19,8 @@ import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
 import NoRowsMessageWrapper from '../NoRowsMessageWrapper';
 import { usePrevious } from '../../../../hooks/usePrevious';
 import { createColumnHelper } from '@tanstack/react-table';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
 import CustomDatagrid2, { CustomDatagridColumn2 } from '../CustomDatagrid2';
 
 interface SelectAssetModalProps {

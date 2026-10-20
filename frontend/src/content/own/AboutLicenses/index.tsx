@@ -1,5 +1,12 @@
-import { Box, Button, Container, Paper, Stack, Typography } from '@mui/material';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  Stack,
+  Typography
+} from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNewOutlined';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { useBrand } from '../../../hooks/useBrand';
@@ -14,7 +21,9 @@ export default function AboutLicenses() {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Helmet>
-        <title>{name} — {t('open_source_notices')}</title>
+        <title>
+          {name} — {t('open_source_notices')}
+        </title>
       </Helmet>
       <Paper sx={{ p: { xs: 2, sm: 4 } }}>
         <Stack spacing={2}>

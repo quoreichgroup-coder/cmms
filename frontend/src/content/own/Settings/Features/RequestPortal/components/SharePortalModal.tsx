@@ -12,11 +12,11 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import CloseIcon from '@mui/icons-material/Close';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import QrCodeIcon from '@mui/icons-material/QrCode';
-import DownloadIcon from '@mui/icons-material/Download';
-import PrintIcon from '@mui/icons-material/Print';
+import CloseIcon from '@mui/icons-material/CloseOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
+import QrCodeIcon from '@mui/icons-material/QrCodeOutlined';
+import DownloadIcon from '@mui/icons-material/DownloadOutlined';
+import PrintIcon from '@mui/icons-material/PrintOutlined';
 import { QRCodeSVG } from 'qrcode.react';
 import { RequestPortal } from '../../../../../../models/owns/requestPortal';
 import { populateQrPrintDocument } from '../../../../../../utils/printQrCode';

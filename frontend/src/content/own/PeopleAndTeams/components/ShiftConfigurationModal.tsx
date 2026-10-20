@@ -24,8 +24,8 @@ import {
   ShiftException,
   UserResponseDTO
 } from '../../../../models/user';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNewOutlined';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIosOutlined';
 import { addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { useDispatch } from '../../../../store';
 import { patchShiftConfiguration } from '../../../../slices/shiftConfiguration';

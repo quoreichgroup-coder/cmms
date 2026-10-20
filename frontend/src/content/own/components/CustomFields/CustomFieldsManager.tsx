@@ -29,8 +29,8 @@ import {
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
-import AddIcon from '@mui/icons-material/Add';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import AddIcon from '@mui/icons-material/AddOutlined';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicatorOutlined';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { TitleContext } from '../../../../contexts/TitleContext';
