@@ -1,3 +1,4 @@
+import { logSafeError } from '../../../utils/safeErrorLog';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from '../../../store';
 import { useTranslation } from 'react-i18next';
@@ -47,4 +48,3 @@ export default function PartAssets({
     />
   );
 }
-import { logSafeError } from '../../../utils/safeErrorLog';

@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import {
@@ -329,4 +330,3 @@ const styles = StyleSheet.create({
   },
   footer: { padding: 16 }
 });
-import { logSafeError } from '../../utils/safeErrorLog';
