@@ -140,6 +140,10 @@ test('nested sidebar items show a filled hover and selected state', () => {
 
   assert.match(nestedStyles, /&:hover\s*\{\s*background-color:/);
   assert.match(nestedStyles, /&\.active\s*\{\s*background-color:/);
+  assert.match(
+    nestedStyles,
+    /&:focus-visible\s*\{\s*outline: 2px solid \$\{theme\.colors\.primary\.main\}/
+  );
   assert.match(nestedStyles, /background: currentColor/);
 });
 

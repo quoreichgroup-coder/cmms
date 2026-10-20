@@ -827,6 +827,11 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Le test `web-icon-family.test.cjs` parcourt désormais toutes les sources TypeScript/TSX et échoue si un glyphe MUI avec variante `Outlined` disponible revient à l’import plein. Le test existant vérifie également les composants partagés et les familles Équipements/Localisations/Pièces. Aucun comportement, route, permission ou appel API n’a changé.
 - Vérification de cette passe : suite Node Web **77/77**, ESLint ciblé et Prettier ciblé passent. Le build production et la recette visuelle Chromium authentifiée restent à confirmer; le contrôle statique ne prouve pas l’alignement visuel de chaque icône.
 
+### WEB-SIDEBAR-02 — focus clavier des sous-entrées — 20 octobre 2026
+
+- L’implémentation avait déjà un contour de focus visible pour les sous-entrées; le test de régression contrôlait le survol et la sélection, mais pas ce chemin clavier. `theme-contrast.test.cjs` vérifie maintenant que les sous-entrées gardent un contour de 2 px dérivé du token primaire.
+- Test thème/contraste et suite Web complète passent. La vérification du code ne remplace pas l’essai clavier et le contrôle visuel authentifié dans Chromium, toujours bloqués par le lancement Snap dans cette session.
+
 ### Tests Backend — préchargement de Mockito inline — 20 octobre 2026
 
 - Une reproduction du job `mvn test` dans l’environnement courant a atteint 1 791 tests mais compté 1 590 erreurs d’initialisation Mockito : Byte Buddy ne pouvait pas s’attacher dynamiquement à la JVM. Ce résultat caractérise cette sandbox; il ne prouve pas à lui seul que la panne GitHub avait la même cause, les journaux du run d’origine restant inaccessibles.
