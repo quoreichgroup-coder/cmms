@@ -691,7 +691,7 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - La recherche et la lecture d’une clé sont limitées à la société via le filtre de recherche et `findByIdAndCompany_Id`; la création rattache la clé à l’utilisateur courant. Les protections cross-tenant et des tests négatifs existaient déjà.
 - Défaut additionnel confirmé : les opérations serveur d’écriture exigeaient le droit `SETTINGS` en lecture, mais pas son droit d’édition, alors que `SettingsLayout` rend déjà la zone Paramètres non éditable sans `editOtherPermissions.SETTINGS`.
-- `ApiKeyService` impose maintenant lecture + édition pour créer, tourner, modifier ou supprimer une clé; le propriétaire de l’entreprise conserve l’accès. Les routes et DTO restent identiques. Tests unitaires négatifs ajoutés. Leur exécution Maven est bloquée localement car `mvn` n’est pas installé; à valider dans l’environnement Java de développement avant déploiement.
+- `ApiKeyService` impose maintenant lecture + édition pour créer, tourner, modifier ou supprimer une clé; le propriétaire de l’entreprise conserve l’accès. Les routes et DTO restent identiques. Tests unitaires négatifs ajoutés. Validation ciblée ultérieure : `ApiKeyServiceTenantIsolationTest` réussit **5/5** dans une copie temporaire propre. L’exécution depuis `api/target/classes` du checkout échoue avant les tests car un artefact historique est non modifiable; aucune modification de schéma ni validation HTTP/intégration n’est revendiquée.
 
 ### UX-05 / UX-06 — commandes des sélecteurs dans les formulaires — 18 octobre 2026
 
@@ -915,3 +915,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le helper d’erreur API renvoie maintenant un message générique localisé dès qu’une réponse HTTP est en 5xx, sans exposer le corps d’exception Spring/Hibernate à l’interface. Les messages de validation HTTP 4xx restent disponibles pour les formulaires; le corps reçu demeure accessible au traitement interne.
 - Régression couvrant les réponses serveur contenant des détails d’exception. Suite Web complète, TypeScript, ESLint ciblé et build CRA de production (`Compiled successfully`) passent. Chromium authentifié et vérification sur API distante restent à faire.
+
+### SEC-WEB-01 — validation Java ciblée des clés API — 20 octobre 2026
+
+- `ApiKeyServiceTenantIsolationTest` réussit **5/5** dans une copie temporaire propre : refus d’écriture pour un rôle sans droit d’édition, propriétaire autorisé, et absence de suppression/rotation/modification lorsque la clé ne relève pas de la société courante.
+- Le même test lancé directement depuis le checkout s’arrête avant compilation parce qu’un fichier ancien dans `api/target/classes` ne peut pas être remplacé. La réussite ciblée ne remplace pas les tests HTTP/intégration ni la vérification avec des rôles réels; le P0 reste à confirmer dans la pipeline et en recette d’accès.
