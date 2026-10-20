@@ -4,8 +4,11 @@ on:
     branches:
       - projet
     paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-update.yml'
+      - "mobile/**"
+      - ".github/workflows/mobile-update.yml"
+
+permissions:
+  contents: read
 
 env:
   GIT_SHA: ${{ github.sha }}
@@ -15,17 +18,43 @@ jobs:
     name: EAS Update
     runs-on: ubuntu-latest
     steps:
-      - name: Check for EXPO_TOKEN
-        run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
-            exit 1
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate production EAS update
+        id: gate
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          reason=""
+          if [[ -z "$EXPO_TOKEN" ]]; then
+            reason="EXPO_TOKEN is not configured; no OTA update was published."
+          elif [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            reason="The previous commit is unavailable; OTA compatibility could not be verified."
+          else
+            changed_files=$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- \
+              mobile/android mobile/ios mobile/app.config.ts mobile/app.json \
+              mobile/eas.json mobile/package.json mobile/package-lock.json mobile/plugins) || \
+              reason="Could not inspect the change range; OTA compatibility could not be verified."
+            if [[ -n "$changed_files" ]]; then
+              reason="Native code, app configuration, or dependencies changed; build a new native app instead of publishing an OTA update."
+            fi
+          fi
+
+          if [[ -n "$reason" ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "EAS production update skipped: $reason" >> "$GITHUB_STEP_SUMMARY"
+            echo "$reason"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "EAS production update is eligible to publish." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Setup Node
+        if: steps.gate.outputs.publish == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
@@ -33,16 +62,19 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
 
       - name: Setup EAS
+        if: steps.gate.outputs.publish == 'true'
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
+        if: steps.gate.outputs.publish == 'true'
         run: npm ci
         working-directory: mobile
 
       - name: Publish update
+        if: steps.gate.outputs.publish == 'true'
         env:
           API_URL: ${{secrets.API_URL}}
           CLARITY_ID: ${{secrets.MOBILE_CLARITY_ID}}

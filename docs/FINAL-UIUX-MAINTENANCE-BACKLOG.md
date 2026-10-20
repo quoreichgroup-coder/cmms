@@ -335,3 +335,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Les connexions de notifications, import et export Web ainsi que les notifications Mobile transmettaient le JWT dans l’en-tête STOMP `CONNECT`. Le logger par défaut du client peut imprimer l’intégralité de cette trame, y compris le jeton, dans la console développeur.
 - `client.debug` est maintenant désactivé avant chaque `connect()` dans les quatre clients. L’authentification WebSocket, le format de l’en-tête, les abonnements et les contrats API restent inchangés. Un test de non-régression parcourt tous les appels `Stomp.over()` du Web et du Mobile; il passe. Toute la suite Node Web (code 0), TypeScript Web et Mobile, la régression Mobile (**33/33**) et Jest onboarding (**5/5**) passent sur cette passe.
 - Cette correction retire la copie du JWT dans les logs du navigateur/appareil; elle **ne** déplace **pas** les jetons Web hors de `localStorage`. La migration SEC-WEB-02 vers cookies HttpOnly/access token mémoire et sa recette CSRF restent ouvertes.
+
+### Garde de compatibilité des mises à jour EAS de production — 20 octobre 2026
+
+- Le workflow `.github/workflows/mobile-update.yml` cible le canal OTA `production`. Le run `39381436620` s’est arrêté au contrôle `EXPO_TOKEN` absent, avant checkout/installation/publication; **aucun OTA n’a été publié**.
+- Le workflow vérifie maintenant la présence du secret et l’absence de changements natifs/configuration (`android/`, `ios/`, configuration Expo, dépendances, plugins) avant de publier. Si le jeton manque ou qu’un build natif est requis, il termine avec une explication dans le résumé et saute l’OTA. Le token n’est jamais injecté dans une commande shell.
+- Le test `ios-build-pipeline.test.cjs` protège ce garde-fou; la suite ciblée, le parse/formatage Prettier YAML et `git diff --check` passent. Le test ne publie pas d’update; l’accès EAS et l’OTA production restent bloqués jusqu’à configuration d’`EXPO_TOKEN`.
