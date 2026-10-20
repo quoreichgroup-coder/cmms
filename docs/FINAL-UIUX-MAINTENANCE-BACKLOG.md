@@ -1,6 +1,6 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
-**Statut : base de navigation Mobile et onboarding versionné intégrés; validation appareil et build backend restent requis. Le blocage Hibernate Work Orders demeure ouvert.**
+**Statut : base de navigation Mobile et onboarding versionné intégrés; backend `mvn test` complet réussi. La recette Work Orders contre API réelle, Chromium authentifié et validation appareil restent ouvertes. APK signé 1.0.59 reconstruit le 20 octobre.**
 Ce document complète [`WEB-UI-REDESIGN-BACKLOG.md`](WEB-UI-REDESIGN-BACKLOG.md) et [`MVP-MOBILE-QPM.md`](MVP-MOBILE-QPM.md). Il conserve les routes, contrats et règles métier tant qu’un lot backend dédié n’a pas été cadré.
 
 ## Audit initial fondé sur le dépôt
@@ -90,7 +90,7 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 
 ## Prochaine étape recommandée
 
-Valider ensemble le backend/onboarding sur un environnement de test : exécuter Maven, appliquer la migration Liquibase, tester l’endpoint de préférences, puis installer le build 1.0.59 et vérifier premier login/skip/complétion/replay sur Android/iOS. Le P0 MOB-WO-04 reste à diagnostiquer avec la trace serveur complète. La recette Chromium Web reste ouverte car le wrapper Snap ne démarre pas dans cet environnement. Avant d’implémenter Shift Roster, Shutdown BP ou Procurement Tracking, produire des spécifications métier distinctes.
+Installer le build 1.0.59 sur un appareil Android et vérifier premier login/skip/complétion/replay de l’onboarding, navigation, scan QR/NFC et clôture WO. Aucun appareil n’est connecté à la session actuelle; ces contrôles natifs ne sont donc pas revendiqués. Le P0 MOB-WO-04 reste ouvert jusqu’à reproduction de la liste/filtres/détails WO contre l’API réelle et examen de la trace/payload d’origine. La recette Chromium Web authentifiée reste ouverte faute de navigateur exécutable. Avant d’implémenter Shift Roster, Shutdown BP ou Procurement Tracking, produire des spécifications métier distinctes.
 
 ### Audit de préparation — Shift Roster, Shutdown Calendar et Procurement — 20 octobre 2026
 
@@ -276,3 +276,16 @@ Valider ensemble le backend/onboarding sur un environnement de test : exécuter 
 - Les cinq tests Jest de versionnement et de persistance de l’onboarding existaient, mais n’étaient pas exécutés par `npm run test:mobile-regression`. Un script `test:onboarding` est maintenant inclus à la fin de cette commande afin que les scénarios premier compte, ignoré/terminé, nouvelle version et serveur ancien soient vérifiés ensemble.
 - La règle racine Git ignorait les répertoires `node_modules`, mais pas un lien symbolique de ce nom. Elle ignore désormais aussi ces liens; le lien local du prototype Web n’est donc pas proposé par `git status`.
 - Validation de la reprise : suite Mobile intégrée (**33 tests Node + 5 tests Jest**), TypeScript Web/Mobile et suite Web terminent avec code retour 0. `git diff --check` passe. Cette vérification automatisée ne remplace pas la recette visuelle authentifiée; Chromium reste indisponible et aucun build/déploiement/commit n’a été produit.
+
+### Vérification backend complète et rebuild mobile — 20 octobre 2026
+
+- `mvn test` dans une copie propre temporaire avec Docker/Testcontainers disponibles : **2 159 tests, 0 échec, 0 erreur, 10 ignorés**, `BUILD SUCCESS` en 4 min 58 s. Liquibase et les intégrations PostgreSQL utilisent les conteneurs temporaires du test; aucun jeu de données QPM existant n’est ciblé.
+- Maven dans le répertoire du dépôt reste bloqué avant compilation par un fichier `api/target/classes` non écrasable. La copie temporaire contourne les artefacts locaux sans modifier les sources.
+- Mobile : `npm run test:mobile-regression` passe (**33 tests Node + 5 Jest onboarding**) et `tsc --noEmit --pretty false` passe. L’APK `1.0.59` du 19 octobre ne contenait pas l’onboarding ajouté le 20 octobre; le rebuild au même numéro est maintenant réussi et l’artefact vérifié ci-dessous.
+- Web : suite de tests, typecheck, rebuild Docker local et smoke Nginx HTTP 200 vérifiés; Chromium visuel reste indisponible, aucun parcours authentifié ni déploiement VPS revendiqué.
+
+### APK 1.0.59 — rebuild validé — 20 octobre 2026
+
+- `NODE_ENV=production npm run build:apk` : bundling Expo Android (**2 228 modules**) et Gradle `BUILD SUCCESSFUL` (**1 124 tâches, 18 exécutées, 1 106 à jour**). Le script a signé l’APK avec le keystore release existant et l’a écrit dans `mobile/dist/QPM-1.0.59.apk`.
+- Métadonnées vérifiées avec `aapt`: `com.atlas.cmms`, `versionCode 42`, `versionName 1.0.59`. `apksigner verify --verbose` confirme la signature APK v2, un signataire. Taille : **101 MB**; SHA-256 : `e854402ebe00d6cf45e63e6260558f0de63b024bf274f1824d76357e849d5450`.
+- Le numéro de version n’a pas été incrémenté. `adb devices` n’a pas pu démarrer le daemon dans cette session (`Operation not permitted`); installation et vérification physique restent à faire sur téléphone. Aucun IPA iOS n’a été généré.
