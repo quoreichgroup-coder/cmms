@@ -101,7 +101,7 @@ function WorkOrderTimerFab({
 
   return (
     <FAB
-      icon={running ? 'stop' : 'play'}
+      icon={running ? 'stop' : 'timer-outline'}
       accessibilityLabel={
         running ? t('stop_work_order_timer') : t('start_work_order_timer')
       }

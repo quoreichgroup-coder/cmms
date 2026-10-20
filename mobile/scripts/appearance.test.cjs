@@ -322,6 +322,19 @@ test('expanded work order timer explains the first start action', () => {
   );
 });
 
+test('work order timer uses a timer icon to start and stop to finish', () => {
+  const timerFab = fs.readFileSync(
+    path.join(
+      __dirname,
+      '..',
+      'screens/workOrders/components/WorkOrderTimerFab.tsx'
+    ),
+    'utf8'
+  );
+  assert.match(timerFab, /icon=\{running \? 'stop' : 'timer-outline'\}/);
+  assert.match(timerFab, /accessibilityLabel=[\s\S]*?start_work_order_timer/);
+});
+
 test('running work order timer keeps elapsed time visible after scrolling', () => {
   assert.equal(
     getWorkOrderTimerLabel(false, true, '12:34', 'Run Timer'),
