@@ -110,8 +110,40 @@ jobs:
           distribution: temurin
 
       - name: Run tests
-        run: mvn test -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED"
+        run: |
+          set -o pipefail
+          mvn --batch-mode --no-transfer-progress -Dstyle.color=never test -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED" 2>&1 | tee "$RUNNER_TEMP/backend-tests.log"
         working-directory: ./api
+
+      - name: Summarize backend test failure
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo '## Backend test failure'
+            echo 'The Maven command failed. Download the backend-test-diagnostics artifact for the complete log and test reports.'
+            echo
+            echo '<details><summary>Last Maven error lines</summary>'
+            echo
+            echo '~~~text'
+            if [[ -f "$RUNNER_TEMP/backend-tests.log" ]]; then
+              grep -F '[ERROR]' "$RUNNER_TEMP/backend-tests.log" | tail -n 60 || true
+            fi
+            echo '~~~'
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload backend test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-diagnostics
+          path: |
+            ${{ runner.temp }}/backend-tests.log
+            api/target/surefire-reports/
+            api/target/failsafe-reports/
+          if-no-files-found: warn
+          retention-days: 7
 
   selfhost-smoke-test:
     needs: detect-changes
@@ -163,24 +195,26 @@ jobs:
       - name: Check frontend is served
         run: |
           body=$(curl -fsS http://localhost:3000/)
-          echo "$body" | grep -q 'Atlas CMMS'
-          echo "$body" | grep -q '<div id="root">'
+          grep -Fq 'QUOREICH GROUP · QPM' <<< "$body"
+          grep -Fq '<div id="root">' <<< "$body"
           echo "frontend OK"
 
       - name: Show stack status on failure
         if: failure()
         run: |
-          docker compose ps || true
-          docker compose logs || true
+          docker compose --env-file .env.example ps || true
+          docker compose --env-file .env.example logs || true
 
       - name: Clean up stack
         if: always()
-        run: docker compose down -v
+        run: docker compose --env-file .env.example down -v
 
   push-backend-docker:
     needs: [detect-changes, test]
     if: >-
       ${{
+        !cancelled() &&
+        needs.detect-changes.result == 'success' &&
         needs.detect-changes.outputs.backend == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped')
       }}
@@ -396,8 +430,10 @@ jobs:
     needs: [detect-changes, test, selfhost-smoke-test, push-backend-docker, push-frontend-docker]
     if: >-
       ${{
+        !cancelled() &&
+        needs.detect-changes.result == 'success' &&
         github.ref == 'refs/heads/projet' &&
-        (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') &&
+        needs.detect-changes.outputs.smoke == 'true' &&
         (needs.test.result == 'success' || needs.test.result == 'skipped') &&
         needs.selfhost-smoke-test.result == 'success' &&
         (needs.push-backend-docker.result == 'success' || needs.push-backend-docker.result == 'skipped') &&
