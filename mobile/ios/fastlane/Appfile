@@ -1,0 +1,2 @@
+app_identifier(ENV.fetch('IOS_BUNDLE_IDENTIFIER', 'com.cmms.atlas'))
+team_id(ENV['APPLE_TEAM_ID'] || 'KXW8RH26AN')

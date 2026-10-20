@@ -1,0 +1,6 @@
+storage_mode('git')
+git_url(ENV.fetch('MATCH_GIT_URL', 'git@github.com:CHANGE-ME/qpm-ios-signing.git'))
+app_identifier(ENV.fetch('IOS_BUNDLE_IDENTIFIER', 'com.cmms.atlas'))
+team_id(ENV['APPLE_TEAM_ID'] || 'KXW8RH26AN')
+type('adhoc')
+readonly(true)

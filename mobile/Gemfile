@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+# Keep Ruby tooling reproducible across GitHub Actions and the remote Jenkins
+# macOS agent. CocoaPods matches the version that generated Podfile.lock.
+gem 'fastlane', '= 2.228.0'
+gem 'cocoapods', '= 1.16.2'

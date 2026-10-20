@@ -20,4 +20,6 @@ docker-compose-minio.yml
 
 # Java build outputs
 **/target/
+# Dependency directories and symlinks (including prototype links to shared modules).
+node_modules
 api/htmlReport/

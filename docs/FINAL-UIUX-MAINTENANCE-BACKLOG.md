@@ -215,6 +215,7 @@ Valider ensemble le backend/onboarding sur un environnement de test : exécuter 
 - Maven 3.9.12 est désormais disponible sur le poste de développement. Le premier lancement depuis `api/` n’a pas pu écraser certains artefacts de `api/target` (droits existants); les tests ont été relancés depuis une copie temporaire sous `/tmp` sans modifier les sources.
 - Compilation des 823 fichiers Java réussie. `SearchDateValueConverterTest` passe **4/4**. Le lot combiné compte 311 cas et échoue sur 307 erreurs d’initialisation Mockito/Byte Buddy (`Could not self-attach to current VM`), avant les assertions métier; zéro échec d’assertion n’est interprétable comme validation. MOB-WO-04 reste **ouvert** jusqu’à test Spring dans un environnement permettant l’attachement JVM et recette de la requête authentifiée.
 - Le contrôle Chromium reste bloqué : Chrome DevTools attend `/opt/google/chrome/chrome`, absent ici. Pas de captures ni de validation visuelle authentifiée revendiquées. Aucun rebuild Docker, déploiement, commit ou push n’a été effectué.
+
 - Web UX-12 (20 octobre) : le sélecteur de vues calendrier masque ses libellés sur téléphone et les montre à partir de `sm`, sans perdre les noms accessibles. Tests dédiés **2/2**, suite complète, TypeScript, Prettier et build CRA (**Compiled successfully**) réussis; recette responsive Chromium toujours ouverte.
 - Mobile : `npm run test:mobile-regression` réussit **32/32** après la reprise de session; le typecheck Mobile `./node_modules/.bin/tsc --noEmit --pretty false` termine également avec le code **0**.
 - Aucun changement d’API, permission ou règle métier. Pas de rebuild Docker, APK/IPA, déploiement, commit ou push.
@@ -250,3 +251,9 @@ Valider ensemble le backend/onboarding sur un environnement de test : exécuter 
 
 - Le `Fastfile` était dans `mobile/ios/fastlane`, mais GitHub Actions et Jenkins lançaient Fastlane depuis `mobile/`, ce qui empêchait la découverte standard de la configuration. Les deux lanes utilisent maintenant `mobile/ios/`; `BUNDLE_GEMFILE` pointe toujours vers `mobile/Gemfile`.
 - `mobile/scripts/ios-build-pipeline.test.cjs` vérifie les deux working directories et commandes; le test dédié, Prettier et `git diff --check` passent. Aucun runner macOS/Xcode n’est disponible pour exécuter réellement `verify_build` ou produire un IPA signé.
+
+### Couverture onboarding et régression croisée — 20 octobre 2026
+
+- Les cinq tests Jest de versionnement et de persistance de l’onboarding existaient, mais n’étaient pas exécutés par `npm run test:mobile-regression`. Un script `test:onboarding` est maintenant inclus à la fin de cette commande afin que les scénarios premier compte, ignoré/terminé, nouvelle version et serveur ancien soient vérifiés ensemble.
+- La règle racine Git ignorait les répertoires `node_modules`, mais pas un lien symbolique de ce nom. Elle ignore désormais aussi ces liens; le lien local du prototype Web n’est donc pas proposé par `git status`.
+- Validation de la reprise : suite Mobile intégrée (**33 tests Node + 5 tests Jest**), TypeScript Web/Mobile et suite Web terminent avec code retour 0. `git diff --check` passe. Cette vérification automatisée ne remplace pas la recette visuelle authentifiée; Chromium reste indisponible et aucun build/déploiement/commit n’a été produit.

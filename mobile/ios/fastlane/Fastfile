@@ -1,0 +1,117 @@
+require 'fileutils'
+require 'json'
+require 'shellwords'
+
+IOS_ROOT = File.expand_path('..', __dir__)
+MOBILE_ROOT = File.expand_path('../..', __dir__)
+WORKSPACE = File.join(IOS_ROOT, 'AtlasCMMS.xcworkspace')
+SCHEME = ENV.fetch('IOS_SCHEME', 'AtlasCMMS')
+BUNDLE_ID = ENV.fetch('IOS_BUNDLE_IDENTIFIER', 'com.cmms.atlas')
+OUTPUT_DIR = File.join(MOBILE_ROOT, 'artifacts', 'ios')
+LOG_DIR = File.join(OUTPUT_DIR, 'logs')
+
+def qpm_version
+  JSON.parse(File.read(File.join(MOBILE_ROOT, 'package.json'))).fetch('version')
+end
+
+def prepare_qpm_dependencies
+  FileUtils.mkdir_p([OUTPUT_DIR, LOG_DIR])
+  return if ENV['QPM_DEPS_PREPARED'] == '1'
+
+  Dir.chdir(MOBILE_ROOT) do
+    sh('npm ci')
+  end
+
+  lockfile = File.join(IOS_ROOT, 'Podfile.lock')
+  FileUtils.cp(lockfile, File.join(OUTPUT_DIR, 'Podfile.lock.before')) if File.file?(lockfile)
+  sh("bundle exec pod install --project-directory=#{IOS_ROOT.shellescape}")
+  FileUtils.cp(lockfile, File.join(OUTPUT_DIR, 'Podfile.lock.resolved')) if File.file?(lockfile)
+end
+
+def validate_qpm_ios_project
+  UI.user_error! "Missing iOS workspace: #{WORKSPACE}" unless File.directory?(WORKSPACE)
+  UI.user_error! "Missing shared scheme: #{SCHEME}" unless File.file?(File.join(IOS_ROOT, "AtlasCMMS.xcodeproj/xcshareddata/xcschemes/#{SCHEME}.xcscheme"))
+  UI.user_error! 'Fastlane iOS lanes require macOS/Xcode.' unless RUBY_PLATFORM.include?('darwin')
+
+  xcode_version = sh('xcodebuild -version').lines.find { |line| line.start_with?('Xcode ') }.to_s.split.last
+  UI.user_error! "Expected Xcode 26.x; found #{xcode_version || 'unknown'}." unless xcode_version.to_s.start_with?('26.')
+end
+
+def create_adhoc_entitlements
+  source = File.join(IOS_ROOT, 'AtlasCMMS', 'AtlasCMMS.entitlements')
+  destination = File.join(OUTPUT_DIR, 'AtlasCMMS-AdHoc.entitlements')
+  contents = File.read(source)
+  changed = contents.sub(
+    /(<key>aps-environment<\/key>\s*<string>)development(<\/string>)/,
+    '\\1production\\2'
+  )
+  UI.user_error! 'Could not set the Ad Hoc APNs entitlement to production.' if changed == contents
+  File.write(destination, changed)
+  sh("plutil -lint #{destination.shellescape}")
+  destination
+end
+
+default_platform(:ios)
+
+platform :ios do
+  desc 'Install JS/Pods and compile an unsigned Release xcarchive (not installable on iPhone).'
+  lane :verify_build do
+    validate_qpm_ios_project
+    prepare_qpm_dependencies
+    sh("xcodebuild -resolvePackageDependencies -workspace #{WORKSPACE.shellescape} -scheme #{SCHEME.shellescape}")
+
+    archive_path = File.join(OUTPUT_DIR, "QPM-#{qpm_version}-verify.xcarchive")
+    log_path = File.join(LOG_DIR, 'verify-build-xcodebuild.log')
+    FileUtils.rm_rf(archive_path)
+    command = [
+      'xcodebuild archive',
+      "-workspace #{WORKSPACE.shellescape}",
+      "-scheme #{SCHEME.shellescape}",
+      '-configuration Release',
+      '-destination "generic/platform=iOS"',
+      "-archivePath #{archive_path.shellescape}",
+      "-derivedDataPath #{File.join(OUTPUT_DIR, 'DerivedData').shellescape}",
+      'CODE_SIGNING_ALLOWED=NO',
+      'CODE_SIGNING_REQUIRED=NO',
+      'CODE_SIGN_IDENTITY=""'
+    ].join(' ')
+    sh("set -o pipefail && #{command} 2>&1 | tee #{log_path.shellescape}")
+    sh("ditto -c -k --sequesterRsrc --keepParent #{archive_path.shellescape} #{"#{archive_path}.zip".shellescape}")
+
+    UI.success "Unsigned archive created: #{archive_path} (zip artifact: #{archive_path}.zip). It cannot be installed on iPhone."
+  end
+
+  desc 'Create a signed Ad Hoc IPA using readonly Fastlane Match credentials.'
+  lane :build_adhoc do
+    validate_qpm_ios_project
+    prepare_qpm_dependencies
+
+    UI.user_error! 'MATCH_PASSWORD is required for Ad Hoc signing.' if ENV['MATCH_PASSWORD'].to_s.empty?
+    UI.user_error! 'MATCH_GIT_URL must point to a private signing repository.' if ENV['MATCH_GIT_URL'].to_s.empty? || ENV['MATCH_GIT_URL'].include?('CHANGE-ME')
+
+    match(
+      type: 'adhoc',
+      app_identifier: BUNDLE_ID,
+      readonly: true,
+      team_id: ENV['APPLE_TEAM_ID'] || 'KXW8RH26AN'
+    )
+
+    entitlements = create_adhoc_entitlements
+    build_app(
+      workspace: WORKSPACE,
+      scheme: SCHEME,
+      configuration: 'Release',
+      export_method: 'ad-hoc',
+      output_directory: OUTPUT_DIR,
+      output_name: "QPM-#{qpm_version}-adhoc.ipa",
+      archive_path: File.join(OUTPUT_DIR, "QPM-#{qpm_version}-adhoc.xcarchive"),
+      buildlog_path: LOG_DIR,
+      clean: true,
+      xcargs: "CODE_SIGN_ENTITLEMENTS=#{entitlements.shellescape} DEVELOPMENT_TEAM=#{(ENV['APPLE_TEAM_ID'] || 'KXW8RH26AN').shellescape}"
+    )
+
+    ipa = File.join(OUTPUT_DIR, "QPM-#{qpm_version}-adhoc.ipa")
+    UI.user_error! "Fastlane did not produce the expected IPA: #{ipa}" unless File.file?(ipa)
+    UI.success "Signed Ad Hoc IPA created: #{ipa}"
+  end
+end
