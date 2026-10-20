@@ -25,6 +25,7 @@ import { useDispatch, useSelector } from '../../../../store';
 import { isEmailVerificationEnabled } from '../../../../config';
 import CreateUser from './CreateUser';
 import { Simulate } from 'react-dom/test-utils';
+import { getApiErrorMessage } from '../../../../utils/apiError';
 
 export default function InviteUserDialog({
   open,
@@ -185,9 +186,15 @@ export default function InviteUserDialog({
                         setCurrentEmail('');
                         showSnackBar(t('users_invite_success'), 'success');
                       })
-                      .catch((err: { message: string }) => {
-                        showSnackBar(JSON.parse(err.message).message, 'error');
-                      })
+                      .catch(
+                        (err: {
+                          message?: string;
+                          status?: number;
+                          responseBody?: unknown;
+                        }) => {
+                          showSnackBar(getApiErrorMessage(err), 'error');
+                        }
+                      )
                       .finally(() => setIsInviteSubmitting(false));
                   if (roleId) {
                     if (emails.length || currentEmail) {

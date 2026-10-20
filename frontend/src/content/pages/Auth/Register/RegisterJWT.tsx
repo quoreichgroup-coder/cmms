@@ -31,6 +31,7 @@ import { inviteUsers } from '../../../../slices/user';
 import { useDispatch } from '../../../../store';
 import { isNetworkError } from '../../../../utils/api';
 import { logSafeError } from '../../../../utils/safeErrorLog';
+import { getApiErrorMessage } from '../../../../utils/apiError';
 
 function RegisterJWT({
   email,
@@ -120,25 +121,10 @@ function RegisterJWT({
               logSafeError('Registration request failed', err);
               return;
             }
-            let errorMessage = 'An unknown error occurred';
-
-            // Check if the error message contains a JSON string
-            if (typeof err.message === 'string') {
-              try {
-                const parsedError = JSON.parse(err.message);
-                // If the JSON contains a 'message' field, use it
-                if (parsedError && parsedError.message) {
-                  errorMessage = parsedError.message;
-                }
-              } catch (e) {
-                // If parsing fails, fallback to the original error message
-                errorMessage = err.message;
-              }
-            } else {
-              // In case err.message is not a string, just use the general error
-              errorMessage = 'An unknown error occurred';
-            }
-            showSnackBar(errorMessage, 'error');
+            showSnackBar(
+              getApiErrorMessage(err, t('an_error_occured')),
+              'error'
+            );
             logSafeError('Registration request failed', err);
           })
           .finally(() => {

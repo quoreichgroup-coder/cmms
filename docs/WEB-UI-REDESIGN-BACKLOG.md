@@ -920,3 +920,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - `ApiKeyServiceTenantIsolationTest` (**5/5**) et `ApiKeyAuthFilterTest` (**11/11**) réussissent, soit **16/16** tests ciblés dans une copie temporaire propre. Ils couvrent notamment le refus d’écriture sans droit d’édition, le propriétaire, l’isolation des opérations par société et l’authentification des clés API.
 - La même exécution depuis le checkout s’arrête avant compilation parce qu’un fichier ancien dans `api/target/classes` ne peut pas être remplacé. Ces tests unitaires ne remplacent pas les tests HTTP/intégration ni la vérification avec des rôles réels; le P0 reste à confirmer dans la pipeline et en recette d’accès.
+
+### SEC-WEB — assainissement des erreurs visibles dans les formulaires — 20 octobre 2026
+
+- Cinq parcours affichaient directement `error.message` ou analysaient le message brut de l’exception : import de données, invitation utilisateur, inscription, portail public de demandes et téléversement de fichiers dans les paramètres société. Ils utilisent désormais `getApiErrorMessage`; les réponses 5xx restent génériques et localisées, tandis que les erreurs de validation 4xx restent exploitables par les formulaires.
+- Ajout de `frontend/scripts/raw-error-ui.test.cjs` pour vérifier ces cinq sinks. Aucun endpoint, contrat API, permission ou règle métier n’a changé.
+- Tests ciblés, suite Web complète (`node --test --test-reporter=dot scripts/*.test.cjs`), TypeScript, ESLint ciblé, Prettier ciblé, `git diff --check` et build CRA (`CI=true GENERATE_SOURCEMAP=false npm run build`, `Compiled successfully`) passent. La validation visuelle/authentifiée Chromium n’est pas disponible dans cette session.

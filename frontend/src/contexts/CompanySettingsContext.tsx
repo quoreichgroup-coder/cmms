@@ -13,6 +13,7 @@ import { useBrand } from '../hooks/useBrand';
 import { format } from 'date-fns';
 import { utcToZonedTime } from 'date-fns-tz';
 import { openSafeWindow } from '../utils/safeWindow';
+import { getApiErrorMessage } from '../utils/apiError';
 
 type CompanySettingsContext = {
   getFormattedDate: (dateString: string, hideTime?: boolean) => string;
@@ -72,8 +73,12 @@ export const CompanySettingsProvider: FC = ({ children }) => {
       : `${amount} ${code}`;
   };
 
-  const onUploadError = (err: { message: string }) => {
-    showSnackBar(JSON.parse(err.message).message, 'error');
+  const onUploadError = (err: {
+    message?: string;
+    status?: number;
+    responseBody?: unknown;
+  }) => {
+    showSnackBar(getApiErrorMessage(err), 'error');
   };
 
   const uploadFiles = async (
@@ -197,7 +202,9 @@ I would like to request an upgrade to my current ${brandConfig.name} plan.
 
 Account Information:
 - Company Name: ${company.name}
-- Current Plan: ${company.subscription?.subscriptionPlan?.name ?? 'No active plan'}
+- Current Plan: ${
+          company.subscription?.subscriptionPlan?.name ?? 'No active plan'
+        }
 - Account Email: ${user.email}
 
 Upgrade Details:

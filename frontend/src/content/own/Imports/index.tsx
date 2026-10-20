@@ -43,6 +43,7 @@ import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import api from '../../../utils/api';
 import i18n from 'i18next';
+import { getApiErrorMessage } from '../../../utils/apiError';
 import downloadFile from 'downloadjs';
 import useImport, { EntityType } from 'src/hooks/useImport';
 
@@ -259,7 +260,10 @@ const Import = ({}: OwnProps) => {
       })
       .catch((error: Error) => {
         showSnackBar(
-          `${t('import_error')}${error ? `: ${error.message}` : ''}`,
+          `${t('import_error')}: ${getApiErrorMessage(
+            error,
+            t('an_error_occured')
+          )}`,
           'error'
         );
       });

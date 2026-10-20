@@ -35,6 +35,8 @@ function settings(companySettings) {
         };
       if (id.endsWith('/useBrand')) return { useBrand: () => ({}) };
       if (id.endsWith('/safeWindow')) return { openSafeWindow: () => {} };
+      if (id.endsWith('/apiError'))
+        return { getApiErrorMessage: () => 'request_failed' };
       if (id === 'react-i18next')
         return { useTranslation: () => ({ t: (x) => x }) };
       if (id.endsWith('/CustomSnackBarContext'))

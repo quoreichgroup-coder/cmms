@@ -43,6 +43,7 @@ import { AssetMiniDTO } from '../../../../../../models/owns/asset';
 import { useDispatch, useSelector } from '../../../../../../store';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
 import { Business } from '@mui/icons-material';
+import { getApiErrorMessage } from '../../../../../../utils/apiError';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import LanguageIcon from '@mui/icons-material/LanguageOutlined';
 import { useSnackbar } from 'notistack';
@@ -248,7 +249,7 @@ export default function RequestPortalPublicPage() {
 
       setSubmitted(true);
     } catch (error: any) {
-      enqueueSnackbar(error.message || t('request_submit_failure'), {
+      enqueueSnackbar(getApiErrorMessage(error, t('request_submit_failure')), {
         variant: 'error'
       });
     } finally {
