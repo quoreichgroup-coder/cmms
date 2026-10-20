@@ -1,6 +1,6 @@
 # QPM — iOS build setup without a local Mac
 
-**Status:** GitHub/Jenkins pipeline configuration is prepared. EAS source upload was validated on 19 October 2026; Android build is queued, while iOS is blocked on remote Apple signing credentials. No IPA has been produced.
+**Status (20 octobre 2026):** Android APK `1.0.59` was rebuilt and signature-verified locally. This host is Linux, so it cannot run Xcode or produce an iOS archive/IPA. The repository has a manual GitHub Actions workflow on a macOS 26 runner: `verify` can validate an unsigned archive without Apple signing, while `adhoc` needs the configured private Match repository and signing secrets. No iOS workflow execution or IPA is confirmed by this local session; prior EAS signing was blocked because credentials were not configured.
 
 This setup reuses the checked-in Expo prebuild/Xcode project. It does not migrate QPM to Expo managed builds and does not run `expo prebuild` during CI. Both build systems call the same Fastlane lanes from `mobile/ios/fastlane/Fastfile`.
 

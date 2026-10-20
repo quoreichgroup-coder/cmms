@@ -341,3 +341,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Le workflow `.github/workflows/mobile-update.yml` cible le canal OTA `production`. Le run `39381436620` s’est arrêté au contrôle `EXPO_TOKEN` absent, avant checkout/installation/publication; **aucun OTA n’a été publié**.
 - Le workflow vérifie maintenant la présence du secret et l’absence de changements natifs/configuration (`android/`, `ios/`, configuration Expo, dépendances, plugins) avant de publier. Si le jeton manque ou qu’un build natif est requis, il termine avec une explication dans le résumé et saute l’OTA. Le token n’est jamais injecté dans une commande shell.
 - Le run `39381749054` valide le comportement : étape Gate réussie, puis Setup Node/EAS, installation et publication sautés vu l’absence du secret. Le test `ios-build-pipeline.test.cjs` protège ce garde-fou; la suite ciblée, le parse/formatage Prettier YAML et `git diff --check` passent. Aucun OTA n’a été publié; l’accès EAS production reste bloqué jusqu’à configuration d’`EXPO_TOKEN`.
+
+### Build Android 1.0.59 sans incrément — 20 octobre 2026
+
+- Le build Release a abouti après une relance Gradle ciblée; l’APK signé courant a été copié vers `mobile/dist/QPM-1.0.59.apk`. `apksigner verify` confirme la signature v2, `aapt dump badging` confirme `com.atlas.cmms`, version `1.0.59`, `versionCode 42` et SDK minimum 24. Taille : 101 MB; SHA-256 : `e725fbae599cb56e6788fc0007476459972a5df72214c736016895e2d4c942d0`.
+- Aucun incrément Android n’a été effectué. L’installation sur un téléphone et la recette visuelle restent à faire.
+- iOS : ce poste est Linux, donc aucun build Xcode local. Le workflow GitHub Actions macOS propose une validation d’archive non signée sans secrets Apple; un IPA Ad Hoc installable reste dépendant de certificats/profils Apple et du dépôt Fastlane Match. Aucune IPA n’est revendiquée.
