@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    image: atlas-cmms-backend:local
+    image: ${QPM_API_IMAGE:-atlas-cmms-backend:local}
     build:
       context: ./api
       dockerfile: Dockerfile
@@ -109,7 +109,7 @@ services:
       - "8080"
 
   frontend:
-    image: atlas-cmms-frontend:local
+    image: ${QPM_WEB_IMAGE:-atlas-cmms-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
