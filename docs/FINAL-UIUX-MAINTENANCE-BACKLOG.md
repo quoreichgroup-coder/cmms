@@ -412,3 +412,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Le test `frontend/scripts/rebrand-visible-copy.test.cjs` valide les libellés et empêche de modifier accidentellement les identifiants Android/iOS ou le scheme historique. Les URLs Atlas sans remplaçant confirmé, les identifiants de build/store, noms des offres et licences, et l’attribution amont restent en place.
 - Vérifications : TypeScript Web et Mobile passent; suite de scripts Web passe; tests Mobile passent (34 régressions + 5 onboarding); build Web CRA passe (`Compiled successfully`). La compilation Maven est bloquée par les droits du fichier existant dans `api/target/classes` (`Operation not permitted`), même en dirigeant la sortie vers `/tmp`. ESLint Mobile n’est pas installé et son téléchargement a échoué faute de DNS (`EAI_AGAIN`); aucune dépendance n’a été ajoutée.
 - Aucun déploiement ni build Android/iOS n’est revendiqué pour cette passe de textes. Les captures du README restent à remplacer par des captures authentiques après accès à un appareil ou émulateur.
+
+### Rebuild de validation APK 1.0.59 — 20 octobre 2026
+
+- Après le rebranding du libellé de fournisseur Mobile, l’APK Release a été reconstruit sans incrément de version. Metro a bundle **2 230 modules** et Gradle a terminé avec **BUILD SUCCESSFUL** (1 124 tâches, 18 exécutées, 1 106 à jour).
+- `mobile/dist/QPM-1.0.59.apk` : 105 812 708 octets; SHA-256 `0e526f95195a49fd18212b3d5a6f88e04e03af5c7ef8c6426a8087ec322632bb`; signature v2 valide; `com.atlas.cmms`, version `1.0.59`, `versionCode` 42, `minSdk` 24 confirmés par `aapt` et `apksigner`.
+- `mobile/INSTALLER-APK.md` reflète maintenant cette archive. Installation/régression sur appareil physique, caméra/NFC et vérification visuelle restent à faire; ce build ne constitue pas une validation sur téléphone.

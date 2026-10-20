@@ -2,15 +2,15 @@
 
 **Backlog UI/UX complémentaire :** la navigation flottante Scan, la séparation Home/Stats et l’audit des cartes sont cadrés dans [`FINAL-UIUX-MAINTENANCE-BACKLOG.md`](FINAL-UIUX-MAINTENANCE-BACKLOG.md). Ils ne sont pas déclarés implémentés par les correctifs d’accessibilité recensés ci-dessous.
 
-**Révision :** 12 octobre 2026
+**Révision :** 20 octobre 2026
 **Cible :** pilote mobile de maintenance minière sur convoyeur
-**Règle :** terminer et valider le pilote mobile avant d’ouvrir le lot de refonte UI/UX Web. Le Web existant reste utilisable pour les fonctions de planification et d’administration qui ne sont pas disponibles dans l’app mobile.
+**Règle :** poursuivre les backlogs Mobile et Web en parallèle; la recette du pilote Mobile reste un critère de validation terrain et ne bloque pas les améliorations Web. Le Web existant reste la surface de planification et d’administration qui n’est pas disponible dans l’app mobile.
 
 ## Décision proposée
 
 QPM a assez de fondations mobiles pour entrer en validation de bout en bout, mais le MVP n’est pas encore accepté comme prêt pour le terrain. Les sources montrent les écrans et interactions, et les tests automatisés couvrent plusieurs garde-fous; ils ne prouvent ni l’accès stable à l’API de test, ni le rendu Android/iOS réel, ni l’exactitude d’une intervention enregistrée dans une installation représentative.
 
-Le prochain jalon est donc une validation opérationnelle sur l’APK 1.0.58, avec une entreprise, un utilisateur technicien et un utilisateur responsable de test. Le passage à la refonte Web commence après la réussite des critères de sortie ci-dessous ou après consignation explicite des écarts acceptés. Il ne nécessite pas de recréer le Web, déjà présent dans `frontend/`.
+Le prochain jalon reste une validation opérationnelle sur téléphone de l’APK 1.0.59, avec une entreprise, un utilisateur technicien et un utilisateur responsable de test. L’archive du 20 octobre est signée, versionCode 42, et inclut le code Mobile courant; elle n’a pas encore été installée/testée sur un appareil physique. La refonte Web est en parallèle dans `frontend/`; elle ne nécessite pas de recréer le Web existant.
 
 ## Périmètre inclus
 
@@ -1137,4 +1137,4 @@ Validation après ajout : `npm run test:mobile-regression` (**32/32**), TypeScri
 
 ## Revalidation de la suite Mobile — 20 octobre 2026
 
-La commande `npm run test:mobile-regression` réussit (**33/33**) et `npm run test:onboarding` réussit (**5/5**), y compris les gardes NFC iOS et la reprise de session. Il s’agit de tests automatisés locaux; ils ne remplacent pas la vérification visuelle sur appareil Android/iOS, la lecture NFC physique, ni un essai contre le serveur de recette.
+La commande `npm run test:mobile-regression` réussit (**34/34**) et `npm run test:onboarding` réussit (**5/5**), y compris les gardes NFC iOS et la reprise de session. TypeScript Mobile passe. L’APK 1.0.59 a été reconstruit le 20 octobre sans incrément (versionCode 42), signature v2 vérifiée; SHA-256 `0e526f95195a49fd18212b3d5a6f88e04e03af5c7ef8c6426a8087ec322632bb`. Il s’agit de tests automatisés locaux et d’une validation d’archive; ils ne remplacent pas l’installation visuelle sur Android/iOS, la lecture NFC physique, ni un essai contre le serveur de recette.
