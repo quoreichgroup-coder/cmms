@@ -4,6 +4,7 @@
 
 - Le run GitHub Actions `39361040016` a validé le build et le smoke test de la pile API + frontend + Nginx; l’API répond à `/health-check` et la page frontend est servie.
 - Le run n’a pas publié les images : les tests backend ont exposé une configuration Liquibase manquante dans `api/src/test/resources/application.yml`, corrigée vers le changelog existant `classpath:/db/master.xml`. Les 9 erreurs locales restantes sont uniquement les tests Testcontainers sans daemon Docker accessible; le runner GitHub doit confirmer la suite après correction.
+- Le run GitHub a ensuite exposé que le job test héritait de `vars.SPRING_PROFILES_ACTIVE`, vide dans ce run, ce qui empêchait l’activation du profil `test` et de sa clé JWT valide. Le job utilise maintenant explicitement `SPRING_PROFILES_ACTIVE=test`, avec assertion de non-régression.
 - Le workflow utilise désormais `pipefail` et bloque le déploiement si le smoke test n’a pas réussi. Les identifiants Docker Hub manquants restent le blocage de publication; aucun déploiement VPS n’a eu lieu.
 - La suite de vérification des workflows frontend couvre l’injection de `HOME_URL` dans le smoke test, son nettoyage dans la configuration navigateur et le fallback vers `window.location.origin`.
 

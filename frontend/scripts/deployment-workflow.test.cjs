@@ -58,6 +58,11 @@ test('self-host smoke test runs the exact SHA-tagged images without building', (
   );
 });
 
+test('backend CI tests always use the isolated test Spring profile', () => {
+  assert.match(workflow, /SPRING_PROFILES_ACTIVE:\s*test/);
+  assert.doesNotMatch(workflow, /SPRING_PROFILES_ACTIVE:\s*\$\{\{\s*vars\./);
+});
+
 test('VPS deployment requires smoke success and uses Docker Hub image names', () => {
   const deployJob = workflow.split('  deploy-vps:')[1];
   assert.ok(deployJob, 'deploy-vps job must exist');

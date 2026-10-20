@@ -91,7 +91,8 @@ jobs:
       group: backend-test-${{ github.ref }}
       cancel-in-progress: true
     env:
-      SPRING_PROFILES_ACTIVE: ${{ vars.SPRING_PROFILES_ACTIVE }}
+      # Tests must always use isolated test configuration, never a deployment variable.
+      SPRING_PROFILES_ACTIVE: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
