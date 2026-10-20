@@ -222,3 +222,9 @@ Dans `api/src/main/java/com/grash/controller/ApiKeyController.java:77-88`, `dele
 - Le statut SEC-WEB-01 est corroboré par les tests du service API Key **5/5** exécutés dans une copie temporaire du backend; cette exécution n’a pas ciblé une base PostgreSQL réelle. SEC-WEB-03 conserve ses tests locaux de fallback logout, mais la recette de navigateur avec stockage bloqué reste à faire.
 - Un balayage des sources `frontend/src` pour `dangerouslySetInnerHTML`, `innerHTML`, `document.write`, `insertAdjacentHTML` et `DOMParser` n’a trouvé aucune occurrence. Cela ne constitue pas une preuve d’absence de XSS; les JWT restent lisibles dans `localStorage` et SEC-WEB-02 reste ouvert.
 - Aucun parcours Chromium authentifié ni vérification des en-têtes CSP/HSTS derrière le proxy n’a été exécuté dans cette session. SEC-WEB-04/05 et les scénarios de rôles/tenant restent à valider dans un environnement de recette.
+
+### Rebalayage des surfaces XSS côté Web — 20 octobre 2026
+
+- Nouveau balayage de `frontend/`, hors `node_modules` et `build/`, pour `dangerouslySetInnerHTML`, affectation à `innerHTML`, `document.write`, `javascript:` et parsers HTML : aucune occurrence dans le code applicatif. Les chaînes `javascript:` restantes se trouvent uniquement dans les tests de rejet de `safe-window`.
+- `print-qr-security.test.cjs`, `safe-window.test.cjs` et `csp-policy.test.cjs` passent (**3/3**). Les sorties QR impriment toujours les valeurs comme texte/DOM construit; les destinations de fenêtre rejettent les protocoles non HTTP(S).
+- Ce contrôle réduit les surfaces DOM XSS directement repérables; il ne prouve pas l’absence de XSS via dépendances, injection CSS, URL dangereuses ou HTML externe. SEC-WEB-02 reste ouvert (JWT lisibles dans `localStorage`), SEC-WEB-04 demande de valider la CSP réellement servie, et SEC-WEB-05 nécessite les scénarios d’autorisation par rôle/société. Aucun test Chromium authentifié ni audit dynamique n’a été possible.
