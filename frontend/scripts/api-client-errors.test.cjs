@@ -65,7 +65,10 @@ test('preserves a structured backend error and its HTTP status', async () => {
         success: false,
         message: 'Analytics query failed'
       });
-      assert.equal(api.getErrorMessage(error), 'Analytics query failed');
+      assert.equal(
+        api.getErrorMessage(error),
+        'Le serveur a rencontré une erreur (HTTP 500).'
+      );
       return true;
     }
   );

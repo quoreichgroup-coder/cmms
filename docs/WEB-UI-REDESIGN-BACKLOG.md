@@ -910,3 +910,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le même libellé français codé en dur apparaissait dans 40 chemins de chargement des rapports OT, équipements, pièces, demandes et utilisateurs. Ils utilisent maintenant le helper API partagé, donc affichent le refus selon la langue Web choisie.
 - La suite de rapports injecte une traduction anglaise simulée dans tous les thunks et vérifie qu’elle remonte dans leur état d’erreur. Tests ciblés (**2/2**), suite Web complète, TypeScript, ESLint ciblé, Prettier ciblé, `git diff --check` et build CRA optimisé (`Compiled successfully`) passent. Recette visuelle/authentifiée reste ouverte.
+
+### SEC-WEB — réponses serveur 5xx sans détails internes — 20 octobre 2026
+
+- Le helper d’erreur API renvoie maintenant un message générique localisé dès qu’une réponse HTTP est en 5xx, sans exposer le corps d’exception Spring/Hibernate à l’interface. Les messages de validation HTTP 4xx restent disponibles pour les formulaires; le corps reçu demeure accessible au traitement interne.
+- Régression couvrant les réponses serveur contenant des détails d’exception. Suite Web complète, TypeScript, ESLint ciblé et build CRA de production (`Compiled successfully`) passent. Chromium authentifié et vérification sur API distante restent à faire.

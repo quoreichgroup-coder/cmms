@@ -1643,6 +1643,8 @@ const frJSON = {
   toggle_menu: 'Commuter le menu',
   no_results: 'Aucun résultat trouvé',
   an_error_occured: "Une erreur s'est produite.",
+  api_server_error:
+    'Le serveur a rencontré une erreur. Réessayez plus tard.',
   user_settings_load_error:
     'Impossible de charger vos préférences de notification. Vérifiez votre connexion et réessayez.',
   profile_image_permission_denied:

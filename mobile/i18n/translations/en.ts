@@ -1477,6 +1477,7 @@ const locale = {
   toggle_menu: 'Toggle Menu',
   no_results: 'No results found',
   an_error_occured: 'An error occurred.',
+  api_server_error: 'The server encountered an error. Please try again later.',
   user_settings_load_error:
     'Could not load your notification preferences. Check your connection and retry.',
   profile_image_permission_denied:

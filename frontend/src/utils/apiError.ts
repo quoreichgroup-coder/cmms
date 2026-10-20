@@ -58,6 +58,11 @@ export function getApiErrorMessage(
   defaultMessage = 'Une erreur est survenue.'
 ): string {
   const apiError: ApiError = typeof error === 'string' ? { message: error } : error || {};
+  // Server errors can include exception details, SQL fragments or internal
+  // identifiers. Keep those in protected logs rather than user-facing UI.
+  if (typeof apiError.status === 'number' && apiError.status >= 500) {
+    return statusMessage(apiError.status) || defaultMessage;
+  }
   const bodyMessage = meaningfulMessage(apiError.responseBody);
   const errorMessage = meaningfulMessage(apiError.message);
   // `Error.message` often contains the serialized response. Do not display an

@@ -32,6 +32,23 @@ test('uses a useful message from a structured API error', () => {
   );
 });
 
+test('does not show server exception details from HTTP 5xx responses', () => {
+  assert.equal(
+    getApiErrorMessage({
+      status: 500,
+      responseBody: { message: 'SQL exception at db.internal:5432' }
+    }),
+    'Le serveur a rencontré une erreur (HTTP 500).'
+  );
+  assert.equal(
+    loadErrorHelper('en')({
+      status: 503,
+      responseBody: { message: 'secret tenant identifier' }
+    }),
+    'The server is temporarily unavailable (HTTP 503).'
+  );
+});
+
 test('handles empty, null and non-JSON response bodies with status context', () => {
   assert.equal(getApiErrorMessage({ message: 'null', status: 403 }), 'Accès refusé (HTTP 403).');
   assert.equal(getApiErrorMessage({ status: 502, responseBody: '<html>gateway</html>' }), 'Le serveur est temporairement indisponible (HTTP 502).');

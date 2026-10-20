@@ -2930,6 +2930,32 @@ test('HTTP errors reach the global UI error handler', async () => {
   assert.equal(message, 'Access denied');
   cleanup();
 });
+test('server 5xx feedback hides backend exception details in French and English', async () => {
+  const runtime = mobileRuntime({
+    fetch: async () =>
+      response(500, { message: 'SQL exception for tenant private-name' })
+  });
+  const module = runtime.load('utils/api.ts');
+  const i18n = runtime.load('i18n/i18n.ts').default;
+
+  await i18n.changeLanguage('fr');
+  await assert.rejects(module.default.get('work-orders'), (error) => {
+    assert.equal(
+      module.getErrorMessage(error),
+      'Le serveur a rencontré une erreur. Réessayez plus tard.'
+    );
+    return true;
+  });
+
+  await i18n.changeLanguage('en');
+  await assert.rejects(module.default.get('work-orders'), (error) => {
+    assert.equal(
+      module.getErrorMessage(error),
+      'The server encountered an error. Please try again later.'
+    );
+    return true;
+  });
+});
 test('work-order list keeps the newest search when responses arrive out of order', async () => {
   const pending = [];
   const runtime = mobileRuntime({

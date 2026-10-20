@@ -388,3 +388,8 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 - `npx expo export --platform ios` réussit depuis le dépôt courant et bundle **2 221 modules** en `mobile/dist`. Cela confirme le bundling JavaScript/Metro de la version présente après les changements Web; ce n’est ni une compilation Xcode ni un IPA installable.
 - La suite Mobile reste **34/34**, onboarding **5/5**, TypeScript passe. Un build macOS et la signature Apple restent nécessaires pour produire/tester un IPA; essai sur iPhone toujours ouvert.
+
+### SEC-MOBILE — réponses serveur 5xx sans détails internes — 20 octobre 2026
+
+- Le helper API mobile affiche désormais un message générique localisé FR/EN pour les réponses 5xx au lieu du texte d’exception serveur. Les erreurs de validation 4xx gardent leur traitement existant; aucun endpoint ni contrat API n’a changé.
+- La régression Mobile, les **34/34** tests de régression, les **5/5** tests Jest d’onboarding et le typecheck passent. `npx expo export --platform ios` bundle **2 221 modules** avec succès; il s’agit du bundle JavaScript, pas d’une compilation Xcode/IPA. Recette sur appareil et API distante restent à faire.

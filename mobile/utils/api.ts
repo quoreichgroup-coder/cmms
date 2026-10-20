@@ -250,6 +250,10 @@ export const getErrorMessage = (
   if (error?.code === 'REQUEST_TIMEOUT') {
     return i18n.t('request_timeout', { defaultValue: defaultMessage });
   }
+  const status = Number(error?.status ?? error?.response?.status);
+  if (status >= 500) {
+    return i18n.t('api_server_error', { defaultValue: defaultMessage });
+  }
   try {
     const parsed = JSON.parse(error.message);
     return parsed?.message ?? error.message ?? defaultMessage;
