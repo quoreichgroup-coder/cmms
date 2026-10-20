@@ -41,6 +41,7 @@ const loadMediaPermissions = (alerts, camera) => {
             shouldRequestPhotoLibraryPermission: () => true
           };
         }
+        if (id === './safeErrorLog') return { logSafeError: () => {} };
         throw new Error(`Unexpected module: ${id}`);
       }
     },

@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   ActivityIndicator,
   FlatList,
@@ -211,7 +212,7 @@ export default function AssetsScreen({
         getAssets({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
     } catch (error) {
-      console.warn('Could not load assets:', error);
+      logSafeError('Could not load assets:', error);
       setListLoadError(true);
     } finally {
       setHasLoadedList(true);
@@ -233,7 +234,7 @@ export default function AssetsScreen({
       try {
         await dispatch(getMoreAssets(criteria, currentPageNum + 1));
       } catch (error) {
-        console.warn('Could not load more assets:', error);
+        logSafeError('Could not load more assets:', error);
         setLoadMoreError(true);
       } finally {
         listPageRequestInProgress.current = false;
@@ -257,7 +258,7 @@ export default function AssetsScreen({
           )
         );
       } catch (error) {
-        console.warn('Could not load asset hierarchy:', error);
+        logSafeError('Could not load asset hierarchy:', error);
         if (pageNum === 0) setHierarchyLoadError(true);
         else setLoadMoreError(true);
       } finally {

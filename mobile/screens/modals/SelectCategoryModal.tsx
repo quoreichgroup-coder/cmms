@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   FlatList,
   Pressable,
@@ -128,7 +129,7 @@ export default function SelectCategoriesModal({
       setCreateError(false);
       setShowCreateInput(false);
     } catch (err) {
-      console.error('Error creating category:', err);
+      logSafeError('Error creating category:', err);
       setCreateError(true);
     } finally {
       setIsCreating(false);

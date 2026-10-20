@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../store';
@@ -51,7 +52,7 @@ export const getInstanceConfig = (): AppThunk => async (dispatch) => {
       slice.actions.setInstanceConfig({ ldapEnabled: response.ldapEnabled })
     );
   } catch (error) {
-    console.error('Failed to fetch instance config:', error);
+    logSafeError('Failed to fetch instance config:', error);
   } finally {
     dispatch(slice.actions.setLoading({ loading: false }));
   }

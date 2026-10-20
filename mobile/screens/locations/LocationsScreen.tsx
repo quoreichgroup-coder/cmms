@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   Pressable,
   FlatList,
@@ -101,7 +102,7 @@ export default function LocationsScreen({
         })
       );
     } catch (error) {
-      console.warn('Could not load locations:', error);
+      logSafeError('Could not load locations:', error);
       if (activeListLoadId.current === requestId) setListLoadError(true);
     } finally {
       if (activeListLoadId.current === requestId) setHasLoadedList(true);
@@ -138,7 +139,7 @@ export default function LocationsScreen({
           0
         )
       ).catch((error) => {
-        console.warn('Could not refresh location hierarchy:', error);
+        logSafeError('Could not refresh location hierarchy:', error);
       });
     }
   };
@@ -159,7 +160,7 @@ export default function LocationsScreen({
     dispatch(getMoreLocations(criteria, currentPageNum + 1))
       .catch((error) => {
         if (activeListLoadId.current === requestId) setLoadMoreError(true);
-        console.warn('Could not load more locations:', error);
+        logSafeError('Could not load more locations:', error);
       })
       .finally(() => {
         listPageRequestInProgress.current = false;

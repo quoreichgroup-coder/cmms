@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import { useState, useEffect } from 'react';
 import useAuth from './useAuth';
 import api from '../utils/api';
@@ -26,7 +27,7 @@ export function useReviewPrompt() {
       await StoreReview.requestReview();
       await api.post('reviews/rated', {});
     } catch (e) {
-      console.error('Failed to process review response', e);
+      logSafeError('Failed to process review response', e);
     }
   };
 

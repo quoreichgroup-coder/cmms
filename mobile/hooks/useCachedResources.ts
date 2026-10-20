@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Font from 'expo-font';
 import { useEffect, useState } from 'react';
@@ -16,7 +17,7 @@ export default function useCachedResources() {
         });
       } catch (e) {
         // We might want to provide this error information to an error reporting service
-        console.warn(e);
+        logSafeError('Mobile operation failed', e);
       } finally {
         setLoadingComplete(true);
       }

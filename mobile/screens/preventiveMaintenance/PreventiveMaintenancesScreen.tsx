@@ -76,7 +76,7 @@ export default function PreventiveMaintenancesScreen({
         setPage(result.number);
         setLastPage(result.last);
       } catch (loadError) {
-        console.warn('Could not load preventive maintenances:', loadError);
+        logSafeError('Could not load preventive maintenances:', loadError);
         if (!isCurrentRequest(requestId, pageRequestSequence)) return;
         setError(true);
         setFailedRequest({ pageNum, append });
@@ -329,3 +329,4 @@ const styles = StyleSheet.create({
   },
   footer: { padding: 16 }
 });
+import { logSafeError } from '../../utils/safeErrorLog';

@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 /**
  * If you are not familiar with React Navigation, refer to the "Fundamentals" guide:
  * https://reactnavigation.org/docs/getting-started
@@ -164,7 +165,7 @@ export default function Navigation() {
     if (destination) navigate(destination.route, destination.params);
 
     Notifications.clearLastNotificationResponseAsync().catch((error) =>
-      console.warn('Could not clear handled notification response:', error)
+      logSafeError('Could not clear handled notification response:', error)
     );
   }, [
     isAuthenticated,
@@ -226,7 +227,7 @@ function RootNavigator() {
     if (attemptedSettingsForUser.current === user.userSettingsId) return;
     attemptedSettingsForUser.current = user.userSettingsId;
     void fetchUserSettings().catch((error) => {
-      console.warn(
+      logSafeError(
         'Could not load user settings before mobile startup:',
         error
       );

@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import Comment, { CommentPostDTO, CommentPatchDTO } from '../models/comment';
@@ -212,7 +213,7 @@ export const getCommentsCountByWorkOrder =
       const count = parseInt(response.message, 10);
       dispatch(slice.actions.setCommentsCount({ workOrderId, count }));
     } catch (error) {
-      console.error('Failed to fetch comments count:', error);
+      logSafeError('Failed to fetch comments count:', error);
     }
   };
 

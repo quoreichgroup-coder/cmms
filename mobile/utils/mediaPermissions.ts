@@ -1,3 +1,4 @@
+import { logSafeError } from './safeErrorLog';
 import { Alert, Linking, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'expo-camera';
@@ -64,7 +65,7 @@ export const ensurePermission = async ({
 
     return false;
   } catch (error) {
-    console.error(`Unable to request ${permissionName} permission`, error);
+    logSafeError('Mobile operation failed', error);
     if (presentAlerts) {
       Alert.alert(
         i18n.t('error'),

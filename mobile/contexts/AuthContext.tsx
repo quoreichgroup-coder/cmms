@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import {
   createContext,
   FC,
@@ -799,7 +800,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
     });
     if (Constants.expoConfig?.extra?.eas?.projectId) {
       checkPushNotificationState().catch((error) =>
-        console.warn('Notifications indisponibles:', error.message)
+        logSafeError('Notifications indisponibles:', error.message)
       );
     }
     await globalDispatch(getLicenseValidity()).catch(() => {
@@ -830,7 +831,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
           dispatch({ type: 'REVIEW_ELIGIBLE', payload: eligible })
         );
     } catch (e) {
-      console.error('Review eligibility check failed', e);
+      logSafeError('Review eligibility check failed', e);
     }
   };
   const getInfos = async (): Promise<void> => {
@@ -890,7 +891,7 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
         }
       }
     } catch (err) {
-      console.error(err);
+      logSafeError('Mobile operation failed', err);
       try {
         const hasStoredCredentials = Boolean(
           (await AsyncStorage.getItem('accessToken')) ||

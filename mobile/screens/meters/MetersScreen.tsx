@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   ActivityIndicator,
   FlatList,
@@ -82,7 +83,7 @@ export default function MetersScreen({
         getMeters({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
     } catch (error) {
-      console.warn('Could not load meters:', error);
+      logSafeError('Could not load meters:', error);
       setLoadError(true);
     } finally {
       setHasLoadedList(true);
@@ -115,7 +116,7 @@ export default function MetersScreen({
     try {
       await dispatch(getMoreMeters(criteria, currentPageNum + 1));
     } catch (error) {
-      console.warn('Could not load more meters:', error);
+      logSafeError('Could not load more meters:', error);
       setLoadMoreError(true);
     } finally {
       nextPageRequestInProgress.current = false;

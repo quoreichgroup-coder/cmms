@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   Image,
   Linking,
@@ -303,7 +304,7 @@ export default function RequestDetails({
           ? value.toString()
           : `https://${value}`;
         Linking.openURL(href).catch((err) =>
-          console.error('Failed to open link:', err)
+          logSafeError('Failed to open link:', err)
         );
       }
     };

@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import { StyleSheet } from 'react-native';
 import { View } from './Themed';
 import { Divider, Text, TouchableRipple, useTheme } from 'react-native-paper';
@@ -23,7 +24,7 @@ export default function BasicField({
         ? value.toString()
         : `https://${value}`;
       Linking.openURL(href).catch((err) =>
-        console.error('Failed to open link:', err)
+        logSafeError('Failed to open link:', err)
       );
     }
   };

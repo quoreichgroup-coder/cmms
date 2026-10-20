@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   ActivityIndicator,
   FlatList,
@@ -76,7 +77,7 @@ export default function Teams({
         getTeams({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
     } catch (error) {
-      console.warn('Could not load teams:', error);
+      logSafeError('Could not load teams:', error);
       if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
       if (activeListLoadId.current === requestId) setHasLoadedList(true);
@@ -115,7 +116,7 @@ export default function Teams({
       try {
         await dispatch(getMoreTeams(criteria, currentPageNum + 1));
       } catch (error) {
-        console.warn('Could not load more teams:', error);
+        logSafeError('Could not load more teams:', error);
         if (activeListLoadId.current === listRequestId) setLoadMoreError(true);
       } finally {
         loadingMoreRef.current = false;

@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   ActivityIndicator,
   Linking,
@@ -79,7 +80,7 @@ export default function People({
         getUsers({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
     } catch (error) {
-      console.warn('Could not load people:', error);
+      logSafeError('Could not load people:', error);
       if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
       if (activeListLoadId.current === requestId) setHasLoadedList(true);
@@ -118,7 +119,7 @@ export default function People({
       try {
         await dispatch(getMoreUsers(criteria, currentPageNum + 1));
       } catch (error) {
-        console.warn('Could not load more people:', error);
+        logSafeError('Could not load more people:', error);
         if (activeListLoadId.current === listRequestId) setLoadMoreError(true);
       } finally {
         loadingMoreRef.current = false;

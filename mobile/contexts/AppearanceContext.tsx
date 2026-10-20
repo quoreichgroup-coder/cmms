@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -51,7 +52,7 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
         if (mounted) setPreferenceState(parseAppearancePreference(stored));
       })
       .catch((error) => {
-        console.warn('Could not load QPM appearance preference:', error);
+        logSafeError('Could not load QPM appearance preference:', error);
       })
       .finally(() => {
         if (mounted) setIsReady(true);
@@ -74,7 +75,7 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
             : AsyncStorage.setItem(STORAGE_KEY, nextPreference)
         );
       } catch (error) {
-        console.warn('Could not save QPM appearance preference:', error);
+        logSafeError('Could not save QPM appearance preference:', error);
         throw error;
       }
     },

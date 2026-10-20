@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import {
   Alert,
   ActivityIndicator,
@@ -1063,7 +1064,7 @@ export default function WODetailsScreen({
           ? value.toString()
           : `https://${value}`;
         Linking.openURL(href).catch((err) =>
-          console.error('Failed to open link:', err)
+          logSafeError('Failed to open link:', err)
         );
       }
     };

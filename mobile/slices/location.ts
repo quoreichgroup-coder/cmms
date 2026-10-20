@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { AppThunk } from '../store';
@@ -402,7 +403,7 @@ export const getLocationChildren =
         })
       );
     } catch (e) {
-      console.error(e);
+      logSafeError('Mobile operation failed', e);
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }

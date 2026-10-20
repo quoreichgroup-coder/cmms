@@ -25,7 +25,7 @@ export default function PartAssets({
     try {
       await dispatch(getAssetsByPart(part.id));
     } catch (loadError) {
-      console.warn('Could not load equipment linked to part:', loadError);
+      logSafeError('Could not load equipment linked to part:', loadError);
       setError(true);
     } finally {
       setLoading(false);
@@ -47,3 +47,4 @@ export default function PartAssets({
     />
   );
 }
+import { logSafeError } from '../../../utils/safeErrorLog';

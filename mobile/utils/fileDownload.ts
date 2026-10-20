@@ -1,3 +1,4 @@
+import { logSafeError } from './safeErrorLog';
 import * as FileSystem from 'expo-file-system';
 import { Linking } from 'react-native';
 
@@ -17,7 +18,7 @@ export const downloadFile = async (
     try {
       await Linking.openURL(res.uri);
     } catch (error) {
-      console.error(
+      logSafeError(
         'Failed to open local file, falling back to remote URL',
         error
       );

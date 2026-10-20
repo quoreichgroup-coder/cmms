@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import { Alert, AppState, Platform, StyleSheet } from 'react-native';
 import { View } from '../../components/Themed';
 import * as React from 'react';
@@ -97,7 +98,7 @@ export default function SelectNfcModal({
           ]);
         }
       } catch (error) {
-        console.warn('NFC Error:', error);
+        logSafeError('NFC Error:', error);
         if (!isCurrent()) return;
         isTerminal = true;
         Alert.alert(t('error'), t('an_error_occured'), [

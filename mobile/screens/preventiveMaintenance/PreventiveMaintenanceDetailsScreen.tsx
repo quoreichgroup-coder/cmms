@@ -1,3 +1,4 @@
+import { logSafeError } from '../../utils/safeErrorLog';
 import React, {
   useCallback,
   useContext,
@@ -85,7 +86,7 @@ export default function PreventiveMaintenanceDetailsScreen({
         await api.get<PreventiveMaintenance>(`preventive-maintenances/${id}`)
       );
     } catch (error) {
-      console.warn('Could not load preventive maintenance details:', error);
+      logSafeError('Could not load preventive maintenance details:', error);
       setPmError(true);
     } finally {
       setPmLoading(false);
@@ -116,7 +117,7 @@ export default function PreventiveMaintenanceDetailsScreen({
         setCallPage(result.number);
         setLastCallPage(result.last);
       } catch (error) {
-        console.warn('Could not load preventive maintenance calls:', error);
+        logSafeError('Could not load preventive maintenance calls:', error);
         setCallsError(true);
         setFailedCallRequest({ pageNum, append });
       } finally {
@@ -152,7 +153,7 @@ export default function PreventiveMaintenanceDetailsScreen({
         setWorkOrderPage(result.number);
         setLastWorkOrderPage(result.last);
       } catch (error) {
-        console.warn(
+        logSafeError(
           'Could not load preventive maintenance work orders:',
           error
         );

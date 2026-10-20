@@ -25,7 +25,7 @@ export default function LocationAssets({
     try {
       await dispatch(getAssetsByLocation(location.id));
     } catch (loadError) {
-      console.warn('Could not load equipment linked to location:', loadError);
+      logSafeError('Could not load equipment linked to location:', loadError);
       setError(true);
     } finally {
       setLoading(false);
@@ -47,3 +47,4 @@ export default function LocationAssets({
     />
   );
 }
+import { logSafeError } from '../../../utils/safeErrorLog';

@@ -1,3 +1,4 @@
+import { logSafeError } from '../utils/safeErrorLog';
 import { View } from './Themed';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -99,7 +100,7 @@ export default function FileUpload({
       if (!result || result.canceled) return;
       await onImagePicked(result);
     } catch (error) {
-      console.error('Error picking image:', error);
+      logSafeError('Error picking image:', error);
       const message = error instanceof Error ? error.message : '';
       if (
         message !== t('file_size_unknown') &&
@@ -191,7 +192,7 @@ export default function FileUpload({
         'file'
       );
     } catch (error) {
-      console.error('Error picking document:', error);
+      logSafeError('Error picking document:', error);
       const message = error instanceof Error ? error.message : '';
       if (
         message !== t('file_size_unknown') &&
