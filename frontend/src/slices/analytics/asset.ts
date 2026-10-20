@@ -202,10 +202,7 @@ export const getWOTimeCostByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'completeTimeCostByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -236,10 +233,7 @@ export const getAssetOverview =
       dispatch(
         slice.actions.setError({
           operation: 'overview',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -270,10 +264,7 @@ export const getAssetDetailsOverview =
       dispatch(
         slice.actions.setError({
           operation: 'assetDetailsOverview',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -304,10 +295,7 @@ export const getAssetsCosts =
       dispatch(
         slice.actions.setError({
           operation: 'assetsCosts',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -337,10 +325,7 @@ export const getMeantimes =
       dispatch(
         slice.actions.setError({
           operation: 'meantimes',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -371,10 +356,7 @@ export const getDowntimesByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'downtimesByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -405,10 +387,7 @@ export const getMTBFByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'mtbfByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -439,10 +418,7 @@ export const getDowntimesAndCostsByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'downtimesAndCostsByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -473,10 +449,7 @@ export const getDowntimesByDate =
       dispatch(
         slice.actions.setError({
           operation: 'downtimesByDate',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -507,10 +480,7 @@ export const getDowntimesMeantimeByDate =
       dispatch(
         slice.actions.setError({
           operation: 'downtimesMeantimeByDate',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -541,10 +511,7 @@ export const getRepairTimeByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'repairTimeByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {

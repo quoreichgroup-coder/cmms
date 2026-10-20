@@ -81,10 +81,7 @@ export const getUserWorkOrdersOverview = (): AppThunk => async (dispatch) => {
     dispatch(
       slice.actions.setError({
         operation: 'workOrdersOverview',
-        message:
-          error?.status === 403
-            ? 'Accès refusé à ce rapport.'
-            : getErrorMessage(error)
+        message: getErrorMessage(error)
       })
     );
   } finally {
@@ -115,10 +112,7 @@ export const getTwoWeeksWorkOrders =
       dispatch(
         slice.actions.setError({
           operation: 'twoWeeksWorkOrders',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {

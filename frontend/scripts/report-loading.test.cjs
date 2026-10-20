@@ -4,13 +4,13 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
 const redux = require('@reduxjs/toolkit');
-function load(file, api) {
+function load(file, api, getErrorMessage = e => e.message) {
   const exports = {};
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true }
   }).outputText;
   vm.runInNewContext(source, { exports, require(id) {
-    if (id.endsWith('/api')) return { __esModule: true, default: api, getErrorMessage: e => e.message };
+    if (id.endsWith('/api')) return { __esModule: true, default: api, getErrorMessage };
     if (id.endsWith('/redux')) return { revertAll: redux.createAction('REVERT_ALL') };
     return require(id);
   }});
@@ -19,7 +19,11 @@ function load(file, api) {
 for (const category of ['workOrder', 'asset', 'part', 'request', 'user']) {
   test(category + ': every report stops loading after an API error', async () => {
     const api = { get: async () => { throw Object.assign(new Error('Denied'), { status: 403 }); }, post: async () => { throw Object.assign(new Error('Denied'), { status: 403 }); } };
-    const module = load('src/slices/analytics/' + category + '.ts', api);
+    const module = load(
+      'src/slices/analytics/' + category + '.ts',
+      api,
+      error => error.status === 403 ? 'Access denied (HTTP 403).' : error.message
+    );
     const thunks = Object.entries(module).filter(([name, value]) => name.startsWith('get') && typeof value === 'function');
     assert.ok(thunks.length > 0);
     for (const [name, thunk] of thunks) {
@@ -27,6 +31,7 @@ for (const category of ['workOrder', 'asset', 'part', 'request', 'user']) {
       try { await store.dispatch(thunk(new Date('2026-10-01'), new Date('2026-10-03'), 1)); } catch { }
       assert.ok(Object.values(store.getState().loading).every(value => value === false), name + ' left a loader active');
       assert.ok(Object.keys(store.getState().errors).length > 0, name + ' must expose the failure');
+      assert.ok(Object.values(store.getState().errors).includes('Access denied (HTTP 403).'), name + ' must use the localized API error');
     }
   });
 }

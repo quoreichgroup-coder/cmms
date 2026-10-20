@@ -905,3 +905,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - L’échec HTTP 403 du calendrier OT utilisait une chaîne française codée en dur, même lorsque la langue Web est l’anglais. Le thunk passe maintenant systématiquement par le helper d’erreur API partagé, qui choisit le message selon la langue active.
 - Le test de régression simule explicitement le message anglais et confirme que l’erreur arrête le chargement; la récupération après succès reste vérifiée. Tests ciblés (**2/2**), suite Web complète et ESLint ciblé passent. Recette visuelle authentifiée toujours ouverte.
+
+### UX-12 — erreurs 403 des rapports analytiques localisées — 20 octobre 2026
+
+- Le même libellé français codé en dur apparaissait dans 40 chemins de chargement des rapports OT, équipements, pièces, demandes et utilisateurs. Ils utilisent maintenant le helper API partagé, donc affichent le refus selon la langue Web choisie.
+- La suite de rapports injecte une traduction anglaise simulée dans tous les thunks et vérifie qu’elle remonte dans leur état d’erreur. Tests ciblés (**2/2**), suite Web complète, TypeScript, ESLint ciblé, Prettier ciblé et `git diff --check` passent. Recette visuelle/authentifiée reste ouverte.

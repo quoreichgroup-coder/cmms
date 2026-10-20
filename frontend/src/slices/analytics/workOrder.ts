@@ -345,10 +345,7 @@ export const getOverviewStats =
         slice.actions.setError({
           operation: 'overview',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -383,10 +380,7 @@ export const getIncompleteStats =
         slice.actions.setError({
           operation: 'incompleteOverview',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -418,10 +412,7 @@ export const getIncompleteByPriority =
       dispatch(
         slice.actions.setError({
           operation: 'incompleteByPriority',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -452,10 +443,7 @@ export const getIncompleteByStatus =
       dispatch(
         slice.actions.setError({
           operation: 'incompleteByStatus',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -489,10 +477,7 @@ export const getWOHours =
         slice.actions.setError({
           operation: 'hours',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -524,10 +509,7 @@ export const getCountsByUser =
       dispatch(
         slice.actions.setError({
           operation: 'completeByPrimaryUser',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -559,10 +541,7 @@ export const getCompleteByCompletedBy =
       dispatch(
         slice.actions.setError({
           operation: 'completeByCompletedBy',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -593,10 +572,7 @@ export const getCompleteByPriority =
       dispatch(
         slice.actions.setError({
           operation: 'completeByPriority',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -627,10 +603,7 @@ export const getCompleteByCategory =
       dispatch(
         slice.actions.setError({
           operation: 'completeByCategory',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -664,10 +637,7 @@ export const getCompleteCosts =
         slice.actions.setError({
           operation: 'completeCosts',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -698,10 +668,7 @@ export const getCompleteByWeek =
       dispatch(
         slice.actions.setError({
           operation: 'completeByWeek',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -731,10 +698,7 @@ export const getCompleteTimesByWeek =
       dispatch(
         slice.actions.setError({
           operation: 'completeTimesByWeek',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -765,10 +729,7 @@ export const getIncompleteByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'incompleteByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -799,10 +760,7 @@ export const getIncompleteByUser =
       dispatch(
         slice.actions.setError({
           operation: 'incompleteByUser',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -836,10 +794,7 @@ export const getCompleteCostsByDate =
         slice.actions.setError({
           operation: 'completeCostsByDate',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -874,10 +829,7 @@ export const getStatusesByDate =
         slice.actions.setError({
           operation: 'statusesByDate',
           requestId,
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {

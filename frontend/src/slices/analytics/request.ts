@@ -132,10 +132,7 @@ export const getRequestOverview =
       dispatch(
         slice.actions.setError({
           operation: 'overview',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -166,10 +163,7 @@ export const getRequestStatsByPriority =
       dispatch(
         slice.actions.setError({
           operation: 'requestStatsByPriority',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -201,10 +195,7 @@ export const getRequestsByDate =
       dispatch(
         slice.actions.setError({
           operation: 'requestsByDate',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -235,10 +226,7 @@ export const getRequestsResolvedByDate =
       dispatch(
         slice.actions.setError({
           operation: 'requestsResolvedByDate',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -270,10 +258,7 @@ export const getRequestsByCategory =
       dispatch(
         slice.actions.setError({
           operation: 'requestsByCategory',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {

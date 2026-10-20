@@ -136,10 +136,7 @@ export const getPartConsumptionOverview =
       dispatch(
         slice.actions.setError({
           operation: 'consumptionsOverview',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -170,10 +167,7 @@ export const getPartConsumptionsByDate =
       dispatch(
         slice.actions.setError({
           operation: 'partConsumptionsByDate',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -205,10 +199,7 @@ export const getPartConsumptionsByAsset =
       dispatch(
         slice.actions.setError({
           operation: 'partConsumptionsByAsset',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -240,10 +231,7 @@ export const getPartConsumptionsByPart =
       dispatch(
         slice.actions.setError({
           operation: 'partConsumptionsByPart',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -275,10 +263,7 @@ export const getPartConsumptionsByPartCategory =
       dispatch(
         slice.actions.setError({
           operation: 'partConsumptionsByCategory',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
@@ -314,10 +299,7 @@ export const getPartConsumptionsByWOCategory =
       dispatch(
         slice.actions.setError({
           operation: 'partConsumptionByWOCategory',
-          message:
-            error?.status === 403
-              ? 'Accès refusé à ce rapport.'
-              : getErrorMessage(error)
+          message: getErrorMessage(error)
         })
       );
     } finally {
