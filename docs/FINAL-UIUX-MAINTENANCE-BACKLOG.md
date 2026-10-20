@@ -398,3 +398,10 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 - Le callback d’échec de montage caméra de `SelectBarcodeModal` écrivait directement le message natif dans `console.error`. Il passe maintenant par `logSafeError`, qui ne conserve que les champs techniques autorisés en développement et n’écrit rien en production; le contenu du code scanné n’était déjà pas journalisé.
 - La régression du scanner vérifie le logger filtré et l’absence d’affichage direct de `event.message`; le fichier de régression et le typecheck Mobile passent. La caméra, les permissions et le rendu doivent encore être testés sur un appareil Android/iOS.
+
+### Audit de rebranding QUOREICH/QPM et captures README — 20 octobre 2026
+
+- L’audit `docs/REBRANDING-AUDIT.md` confirme qu’un rebranding progressif des éléments visibles est possible sans modifier les contrats API. Les noms affichés Web/PWA et mobile sont déjà largement QPM/QUOREICH; restent notamment des textes, domaines, contacts, templates backend et métadonnées Atlas à trier avec leurs propriétaires.
+- À préserver pendant une mise à jour visuelle : identifiants Android/iOS, schémas et liens profonds historiques, signatures, projets EAS, noms de volumes/base, contrats webhook/API et mentions légales amont. Leur changement exigerait une migration coordonnée et pourrait empêcher les applications installées de recevoir une mise à jour.
+- Le README racine contient encore deux captures distantes historiques; `images/mobile/Home.png` est un visuel de référence daté, pas une capture vérifiée de la build actuelle. Aucun appareil Android (`adb`) ni émulateur n’est disponible et Chromium Snap ne démarre pas dans ce runner; ces images restent donc inchangées jusqu’à une capture authentique sur appareil ou émulateur.
+- Revalidation de la suite Mobile dans cette session : régression **34/34**, onboarding **5/5**, TypeScript passe. Cela ne remplace pas les captures natives, le test caméra/NFC ni la recette visuelle sur appareil.
