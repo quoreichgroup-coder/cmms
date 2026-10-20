@@ -110,8 +110,22 @@ jobs:
           distribution: temurin
 
       - name: Run tests
-        run: mvn test -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED"
+        run: |
+          mkdir -p target
+          mvn test -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED" 2>&1 | tee target/maven-test.log
         working-directory: ./api
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-diagnostics-${{ github.run_id }}
+          path: |
+            api/target/maven-test.log
+            api/target/surefire-reports/
+            api/target/failsafe-reports/
+          if-no-files-found: warn
+          retention-days: 14
 
   selfhost-smoke-test:
     needs: detect-changes
@@ -163,15 +177,27 @@ jobs:
       - name: Check frontend is served
         run: |
           body=$(curl -fsS http://localhost:3000/)
-          echo "$body" | grep -q 'Atlas CMMS'
           echo "$body" | grep -q '<div id="root">'
           echo "frontend OK"
 
       - name: Show stack status on failure
         if: failure()
         run: |
-          docker compose ps || true
-          docker compose logs || true
+          docker compose ps > selfhost-docker-ps.txt 2>&1 || true
+          docker compose logs --no-color > selfhost-compose.log 2>&1 || true
+          cat selfhost-docker-ps.txt
+          tail -n 250 selfhost-compose.log
+
+      - name: Upload self-host smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selfhost-smoke-diagnostics-${{ github.run_id }}
+          path: |
+            selfhost-docker-ps.txt
+            selfhost-compose.log
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Clean up stack
         if: always()

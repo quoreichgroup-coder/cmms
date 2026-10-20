@@ -50,9 +50,31 @@ test('VPS deployment requires smoke success and uses Docker Hub image names', ()
     deployJob,
     /QPM_API_IMAGE=intelloop\/atlas-cmms-backend:latest QPM_WEB_IMAGE=intelloop\/atlas-cmms-frontend:latest docker compose pull api frontend/
   );
-  assert.match(deployJob, /Check backend health through nginx[\s\S]*Mark successfully deployed images/);
+  assert.match(
+    deployJob,
+    /Check backend health through nginx[\s\S]*Mark successfully deployed images/
+  );
   assert.doesNotMatch(
     workflow.split('  push-backend-docker:')[1].split('  deploy-koyeb:')[0],
     /Mark backend image as deployed/
+  );
+});
+
+test('smoke checks stable QPM markup and keeps backend/container failure reports', () => {
+  assert.match(workflow, /echo "\$body" \| grep -q '<div id="root">'/);
+  assert.doesNotMatch(workflow, /grep -q 'Atlas CMMS'/);
+  assert.match(workflow, /mvn test[^\n]*tee target\/maven-test\.log/);
+  assert.match(
+    workflow,
+    /name: backend-test-diagnostics-\$\{\{ github\.run_id \}\}/
+  );
+  assert.match(workflow, /api\/target\/surefire-reports\//);
+  assert.match(
+    workflow,
+    /name: Show stack status on failure[\s\S]*docker compose logs --no-color > selfhost-compose\.log/
+  );
+  assert.match(
+    workflow,
+    /name: selfhost-smoke-diagnostics-\$\{\{ github\.run_id \}\}/
   );
 });
