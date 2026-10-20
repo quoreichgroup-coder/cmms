@@ -359,3 +359,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 - Le détail d'un OT retombait encore sur un message « vérifiez votre connexion » pour toute erreur de chargement, alors que la liste catégorisait déjà les pannes réseau, réponses serveur et refus d'accès. La fiche réutilise désormais le même classement FR/EN et prend en compte les statuts HTTP exposés par Axios dans `response.status`.
 - Aucune erreur interne du serveur n'est affichée, et les appels API, permissions, rechargements et règles de clôture restent inchangés. Test ciblé (**1/1**), suite Mobile complète (**34/34 + 5 tests Jest d'onboarding**), typecheck TypeScript Mobile, Prettier et `git diff --check` passent. ESLint n'a pas été exécuté : aucun binaire local n'était disponible et `npx` a échoué car l'accès à npm est indisponible. La vérification appareil/API réelle reste à faire.
+
+### Rebuild APK après reprise des backlogs — 20 octobre 2026
+
+- Le build initial a échoué en fin de `packageRelease` par manque de mémoire du daemon Gradle. Un rebuild avec heap Gradle temporairement augmentée à 2,6 Go a abouti; le réglage suivi dans le dépôt a ensuite été restauré à sa valeur initiale.
+- `mobile/dist/QPM-1.0.59.apk` est signé et vérifié avec `apksigner` (signature v2); `aapt` confirme `com.atlas.cmms`, version `1.0.59`, `versionCode 42` et `minSdk 24`. Taille : 101 MB. SHA-256 : `080924b1068f209b3f07f2ad52a2820328068f0ee173ace9f15463a51fa368bb`.
+- L’APK inclut le code mobile courant, notamment les messages d’erreur API différenciés dans les listes et le détail WO. Installation, connexion à l’API et recette visuelle sur téléphone ne sont pas encore vérifiées.
