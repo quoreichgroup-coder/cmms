@@ -24,6 +24,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Parameter;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -104,9 +105,12 @@ public class WOAnalyticsController {
         int inProgress =
                 (int) workOrders.stream().filter(workOrder -> workOrder.getStatus().equals(Status.IN_PROGRESS)).count();
         int complete = completeWorkOrders.size();
-        LocalDate todayUtc = LocalDate.now(ZoneId.of("UTC"));
+        String configuredTimeZone = user.getCompany().getCompanySettings()
+                .getGeneralPreferences().getTimeZone();
+        ZoneId companyTimeZone = resolveTimeZone(configuredTimeZone);
+        LocalDate today = LocalDate.now(companyTimeZone);
         int todayWO = (int) workOrders.stream()
-                .filter(workOrder -> isDueWithinUtcDay(workOrder.getDueDate(), todayUtc))
+                .filter(workOrder -> isDueWithinDay(workOrder.getDueDate(), today, companyTimeZone))
                 .count();
         int high = (int) workOrders.stream().filter(workOrder -> workOrder.getPriority().equals(Priority.HIGH)).count();
         return ResponseEntity.ok(MobileWOStats.builder()
@@ -118,12 +122,21 @@ public class WOAnalyticsController {
                 .high(high).build());
     }
 
-    static boolean isDueWithinUtcDay(Date dueDate, LocalDate utcDate) {
+    static boolean isDueWithinDay(Date dueDate, LocalDate date, ZoneId timeZone) {
         if (dueDate == null) return false;
 
-        Date start = Date.from(utcDate.atStartOfDay(ZoneOffset.UTC).toInstant());
-        Date end = Date.from(utcDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        Date start = Date.from(date.atStartOfDay(timeZone).toInstant());
+        Date end = Date.from(date.plusDays(1).atStartOfDay(timeZone).toInstant());
         return !dueDate.before(start) && dueDate.before(end);
+    }
+
+    static ZoneId resolveTimeZone(String configuredTimeZone) {
+        if (configuredTimeZone == null || configuredTimeZone.isBlank()) return ZoneOffset.UTC;
+        try {
+            return ZoneId.of(configuredTimeZone);
+        } catch (DateTimeException exception) {
+            return ZoneOffset.UTC;
+        }
     }
 
     @GetMapping("/mobile/complete-compliant")
