@@ -9,7 +9,9 @@ export function getWorkOrderLoadErrorKey(
   error: unknown
 ): WorkOrderLoadErrorKey {
   const value = error as { status?: number; code?: string; message?: string };
-  const status = Number(value?.status);
+  const response = (value as { response?: { status?: number } } | null)
+    ?.response;
+  const status = Number(value?.status ?? response?.status);
 
   if (status === 401 || status === 403) return 'work_orders_access_error';
   if (status >= 500) return 'work_orders_server_error';

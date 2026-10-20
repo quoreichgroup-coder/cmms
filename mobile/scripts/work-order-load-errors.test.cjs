@@ -22,6 +22,17 @@ test('classifies Work Order API failures without exposing server messages', () =
     'work_orders_server_error'
   );
   assert.equal(
+    getWorkOrderLoadErrorKey({
+      response: { status: 503 },
+      message: 'Internal error'
+    }),
+    'work_orders_server_error'
+  );
+  assert.equal(
+    getWorkOrderLoadErrorKey({ response: { status: 403 } }),
+    'work_orders_access_error'
+  );
+  assert.equal(
     getWorkOrderLoadErrorKey({ code: 'REQUEST_TIMEOUT' }),
     'work_orders_network_error'
   );

@@ -99,6 +99,10 @@ import {
   getWorkOrderCompletionLoadIssues,
   getWorkOrderCompletionNextStep
 } from '../../utils/workOrderCompletion';
+import {
+  getWorkOrderLoadErrorKey,
+  WorkOrderLoadErrorKey
+} from '../../utils/workOrderLoadError';
 import { isWorkOrderTaskExecutionReadOnly } from '../../utils/workOrderTaskAccess';
 
 const getRemainingTasksLength = (tasks: Task[]): number =>
@@ -159,7 +163,8 @@ export default function WODetailsScreen({
   const [lifecycleEventsError, setLifecycleEventsError] = useState(false);
   const statusChangeInProgress = useRef(false);
   const [loadingWorkOrder, setLoadingWorkOrder] = useState(!workOrder);
-  const [workOrderLoadError, setWorkOrderLoadError] = useState(false);
+  const [workOrderLoadError, setWorkOrderLoadError] =
+    useState<WorkOrderLoadErrorKey | null>(null);
   const theme = useAppTheme();
   const triggersConfig = createTriggersConfig(theme.colors.primary);
   const headerHeight = useHeaderHeight();
@@ -302,11 +307,11 @@ export default function WODetailsScreen({
   ];
   const loadWorkOrder = useCallback(async () => {
     setLoadingWorkOrder(true);
-    setWorkOrderLoadError(false);
+    setWorkOrderLoadError(null);
     try {
       await dispatch(getWorkOrderDetails(id));
-    } catch (_error) {
-      setWorkOrderLoadError(true);
+    } catch (error) {
+      setWorkOrderLoadError(getWorkOrderLoadErrorKey(error));
     } finally {
       setLoadingWorkOrder(false);
     }
@@ -1268,7 +1273,7 @@ export default function WODetailsScreen({
               {workOrderLoadError && (
                 <AsyncStateFeedback
                   mode="banner"
-                  message={t('work_order_details_load_error')}
+                  message={t(workOrderLoadError)}
                   onRetry={() => void loadWorkOrder()}
                 />
               )}
@@ -2006,7 +2011,7 @@ export default function WODetailsScreen({
     return (
       <AsyncStateFeedback
         mode="error"
-        message={t('work_order_details_load_error')}
+        message={t(workOrderLoadError ?? 'work_order_details_load_error')}
         onRetry={() => void loadWorkOrder()}
       />
     );
