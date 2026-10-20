@@ -159,12 +159,15 @@ class UserControllerTest extends AbstractControllerTest {
         }
 
         @Test
-        void getMini_requiresRoleClient() throws Exception {
+        void getMini_allowsSuperAdmin() throws Exception {
             setCurrentUser(nonClientUser);
+            nonClientUser.setCompany(company);
             when(userService.whoami(any())).thenReturn(nonClientUser);
+            when(userService.findWorkersByCompany(company.getId())).thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/users/mini"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isOk())
+                    .andExpect(content().json("[]"));
         }
 
         @Test

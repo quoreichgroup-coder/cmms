@@ -20,6 +20,7 @@
         <liquibase.version>5.0.3</liquibase.version>
         <liquibase.propertyFile>src/main/resources/liquibase/liquibase-local.properties</liquibase.propertyFile>
         <testcontainers.version>1.19.3</testcontainers.version>
+        <mockito.version>5.17.0</mockito.version>
         <jjwt-api.version>0.13.0</jjwt-api.version>
     </properties>
     <dependencies>
@@ -83,6 +84,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -308,7 +315,7 @@
                 <configuration>
                     <argLine>-Duser.timezone=UTC</argLine>
 <!--                    <argLine>-Xmx2048m -XX:MaxMetaspaceSize=512m</argLine>-->
-                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                     <properties>
                         <configurationParameters>
                             junit.jupiter.execution.parallel.enabled = true

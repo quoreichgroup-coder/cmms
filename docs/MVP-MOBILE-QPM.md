@@ -1134,3 +1134,7 @@ Validation après ajout : `npm run test:mobile-regression` (**32/32**), TypeScri
 - Lors d’un refresh token en timeout/erreur réseau temporaire, les jetons étaient conservés et une nouvelle tentative programmée, mais l’état d’initialisation passait à « terminé non authentifié » : l’utilisateur voyait le formulaire de connexion pendant que l’app tentait déjà de récupérer sa session.
 - L’état `AUTH_RECOVERY_PENDING` maintient maintenant le démarrage en attente sans publier l’identité précédente ni ouvrir le formulaire de connexion. L’écran de chargement annonce la reconnexion en français/anglais; une validation réussie restaure la navigation, tandis qu’un refus d’authentification définitif continue d’ouvrir l’écran de connexion et applique le nettoyage prévu.
 - Cette présentation ne donne aucun accès aux données hors ligne et ne change ni les jetons, ni le contrat de refresh, ni les règles serveur. La suite Mobile passe (**32/32**), le test ciblé `auth-recovery.test.cjs` passe, TypeScript, Prettier ciblé et `git diff --check` passent. Le scénario réseau réel et le comportement de l’écran sur appareil restent à valider.
+
+## Revalidation de la suite Mobile — 20 octobre 2026
+
+La commande `npm run test:mobile-regression` réussit (**33/33**) et `npm run test:onboarding` réussit (**5/5**), y compris les gardes NFC iOS et la reprise de session. Il s’agit de tests automatisés locaux; ils ne remplacent pas la vérification visuelle sur appareil Android/iOS, la lecture NFC physique, ni un essai contre le serveur de recette.

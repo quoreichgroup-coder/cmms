@@ -112,7 +112,7 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p target
-          mvn test -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED" 2>&1 | tee target/maven-test.log
+          mvn test 2>&1 | tee target/maven-test.log
         working-directory: ./api
 
       - name: Upload backend test reports

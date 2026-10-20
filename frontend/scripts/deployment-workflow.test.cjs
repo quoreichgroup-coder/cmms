@@ -78,3 +78,15 @@ test('smoke checks stable QPM markup and keeps backend/container failure reports
     /name: selfhost-smoke-diagnostics-\$\{\{ github\.run_id \}\}/
   );
 });
+
+test('Maven tests preload the Mockito inline agent from the resolved test dependency', () => {
+  const pom = fs.readFileSync(path.join(repoRoot, 'api/pom.xml'), 'utf8');
+  assert.match(pom, /<mockito\.version>5\.17\.0<\/mockito\.version>/);
+  assert.match(
+    pom,
+    /<artifactId>mockito-core<\/artifactId>[\s\S]*?<scope>test<\/scope>/
+  );
+  assert.match(pom, /-javaagent:\$\{settings\.localRepository\}\/org\/mockito\/mockito-core/);
+  assert.match(workflow, /mvn test 2>&1 \| tee target\/maven-test\.log/);
+  assert.doesNotMatch(workflow, /mvn test -DargLine=/);
+});

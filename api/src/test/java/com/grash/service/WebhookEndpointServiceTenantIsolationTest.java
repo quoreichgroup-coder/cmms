@@ -38,11 +38,11 @@ class WebhookEndpointServiceTenantIsolationTest {
         when(user.getRole().getViewPermissions()).thenReturn(Set.of(PermissionEntity.SETTINGS));
         when(user.getCompany().getSubscription().getSubscriptionPlan().getFeatures())
                 .thenReturn(Set.of(PlanFeatures.WEBHOOK));
-        when(licenseService.hasEntitlement(LicenseEntitlement.WEBHOOK)).thenReturn(true);
     }
 
     @Test
     void updateDoesNotLoadOrModifyEndpointOutsideUsersCompany() {
+        when(licenseService.hasEntitlement(LicenseEntitlement.WEBHOOK)).thenReturn(true);
         when(repository.findByIdAndCompanyId(42L, 7L)).thenReturn(Optional.empty());
 
         assertThrows(CustomException.class,

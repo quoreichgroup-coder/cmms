@@ -1831,7 +1831,7 @@ class AssetServiceTest {
 
         @Test
         void assetNotFound_throwsNotFound() {
-            when(assetRepository.findById(5L)).thenReturn(Optional.empty());
+            when(assetRepository.findByIdAndCompany_Id(5L, company.getId())).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> assetService.findChildrenPaginated(5L, user, Pageable.unpaged()));
@@ -1843,8 +1843,8 @@ class AssetServiceTest {
         void returnsChildren() {
             Asset asset = buildAsset(5L);
             Asset child = buildAsset(6L);
-            when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
-            when(assetRepository.findByParentAsset_Id(5L, Pageable.unpaged()))
+            when(assetRepository.findByIdAndCompany_Id(5L, company.getId())).thenReturn(Optional.of(asset));
+            when(assetRepository.findByParentAsset_IdAndCompany_Id(5L, company.getId(), Pageable.unpaged()))
                     .thenReturn(new PageImpl<>(Collections.singletonList(child)));
 
             Page<Asset> result = assetService.findChildrenPaginated(5L, user, Pageable.unpaged());
