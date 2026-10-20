@@ -900,3 +900,8 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Web : `node --test --test-reporter=dot scripts/*.test.cjs` termine avec le code 0; TypeScript `tsc --noEmit --pretty false` passe. Les contrôles sidebar navigation/state/layout, impression QR et erreurs API passent aussi de façon ciblée. Chromium authentifié et captures responsive restent à faire; cette passe n’établit pas une validation visuelle.
 - Mobile : `npm run test:mobile-regression` réussit **34/34 scripts**, dont navigation, Request, sélecteurs Asset, chargement WO, confirmation, scan/permissions et pipeline iOS; `test:onboarding` réussit **5/5**. `tsc --noEmit --pretty false` passe.
 - Aucun défaut applicatif nouveau n’a été reproduit durant cette passe; aucun changement de source, API, permission, conteneur ou donnée n’a été effectué. Le P0 MOB-WO-04 attend toujours la trace/payload réels et la recette WO authentifiée. Les contrôles tactiles Android/iOS restent à effectuer sur appareil.
+
+### UX-12 — message d’accès refusé du calendrier localisé — 20 octobre 2026
+
+- L’échec HTTP 403 du calendrier OT utilisait une chaîne française codée en dur, même lorsque la langue Web est l’anglais. Le thunk passe maintenant systématiquement par le helper d’erreur API partagé, qui choisit le message selon la langue active.
+- Le test de régression simule explicitement le message anglais et confirme que l’erreur arrête le chargement; la récupération après succès reste vérifiée. Tests ciblés (**2/2**), suite Web complète et ESLint ciblé passent. Recette visuelle authentifiée toujours ouverte.

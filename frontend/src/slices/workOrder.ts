@@ -546,10 +546,7 @@ export const getWorkOrderEvents =
         slice.actions.setCalendarLoading({
           loading: false,
           requestId,
-          error:
-            error?.status === 403
-              ? 'Accès refusé au calendrier.'
-              : getErrorMessage(error)
+          error: getErrorMessage(error)
         })
       );
     } finally {

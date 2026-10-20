@@ -30,13 +30,13 @@ for (const category of ['workOrder', 'asset', 'part', 'request', 'user']) {
     }
   });
 }
-function loadCalendar(api) {
+function loadCalendar(api, getErrorMessage = e => e.message) {
   const exports = {};
   const source = ts.transpileModule(fs.readFileSync('src/slices/workOrder.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true }
   }).outputText;
   vm.runInNewContext(source, { exports, require(id) {
-    if (id.endsWith('/api')) return { __esModule: true, default: api, getErrorMessage: e => e.message };
+    if (id.endsWith('/api')) return { __esModule: true, default: api, getErrorMessage };
     if (id.endsWith('/redux')) return { revertAll: redux.createAction('REVERT_ALL') };
     if (id.endsWith('/page')) return { getInitialPage: () => ({ content: [], totalElements: 0 }) };
     if (id.includes('cancellableRequest') || id === './workload') return {};
@@ -44,13 +44,16 @@ function loadCalendar(api) {
   }});
   return exports;
 }
-test('calendar displays failures, stops loading and supports a successful retry', async () => {
+test('calendar uses the localized API error, stops loading and supports a successful retry', async () => {
   let fails = true;
-  const module = loadCalendar({ post: async () => { if (fails) throw Object.assign(new Error('Denied'), { status: 403 }); return []; } });
+  const module = loadCalendar(
+    { post: async () => { if (fails) throw Object.assign(new Error('Denied'), { status: 403 }); return []; } },
+    error => error.status === 403 ? 'Access denied (HTTP 403).' : error.message
+  );
   const store = redux.configureStore({ reducer: module.reducer });
   await store.dispatch(module.getWorkOrderEvents(new Date(), new Date()));
   assert.equal(store.getState().calendar.loading, false);
-  assert.match(store.getState().calendar.error, /Accès refusé/);
+  assert.equal(store.getState().calendar.error, 'Access denied (HTTP 403).');
   fails = false;
   await store.dispatch(module.getWorkOrderEvents(new Date(), new Date()));
   assert.equal(store.getState().calendar.error, null);
