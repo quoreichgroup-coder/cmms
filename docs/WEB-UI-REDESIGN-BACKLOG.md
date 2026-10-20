@@ -830,7 +830,7 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 ### WEB-SIDEBAR-02 — focus clavier des sous-entrées — 20 octobre 2026
 
 - L’implémentation avait déjà un contour de focus visible pour les sous-entrées; le test de régression contrôlait le survol et la sélection, mais pas ce chemin clavier. `theme-contrast.test.cjs` vérifie maintenant que les sous-entrées gardent un contour de 2 px dérivé du token primaire.
-- Test thème/contraste, suite Web complète (**77/77**) et build CRA (**Compiled successfully**) passent. La vérification du code ne remplace pas l’essai clavier réel et le contrôle visuel authentifié dans Chromium, toujours bloqués par le lancement Snap dans cette session.
+- Test thème/contraste, suite Web complète (**77/77**) et build CRA (**Compiled successfully**) passent. La vérification du code ne remplace pas l’essai clavier réel et le contrôle visuel authentifié dans Chromium. Même relancé hors du bac à sable, Chromium Snap s’arrête car la session n’appartient pas au cgroup attendu (`not a snap cgroup`); aucune recette visuelle n’est revendiquée.
 
 ### Tests Backend — préchargement de Mockito inline — 20 octobre 2026
 
