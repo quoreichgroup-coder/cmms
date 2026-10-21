@@ -62,16 +62,27 @@ export default function CompanySites() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
-  const load = useCallback(() => api.get<Site[]>('sites').then(setSites), []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const [loadedSites, loadedLocations] = await Promise.all([
+        api.get<Site[]>('sites'),
+        api.get<LocationOption[]>('locations/mini')
+      ]);
+      setSites(loadedSites);
+      setLocations(loadedLocations);
+    } catch (e) {
+      setLoadError(getErrorMessage(e, t('sites_load_error')));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
   useEffect(() => {
-    Promise.all([
-      load(),
-      api.get<LocationOption[]>('locations/mini').then(setLocations)
-    ])
-      .catch((e) => setError(getErrorMessage(e, t('sites_load_error'))))
-      .finally(() => setLoading(false));
-  }, [load, t]);
+    void load();
+  }, [load]);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -144,11 +155,24 @@ export default function CompanySites() {
             {error}
           </Alert>
         )}
+        {loadError && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => void load()}>
+                {t('retry')}
+              </Button>
+            }
+          >
+            {loadError}
+          </Alert>
+        )}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={28} />
           </Box>
-        ) : sites.length === 0 ? (
+        ) : loadError && sites.length === 0 ? null : sites.length === 0 ? (
           <Typography color="text.secondary">
             {t('company_sites_empty')}
           </Typography>

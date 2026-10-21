@@ -1162,3 +1162,9 @@ Régression ciblée : ordre de réponses différées et présence des gardes de 
 Le bouton « Ajouter » était désactivé après le rendu React suivant, mais deux appuis rapides avant ce rendu pouvaient démarrer deux POST de relevé et enregistrer deux lectures identiques. La soumission utilise maintenant le verrou asynchrone déjà partagé par d’autres formulaires : une requête en cours est coalescée, l’état de chargement et le toast ne sont gérés qu’une fois, et le verrou se libère aussi après échec pour permettre un nouvel essai. Validation, valeur, endpoint et règle métier du compteur restent inchangés.
 
 Régression ciblée vérifie le verrouillage des appuis concurrents, la libération pour réessai, et son raccord au handler `createReading`. Vérifications : test ciblé, suite Mobile complète, TypeScript et Prettier réussis; recette de double appui et de reprise après erreur sur appareil/API de test reste à faire. Aucun APK n’est généré par ce changement.
+
+## Changement de mot de passe — ignorer les soumissions simultanées — 21 octobre 2026
+
+Le bouton du dialogue était désactivé après le rendu Formik suivant; deux appuis très rapprochés pouvaient donc lancer plusieurs demandes `auth/updatepwd`. Le handler utilise désormais le verrou asynchrone partagé pour envoyer une seule mise à jour pendant qu’elle est en cours. La confirmation de succès/échec et l’authentification existantes restent inchangées; une erreur ne bloque pas un nouvel essai.
+
+Régression ciblée vérifie l’usage du verrou, l’appel d’authentification conservé, le coalescement des soumissions concurrentes et la libération après échec. Tests Mobile pertinents, TypeScript et formatage à exécuter pour ce lot; vérifier aussi le dialogue sur appareil. Aucun contrat API, règle d’authentification ou donnée serveur ne change; aucun APK n’est généré.

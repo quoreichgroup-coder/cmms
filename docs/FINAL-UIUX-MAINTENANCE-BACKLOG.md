@@ -810,3 +810,14 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Des appuis rapides sur « Ajouter un relevé » pouvaient envoyer plusieurs créations avant le rendu qui désactive le bouton. Le verrou asynchrone partagé assure une seule soumission en vol et se libère après erreur pour permettre un nouvel essai; toast, endpoint et validation restent inchangés.
 - Test ciblé **2/2**, suite Mobile **45/45**, TypeScript, Prettier, onboarding **5/5**, helpers de disponibilité **5/5** et `git diff --check` réussis. Essai physique de double-tap sur appareil non effectué; aucun APK n’a été généré.
+
+### WEB — réessai du chargement des sites société — 21 octobre 2026
+
+- Dans Paramètres de l’entreprise → Sites, un échec du chargement des sites ou des emplacements racine affichait l’alerte d’erreur en même temps que l’état « aucun site ». Aucun retry n’était disponible sans recharger la page.
+- Le chargement combiné est maintenant géré en un seul callback : il distingue erreur et liste réellement vide, conserve les données précédentes en cas de nouvel échec et propose Réessayer. Endpoints, droits et règles métier restent inchangés.
+- `company-sites-load.test.cjs` couvre l’échec initial de `sites`, puis un retry réussi vers l’état vide. Test ciblé (**1/1**), TypeScript, ESLint, Prettier et `git diff --check` réussis; la branche d’échec de `locations/mini` n’a pas de test distinct et la recette authentifiée visuelle reste à faire.
+
+### MOBILE — verrou de soumission du changement de mot de passe — 21 octobre 2026
+
+- Des taps rapprochés avant le rendu Formik pouvaient envoyer plusieurs appels à `auth/updatepwd`. Le handler utilise maintenant le verrou asynchrone partagé : une seule requête reste en vol et un échec permet un nouvel essai. L’endpoint, les messages et la logique d’authentification sont conservés.
+- Test ciblé **2/2**, suite Mobile **46/46**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. Double-tap et erreur/réessai sur appareil non vérifiés; aucun APK n’a été généré.

@@ -37,6 +37,7 @@ import { IconWithLabel } from '../../components/IconWithLabel';
 import internationalization, { supportedLanguages } from '../../i18n/i18n';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { qpmLayoutTokens } from '../../theme/tokens';
+import { createAsyncActionLock } from '../../utils/asyncActionLock';
 
 export default function UserProfile({
   navigation,
@@ -73,6 +74,12 @@ export default function UserProfile({
   const [openLanguageDialog, setOpenLanguageDialog] = useState<boolean>(false);
   const [savingLanguage, setSavingLanguage] = useState(false);
   const savingLanguageRef = useRef(false);
+  const changePasswordLockRef = useRef<ReturnType<
+    typeof createAsyncActionLock
+  > | null>(null);
+  const changePasswordLock =
+    changePasswordLockRef.current ??
+    (changePasswordLockRef.current = createAsyncActionLock());
   const getPersistedLanguage = () =>
     (
       user.language ||
@@ -209,14 +216,18 @@ export default function UserProfile({
               _values,
               { resetForm, setErrors, setStatus, setSubmitting }
             ) => {
-              setSubmitting(true);
-              return updatePassword(_values)
-                .then(() => {
+              return changePasswordLock(async () => {
+                setSubmitting(true);
+                try {
+                  await updatePassword(_values);
                   setOpenChangePassword(false);
                   showSnackBar(t('password_change_success'), 'success');
-                })
-                .catch((err) => showSnackBar(t('wrong_password'), 'error'))
-                .finally(() => setSubmitting(false));
+                } catch {
+                  showSnackBar(t('wrong_password'), 'error');
+                } finally {
+                  setSubmitting(false);
+                }
+              });
             }}
           >
             {({
