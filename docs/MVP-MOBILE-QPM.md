@@ -1044,6 +1044,12 @@ La liste pouvait continuer à afficher les OT précédents quand les filtres cha
 
 Une régression est ajoutée à `mobile/scripts/mobile-regression.test.cjs`. Suite Mobile (**30/30**), TypeScript, Prettier et export Expo Web (**1 889 modules**) validés; essai réseau réel et rendu téléphone restent à faire.
 
+## Liste des OT — erreur de pagination liée aux critères actifs — 21 octobre 2026
+
+Pendant la saisie d’une nouvelle recherche, la liste masquait déjà les OT de l’ancienne recherche, mais le pied de liste pouvait conserver l’erreur et le bouton « Réessayer » de l’ancienne pagination pendant le délai de recherche. Cette reprise était inerte, car le chargement de page vérifie correctement que les critères sont à jour. Le message de pagination n’est désormais rendu que pour la recherche actuellement affichée. Les filtres, appels API et règles métier restent inchangés.
+
+Régression ciblée ajoutée dans `mobile/scripts/work-order-load-errors.test.cjs`; vérification appareil non effectuée.
+
 ## Inventaire Mobile — recherche de pièces sans résultats périmés — 18 octobre 2026
 
 La liste des pièces conservait les lignes précédentes pendant la recherche différée, sans vérifier qu’elles correspondaient au nouveau texte; un échec de rafraîchissement avec des lignes affichées ne présentait pas non plus d’avertissement relançable. Elle lie désormais les résultats à la recherche et aux critères chargés, empêche la pagination des anciennes lignes et affiche une bannière d’erreur quand des résultats valides restent visibles. Aucun contrat API ou calcul d’inventaire ne change.

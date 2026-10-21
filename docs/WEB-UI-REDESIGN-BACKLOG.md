@@ -1203,6 +1203,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - L’échec de `GET tasks/work-order/{id}` était avalé par le slice Redux; l’écran de détail masquait alors entièrement la section checklist, sans distinguer une liste vide d’une indisponibilité temporaire.
 - Le détail affiche désormais une erreur localisée avec une action Réessayer. La relance efface l’état d’erreur, et une réponse réussie rétablit les tâches; aucun endpoint, contrat API ou permission ne change. Les détails techniques de l’erreur restent hors de l’interface.
 - Test dédié : échec puis reprise du thunk, absence de fuite du message serveur et présence du retry dans le détail (**2/2** ciblés). TypeScript, ESLint sur les sources modifiées, Prettier et `git diff --check` passent. Recette authentifiée et vérification de l’état erreur/réessai dans le navigateur restent à faire.
+
+### UX-12 — conserver la durée si la planification échoue — 21 octobre 2026
+
+- Dans Charge de travail, quand un OT sans durée estimée était déposé sur une personne/jour, la boîte de saisie se fermait avant la réponse API. En cas d’échec, le toast signalait l’erreur, mais le déplacement et les heures saisies étaient perdus.
+- La boîte reste maintenant ouverte avec ses valeurs après échec; elle ne se ferme qu’après succès. Le bouton et la fermeture sont protégés pendant la requête, empêchant les doubles envois et les pertes accidentelles. La mutation optimiste reste absente en échec; endpoint, règles et autorisations sont inchangés.
+- Tests : rejet du thunk sans mutation de cache, ordre réussite/fermeture et état d’envoi du dialogue. Recette visuelle avec API/rôle de planification autorisé reste à faire.
 # Request data isolation across account changes — 21 October 2026
 
 - **Done:** the Web Request Redux slice now tags asynchronous reads and mutations with a session generation. Results from the prior account are ignored after `revertAll`, including list/detail loads, pending-request count, create/edit/delete, approve and cancel. Existing request IDs, endpoints, permissions and workflow semantics are unchanged.

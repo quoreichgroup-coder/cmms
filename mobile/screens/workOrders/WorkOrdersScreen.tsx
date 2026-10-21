@@ -728,7 +728,7 @@ export default function WorkOrdersScreen({
                 color={theme.colors.primary}
                 style={styles.loadingFooter}
               />
-            ) : loadMoreError ? (
+            ) : hasCurrentCriteriaResults && loadMoreError ? (
               <View style={styles.loadMoreError} accessibilityRole="alert">
                 <Text style={{ color: theme.colors.error }}>
                   {loadMoreError}

@@ -112,6 +112,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [durationModalOpen, setDurationModalOpen] = useState(false);
+  const [isSchedulingDuration, setIsSchedulingDuration] = useState(false);
   const [durationHours, setDurationHours] = useState(0);
   const [durationMinutes, setDurationMinutes] = useState(0);
   const [pendingWorkOrder, setPendingWorkOrder] = useState<{
@@ -282,13 +283,13 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       dateStr: string,
       estimatedDuration?: number | null
     ) => {
-      dispatch(
+      return dispatch(
         scheduleWorkOrder(workOrderId, {
           localDate: dateStr,
           estimatedDuration: estimatedDuration ?? null,
           primaryUserId
         })
-      ).catch((err) => showSnackBar(getErrorMessage(err), 'error'));
+      );
     },
     [dispatch]
   );
@@ -335,24 +336,34 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       return;
     }
 
-    doSchedule(wo.id, userId, dateStr);
+    doSchedule(wo.id, userId, dateStr).catch((err) =>
+      showSnackBar(getErrorMessage(err), 'error')
+    );
   };
 
-  const handleDurationSubmit = () => {
+  const handleDurationSubmit = async () => {
     if (!pendingWorkOrder) return;
     const totalHours = (durationHours * 60 + durationMinutes) / 60;
     if (totalHours <= 0) return;
-    doSchedule(
-      pendingWorkOrder.id,
-      pendingWorkOrder.userId,
-      pendingWorkOrder.dateStr,
-      totalHours
-    );
-    setDurationModalOpen(false);
-    setPendingWorkOrder(null);
+    setIsSchedulingDuration(true);
+    try {
+      await doSchedule(
+        pendingWorkOrder.id,
+        pendingWorkOrder.userId,
+        pendingWorkOrder.dateStr,
+        totalHours
+      );
+      setDurationModalOpen(false);
+      setPendingWorkOrder(null);
+    } catch (err) {
+      showSnackBar(getErrorMessage(err), 'error');
+    } finally {
+      setIsSchedulingDuration(false);
+    }
   };
 
   const handleDurationCancel = () => {
+    if (isSchedulingDuration) return;
     setDurationModalOpen(false);
     setPendingWorkOrder(null);
   };
@@ -905,7 +916,9 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
 
       <Dialog
         open={durationModalOpen}
-        onClose={handleDurationCancel}
+        onClose={() => {
+          if (!isSchedulingDuration) handleDurationCancel();
+        }}
         maxWidth="xs"
         fullWidth
       >
@@ -937,11 +950,22 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDurationCancel}>{t('cancel')}</Button>
+          <Button
+            onClick={handleDurationCancel}
+            disabled={isSchedulingDuration}
+          >
+            {t('cancel')}
+          </Button>
           <Button
             variant="contained"
             onClick={handleDurationSubmit}
-            disabled={durationHours === 0 && durationMinutes === 0}
+            disabled={
+              isSchedulingDuration ||
+              (durationHours === 0 && durationMinutes === 0)
+            }
+            startIcon={
+              isSchedulingDuration ? <CircularProgress size={16} /> : undefined
+            }
           >
             {t('schedule')}
           </Button>

@@ -145,6 +145,29 @@ test('unscheduling API failure rejects without optimistic state mutations', asyn
   assert.deepEqual(actions, []);
 });
 
+test('scheduling API failure rejects without optimistic assignment mutations', async () => {
+  const slice = loadWorkloadSlice({
+    patch: async () => {
+      throw new Error('schedule unavailable');
+    }
+  });
+  const actions = [];
+
+  await assert.rejects(
+    slice.scheduleWorkOrder(618, {
+      localDate: '2026-10-21',
+      estimatedDuration: 2,
+      primaryUserId: 42
+    })(
+      (action) => actions.push(action),
+      () => ({})
+    ),
+    /schedule unavailable/
+  );
+
+  assert.deepEqual(actions, []);
+});
+
 test('successful unscheduling clears the assignee and scheduled date in cached work orders', async () => {
   const slice = loadWorkloadSlice({
     patch: async () => ({

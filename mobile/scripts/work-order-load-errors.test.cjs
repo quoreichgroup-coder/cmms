@@ -61,3 +61,16 @@ test('classifies Work Order API failures without exposing server messages', () =
     'work_orders_load_error'
   );
 });
+
+test('hides the pagination retry when Work Order search criteria are stale', () => {
+  const screen = fs.readFileSync(
+    'screens/workOrders/WorkOrdersScreen.tsx',
+    'utf8'
+  );
+
+  assert.match(
+    screen,
+    /hasCurrentCriteriaResults && loadMoreError \? \(/,
+    'a previous query’s load-more error must not show an inert retry during search debounce'
+  );
+});
