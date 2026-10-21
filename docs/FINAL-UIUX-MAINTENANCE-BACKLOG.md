@@ -871,3 +871,9 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - L’export CSV des équipements utilisait `t('Export failed')` comme fallback, mais cette clé n’existait pas dans les catalogues; une erreur sans message serveur exploitable montrait donc le libellé anglais brut, y compris dans l’interface française. Le workflow utilise maintenant une clé d’erreur localisée en français et anglais.
 - `asset-export-error-message.test.cjs` vérifie le branchement et les deux traductions. Export et permissions restent inchangés.
+
+### WEB — conservation du brouillon lors d’un échec de commentaire WO — 21 octobre 2026
+
+- Le formulaire de commentaire lançait la création sans attendre le résultat API, puis effaçait immédiatement le texte et les pièces jointes. En cas d’échec réseau, le commentaire n’était pas enregistré et le brouillon était perdu; aucune erreur visible ne permettait de réessayer.
+- La soumission attend maintenant la création avant d’effacer le brouillon; le succès affiche une confirmation et l’échec conserve le contenu et présente le message API. `work-order-comment-submit.test.cjs` vérifie l’ordre de soumission, la conservation après erreur et le feedback utilisateur. Aucun endpoint, permission ou workflow métier n’a changé.
+- Validation : test ciblé, TypeScript, ESLint ciblé, Prettier et `git diff --check` à exécuter avant livraison; test navigateur authentifié à faire.

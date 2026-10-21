@@ -147,6 +147,7 @@
     "test:request-detail-load-errors": "node --test scripts/request-detail-load-error.test.cjs",
     "test:work-order-list-errors": "node --test scripts/work-order-list-error.test.cjs",
     "test:work-order-detail-load-errors": "node --test scripts/work-order-detail-load-error.test.cjs",
+    "test:work-order-comment-submit": "node --test scripts/work-order-comment-submit.test.cjs",
     "test:hierarchy": "node --test scripts/hierarchy-loading.test.cjs",
     "test:storage-url": "node --test scripts/storage-url.test.cjs",
     "test:table-state": "node scripts/table-state.test.cjs",

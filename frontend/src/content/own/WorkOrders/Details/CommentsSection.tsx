@@ -25,6 +25,8 @@ import { getUsersMini } from '../../../../slices/user';
 import { useSearchParams } from 'react-router-dom';
 import { boolean, number } from 'yup';
 import { logSafeError } from '../../../../utils/safeErrorLog';
+import { getErrorMessage } from '../../../../utils/api';
+import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 
 interface CommentsSectionProps {
   workOrderId: number;
@@ -37,6 +39,7 @@ export default function CommentsSection(props: CommentsSectionProps) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { uploadFiles } = useContext(CompanySettingsContext);
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const { commentsByWorkOrder, loadingComments, loadingCreate } = useSelector(
     (state) => state.comments
   );
@@ -63,7 +66,7 @@ export default function CommentsSection(props: CommentsSectionProps) {
         const uploadedFiles = await uploadFiles(files, [], false);
         fileIds = uploadedFiles.map((f) => ({ id: f.id }));
       }
-      dispatch(
+      await dispatch(
         createComment({
           workOrder: { id: workOrderId },
           content: content.trim(),
@@ -75,8 +78,10 @@ export default function CommentsSection(props: CommentsSectionProps) {
       setPlainTextContent('');
       setFiles([]);
       setShowFileUpload(false);
+      showSnackBar(t('changes_saved_success'), 'success');
     } catch (error) {
       logSafeError('Failed to create comment', error);
+      showSnackBar(getErrorMessage(error), 'error');
     }
   };
 
