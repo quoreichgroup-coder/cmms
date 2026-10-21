@@ -1860,6 +1860,7 @@ const locale = {
   pm_call_history_load_error: 'Could not load maintenance call history.',
   pm_work_order_history_load_error:
     'Could not load preventive maintenance work-order history.',
+  pm_tasks_load_error: 'Could not load preventive maintenance tasks.',
   no_pm_calls: 'No maintenance calls yet',
   retry: 'Retry',
   recent_work_orders: 'Recent work orders',

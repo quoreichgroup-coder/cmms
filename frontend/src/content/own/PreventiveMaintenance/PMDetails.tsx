@@ -1,4 +1,6 @@
 import {
+  Alert,
+  Button,
   Box,
   CircularProgress,
   Divider,
@@ -18,7 +20,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
 import PreventiveMaintenance from '../../../models/owns/preventiveMaintenance';
-import { useDispatch } from '../../../store';
+import { useDispatch, useSelector } from '../../../store';
 import {
   editPreventiveMaintenance,
   triggerWorkOrder
@@ -84,6 +86,17 @@ export default function PMDetails({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
   const [triggering, setTriggering] = useState<boolean>(false);
+  const [taskReloadKey, setTaskReloadKey] = useState(0);
+  const { taskLoadFailed, taskLoading } = useSelector((state) => ({
+    taskLoadFailed:
+      state.tasks.taskLoadErrorsByPreventiveMaintenance[
+        preventiveMaintenance.id
+      ] === true,
+    taskLoading:
+      state.tasks.loadingTasksByPreventiveMaintenance[
+        preventiveMaintenance.id
+      ] === true
+  }));
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -109,7 +122,7 @@ export default function PMDetails({
 
   useEffect(() => {
     dispatch(getTasksByPreventiveMaintenance(preventiveMaintenance.id));
-  }, [preventiveMaintenance.id]);
+  }, [preventiveMaintenance.id, taskReloadKey]);
 
   const fieldsToRender = (
     preventiveMaintenance: PreventiveMaintenance
@@ -522,7 +535,30 @@ export default function PMDetails({
                     />
                   </Grid>
                 )}
-                {!!tasks.length && (
+                {taskLoading && (
+                  <Grid item xs={12} lg={12}>
+                    <CircularProgress size="1.25rem" />
+                  </Grid>
+                )}
+                {taskLoadFailed && !taskLoading && (
+                  <Grid item xs={12} lg={12}>
+                    <Alert
+                      severity="error"
+                      action={
+                        <Button
+                          color="inherit"
+                          size="small"
+                          onClick={() => setTaskReloadKey((key) => key + 1)}
+                        >
+                          {t('retry')}
+                        </Button>
+                      }
+                    >
+                      {t('pm_tasks_load_error')}
+                    </Alert>
+                  </Grid>
+                )}
+                {!taskLoading && !taskLoadFailed && !!tasks.length && (
                   <Grid item xs={12} lg={12}>
                     <Tasks
                       tasksProps={tasks}

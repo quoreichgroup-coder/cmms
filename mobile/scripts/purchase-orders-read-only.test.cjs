@@ -46,3 +46,17 @@ test('purchase order screen is read-only and displays only ordered quantities', 
     /finally\s*\{[\s\S]*?setLoadingGet\(\{ loading: false, requestGeneration \}\)/
   );
 });
+
+test('purchase order pagination retry bypasses only the previous error guard', () => {
+  const screen = read('screens/purchaseOrders/PurchaseOrdersScreen.tsx');
+
+  assert.match(
+    screen,
+    /loadNextPage = React\.useCallback\([\s\S]*?async \(retry = false\)/
+  );
+  assert.match(screen, /\(loadMoreError && !retry\)/);
+  assert.match(
+    screen,
+    /loadMoreError \? \([\s\S]*?onRetry=\{\(\) => void loadNextPage\(true\)\}/
+  );
+});

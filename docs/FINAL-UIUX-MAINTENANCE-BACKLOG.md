@@ -843,3 +843,8 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Personnes et Équipes masquent les données de la recherche précédente pendant le debounce et ne paginent pas avant que la réponse corresponde aux critères courants. Les erreurs de la recherche active restent relançables; paramètres API et accès sont inchangés.
 - Régression ciblée, suite Mobile **47/47**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. Essai tactile sur appareil non réalisé; aucun APK n’a été généré.
+
+### WEB — erreur de chargement des tâches de maintenance préventive — 21 octobre 2026
+
+- Le chargement des tâches d’une maintenance préventive absorbait les erreurs API, ce qui faisait apparaître une liste vide comme si elle n’avait aucune tâche. Le store distingue maintenant erreur, chargement et succès; le détail affiche une erreur localisée et un bouton Réessayer.
+- Le test `pm-task-load-error.test.cjs` vérifie une première erreur puis un retry réussi qui efface l’état d’erreur. Aucun endpoint, droit ou comportement métier n’a changé.

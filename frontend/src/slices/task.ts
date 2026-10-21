@@ -11,14 +11,18 @@ interface TaskState {
   tasksByWorkOrder: { [id: number]: Task[] };
   taskLoadErrorsByWorkOrder: { [id: number]: boolean };
   tasksByPreventiveMaintenance: { [id: number]: Task[] };
+  taskLoadErrorsByPreventiveMaintenance: { [id: number]: boolean };
   loadingTasks: { [id: number]: boolean };
+  loadingTasksByPreventiveMaintenance: { [id: number]: boolean };
 }
 
 const initialState: TaskState = {
   tasksByWorkOrder: {},
   taskLoadErrorsByWorkOrder: {},
   tasksByPreventiveMaintenance: {},
-  loadingTasks: {}
+  taskLoadErrorsByPreventiveMaintenance: {},
+  loadingTasks: {},
+  loadingTasksByPreventiveMaintenance: {}
 };
 
 const slice = createSlice({
@@ -53,6 +57,10 @@ const slice = createSlice({
     ) {
       const { tasks, id } = action.payload;
       state.tasksByPreventiveMaintenance[id] = tasks;
+      delete state.taskLoadErrorsByPreventiveMaintenance[id];
+    },
+    failGetTasksByPM(state: TaskState, action: PayloadAction<number>) {
+      state.taskLoadErrorsByPreventiveMaintenance[action.payload] = true;
     },
     patchTasksOfPM(
       state: TaskState,
@@ -99,6 +107,16 @@ const slice = createSlice({
     ) {
       const { loading, id } = action.payload;
       state.loadingTasks = { ...state.loadingTasks, [id]: loading };
+    },
+    setLoadingByPMTask(
+      state: TaskState,
+      action: PayloadAction<{ loading: boolean; id: number }>
+    ) {
+      const { loading, id } = action.payload;
+      state.loadingTasksByPreventiveMaintenance = {
+        ...state.loadingTasksByPreventiveMaintenance,
+        [id]: loading
+      };
     }
   }
 });
@@ -136,15 +154,16 @@ export const patchTasksOfWorkOrder =
 export const getTasksByPreventiveMaintenance =
   (id: number): AppThunk =>
   async (dispatch) => {
-    dispatch(slice.actions.setLoadingByTask({ id, loading: true }));
+    dispatch(slice.actions.setLoadingByPMTask({ id, loading: true }));
     try {
       const tasks = await api.get<Task[]>(
         `${basePath}/preventive-maintenance/${id}`
       );
       dispatch(slice.actions.getTasksByPM({ id, tasks }));
     } catch {
+      dispatch(slice.actions.failGetTasksByPM(id));
     } finally {
-      dispatch(slice.actions.setLoadingByTask({ id, loading: false }));
+      dispatch(slice.actions.setLoadingByPMTask({ id, loading: false }));
     }
   };
 

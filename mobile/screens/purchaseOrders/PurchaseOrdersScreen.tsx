@@ -68,39 +68,42 @@ export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseO
     if (canView && isFocused) void loadFirstPage();
   }, [canView, isFocused, loadFirstPage]);
 
-  const loadNextPage = React.useCallback(async () => {
-    if (
-      !canView ||
-      loadingGet ||
-      loadingMore ||
-      pagingInProgress.current ||
-      purchaseOrders.last ||
-      loadMoreError
-    ) {
-      return;
-    }
-    pagingInProgress.current = true;
-    setLoadingMore(true);
-    setLoadMoreError(false);
-    try {
-      await dispatch(
-        getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1)
-      );
-    } catch (_error) {
-      setLoadMoreError(true);
-    } finally {
-      pagingInProgress.current = false;
-      setLoadingMore(false);
-    }
-  }, [
-    canView,
-    dispatch,
-    loadMoreError,
-    loadingGet,
-    loadingMore,
-    purchaseOrders.last,
-    purchaseOrders.number
-  ]);
+  const loadNextPage = React.useCallback(
+    async (retry = false) => {
+      if (
+        !canView ||
+        loadingGet ||
+        loadingMore ||
+        pagingInProgress.current ||
+        purchaseOrders.last ||
+        (loadMoreError && !retry)
+      ) {
+        return;
+      }
+      pagingInProgress.current = true;
+      setLoadingMore(true);
+      setLoadMoreError(false);
+      try {
+        await dispatch(
+          getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1)
+        );
+      } catch (_error) {
+        setLoadMoreError(true);
+      } finally {
+        pagingInProgress.current = false;
+        setLoadingMore(false);
+      }
+    },
+    [
+      canView,
+      dispatch,
+      loadMoreError,
+      loadingGet,
+      loadingMore,
+      purchaseOrders.last,
+      purchaseOrders.number
+    ]
+  );
 
   const refresh = React.useCallback(() => {
     setRefreshing(true);
@@ -288,10 +291,7 @@ export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseO
             <AsyncStateFeedback
               mode="banner"
               message={t('purchase_orders_load_error')}
-              onRetry={() => {
-                setLoadMoreError(false);
-                void loadNextPage();
-              }}
+              onRetry={() => void loadNextPage(true)}
             />
           ) : loadingMore ? (
             <Text

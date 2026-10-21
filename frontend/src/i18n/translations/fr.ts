@@ -1996,6 +1996,8 @@ const frJSON = {
   pm_call_history_load_error: 'Impossible de charger l’historique des appels.',
   pm_work_order_history_load_error:
     'Impossible de charger l’historique des ordres de maintenance préventive.',
+  pm_tasks_load_error:
+    'Impossible de charger les tâches de cette maintenance préventive.',
   no_pm_calls: 'Aucun appel de maintenance pour le moment',
   retry: 'Réessayer',
   open_work_orders: 'Ordres de travail ouverts',
