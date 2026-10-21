@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   ButtonBase,
@@ -222,6 +223,11 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   );
   const additionalCosts = costsByWorkOrder[workOrder.id] ?? [];
   const { commentsCountByWorkOrder } = useSelector((state) => state.comments);
+  const { taskLoadFailed, taskLoading } = useSelector((state) => ({
+    taskLoadFailed:
+      state.tasks.taskLoadErrorsByWorkOrder[workOrder.id] === true,
+    taskLoading: state.tasks.loadingTasks[workOrder.id] === true
+  }));
   const commentsCount = commentsCountByWorkOrder[workOrder.id]?.count ?? 0;
   const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -1058,6 +1064,24 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 </Grid>
               )}
             </Grid>
+            {taskLoadFailed && (
+              <Alert
+                severity="error"
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    disabled={taskLoading}
+                    onClick={() => dispatch(getTasksByWorkOrder(workOrder.id))}
+                  >
+                    {t('retry')}
+                  </Button>
+                }
+                sx={{ mt: 2 }}
+              >
+                {t('work_order_tasks_load_error')}
+              </Alert>
+            )}
             {!!tasks.length && (
               <Box>
                 <Divider sx={{ mt: 2 }} />

@@ -9,12 +9,14 @@ const basePath = 'tasks';
 
 interface TaskState {
   tasksByWorkOrder: { [id: number]: Task[] };
+  taskLoadErrorsByWorkOrder: { [id: number]: boolean };
   tasksByPreventiveMaintenance: { [id: number]: Task[] };
   loadingTasks: { [id: number]: boolean };
 }
 
 const initialState: TaskState = {
   tasksByWorkOrder: {},
+  taskLoadErrorsByWorkOrder: {},
   tasksByPreventiveMaintenance: {},
   loadingTasks: {}
 };
@@ -30,6 +32,10 @@ const slice = createSlice({
     ) {
       const { tasks, id } = action.payload;
       state.tasksByWorkOrder[id] = tasks;
+      delete state.taskLoadErrorsByWorkOrder[id];
+    },
+    failGetTasksByWorkOrder(state: TaskState, action: PayloadAction<number>) {
+      state.taskLoadErrorsByWorkOrder[action.payload] = true;
     },
     patchTasksOfWorkOrder(
       state: TaskState,
@@ -106,6 +112,7 @@ export const getTasksByWorkOrder =
       const tasks = await api.get<Task[]>(`${basePath}/work-order/${id}`);
       dispatch(slice.actions.getTasksByWorkOrder({ id, tasks }));
     } catch {
+      dispatch(slice.actions.failGetTasksByWorkOrder(id));
     } finally {
       dispatch(slice.actions.setLoadingByTask({ id, loading: false }));
     }

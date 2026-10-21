@@ -1030,6 +1030,12 @@ La liste conservait les demandes du filtre précédent pendant une nouvelle rech
 
 Régression ciblée ajoutée dans `mobile/scripts/mobile-regression.test.cjs`. Essai réseau réel et rendu sur appareil non inclus; aucune APK/IPA n’est générée.
 
+## Équipements — résultats obsolètes masqués lors d’une recherche — 21 octobre 2026
+
+La vue liste réutilisait les lignes du chargement précédent pendant une nouvelle recherche, et après un échec réseau les équipements pouvaient rester affichés sous le nouveau terme de recherche. La pagination pouvait également démarrer avec ces lignes et l’ancien numéro de page. Les résultats sont maintenant liés aux critères et au texte de recherche ayant réussi; avant cela, l’écran montre un chargement ou l’erreur avec reprise, et la pagination reste inactive. Un rafraîchissement en échec pour la même recherche garde les lignes pertinentes et expose l’erreur. Aucun endpoint, filtre serveur ou règle d’accès n’a changé.
+
+Une régression vérifie l’association critères/résultats, l’absence de pagination sur une liste obsolète et la protection contre les réponses de première page dépassées. Rendu/réseau réel non vérifiés; aucun APK/IPA n’est généré.
+
 Suite après ce lot : `npm run test:mobile-regression` (**30/30**), `tsc --noEmit --pretty false`, Prettier et `git diff --check` passent. La sélection à la réouverture reste à confirmer visuellement sur téléphone.
 
 ## Liste des OT — résultats associés aux filtres et à la recherche — 18 octobre 2026

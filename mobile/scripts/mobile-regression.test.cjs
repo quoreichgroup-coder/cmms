@@ -1402,6 +1402,26 @@ test('request list hides stale results after filter failure and blocks stale pag
     /if \(isCurrentRequest\(requestSequence, firstPageRequestSequence\)\) \{\s*setLoadedFilterFields\(criteria\.filterFields\);\s*\}/
   );
 });
+test('asset list hides stale search results and blocks stale pagination after failure', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/assets/AssetsScreen.tsx'),
+    'utf8'
+  );
+
+  assert.match(
+    source,
+    /loadedCriteria !== null &&\s*_.isEqual\(loadedCriteria\.filterFields, criteria\.filterFields\) &&\s*loadedCriteria\.searchQuery === searchQuery &&\s*criteriaSearchQuery === searchQuery/
+  );
+  assert.match(source, /data=\{canView \? visibleAssets : \[\]\}/);
+  assert.match(
+    source,
+    /!hasCurrentCriteriaResults \|\|\s*\(loadMoreError && !retry\)/
+  );
+  assert.match(
+    source,
+    /if \(isCurrentRequest\(requestSequence, listRequestSequence\)\) \{\s*setLoadedCriteria\(\{\s*filterFields: criteria\.filterFields,\s*searchQuery: criteriaSearchQuery\s*\}\);\s*\}/
+  );
+});
 test('work-order list hides results when filters or debounced search differ from loaded criteria', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/workOrders/WorkOrdersScreen.tsx'),

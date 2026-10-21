@@ -1,4 +1,5 @@
 import { logSafeError } from '../../utils/safeErrorLog';
+import _ from 'lodash';
 import {
   ActivityIndicator,
   FlatList,
@@ -29,6 +30,7 @@ import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { IconWithLabel } from '../../components/IconWithLabel';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import { beginRequest, isCurrentRequest } from '../../utils/requestSequence';
 
 const AssetCard = ({
   asset,
@@ -203,21 +205,47 @@ export default function AssetsScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const criteriaSearchQuery = String(
+    criteria.filterFields.find((filterField) => filterField.field === 'name')
+      ?.value ?? ''
+  );
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
+  const hasCurrentCriteriaResults =
+    loadedCriteria !== null &&
+    _.isEqual(loadedCriteria.filterFields, criteria.filterFields) &&
+    loadedCriteria.searchQuery === searchQuery &&
+    criteriaSearchQuery === searchQuery;
+  const visibleAssets = hasCurrentCriteriaResults ? assets.content : [];
+  const listRequestSequence = useRef(0);
   const loadAssets = useCallback(async () => {
     if (!canView) return;
+    const requestSequence = beginRequest(listRequestSequence);
     setListLoadError(false);
     setLoadMoreError(false);
     try {
       await dispatch(
         getAssets({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+      if (isCurrentRequest(requestSequence, listRequestSequence)) {
+        setLoadedCriteria({
+          filterFields: criteria.filterFields,
+          searchQuery: criteriaSearchQuery
+        });
+      }
     } catch (error) {
-      logSafeError('Could not load assets:', error);
-      setListLoadError(true);
+      if (isCurrentRequest(requestSequence, listRequestSequence)) {
+        logSafeError('Could not load assets:', error);
+        setListLoadError(true);
+      }
     } finally {
-      setHasLoadedList(true);
+      if (isCurrentRequest(requestSequence, listRequestSequence)) {
+        setHasLoadedList(true);
+      }
     }
-  }, [canView, criteria, dispatch]);
+  }, [canView, criteria, criteriaSearchQuery, dispatch]);
 
   const loadNextAssetPage = useCallback(
     async (retry = false) => {
@@ -225,6 +253,7 @@ export default function AssetsScreen({
         listPageRequestInProgress.current ||
         listLoading ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -240,7 +269,15 @@ export default function AssetsScreen({
         listPageRequestInProgress.current = false;
       }
     },
-    [criteria, currentPageNum, dispatch, lastPage, listLoading, loadMoreError]
+    [
+      criteria,
+      currentPageNum,
+      dispatch,
+      hasCurrentCriteriaResults,
+      lastPage,
+      listLoading,
+      loadMoreError
+    ]
   );
 
   const loadAssetChildren = useCallback(
@@ -384,7 +421,7 @@ export default function AssetsScreen({
         <FlatList
           style={styles.scrollView}
           contentContainerStyle={styles.listContent}
-          data={canView ? assets.content : []}
+          data={canView ? visibleAssets : []}
           keyExtractor={(asset) => String(asset.id)}
           renderItem={({ item }) => (
             <AssetCard asset={item} navigation={navigation} />
@@ -401,7 +438,7 @@ export default function AssetsScreen({
             />
           }
           ListHeaderComponent={
-            listLoadError && assets.content.length > 0 ? (
+            listLoadError && visibleAssets.length > 0 ? (
               <AsyncStateFeedback
                 mode="banner"
                 message={t('asset_list_load_error')}
@@ -417,7 +454,9 @@ export default function AssetsScreen({
                   permission: t('assets')
                 })}
               />
-            ) : listLoading || !hasLoadedList ? (
+            ) : listLoading ||
+              !hasLoadedList ||
+              (!hasCurrentCriteriaResults && !listLoadError) ? (
               <View
                 style={styles.loadingState}
                 accessibilityRole="progressbar"
@@ -473,7 +512,7 @@ export default function AssetsScreen({
                 message={t('asset_list_load_error')}
                 onRetry={() => void loadNextAssetPage(true)}
               />
-            ) : listLoading && assets.content.length > 0 ? (
+            ) : listLoading && visibleAssets.length > 0 ? (
               <ActivityIndicator
                 color={theme.colors.primary}
                 style={styles.loadingFooter}

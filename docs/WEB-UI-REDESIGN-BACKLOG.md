@@ -1197,6 +1197,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Les réponses de liste d’archives hors contexte (dialogue fermé, WO changé ou composant démonté) sont ignorées. Le dialogue distingue chargement, liste vide et erreur, et permet de réessayer le chargement.
 - Le téléchargement d’un document émis vérifie `Content-Type: application/pdf` et refuse une réponse vide; il garde la route authentifiée et ne crée pas de lien de stockage public.
 - Tests de régression dédiés, suite Web complète, TypeScript, ESLint et Prettier passent. La tentative de build CRA n’a pas produit de résultat final exploitable; build de production et recette authentifiée restent à confirmer.
+
+### WEB — erreur de chargement des tâches d’un OT — 21 octobre 2026
+
+- L’échec de `GET tasks/work-order/{id}` était avalé par le slice Redux; l’écran de détail masquait alors entièrement la section checklist, sans distinguer une liste vide d’une indisponibilité temporaire.
+- Le détail affiche désormais une erreur localisée avec une action Réessayer. La relance efface l’état d’erreur, et une réponse réussie rétablit les tâches; aucun endpoint, contrat API ou permission ne change. Les détails techniques de l’erreur restent hors de l’interface.
+- Test dédié : échec puis reprise du thunk, absence de fuite du message serveur et présence du retry dans le détail (**2/2** ciblés). TypeScript, ESLint sur les sources modifiées, Prettier et `git diff --check` passent. Recette authentifiée et vérification de l’état erreur/réessai dans le navigateur restent à faire.
 # Request data isolation across account changes — 21 October 2026
 
 - **Done:** the Web Request Redux slice now tags asynchronous reads and mutations with a session generation. Results from the prior account are ignored after `revertAll`, including list/detail loads, pending-request count, create/edit/delete, approve and cancel. Existing request IDs, endpoints, permissions and workflow semantics are unchanged.
