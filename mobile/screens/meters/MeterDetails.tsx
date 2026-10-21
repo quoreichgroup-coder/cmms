@@ -48,6 +48,7 @@ import Reading from '../../models/reading';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { getErrorMessage } from '../../utils/api';
+import { createAsyncActionLock } from '../../utils/asyncActionLock';
 
 const isValidReading = (value: string) =>
   value.trim().length > 0 && Number.isFinite(Number(value.replace(',', '.')));
@@ -87,6 +88,12 @@ export default function MeterDetails({
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const addReadingLockRef = React.useRef<ReturnType<
+    typeof createAsyncActionLock
+  > | null>(null);
+  const addReadingLock =
+    addReadingLockRef.current ??
+    (addReadingLockRef.current = createAsyncActionLock());
   const { t } = useTranslation();
   const { user, hasEditPermission, hasDeletePermission } = useAuth();
   const canOpenMeterActions = Boolean(
@@ -344,16 +351,20 @@ export default function MeterDetails({
   const onAddReading = () => {
     if (!isValidReading(readingValue)) return;
     const parsedValue = Number(readingValue.replace(',', '.'));
-    setIsSubmitting(true);
-    dispatch(createReading(meter.id, { value: parsedValue }))
-      .then(() => {
+    return addReadingLock(async () => {
+      setIsSubmitting(true);
+      try {
+        await dispatch(createReading(meter.id, { value: parsedValue }));
         setAddedReading(true);
         setOpenModal(false);
         showSnackBar(t('reading_create_success'), 'success');
         onNewReading?.(parsedValue);
-      })
-      .catch(() => showSnackBar(t('reading_create_failure'), 'error'))
-      .finally(() => setIsSubmitting(false));
+      } catch {
+        showSnackBar(t('reading_create_failure'), 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
+    });
   };
 
   const renderAddReading = () => {

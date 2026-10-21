@@ -45,6 +45,7 @@ import { getFormattedCostPerUnit } from '../../../utils/formatters';
 import { getCustomFieldValuesForDetails } from '../type';
 import RestockPartModal from './RestockPartModal';
 import WorkOrderStatusChip from '../WorkOrders/WorkOrderStatusChip';
+import ContentState from '../components/ContentState';
 
 interface PartDetailsProps {
   part: Part;
@@ -71,6 +72,8 @@ export default function PartDetails(props: PartDetailsProps) {
   const workOrders = workOrdersByPart[part?.id] ?? [];
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false);
   const [loadingWorkOrders, setLoadingWorkOrders] = useState<boolean>(false);
+  const [workOrdersLoadFailed, setWorkOrdersLoadFailed] =
+    useState<boolean>(false);
   const tabs = [
     { value: 'details', label: t('details') },
     { value: 'assets', label: t('assets') },
@@ -78,16 +81,24 @@ export default function PartDetails(props: PartDetailsProps) {
     { value: 'workOrders', label: t('work_orders') }
     //TODO events
   ];
+  const loadWorkOrders = async () => {
+    setLoadingWorkOrders(true);
+    setWorkOrdersLoadFailed(false);
+    try {
+      await dispatch(getWorkOrdersByPart(part.id));
+    } catch {
+      setWorkOrdersLoadFailed(true);
+    } finally {
+      setLoadingWorkOrders(false);
+    }
+  };
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
     if (value === 'assets' && !assets.length) {
       setLoadingAssets(true);
       dispatch(getAssetsByPart(part.id)).finally(() => setLoadingAssets(false));
     } else if (value === 'workOrders' && !workOrders.length) {
-      setLoadingWorkOrders(true);
-      dispatch(getWorkOrdersByPart(part.id)).finally(() =>
-        setLoadingWorkOrders(false)
-      );
+      void loadWorkOrders();
     }
   };
   const firstFieldsToRender = (part: Part): { label: string; value: any }[] => [
@@ -405,6 +416,13 @@ export default function PartDetails(props: PartDetailsProps) {
               >
                 <CircularProgress />
               </Box>
+            ) : workOrdersLoadFailed ? (
+              <ContentState
+                variant="error"
+                message={t('part_work_orders_load_error')}
+                actionLabel={t('retry')}
+                onAction={() => void loadWorkOrders()}
+              />
             ) : workOrders.length ? (
               <List sx={{ width: '100%' }}>
                 {workOrders.map((workOrder) => (

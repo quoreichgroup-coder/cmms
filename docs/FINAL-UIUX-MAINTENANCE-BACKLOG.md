@@ -799,3 +799,14 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 - L’écran Compteurs demandait la traduction de la clé vide pour l’action de l’état sans résultat. Le texte de création existait déjà en français et en anglais, mais n’était jamais affiché.
 - L’écran utilise maintenant `noRows.meter.action`, sans changer les droits, filtres ou opérations CRUD. Le test `meters-empty-state.test.cjs` vérifie le branchement et la présence des libellés localisés.
 - Vérifications ciblées et typecheck Web exécutés; l’essai visuel authentifié reste à faire.
+
+### WEB — reprise après échec des ordres liés à une pièce — 21 octobre 2026
+
+- Dans le détail d’une pièce, l’échec de la requête des ordres de travail associés arrêtait le spinner puis affichait le même état que « aucun ordre lié ». L’erreur rejetée n’était pas traitée et aucune reprise explicite n’était proposée.
+- L’onglet distingue maintenant l’erreur de l’état vide et propose Réessayer. Le retry recharge les ordres liés et réaffiche la liste en cas de succès; route, permissions et données restent inchangées. Le message est localisé en français et anglais.
+- Le test `part-work-order-load.test.cjs` vérifie l’échec suivi d’une reprise réussie. Tests ciblés, TypeScript, ESLint, Prettier et `git diff --check` passent; recette authentifiée visuelle reste à faire.
+
+### MOBILE — soumission protégée des relevés compteur — 21 octobre 2026
+
+- Des appuis rapides sur « Ajouter un relevé » pouvaient envoyer plusieurs créations avant le rendu qui désactive le bouton. Le verrou asynchrone partagé assure une seule soumission en vol et se libère après erreur pour permettre un nouvel essai; toast, endpoint et validation restent inchangés.
+- Test ciblé **2/2**, suite Mobile **45/45**, TypeScript, Prettier, onboarding **5/5**, helpers de disponibilité **5/5** et `git diff --check` réussis. Essai physique de double-tap sur appareil non effectué; aucun APK n’a été généré.

@@ -2001,6 +2001,8 @@ const frJSON = {
   open_work_orders: 'Ordres de travail ouverts',
   work_order_tasks_load_error:
     'Impossible de charger la liste de contrôle de l’ordre de travail.',
+  part_work_orders_load_error:
+    'Impossible de charger les ordres de travail liés à cette pièce.',
   linked_parts: 'Pièces associées',
   view_work_orders: 'Voir les ordres de travail',
   view_parts: 'Voir les pièces',

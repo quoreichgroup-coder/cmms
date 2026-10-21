@@ -1865,6 +1865,7 @@ const locale = {
   recent_work_orders: 'Recent work orders',
   open_work_orders: 'Open work orders',
   work_order_tasks_load_error: 'Could not load the work order checklist.',
+  part_work_orders_load_error: 'Could not load work orders for this part.',
   linked_parts: 'Linked spare parts',
   view_work_orders: 'View work orders',
   view_parts: 'View parts',
