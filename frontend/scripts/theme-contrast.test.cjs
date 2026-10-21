@@ -135,8 +135,12 @@ test('sidebar hover surface is distinguishable from the white navigation surface
   const { qpmNavigationTokens } = moduleExports;
   assert.notEqual(qpmNavigationTokens.hover, qpmNavigationTokens.sidebar);
   assert.ok(
-    contrastRatio(qpmNavigationTokens.hover, qpmNavigationTokens.sidebar) > 1.2,
+    contrastRatio(qpmNavigationTokens.hover, qpmNavigationTokens.sidebar) > 1.4,
     'hover surface should remain visible against the sidebar'
+  );
+  assert.ok(
+    contrastRatio('#344054', qpmNavigationTokens.hover) >= 4.5,
+    'sidebar labels must remain readable over the hover surface'
   );
 });
 
@@ -147,7 +151,14 @@ test('nested sidebar items show a filled hover and selected state', () => {
   );
   const nestedStyles = menu.slice(menu.indexOf('.MuiCollapse-root'));
 
-  assert.match(nestedStyles, /&:hover\s*\{\s*background-color:/);
+  assert.match(
+    nestedStyles,
+    /&&:hover:not\(\.active\)\s*\{\s*background-color:/
+  );
+  assert.match(
+    nestedStyles,
+    /\.MuiButton-startIcon,[\s\S]*?color: \$\{theme\.colors\.primary\.main\}/
+  );
   assert.match(nestedStyles, /&\.active\s*\{\s*background-color:/);
   assert.match(
     nestedStyles,

@@ -1209,3 +1209,9 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 - Critères Web : distinguer clairement aperçu temporaire d’un document officiellement émis; conserver filtre/autorisation d’accès objet sur historique et téléchargement; états chargement, vide, validation, publication refusée et erreur; clavier/accessibilité; aperçu imprimable A4/Letter et orientation choisie; aucune mutation de statut métier par impression. Le concepteur complet ne commence qu’après stabilisation du schéma validé et des permissions; commencer par composants de template prédéfinis.
 - Contrat Web/Mobile actuel et chemin de migration : [`DOCUMENT-MANAGEMENT-INTEGRATION-CONTRACT.md`](DOCUMENT-MANAGEMENT-INTEGRATION-CONTRACT.md). Le correctif backend **DOC-01** autorise maintenant l’émission d’un rapport après clôture pour les acteurs déjà habilités, sans rouvrir l’édition du WO; tests ciblés **5/5**. Mobile consomme maintenant les routes authentifiées d’aperçu, d’émission, d’historique et de téléchargement; la recette physique reste ouverte.
 - Aucun endpoint, modèle backend ou permission n’a été ajouté pour cette intégration Mobile; seul un type client reflétant le DTO existant est introduit. Le flux MUI Web reste inchangé.
+
+### UX-14 — lisibilité au survol des sous-entrées du sidebar — 21 octobre 2026
+
+- Le fond de survol a été renforcé dans le token partagé de navigation; les icônes et le repère des sous-entrées reprennent l’accent QPM. Une règle plus spécifique protège le hover contre les styles MUI, sans remplacer l’état sélectionné.
+- Aucun lien, route, permission ou comportement métier n’a changé. Tests sidebar/navigation/contraste ciblés et suite complète Web réussis; TypeScript, ESLint, Prettier et `git diff --check` réussis.
+- Le rendu authentifié Chromium et la recette VPS restent à contrôler.

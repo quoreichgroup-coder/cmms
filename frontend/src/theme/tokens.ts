@@ -22,7 +22,9 @@ export const qpmNavigationTokens = {
   text: '#344054',
   mutedText: '#475467',
   divider: '#E4E7EC',
-  hover: '#E0E7FF',
+  // Strong enough to read as an intentional hover surface on the white rail,
+  // while keeping dark navigation labels comfortably above WCAG AA contrast.
+  hover: '#C7D2FE',
   active: '#4B5FE8',
   activeText: '#FFFFFF'
 } as const;

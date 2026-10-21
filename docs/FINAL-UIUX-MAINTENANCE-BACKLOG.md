@@ -770,3 +770,8 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 - Le chargement d’archives est maintenant lié à l’ouverture du dialogue et au WO courant : fermeture, démontage ou changement de WO invalide la réponse précédente. Les états chargement, vide et erreur sont distincts; une erreur de liste propose une relance localisée.
 - Le téléchargement authentifié vérifie maintenant le type MIME `application/pdf` et refuse aussi un fichier vide avant de créer le téléchargement. L’URL objet est libérée après que le navigateur ait eu le temps de démarrer le transfert. Les contrôles d’accès et endpoints backend restent inchangés.
 - Vérification : test `issued-documents-modal.test.cjs`, suite de scripts Web complète, ESLint ciblé et TypeScript Web réussis; Prettier ciblé réussi. Le build CRA de production a été lancé, mais le processus n’a fourni aucun résultat exploitable avant son arrêt; le build n’est donc pas revendiqué. La recette Web authentifiée et le téléchargement depuis un stockage de recette restent à effectuer.
+
+### WEB — lisibilité au survol de la navigation imbriquée — 21 octobre 2026
+
+- Le token de survol du sidebar est plus visible sur sa surface claire. Les icônes et le repère des sous-entrées utilisent l’accent QPM, tandis que les libellés restent lisibles et que l’état sélectionné garde son style distinct. Aucun endpoint, permission, route ou workflow n’a changé.
+- Vérification : tests ciblés de navigation/layout/contraste, suite Web complète, TypeScript, ESLint, Prettier et `git diff --check` réussis. Rendu authentifié Chromium et recette VPS restent à faire.

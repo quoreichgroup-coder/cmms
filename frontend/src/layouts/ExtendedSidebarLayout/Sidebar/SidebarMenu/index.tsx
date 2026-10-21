@@ -109,13 +109,13 @@ const SubMenuWrapper = styled(Box)(
             font-size: ${theme.typography.pxToRem(20)};
           }
 
-          &:hover {
+          &&:hover:not(.active) {
             background-color: ${theme.sidebar.menuItemBg};
-            color: ${theme.sidebar.textColor};
+            color: ${theme.sidebar.menuItemColor};
 
             .MuiButton-startIcon,
             .MuiButton-endIcon {
-              color: ${theme.sidebar.textColor};
+              color: ${theme.colors.primary.main};
             }
           }
 
@@ -178,13 +178,13 @@ const SubMenuWrapper = styled(Box)(
                 'color'
               ])};
 
-              &:hover {
+              &&:hover:not(.active) {
                 background-color: ${theme.sidebar.menuItemBg};
                 color: ${theme.sidebar.menuItemColor};
 
                 .MuiButton-startIcon,
                 .MuiButton-endIcon {
-                  color: ${theme.sidebar.menuItemColor};
+                  color: ${theme.colors.primary.main};
                 }
               }
 
