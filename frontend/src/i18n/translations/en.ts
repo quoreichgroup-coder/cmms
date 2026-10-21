@@ -2249,6 +2249,7 @@ const locale = {
   api_key_label: 'API Key Label',
   api_key_created_success: 'API Key created successfully',
   api_key_code_copied: 'API Key code copied to clipboard',
+  api_key_copy_error: 'Could not copy the API key. Please try again.',
   api_key_code_view_once:
     'This code can only be viewed once. Please copy it now as you will not be able to see it again.',
   api_key_code: 'API Key Code',

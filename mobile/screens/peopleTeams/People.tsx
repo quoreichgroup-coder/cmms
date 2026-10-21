@@ -25,6 +25,15 @@ import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import DirectoryCard from '../../components/DirectoryCard';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import DirectoryPaginationFooter from '../../components/DirectoryPaginationFooter';
+import _ from 'lodash';
+
+const peopleSearchFields: (keyof User)[] = [
+  'firstName',
+  'lastName',
+  'phone',
+  'email',
+  'jobTitle'
+];
 
 export default function People({
   navigation
@@ -70,22 +79,44 @@ export default function People({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
+  const criteriaSearchQuery = String(
+    criteria.filterFields.find((field) =>
+      peopleSearchFields.some((key) => key === field.field)
+    )?.value ?? ''
+  );
+  const hasCurrentCriteriaResults =
+    loadedCriteria !== null &&
+    _.isEqual(loadedCriteria.filterFields, criteria.filterFields) &&
+    loadedCriteria.searchQuery === searchQuery &&
+    criteriaSearchQuery === searchQuery;
+  const visibleUsers = hasCurrentCriteriaResults ? users.content : [];
   const loadUsers = useCallback(async () => {
     if (!canView) return;
     const requestId = ++activeListLoadId.current;
+    const requestSearchQuery = criteriaSearchQuery;
     setLoadError(false);
     setLoadMoreError(false);
     try {
       await dispatch(
         getUsers({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+      if (activeListLoadId.current === requestId) {
+        setLoadedCriteria({
+          filterFields: criteria.filterFields,
+          searchQuery: requestSearchQuery
+        });
+      }
     } catch (error) {
       logSafeError('Could not load people:', error);
       if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
       if (activeListLoadId.current === requestId) setHasLoadedList(true);
     }
-  }, [canView, criteria, dispatch]);
+  }, [canView, criteria, criteriaSearchQuery, dispatch]);
 
   useEffect(() => {
     loadUsers();
@@ -108,6 +139,7 @@ export default function People({
         loadingMoreRef.current ||
         listLoading ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -132,19 +164,25 @@ export default function People({
       currentPageNum,
       dispatch,
       lastPage,
+      hasCurrentCriteriaResults,
       loadMoreError,
       listLoading
     ]
   );
 
   const onQueryChange = (query) => {
-    onSearchQueryChange<User>(query, criteria, setCriteria, setSearchQuery, [
-      'firstName',
-      'lastName',
-      'phone',
-      'email',
-      'jobTitle'
-    ]);
+    onSearchQueryChange<User>(
+      query,
+      criteria,
+      setCriteria,
+      setSearchQuery,
+      peopleSearchFields
+    );
+  };
+  const onSearchTextChange = (query: string) => {
+    setLoadError(false);
+    setLoadMoreError(false);
+    setSearchQuery(query);
   };
   useDebouncedEffect(
     () => {
@@ -162,7 +200,7 @@ export default function People({
           placeholder={t('search')}
           accessibilityLabel={t('search')}
           onFocus={() => setStartedSearch(true)}
-          onChangeText={setSearchQuery}
+          onChangeText={onSearchTextChange}
           value={searchQuery}
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
@@ -170,7 +208,7 @@ export default function People({
       <FlatList
         style={styles.scrollView}
         contentContainerStyle={styles.listContent}
-        data={canView ? users.content : []}
+        data={canView ? visibleUsers : []}
         keyExtractor={(user) => String(user.id)}
         renderItem={({ item: user }) => (
           <DirectoryCard
@@ -224,7 +262,7 @@ export default function People({
           ) : undefined
         }
         ListHeaderComponent={
-          loadError && users.content.length > 0 ? (
+          loadError && visibleUsers.length > 0 ? (
             <AsyncStateFeedback
               mode="banner"
               message={t('directory_load_error')}
@@ -233,7 +271,10 @@ export default function People({
           ) : null
         }
         ListEmptyComponent={
-          canView && (listLoading || !hasLoadedList) ? (
+          canView &&
+          (listLoading ||
+            !hasLoadedList ||
+            (!hasCurrentCriteriaResults && !loadError)) ? (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -290,7 +331,7 @@ export default function People({
           )
         }
         ListFooterComponent={
-          canView && !!users.content.length && !lastPage ? (
+          canView && !!visibleUsers.length && !lastPage ? (
             <DirectoryPaginationFooter
               loading={loadingMore}
               error={loadMoreError}

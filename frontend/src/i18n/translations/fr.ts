@@ -2467,6 +2467,7 @@ const frJSON = {
   api_key_label: 'Libellé de la clé API',
   api_key_created_success: 'Clé API créée avec succès',
   api_key_code_copied: 'Code de la clé API copié dans le presse-papiers',
+  api_key_copy_error: 'Impossible de copier la clé API. Veuillez réessayer.',
   api_key_code_view_once:
     "Ce code ne peut être affiché qu'une seule fois. Veuillez le copier maintenant car vous ne pourrez plus le voir.",
   api_key_code: 'Code de la clé API',

@@ -1168,3 +1168,9 @@ Régression ciblée vérifie le verrouillage des appuis concurrents, la libérat
 Le bouton du dialogue était désactivé après le rendu Formik suivant; deux appuis très rapprochés pouvaient donc lancer plusieurs demandes `auth/updatepwd`. Le handler utilise désormais le verrou asynchrone partagé pour envoyer une seule mise à jour pendant qu’elle est en cours. La confirmation de succès/échec et l’authentification existantes restent inchangées; une erreur ne bloque pas un nouvel essai.
 
 Régression ciblée vérifie l’usage du verrou, l’appel d’authentification conservé, le coalescement des soumissions concurrentes et la libération après échec. Tests Mobile pertinents, TypeScript et formatage à exécuter pour ce lot; vérifier aussi le dialogue sur appareil. Aucun contrat API, règle d’authentification ou donnée serveur ne change; aucun APK n’est généré.
+
+## Répertoires Personnes et Équipes — ne pas afficher la recherche précédente — 21 octobre 2026
+
+La liste conservait ses lignes après modification du texte de recherche, pendant le délai de debounce d’une seconde; sa pagination pouvait également charger une page avec les anciens critères. Personnes et Équipes masquent maintenant le cache jusqu’à ce que recherche, critères appliqués et réponse chargée correspondent, puis n’autorisent la pagination que pour ces résultats. Une erreur de la requête courante conserve un état réessayable. Les endpoints, paramètres de recherche et règles d’accès restent inchangés.
+
+Régression ciblée couvre les deux répertoires, le cache périmé, la garde de pagination et le renouvellement d’erreur à la saisie. Suite Mobile **47/47**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. La vérification tactile sur appareil reste à faire; aucun APK n’est généré.

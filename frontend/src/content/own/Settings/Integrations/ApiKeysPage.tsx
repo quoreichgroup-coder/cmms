@@ -50,6 +50,7 @@ import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import { onOpenApiDocs } from '../../../../utils/overall';
+import { writeClipboardText } from '../../../../utils/clipboard';
 import DateTimePicker from '@mui/lab/DateTimePicker';
 
 const DialogWrapper = styled(Dialog)(
@@ -172,9 +173,12 @@ function ApiKeys() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    showSnackBar(t('api_key_code_copied'), 'success');
+  const copyToClipboard = async (text: string) => {
+    const copied = await writeClipboardText(text);
+    showSnackBar(
+      t(copied ? 'api_key_code_copied' : 'api_key_copy_error'),
+      copied ? 'success' : 'error'
+    );
   };
 
   useEffect(() => {

@@ -23,6 +23,9 @@ import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import DirectoryCard from '../../components/DirectoryCard';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import DirectoryPaginationFooter from '../../components/DirectoryPaginationFooter';
+import _ from 'lodash';
+
+const teamSearchFields: (keyof Team)[] = ['name', 'description'];
 
 export default function Teams({
   navigation
@@ -67,22 +70,44 @@ export default function Teams({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
+  const criteriaSearchQuery = String(
+    criteria.filterFields.find((field) =>
+      teamSearchFields.some((key) => key === field.field)
+    )?.value ?? ''
+  );
+  const hasCurrentCriteriaResults =
+    loadedCriteria !== null &&
+    _.isEqual(loadedCriteria.filterFields, criteria.filterFields) &&
+    loadedCriteria.searchQuery === searchQuery &&
+    criteriaSearchQuery === searchQuery;
+  const visibleTeams = hasCurrentCriteriaResults ? teams.content : [];
   const loadTeams = useCallback(async () => {
     if (!canView) return;
     const requestId = ++activeListLoadId.current;
+    const requestSearchQuery = criteriaSearchQuery;
     setLoadError(false);
     setLoadMoreError(false);
     try {
       await dispatch(
         getTeams({ ...criteria, pageSize: 10, pageNum: 0, direction: 'DESC' })
       );
+      if (activeListLoadId.current === requestId) {
+        setLoadedCriteria({
+          filterFields: criteria.filterFields,
+          searchQuery: requestSearchQuery
+        });
+      }
     } catch (error) {
       logSafeError('Could not load teams:', error);
       if (activeListLoadId.current === requestId) setLoadError(true);
     } finally {
       if (activeListLoadId.current === requestId) setHasLoadedList(true);
     }
-  }, [canView, criteria, dispatch]);
+  }, [canView, criteria, criteriaSearchQuery, dispatch]);
 
   useEffect(() => {
     loadTeams();
@@ -105,6 +130,7 @@ export default function Teams({
         loadingMoreRef.current ||
         listLoading ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -129,16 +155,25 @@ export default function Teams({
       currentPageNum,
       dispatch,
       lastPage,
+      hasCurrentCriteriaResults,
       loadMoreError,
       listLoading
     ]
   );
 
   const onQueryChange = (query) => {
-    onSearchQueryChange<Team>(query, criteria, setCriteria, setSearchQuery, [
-      'name',
-      'description'
-    ]);
+    onSearchQueryChange<Team>(
+      query,
+      criteria,
+      setCriteria,
+      setSearchQuery,
+      teamSearchFields
+    );
+  };
+  const onSearchTextChange = (query: string) => {
+    setLoadError(false);
+    setLoadMoreError(false);
+    setSearchQuery(query);
   };
   useDebouncedEffect(
     () => {
@@ -156,7 +191,7 @@ export default function Teams({
           placeholder={t('search')}
           accessibilityLabel={t('search')}
           onFocus={() => setStartedSearch(true)}
-          onChangeText={setSearchQuery}
+          onChangeText={onSearchTextChange}
           value={searchQuery}
           style={[styles.search, { backgroundColor: theme.colors.surface }]}
         />
@@ -164,7 +199,7 @@ export default function Teams({
       <FlatList
         style={styles.scrollView}
         contentContainerStyle={styles.listContent}
-        data={canView ? teams.content : []}
+        data={canView ? visibleTeams : []}
         keyExtractor={(team) => String(team.id)}
         renderItem={({ item: team }) => (
           <DirectoryCard
@@ -201,7 +236,7 @@ export default function Teams({
           ) : undefined
         }
         ListHeaderComponent={
-          loadError && teams.content.length > 0 ? (
+          loadError && visibleTeams.length > 0 ? (
             <AsyncStateFeedback
               mode="banner"
               message={t('directory_load_error')}
@@ -210,7 +245,10 @@ export default function Teams({
           ) : null
         }
         ListEmptyComponent={
-          canView && (listLoading || !hasLoadedList) ? (
+          canView &&
+          (listLoading ||
+            !hasLoadedList ||
+            (!hasCurrentCriteriaResults && !loadError)) ? (
             <View
               style={styles.loadingState}
               accessibilityRole="progressbar"
@@ -267,7 +305,7 @@ export default function Teams({
           )
         }
         ListFooterComponent={
-          canView && !!teams.content.length && !lastPage ? (
+          canView && !!visibleTeams.length && !lastPage ? (
             <DirectoryPaginationFooter
               loading={loadingMore}
               error={loadMoreError}

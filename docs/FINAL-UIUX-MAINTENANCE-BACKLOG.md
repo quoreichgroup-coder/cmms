@@ -821,3 +821,14 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Des taps rapprochés avant le rendu Formik pouvaient envoyer plusieurs appels à `auth/updatepwd`. Le handler utilise maintenant le verrou asynchrone partagé : une seule requête reste en vol et un échec permet un nouvel essai. L’endpoint, les messages et la logique d’authentification sont conservés.
 - Test ciblé **2/2**, suite Mobile **46/46**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. Double-tap et erreur/réessai sur appareil non vérifiés; aucun APK n’a été généré.
+
+### WEB — confirmation fiable de copie des clés API — 21 octobre 2026
+
+- Les actions de copie des secrets affichés après création ou rotation annonçaient le succès sans attendre `navigator.clipboard.writeText`; un refus de permission ou une API indisponible donnait donc une confirmation trompeuse. Les deux actions attendent maintenant la copie et affichent une erreur localisée si elle échoue.
+- `api-key-clipboard.test.cjs` vérifie l’écriture réussie, le rejet de permission et l’absence du presse-papiers. Endpoints, permissions et durée de vie des secrets restent inchangés.
+- Test ciblé **1/1**, typecheck Web, ESLint ciblé, Prettier et `git diff --check` réussis; test navigateur du refus de permission à faire.
+
+### MOBILE — fraîcheur des recherches Personnes et Équipes — 21 octobre 2026
+
+- Personnes et Équipes masquent les données de la recherche précédente pendant le debounce et ne paginent pas avant que la réponse corresponde aux critères courants. Les erreurs de la recherche active restent relançables; paramètres API et accès sont inchangés.
+- Régression ciblée, suite Mobile **47/47**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. Essai tactile sur appareil non réalisé; aucun APK n’a été généré.
