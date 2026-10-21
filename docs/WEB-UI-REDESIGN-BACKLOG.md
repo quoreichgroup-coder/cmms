@@ -1191,6 +1191,12 @@ Le nom de ce bouton inclut maintenant le libellé rendu de sa colonne (« Action
 
 - Le premier build CRA s’arrêtait encore avec `process exited too early`. Le runner disposait de 3,3 Go environ sans swap; le build a ensuite réussi avec `NODE_OPTIONS=--max-old-space-size=2048 GENERATE_SOURCEMAP=false CI=true npm run build` (`Compiled successfully`). La désactivation des sourcemaps ne modifie pas le code livré, mais réduit les artefacts de diagnostic; le pipeline de déploiement habituel peut conserver sa configuration source maps.
 - `node --test --test-reporter=dot scripts/*.test.cjs` termine avec le code 0 dans ce checkout. Le build valide le bundle Web courant, pas une recette Chromium avec session authentifiée ni le fonctionnement sur le VPS. Aucun déploiement, commit ou push n’a été fait.
+
+### DOC-02 — robustesse de l’historique des rapports — 21 octobre 2026
+
+- Les réponses de liste d’archives hors contexte (dialogue fermé, WO changé ou composant démonté) sont ignorées. Le dialogue distingue chargement, liste vide et erreur, et permet de réessayer le chargement.
+- Le téléchargement d’un document émis vérifie `Content-Type: application/pdf` et refuse une réponse vide; il garde la route authentifiée et ne crée pas de lien de stockage public.
+- Tests de régression dédiés, suite Web complète, TypeScript, ESLint et Prettier passent. La tentative de build CRA n’a pas produit de résultat final exploitable; build de production et recette authentifiée restent à confirmer.
 # Request data isolation across account changes — 21 October 2026
 
 - **Done:** the Web Request Redux slice now tags asynchronous reads and mutations with a session generation. Results from the prior account are ignored after `revertAll`, including list/detail loads, pending-request count, create/edit/delete, approve and cancel. Existing request IDs, endpoints, permissions and workflow semantics are unchanged.

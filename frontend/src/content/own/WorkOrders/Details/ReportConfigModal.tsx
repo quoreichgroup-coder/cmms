@@ -15,13 +15,14 @@ import {
   Typography
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { useDispatch } from '../../../../store';
 import { getPDFReport, ReportConfig } from '../../../../slices/workOrder';
 import ReportConfigFields from './ReportConfigFields';
 import api, { getErrorMessage } from '../../../../utils/api';
+import { isPdfContentType } from '../../../../utils/documentResponse';
 
 interface GeneratedDocument {
   id: number;
@@ -61,26 +62,49 @@ export default function ReportConfigModal({
   const [generating, setGenerating] = useState<boolean>(false);
   const [issuing, setIssuing] = useState<boolean>(false);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsLoaded, setDocumentsLoaded] = useState(false);
+  const [documentsLoadFailed, setDocumentsLoadFailed] = useState(false);
   const [documentError, setDocumentError] = useState('');
   const [documentSaved, setDocumentSaved] = useState(false);
+  const documentsRequest = useRef(0);
 
-  const loadDocuments = useCallback(() => {
+  const loadDocuments = useCallback(async () => {
+    const requestId = ++documentsRequest.current;
     setDocumentError('');
-    api
-      .get<GeneratedDocument[]>(`work-orders/${workOrderId}/documents`)
-      .then(setDocuments)
-      .catch((error) =>
+    setDocuments([]);
+    setDocumentsLoaded(false);
+    setDocumentsLoadFailed(false);
+    setDocumentsLoading(true);
+    try {
+      const result = await api.get<GeneratedDocument[]>(
+        `work-orders/${workOrderId}/documents`
+      );
+      if (requestId !== documentsRequest.current) return;
+      if (!Array.isArray(result)) throw new Error('invalid_document_list');
+      setDocuments(result);
+    } catch (error) {
+      if (requestId === documentsRequest.current) {
+        setDocumentsLoadFailed(true);
         setDocumentError(
           getErrorMessage(error, t('issued_documents_load_error'))
-        )
-      );
+        );
+      }
+    } finally {
+      if (requestId === documentsRequest.current) {
+        setDocumentsLoading(false);
+        setDocumentsLoaded(true);
+      }
+    }
   }, [t, workOrderId]);
 
   useEffect(() => {
     if (open) {
-      setDocumentError('');
-      loadDocuments();
+      void loadDocuments();
     }
+    return () => {
+      documentsRequest.current += 1;
+    };
   }, [open, loadDocuments]);
 
   const handleToggle = (key: string) => {
@@ -113,16 +137,20 @@ export default function ReportConfigModal({
         `documents/${issuedDocument.id}/download`,
         { raw: true }
       );
+      if (!isPdfContentType(response.headers.get('content-type'))) {
+        throw new Error('invalid_document_content_type');
+      }
       const blob = await response.blob();
+      if (blob.size === 0) throw new Error('empty_document');
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = issuedDocument.fileName;
       link.click();
-      window.URL.revokeObjectURL(url);
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       setDocumentError(
-        getErrorMessage(error, t('issued_documents_load_error'))
+        getErrorMessage(error, t('issued_document_download_error'))
       );
     }
   };
@@ -137,7 +165,7 @@ export default function ReportConfigModal({
         config
       );
       setDocumentSaved(true);
-      loadDocuments();
+      void loadDocuments();
     } catch (error) {
       setDocumentError(
         getErrorMessage(error, t('issued_document_issue_error'))
@@ -164,20 +192,40 @@ export default function ReportConfigModal({
           {t('issued_documents')}
         </Typography>
         {documentError && (
-          <Alert severity="error" sx={{ mb: 1 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 1 }}
+            action={
+              documentsLoadFailed ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => void loadDocuments()}
+                  disabled={documentsLoading}
+                >
+                  {t('retry')}
+                </Button>
+              ) : undefined
+            }
+          >
             {documentError}
           </Alert>
         )}
         {documentSaved && (
-          <Alert severity="success" sx={{ mb: 1 }}>
+          <Alert severity="success" role="status" sx={{ mb: 1 }}>
             {t('issued_document_saved')}
           </Alert>
         )}
-        {documents.length === 0 ? (
+        {documentsLoading ? (
+          <div role="status" aria-live="polite">
+            <CircularProgress size="1rem" sx={{ mr: 1 }} />
+            {t('issued_documents_loading')}
+          </div>
+        ) : documentsLoaded && !documentError && documents.length === 0 ? (
           <Typography color="text.secondary" variant="body2">
             {t('issued_documents_empty')}
           </Typography>
-        ) : (
+        ) : documents.length > 0 ? (
           <List dense disablePadding>
             {documents.map((document) => (
               <ListItem
@@ -206,7 +254,7 @@ export default function ReportConfigModal({
               </ListItem>
             ))}
           </List>
-        )}
+        ) : null}
       </DialogContent>
       <DialogActions>
         <Button variant="outlined" onClick={onClose}>

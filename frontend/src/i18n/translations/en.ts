@@ -2487,7 +2487,10 @@ const locale = {
   issued_documents: 'Issued documents',
   issued_documents_empty:
     'No official document has been issued for this work order.',
+  issued_documents_loading: 'Loading issued documents…',
   issued_documents_load_error: 'Could not load issued documents.',
+  issued_document_download_error:
+    'Could not download this document. The server response was not a valid PDF.',
   work_order_report_preview_error: 'Could not generate the work order preview.',
   issued_document_issue_error: 'Could not issue and archive this document.',
   issued_document_saved: 'Official document issued and archived.',

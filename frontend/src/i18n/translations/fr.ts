@@ -2732,7 +2732,10 @@ const frJSON = {
   issued_documents: 'Documents émis',
   issued_documents_empty:
     'Aucun document officiel n’a été émis pour cet ordre de travail.',
+  issued_documents_loading: 'Chargement des documents émis…',
   issued_documents_load_error: 'Impossible de charger les documents émis.',
+  issued_document_download_error:
+    'Impossible de télécharger ce document : la réponse du serveur n’est pas un PDF valide.',
   work_order_report_preview_error:
     'Impossible de générer l’aperçu de l’ordre de travail.',
   issued_document_issue_error:
