@@ -888,3 +888,9 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Le chargement de la liste des fichiers échouait sans état d’erreur visible : le tableau pouvait rester vide et donner l’impression qu’aucun document n’existait. Le store conserve maintenant un état d’échec, l’interface affiche un message traduit avec une action Réessayer, et une nouvelle tentative réussie efface cet état. Le journal technique reste filtré par `logSafeError`.
 - `file-load-error.test.cjs` vérifie un premier échec réseau puis un retry réussi; test ciblé **1/1**, TypeScript Web, ESLint ciblé, Prettier et `git diff --check` réussis. Aucun endpoint, droit ou règle de gestion n’a changé; recette navigateur authentifiée à compléter.
+
+### WEB — reprise du chargement du catalogue des forfaits — 21 octobre 2026
+
+- Si le chargement du catalogue réservé au super-administrateur échouait, l’écran restait bloqué sur un message d’erreur sans action de récupération; l’utilisateur devait recharger toute la page.
+- Le message propose maintenant « Réessayer »; la nouvelle tentative relance l’état de chargement et remplace l’erreur par les données en cas de succès. Aucun endpoint, rôle ni effet sur les abonnements n’a changé.
+- `subscription-catalog-retry.test.cjs` vérifie que l’état d’erreur expose bien l’action, que celle-ci réinitialise l’état et relance l’effet de chargement. Test ciblé **1/1**, TypeScript, ESLint du composant et Prettier réussis; la recette authentifiée en rôle super-administrateur reste à faire.

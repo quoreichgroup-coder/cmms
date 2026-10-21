@@ -5,6 +5,55 @@ const assert = require('node:assert/strict'),
   { mobileRuntime } = require('./mobile-test-runtime.cjs');
 const response = (status, body) =>
   new Response(status === 204 ? null : JSON.stringify(body), { status });
+test('vendor website links preserve HTTP URLs and reject unsupported schemes', () => {
+  const { normalizeWebsiteUrl } = mobileRuntime().load('utils/websiteUrl.ts');
+  assert.equal(
+    normalizeWebsiteUrl(' https://example.com/path '),
+    'https://example.com/path'
+  );
+  assert.equal(
+    normalizeWebsiteUrl('http://legacy.example.com'),
+    'http://legacy.example.com/'
+  );
+  assert.equal(normalizeWebsiteUrl('example.com'), 'https://example.com/');
+  assert.equal(
+    normalizeWebsiteUrl('example.com:8080/docs?q=asset'),
+    'https://example.com:8080/docs?q=asset'
+  );
+  assert.equal(
+    normalizeWebsiteUrl('https://example.com:8443/manuals/'),
+    'https://example.com:8443/manuals/'
+  );
+  assert.equal(normalizeWebsiteUrl('javascript:alert(1)'), null);
+  assert.equal(normalizeWebsiteUrl('data:text/html,<script/>'), null);
+  assert.equal(normalizeWebsiteUrl('mailto:ops@example.com'), null);
+  assert.equal(normalizeWebsiteUrl('//example.com'), null);
+  assert.equal(normalizeWebsiteUrl('https://user:secret@example.com'), null);
+  assert.equal(normalizeWebsiteUrl('https://example.com:99999'), null);
+  assert.equal(normalizeWebsiteUrl('   '), null);
+});
+test('vendor and customer detail screens share safe website URL handling', () => {
+  for (const [screen, record] of [
+    ['VendorDetailsScreen.tsx', 'vendor'],
+    ['CustomerDetailsScreen.tsx', 'customer']
+  ]) {
+    const source = fs.readFileSync(
+      path.join(__dirname, '..', 'screens/vendorsCustomers/details', screen),
+      'utf8'
+    );
+    assert.match(source, /normalizeWebsiteUrl/);
+    assert.match(
+      source,
+      new RegExp(`normalizeWebsiteUrl\\(${record}\\.website\\)`)
+    );
+    assert.match(source, /Linking\.openURL\(url\)\.catch/);
+    assert.match(source, /showSnackBar\(t\('invalid_website'\), 'error'\)/);
+    assert.doesNotMatch(
+      source,
+      new RegExp(`'https://' \\+ ${record}\\.website`)
+    );
+  }
+});
 test('form selectors restore single and multi-selection IDs consistently', () => {
   const runtime = mobileRuntime();
   const { getSelectedFormValues } = runtime.load('utils/formSelection.ts');

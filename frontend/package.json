@@ -162,7 +162,8 @@
     "test:sidebar-layout": "node --test scripts/sidebar-layout.test.cjs",
     "test:maintenance-dashboard-metrics": "node --test scripts/maintenance-dashboard-metrics.test.cjs",
     "test:datagrid-hover": "node --test scripts/datagrid-hover.test.cjs",
-    "test:workload-errors": "node --test scripts/workload-request-errors.test.cjs"
+    "test:workload-errors": "node --test scripts/workload-request-errors.test.cjs",
+    "test:subscription-catalog-retry": "node --test scripts/subscription-catalog-retry.test.cjs"
   },
   "browserslist": {
     "production": [

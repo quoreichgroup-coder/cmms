@@ -24,6 +24,7 @@ import { getCustomFieldValuesForDetails } from '../../../models/form';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/role';
+import { normalizeWebsiteUrl } from '../../../utils/websiteUrl';
 
 export default function CustomerDetailsScreen({
   navigation,
@@ -205,13 +206,16 @@ export default function CustomerDetailsScreen({
           >
             <Text>{t('website')}</Text>
             <TouchableOpacity
-              onPress={() =>
-                Linking.openURL(
-                  customer.website.startsWith('https://')
-                    ? customer.website
-                    : 'https://' + customer.website
-                )
-              }
+              onPress={() => {
+                const url = normalizeWebsiteUrl(customer.website);
+                if (!url) {
+                  showSnackBar(t('invalid_website'), 'error');
+                  return;
+                }
+                void Linking.openURL(url).catch(() =>
+                  showSnackBar(t('invalid_website'), 'error')
+                );
+              }}
             >
               <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>
                 {customer.website}

@@ -1187,6 +1187,12 @@ Après l’échec d’une page suivante, le bouton « Réessayer » effaçait l�
 
 Le test dédié vérifie que le retry explicite atteint le chargement malgré l’erreur précédente et que le callback UI le transmet. API, autorisations et règles d’approvisionnement restent inchangées. Test ciblé **3/3**, suite Mobile **48/48**, TypeScript, Prettier ciblé, onboarding **5/5**, disponibilité **5/5** et `git diff --check` réussis. Essai réseau réel et affichage sur appareil restent à faire; aucun APK n’est généré.
 
+## Fiches Fournisseur/Client Mobile — normaliser l’ouverture des sites web — 21 octobre 2026
+
+Une adresse enregistrée avec le schéma HTTP était préfixée par `https://` comme si elle était un domaine nu, ce qui produisait `https://http://…` et empêchait l’ouverture. La fiche conserve maintenant les URL HTTP(S) valides, ajoute HTTPS aux domaines sans schéma et refuse les schémas non web; une erreur native d’ouverture affiche le message localisé déjà utilisé pour les sites invalides. Aucun contrat API, champ, droit ou règle métier ne change.
+
+La régression couvre HTTP, HTTPS, domaine nu, chemin/query, ports explicites, chaîne vide, URL protocol-relative, identifiants intégrés, port invalide et schémas `javascript:`, `data:`/`mailto:`. Seule la cible d’ouverture est normalisée; le texte affiché reste identique. Suite de régression Mobile **177/177**, TypeScript Mobile, Prettier ciblé et `git diff --check` réussis. L’ouverture externe reste à confirmer sur Android/iOS; aucun APK n’est généré.
+
 ## Équipements Mobile — écarter les erreurs de pagination obsolètes — 21 octobre 2026
 
 Lorsqu’une page suivante d’équipements était encore en vol au début d’une nouvelle recherche, son échec tardif pouvait réactiver le bandeau de reprise sur les résultats de la recherche actuelle. Son `finally` pouvait aussi libérer le verrou d’une pagination plus récente. Le début du chargement de la première page invalide maintenant la séquence de pagination précédente et réinitialise son verrou; les blocs `catch` et `finally` ne modifient l’interface que si la première page et la pagination sont toujours les requêtes courantes. Les réponses serveur obsolètes restent également écartées par la garde Redux existante.

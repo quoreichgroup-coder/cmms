@@ -44,8 +44,10 @@ function SubscriptionCatalog() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [savingPlanIds, setSavingPlanIds] = useState<number[]>([]);
-  const [pendingSavePlan, setPendingSavePlan] = useState<SubscriptionPlan | null>(null);
+  const [pendingSavePlan, setPendingSavePlan] =
+    useState<SubscriptionPlan | null>(null);
   const savedPlans = useRef<Record<number, { name: string; features: string }>>(
     {}
   );
@@ -90,7 +92,13 @@ function SubscriptionCatalog() {
     return () => {
       active = false;
     };
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, loadAttempt]);
+
+  const retryLoad = () => {
+    setFailed(false);
+    setLoading(true);
+    setLoadAttempt((attempt) => attempt + 1);
+  };
 
   const toggleFeature = (
     planId: number,
@@ -167,7 +175,16 @@ function SubscriptionCatalog() {
             <CircularProgress />
           </Box>
         ) : failed ? (
-          <Alert severity="error">{t('plan_catalog_load_error')}</Alert>
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={retryLoad}>
+                {t('retry')}
+              </Button>
+            }
+          >
+            {t('plan_catalog_load_error')}
+          </Alert>
         ) : (
           <Grid container spacing={2}>
             {plans.map((plan) => {

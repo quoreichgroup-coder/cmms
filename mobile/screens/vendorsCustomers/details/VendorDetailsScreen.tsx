@@ -24,6 +24,7 @@ import { getCustomFieldValuesForDetails } from '../../../models/form';
 import AsyncStateFeedback from '../../../components/AsyncStateFeedback';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/role';
+import { normalizeWebsiteUrl } from '../../../utils/websiteUrl';
 
 export default function VendorDetailsScreen({
   navigation,
@@ -200,13 +201,16 @@ export default function VendorDetailsScreen({
           >
             <Text>{t('website')}</Text>
             <TouchableOpacity
-              onPress={() =>
-                Linking.openURL(
-                  vendor.website.startsWith('https://')
-                    ? vendor.website
-                    : 'https://' + vendor.website
-                )
-              }
+              onPress={() => {
+                const url = normalizeWebsiteUrl(vendor.website);
+                if (!url) {
+                  showSnackBar(t('invalid_website'), 'error');
+                  return;
+                }
+                void Linking.openURL(url).catch(() =>
+                  showSnackBar(t('invalid_website'), 'error')
+                );
+              }}
             >
               <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>
                 {vendor.website}
