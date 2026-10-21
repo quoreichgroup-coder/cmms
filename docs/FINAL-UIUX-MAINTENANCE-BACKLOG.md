@@ -775,3 +775,9 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Le token de survol du sidebar est plus visible sur sa surface claire. Les icônes et le repère des sous-entrées utilisent l’accent QPM, tandis que les libellés restent lisibles et que l’état sélectionné garde son style distinct. Aucun endpoint, permission, route ou workflow n’a changé.
 - Vérification : tests ciblés de navigation/layout/contraste, suite Web complète, TypeScript, ESLint, Prettier et `git diff --check` réussis. Rendu authentifié Chromium et recette VPS restent à faire.
+
+### MOB-ONBOARD-06 — revalidation de la persistance et des accès — 21 octobre 2026
+
+- Les tests existants du contrôleur et du service `UserSettings` confirment que l’utilisateur ne peut modifier que ses propres préférences, que les versions/états non pris en charge sont refusés et que les mises à jour générales préservent l’état d’onboarding : **7 tests backend réussis**.
+- Vérification client : régression Mobile **43/43**, tests onboarding **5/5**, disponibilité des équipes **5/5** et typecheck TypeScript réussis. Aucun code applicatif, migration ou donnée n’a été changé pendant cette revalidation.
+- Restent à faire avant livraison : confirmer l’application de la migration dans un environnement de recette, tester skip/fin/replay et bascule de compte sur appareils Android/iOS, puis vérifier l’expérience d’un compte réel avec différentes permissions. Ces résultats locaux ne valent pas recette de production.
