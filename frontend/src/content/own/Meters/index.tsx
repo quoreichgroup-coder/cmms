@@ -698,7 +698,7 @@ function Meters() {
                   onColumnVisibilityChange={setColumnVisibility}
                   onRowClick={(row) => handleOpenDetails(row.id)}
                   noRowsMessage={t('noRows.meter.message')}
-                  noRowsAction={t('')}
+                  noRowsAction={t('noRows.meter.action')}
                   enableColumnReordering
                   enableColumnResizing
                   pinnedColumns={pinnedColumns}

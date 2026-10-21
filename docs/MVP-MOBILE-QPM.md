@@ -1150,3 +1150,9 @@ Validation après ajout : `npm run test:mobile-regression` (**32/32**), TypeScri
 ## Revalidation de la suite Mobile — 20 octobre 2026
 
 La commande `npm run test:mobile-regression` réussit (**35/35**) et `npm run test:onboarding` réussit (**5/5**), y compris les gardes NFC iOS, le rebranding des textes localisés et la reprise de session. TypeScript Mobile passe. L’APK 1.0.59 a été reconstruit le 20 octobre sans incrément (versionCode 42), signature v2 vérifiée; SHA-256 `8142cbd1af1b4c69af387c50421861b9812bfbe94e221ee8b902987f3cc71b8c`. Il s’agit de tests automatisés locaux et d’une validation d’archive; ils ne remplacent pas l’installation visuelle sur Android/iOS, la lecture NFC physique, ni un essai contre le serveur de recette.
+
+## Mes disponibilités — ignorer les réponses de chargement périmées — 21 octobre 2026
+
+Le chargement de la disponibilité personnelle est relancé à l’ouverture de l’écran et lors d’un rafraîchissement. Si deux lectures se chevauchaient, une réponse plus ancienne pouvait arriver en dernier et remplacer l’horaire affiché; une réponse tardive après avoir quitté l’écran pouvait aussi modifier son état local. Chaque lecture possède maintenant une séquence : seul le dernier chargement encore valide met à jour horaires, erreur et indicateur de chargement, et le départ de l’écran invalide la requête en cours. Aucun endpoint, donnée, droit ou règle de disponibilité ne change.
+
+Régression ciblée : ordre de réponses différées et présence des gardes de succès/erreur/finalisation/invalidation dans l’écran. Vérifications : test ciblé, suite Mobile (**44/44 scripts**), TypeScript, Prettier et `git diff --check` réussis; onboarding (**5/5**) et helpers de disponibilité (**5/5**) passent également. Le comportement API réel et le rafraîchissement sur téléphone restent à vérifier; aucun APK n’est généré par ce changement.

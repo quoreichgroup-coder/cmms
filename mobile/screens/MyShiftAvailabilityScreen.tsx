@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -22,6 +22,7 @@ import {
 } from '../utils/shiftAvailability';
 import { logSafeError } from '../utils/safeErrorLog';
 import { qpmLayoutTokens } from '../theme/tokens';
+import { beginRequest, isCurrentRequest } from '../utils/requestSequence';
 
 const dayTranslationKeys: Record<string, string> = {
   MONDAY: 'shift_day_monday',
@@ -43,23 +44,35 @@ export default function MyShiftAvailabilityScreen(
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadRequestSequence = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = beginRequest(loadRequestSequence);
     setLoading(true);
     setError(null);
     try {
-      setConfiguration(await getMyShiftConfiguration());
+      const nextConfiguration = await getMyShiftConfiguration();
+      if (!isCurrentRequest(requestId, loadRequestSequence)) return;
+      setConfiguration(nextConfiguration);
     } catch (loadError) {
+      if (!isCurrentRequest(requestId, loadRequestSequence)) return;
       logSafeError('Could not load personal shift availability:', loadError);
       setError(getErrorMessage(loadError, t('shift_availability_load_error')));
     } finally {
-      setLoading(false);
+      if (isCurrentRequest(requestId, loadRequestSequence)) {
+        setLoading(false);
+      }
     }
   }, [t]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
+      return () => {
+        // Ignore a response from a screen that has lost focus; the next focus
+        // or pull-to-refresh starts a newer request and owns the visible state.
+        beginRequest(loadRequestSequence);
+      };
     }, [load])
   );
 

@@ -793,3 +793,9 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 - **Web Charge de travail :** le dialogue de saisie de durée se fermait avant la réponse de planification; une erreur API faisait perdre les heures saisies et la cible du glisser-déposer. Il reste ouvert avec les valeurs saisies après échec, se ferme seulement après succès et bloque double envoi/fermeture pendant la requête. Le reducer n’applique aucune mutation optimiste en cas d’échec. Routes, permissions et règles de planification restent inchangées.
 - **Mobile Ordres de travail :** pendant le délai de recherche, une erreur de pagination de l’ancienne requête pouvait afficher un bouton Réessayer inactif. Le message n’apparaît plus tant que les résultats ne correspondent pas aux critères courants; filtres, pagination et API ne changent pas.
 - Vérification : Web tests ciblés **6/6**, TypeScript, ESLint, Prettier et `git diff --check` réussis; la recette authentifiée avec le droit de planification reste à faire. Mobile suite `node --test --test-reporter=dot scripts/*.test.cjs`, TypeScript et Prettier réussis (code retour 0); vérification visuelle sur appareil non effectuée. Aucun APK, déploiement ou changement backend dans ce lot.
+
+### WEB — libellé de l’état vide des compteurs — 21 octobre 2026
+
+- L’écran Compteurs demandait la traduction de la clé vide pour l’action de l’état sans résultat. Le texte de création existait déjà en français et en anglais, mais n’était jamais affiché.
+- L’écran utilise maintenant `noRows.meter.action`, sans changer les droits, filtres ou opérations CRUD. Le test `meters-empty-state.test.cjs` vérifie le branchement et la présence des libellés localisés.
+- Vérifications ciblées et typecheck Web exécutés; l’essai visuel authentifié reste à faire.
