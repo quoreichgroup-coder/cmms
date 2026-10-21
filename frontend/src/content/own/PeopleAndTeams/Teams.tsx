@@ -472,13 +472,11 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
     >
       <RenderTeamsAddModal />
       <ModalTeamDetails />
-      {Boolean(teams.content.length) && (
-        <Stack direction="row" width="95%">
-          <Box sx={{ my: 0.5 }}>
-            <SearchInput onChange={debouncedQueryChange} />
-          </Box>
-        </Stack>
-      )}
+      <Stack direction="row" width="95%">
+        <Box sx={{ my: 0.5 }}>
+          <SearchInput onChange={debouncedQueryChange} />
+        </Box>
+      </Stack>
       {Renderteams()}
       <ConfirmDialog
         open={openDelete}

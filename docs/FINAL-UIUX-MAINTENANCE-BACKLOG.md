@@ -1,5 +1,11 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
+### WEB — recherche persistante dans la liste des équipes — 21 octobre 2026
+
+- Le champ de recherche des équipes était rendu seulement si la page courante contenait au moins une équipe. Après une recherche sans résultat, le champ disparaissait avec la liste : l’utilisateur ne pouvait plus effacer le terme pour retrouver ses équipes.
+- Le champ reste maintenant affiché au-dessus de la liste, y compris pendant un état vide. Les filtres, la pagination, les routes, les permissions et les appels API ne changent pas.
+- `frontend/scripts/team-search-empty-state.test.cjs` vérifie que le champ n’est pas conditionné par le contenu de la page (**1/1**). TypeScript Web, ESLint TSX, Prettier sur les fichiers modifiés et `git diff --check` passent; la recette dans Chromium authentifié reste ouverte.
+
 ### WEB — isolation et reprise du portail public de Demande — 21 octobre 2026
 
 - En changeant l’UUID du portail dans une session de navigation, l’ancien portail pouvait rester dans Redux. Une réponse tardive de l’ancienne URL pouvait aussi remplacer le portail courant; si le nouveau chargement échouait, l’interface risquait d’afficher le mauvais formulaire et ses informations société.

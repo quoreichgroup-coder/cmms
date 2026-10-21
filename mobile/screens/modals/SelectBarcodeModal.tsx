@@ -23,6 +23,7 @@ import { ensureScannerCameraPermission } from '../../utils/mediaPermissions';
 import CameraPreviewError from '../../components/CameraPreviewError';
 import CameraPermissionError from '../../components/CameraPermissionError';
 import { logSafeError } from '../../utils/safeErrorLog';
+import { hasBarcodePayload } from '../../utils/barcodePayload';
 
 export default function SelectBarcodeModal({
   navigation,
@@ -108,7 +109,12 @@ export default function SelectBarcodeModal({
   }, []);
 
   const handleBarCodeScanned = ({ data }: { type: string; data: string }) => {
-    if (!appIsActiveRef.current || scanHandledRef.current) return;
+    if (
+      !appIsActiveRef.current ||
+      scanHandledRef.current ||
+      !hasBarcodePayload(data)
+    )
+      return;
     scanHandledRef.current = true;
     navigation.goBack();
     onChange(data);

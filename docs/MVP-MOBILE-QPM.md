@@ -1204,3 +1204,9 @@ Le test dédié couvre Fournisseurs et Clients ainsi que le changement de texte 
 Dans l’onglet Équipements d’une fiche pièce, une actualisation pouvait se chevaucher avec le chargement initial. Si le chargement le plus récent échouait puis que l’ancien réussissait ou se terminait ensuite, son `finally` pouvait arrêter l’indicateur du chargement courant et masquer l’erreur affichée. Le résultat métier reste indexé par pièce dans Redux; l’état local de chargement et d’erreur est maintenant réservé à la requête la plus récente. Une sortie de l’onglet invalide également les réponses en vol. Aucun endpoint, permission ou règle d’inventaire ne change.
 
 Test ciblé vérifie l’ordre « ancienne requête en attente, nouvelle requête échouée, ancienne requête terminée » et les gardes de succès/erreur/finalisation/nettoyage dans l’écran. Suite Mobile : **52/52 scripts**, tests onboarding **5/5**, disponibilités **5/5**, TypeScript et Prettier ciblé réussis. La reprise réseau réelle et la vérification visuelle sur appareil restent à faire; aucun APK n’est généré.
+
+## Scan code-barres Mobile — ignorer les callbacks sans valeur — 21 octobre 2026
+
+Le scanner QR/code-barres consommait son garde anti-double lecture et fermait l’écran même si la bibliothèque caméra émettait une chaîne vide ou composée d’espaces. Cela pouvait envoyer une recherche invalide et obliger l’utilisateur à rouvrir le scanner. Ces callbacks vides sont maintenant ignorés avant le garde; le scanner reste ouvert pour la lecture suivante. Toute valeur non vide est transmise à l’application exactement telle que reçue : le contenu du code et l’API ne changent pas.
+
+Test ciblé vérifie les chaînes vides/blanches, des payloads valides y compris avec espaces conservés, l’ordre du garde et la transmission sans transformation. Tests natifs caméra et lecture sur appareil restent à effectuer.

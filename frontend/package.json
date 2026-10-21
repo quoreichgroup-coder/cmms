@@ -145,6 +145,7 @@
     "test:request-portal-public-load": "node --test scripts/request-portal-public-load.test.cjs",
     "test:request-cancellation-errors": "node --test scripts/request-cancellation-errors.test.cjs",
     "test:request-detail-load-errors": "node --test scripts/request-detail-load-error.test.cjs",
+    "test:team-search-empty-state": "node --test scripts/team-search-empty-state.test.cjs",
     "test:work-order-list-errors": "node --test scripts/work-order-list-error.test.cjs",
     "test:work-order-detail-load-errors": "node --test scripts/work-order-detail-load-error.test.cjs",
     "test:work-order-comment-submit": "node --test scripts/work-order-comment-submit.test.cjs",

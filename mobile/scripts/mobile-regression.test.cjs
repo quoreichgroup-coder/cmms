@@ -757,7 +757,7 @@ test('task source chooser uses responsive accessible card actions', () => {
     /navigation\.navigate\(option\.screen,\s*\{\s*onChange,\s*selected\s*\}\)/
   );
 });
-test('barcode scanner synchronously accepts only the first scan callback', () => {
+test('barcode scanner ignores empty callbacks before accepting the first valid scan', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/modals/SelectBarcodeModal.tsx'),
     'utf8'
@@ -766,7 +766,7 @@ test('barcode scanner synchronously accepts only the first scan callback', () =>
   assert.match(source, /const scanHandledRef = useRef\(false\)/);
   assert.match(
     source,
-    /if \(!appIsActiveRef\.current \|\| scanHandledRef\.current\) return;\s*scanHandledRef\.current = true;/
+    /if \([\s\S]*?!appIsActiveRef\.current[\s\S]*?scanHandledRef\.current[\s\S]*?!hasBarcodePayload\(data\)[\s\S]*?\)\s*return;\s*scanHandledRef\.current = true;/
   );
 });
 test('NFC reader cancels in background and resumes after the pending read settles', () => {
