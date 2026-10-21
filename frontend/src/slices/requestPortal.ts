@@ -15,12 +15,18 @@ interface RequestPortalState {
   requestPortals: Page<RequestPortal>;
   singleRequestPortal: RequestPortal;
   loadingGet: boolean;
+  loadingPublicGet: boolean;
+  publicGetError: boolean;
+  activePublicUuid: string | null;
 }
 
 const initialState: RequestPortalState = {
   requestPortals: getInitialPage<RequestPortal>(),
   singleRequestPortal: null,
-  loadingGet: false
+  loadingGet: false,
+  loadingPublicGet: false,
+  publicGetError: false,
+  activePublicUuid: null
 };
 
 const slice = createSlice({
@@ -89,6 +95,49 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+    },
+    startPublicRequestPortalLoad(
+      state: RequestPortalState,
+      action: PayloadAction<{ uuid: string }>
+    ) {
+      state.activePublicUuid = action.payload.uuid;
+      state.singleRequestPortal = null;
+      state.loadingPublicGet = true;
+      state.publicGetError = false;
+    },
+    failPublicRequestPortalLoad(
+      state: RequestPortalState,
+      action: PayloadAction<{ uuid: string }>
+    ) {
+      if (state.activePublicUuid !== action.payload.uuid) return;
+      state.loadingPublicGet = false;
+      state.publicGetError = true;
+    },
+    finishPublicRequestPortalLoad(
+      state: RequestPortalState,
+      action: PayloadAction<{ uuid: string }>
+    ) {
+      if (state.activePublicUuid === action.payload.uuid) {
+        state.loadingPublicGet = false;
+      }
+    },
+    clearPublicRequestPortal(
+      state: RequestPortalState,
+      action: PayloadAction<{ uuid: string }>
+    ) {
+      if (state.activePublicUuid !== action.payload.uuid) return;
+      state.singleRequestPortal = null;
+      state.activePublicUuid = null;
+      state.loadingPublicGet = false;
+      state.publicGetError = false;
+    },
+    getPublicRequestPortal(
+      state: RequestPortalState,
+      action: PayloadAction<{ uuid: string; requestPortal: RequestPortal }>
+    ) {
+      if (state.activePublicUuid !== action.payload.uuid) return;
+      state.singleRequestPortal = action.payload.requestPortal;
+      state.publicGetError = false;
     },
     clearSingleRequestPortal(
       state: RequestPortalState,
@@ -171,16 +220,25 @@ export const clearSingleRequestPortal = (): AppThunk => async (dispatch) => {
 export const getRequestPortalPublic =
   (uuid: string): AppThunk =>
   async (dispatch) => {
+    dispatch(slice.actions.startPublicRequestPortalLoad({ uuid }));
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
       const requestPortal = await api.get<RequestPortal>(
         `${basePath}/public/${uuid}`,
         { headers: authHeader(true) }
       );
-      dispatch(slice.actions.getSingleRequestPortal({ requestPortal }));
+      dispatch(slice.actions.getPublicRequestPortal({ uuid, requestPortal }));
+    } catch (error) {
+      dispatch(slice.actions.failPublicRequestPortalLoad({ uuid }));
+      throw error;
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(slice.actions.finishPublicRequestPortalLoad({ uuid }));
     }
+  };
+
+export const clearPublicRequestPortal =
+  (uuid: string): AppThunk =>
+  async (dispatch) => {
+    dispatch(slice.actions.clearPublicRequestPortal({ uuid }));
   };
 
 export default slice;

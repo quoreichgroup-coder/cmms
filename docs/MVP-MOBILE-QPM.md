@@ -1187,6 +1187,12 @@ Après l’échec d’une page suivante, le bouton « Réessayer » effaçait l�
 
 Le test dédié vérifie que le retry explicite atteint le chargement malgré l’erreur précédente et que le callback UI le transmet. API, autorisations et règles d’approvisionnement restent inchangées. Test ciblé **3/3**, suite Mobile **48/48**, TypeScript, Prettier ciblé, onboarding **5/5**, disponibilité **5/5** et `git diff --check` réussis. Essai réseau réel et affichage sur appareil restent à faire; aucun APK n’est généré.
 
+## Équipements Mobile — écarter les erreurs de pagination obsolètes — 21 octobre 2026
+
+Lorsqu’une page suivante d’équipements était encore en vol au début d’une nouvelle recherche, son échec tardif pouvait réactiver le bandeau de reprise sur les résultats de la recherche actuelle. Son `finally` pouvait aussi libérer le verrou d’une pagination plus récente. Le début du chargement de la première page invalide maintenant la séquence de pagination précédente et réinitialise son verrou; les blocs `catch` et `finally` ne modifient l’interface que si la première page et la pagination sont toujours les requêtes courantes. Les réponses serveur obsolètes restent également écartées par la garde Redux existante.
+
+La régression ciblée vérifie l’invalidation après une nouvelle première page et les gardes des deux sorties asynchrones. Test ciblé réussi; suite Mobile **51/51**, onboarding **5/5**, disponibilité **5/5**, TypeScript Mobile, Prettier ciblé et `git diff --check` réussis. Aucun endpoint, contrat, droit, règle métier, APK ou comportement d’export n’est modifié; la recette réseau et visuelle sur appareil reste distincte.
+
 ## Répertoires Fournisseurs et Clients — attendre les résultats de recherche courants — 21 octobre 2026
 
 Pendant le debounce d’une seconde, les listes continuaient à présenter les anciennes lignes et permettaient la pagination avec les critères précédents. Les deux écrans ne montrent maintenant que les lignes dont le terme saisi et les filtres correspondent au dernier chargement réussi; pendant l’attente, ils affichent le chargement et bloquent la pagination. Une erreur après changement de critères mène à l’état d’erreur réessayable plutôt qu’à des résultats obsolètes. Effacer puis retaper le même terme peut réutiliser les résultats précédents seulement si le filtre et le texte correspondent exactement. Les endpoints, critères transmis, données et permissions restent inchangés.

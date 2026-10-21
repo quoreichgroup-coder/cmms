@@ -29,7 +29,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import FileUpload from '../../../../components/FileUpload';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import {
-  clearSingleRequestPortal,
+  clearPublicRequestPortal,
   getRequestPortalPublic
 } from '../../../../../../slices/requestPortal';
 import {
@@ -73,9 +73,11 @@ export default function RequestPortalPublicPage() {
   const brandConfig = useBrand();
 
   const dispatch = useDispatch();
-  const { singleRequestPortal: portal, loadingGet } = useSelector(
-    (state) => state.requestPortals
-  );
+  const {
+    singleRequestPortal: portal,
+    loadingPublicGet: loadingGet,
+    publicGetError
+  } = useSelector((state) => state.requestPortals);
 
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [fieldConfigs, setFieldConfigs] = useState<PreviewFieldConfig[]>([]);
@@ -95,12 +97,24 @@ export default function RequestPortalPublicPage() {
   const isUnderMd = useMediaQuery(theme.breakpoints.down('md'));
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   useEffect(() => {
+    setFormValues({
+      title: '',
+      description: '',
+      contact: '',
+      location: null,
+      asset: null,
+      images: [],
+      files: []
+    });
+    setFieldConfigs([]);
+    setFormErrors({});
+    setSubmitted(false);
     if (uuid) {
-      dispatch(getRequestPortalPublic(uuid));
+      dispatch(getRequestPortalPublic(uuid)).catch(() => undefined);
     }
-    // return () => {
-    //   dispatch(clearSingleRequestPortal());
-    // };
+    return () => {
+      if (uuid) dispatch(clearPublicRequestPortal(uuid));
+    };
   }, [uuid, dispatch]);
 
   useEffect(() => {
@@ -284,7 +298,28 @@ export default function RequestPortalPublicPage() {
           minHeight: '100vh'
         }}
       >
-        <Alert severity="error">{t('portal_not_found')}</Alert>
+        <Alert
+          severity="error"
+          action={
+            publicGetError ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  if (uuid) {
+                    dispatch(getRequestPortalPublic(uuid)).catch(
+                      () => undefined
+                    );
+                  }
+                }}
+              >
+                {t('retry')}
+              </Button>
+            ) : undefined
+          }
+        >
+          {publicGetError ? t('portal_load_failed') : t('portal_not_found')}
+        </Alert>
       </Box>
     );
   }

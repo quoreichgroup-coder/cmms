@@ -2337,6 +2337,8 @@ const frJSON = {
     }
   },
   portal_not_found: 'Portail non trouvé',
+  portal_load_failed:
+    'Impossible de charger ce portail de demande. Veuillez réessayer.',
   request_submitted_success: 'Votre demande a été soumise avec succès',
   request_submit_failure:
     'Échec de la soumission de la demande. Veuillez réessayer.',

@@ -1,5 +1,11 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
+### WEB — isolation et reprise du portail public de Demande — 21 octobre 2026
+
+- En changeant l’UUID du portail dans une session de navigation, l’ancien portail pouvait rester dans Redux. Une réponse tardive de l’ancienne URL pouvait aussi remplacer le portail courant; si le nouveau chargement échouait, l’interface risquait d’afficher le mauvais formulaire et ses informations société.
+- Le chargement public est maintenant isolé par UUID : chaque nouvelle navigation efface les données et saisies précédentes, les réponses tardives sont ignorées, et le démontage nettoie uniquement la requête actuellement affichée. Une erreur de chargement est distinguée d’un portail absent et propose une relance localisée EN/FR. Les endpoints, soumissions, autorisations et règles de demande restent inchangés.
+- Le test `request-portal-public-load.test.cjs` couvre la navigation concurrente entre deux UUID et l’échec suivi d’une reprise (**2/2**). TypeScript Web, ESLint sur les sources, Prettier et le test ciblé passent; la suite Web complète et la recette sur portail public réel restent à faire.
+
 ### MOBILE — doublons des notifications en pagination — 21 octobre 2026
 
 - Une notification reçue en temps réel est insérée en tête pendant que l’API utilise une pagination par offset. La page suivante peut alors répéter le dernier élément déjà affiché; le reducer ajoutait toutes les entrées sans déduplication.

@@ -2129,6 +2129,8 @@ const locale = {
   share: 'Share',
   delete: 'Delete',
   portal_not_found: 'Portal not found',
+  portal_load_failed:
+    'This request portal could not be loaded. Please try again.',
   request_submitted_success: 'Your request has been submitted successfully',
   request_submit_failure: 'Failed to submit request. Please try again.',
   required_description: 'Description is required',

@@ -220,9 +220,14 @@ export default function AssetsScreen({
     criteriaSearchQuery === searchQuery;
   const visibleAssets = hasCurrentCriteriaResults ? assets.content : [];
   const listRequestSequence = useRef(0);
+  const paginationRequestSequence = useRef(0);
   const loadAssets = useCallback(async () => {
     if (!canView) return;
     const requestSequence = beginRequest(listRequestSequence);
+    // A new search or refresh invalidates any page request started for the
+    // previous result set. Do not let its later failure decorate fresh rows.
+    beginRequest(paginationRequestSequence);
+    listPageRequestInProgress.current = false;
     setListLoadError(false);
     setLoadMoreError(false);
     try {
@@ -258,15 +263,27 @@ export default function AssetsScreen({
       )
         return;
 
+      const firstPageSequence = listRequestSequence.current;
+      const paginationSequence = beginRequest(paginationRequestSequence);
       listPageRequestInProgress.current = true;
       setLoadMoreError(false);
       try {
         await dispatch(getMoreAssets(criteria, currentPageNum + 1));
       } catch (error) {
-        logSafeError('Could not load more assets:', error);
-        setLoadMoreError(true);
+        if (
+          isCurrentRequest(firstPageSequence, listRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          logSafeError('Could not load more assets:', error);
+          setLoadMoreError(true);
+        }
       } finally {
-        listPageRequestInProgress.current = false;
+        if (
+          isCurrentRequest(firstPageSequence, listRequestSequence) &&
+          isCurrentRequest(paginationSequence, paginationRequestSequence)
+        ) {
+          listPageRequestInProgress.current = false;
+        }
       }
     },
     [
@@ -275,8 +292,10 @@ export default function AssetsScreen({
       dispatch,
       hasCurrentCriteriaResults,
       lastPage,
+      listRequestSequence,
       listLoading,
-      loadMoreError
+      loadMoreError,
+      paginationRequestSequence
     ]
   );
 
