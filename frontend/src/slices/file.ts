@@ -7,6 +7,7 @@ import { getInitialPage, Page, SearchCriteria } from '../models/owns/page';
 import { revertAll } from 'src/utils/redux';
 import i18n from 'i18next';
 import downloadFile from 'downloadjs';
+import { logSafeError } from '../utils/safeErrorLog';
 
 const basePath = 'files';
 
@@ -14,12 +15,14 @@ interface FileState {
   files: Page<File>;
   singleFile: File;
   loadingGet: boolean;
+  loadError: boolean;
 }
 
 const initialState: FileState = {
   files: getInitialPage<File>(),
   singleFile: null,
-  loadingGet: false
+  loadingGet: false,
+  loadError: false
 };
 
 const slice = createSlice({
@@ -72,6 +75,9 @@ const slice = createSlice({
       const { loading } = action.payload;
       state.loadingGet = loading;
     },
+    setLoadError(state: FileState, action: PayloadAction<boolean>) {
+      state.loadError = action.payload;
+    },
     clearSingleFile(state: FileState, action: PayloadAction<{}>) {
       state.singleFile = null;
     }
@@ -83,10 +89,14 @@ export const reducer = slice.reducer;
 export const getFiles =
   (criteria: SearchCriteria): AppThunk =>
   async (dispatch) => {
+    dispatch(slice.actions.setLoadError(false));
     try {
       dispatch(slice.actions.setLoadingGet({ loading: true }));
       const files = await api.post<Page<File>>(`${basePath}/search`, criteria);
       dispatch(slice.actions.getFiles({ files }));
+    } catch (error) {
+      logSafeError('Failed to load files', error);
+      dispatch(slice.actions.setLoadError(true));
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }

@@ -10,6 +10,7 @@ const frJSON = {
     'Ce logiciel est fourni sans garantie, conformément à la licence.',
   asset_export_failure:
     'Impossible d’exporter les équipements. Veuillez réessayer.',
+  file_load_error: 'Impossible de charger les fichiers. Veuillez réessayer.',
   open_source_source: 'Consulter le code source correspondant',
   open_source_upstream:
     'Cette édition est dérivée d’Atlas CMMS. Le projet amont et ses contributeurs conservent leurs mentions de droits applicables.',

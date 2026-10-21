@@ -883,3 +883,8 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 - Le formulaire de commentaire lançait la création sans attendre le résultat API, puis effaçait immédiatement le texte et les pièces jointes. En cas d’échec réseau, le commentaire n’était pas enregistré et le brouillon était perdu; aucune erreur visible ne permettait de réessayer.
 - La soumission attend maintenant la création avant d’effacer le brouillon; le succès affiche une confirmation et l’échec conserve le contenu et présente le message API. `work-order-comment-submit.test.cjs` vérifie l’ordre de soumission, la conservation après erreur et le feedback utilisateur. Aucun endpoint, permission ou workflow métier n’a changé.
 - Validation : test ciblé, TypeScript, ESLint ciblé, Prettier et `git diff --check` à exécuter avant livraison; test navigateur authentifié à faire.
+
+### WEB — état récupérable au chargement des fichiers — 21 octobre 2026
+
+- Le chargement de la liste des fichiers échouait sans état d’erreur visible : le tableau pouvait rester vide et donner l’impression qu’aucun document n’existait. Le store conserve maintenant un état d’échec, l’interface affiche un message traduit avec une action Réessayer, et une nouvelle tentative réussie efface cet état. Le journal technique reste filtré par `logSafeError`.
+- `file-load-error.test.cjs` vérifie un premier échec réseau puis un retry réussi; test ciblé **1/1**, TypeScript Web, ESLint ciblé, Prettier et `git diff --check` réussis. Aucun endpoint, droit ou règle de gestion n’a changé; recette navigateur authentifiée à compléter.

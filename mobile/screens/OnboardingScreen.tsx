@@ -25,6 +25,7 @@ import { PermissionEntity } from '../models/role';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { qpmLayoutTokens } from '../theme/tokens';
 import { CURRENT_ONBOARDING_VERSION } from '../utils/onboardingState';
+import { getOnboardingPageOffset } from '../utils/onboardingLayout';
 
 const slides = [
   {
@@ -64,6 +65,7 @@ export default function OnboardingScreen({
   const { user, updateOnboardingPreference, hasViewPermission } = useAuth();
   const { showSnackBar } = React.useContext(CustomSnackBarContext);
   const scrollRef = React.useRef<ScrollView>(null);
+  const layoutWidthRef = React.useRef(width);
   const [page, setPage] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const isReplay = Boolean(route.params?.replay);
@@ -94,8 +96,20 @@ export default function OnboardingScreen({
   const moveToPage = (nextPage: number) => {
     const boundedPage = Math.max(0, Math.min(slides.length - 1, nextPage));
     setPage(boundedPage);
-    scrollRef.current?.scrollTo({ x: boundedPage * width, animated: true });
+    scrollRef.current?.scrollTo({
+      x: getOnboardingPageOffset(boundedPage, width, slides.length),
+      animated: true
+    });
   };
+
+  React.useEffect(() => {
+    if (layoutWidthRef.current === width) return;
+    layoutWidthRef.current = width;
+    scrollRef.current?.scrollTo({
+      x: getOnboardingPageOffset(page, width, slides.length),
+      animated: false
+    });
+  }, [page, width]);
 
   const handleSwipe = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const nextPage = Math.round(event.nativeEvent.contentOffset.x / width);

@@ -1210,3 +1210,9 @@ Test ciblé vérifie l’ordre « ancienne requête en attente, nouvelle requêt
 Le scanner QR/code-barres consommait son garde anti-double lecture et fermait l’écran même si la bibliothèque caméra émettait une chaîne vide ou composée d’espaces. Cela pouvait envoyer une recherche invalide et obliger l’utilisateur à rouvrir le scanner. Ces callbacks vides sont maintenant ignorés avant le garde; le scanner reste ouvert pour la lecture suivante. Toute valeur non vide est transmise à l’application exactement telle que reçue : le contenu du code et l’API ne changent pas.
 
 Test ciblé vérifie les chaînes vides/blanches, des payloads valides y compris avec espaces conservés, l’ordre du garde et la transmission sans transformation. Tests natifs caméra et lecture sur appareil restent à effectuer.
+
+## Onboarding Mobile — conserver la page active après redimensionnement — 21 octobre 2026
+
+Le pager horizontal conservait son défilement en pixels lorsque la largeur de la fenêtre changeait, par exemple lors d’une rotation ou d’un redimensionnement en mode multi-fenêtre. À partir de la deuxième page, la vue pouvait alors rester entre deux diapositives tandis que l’indicateur affichait toujours l’ancienne sélection. Le pager se réaligne maintenant sans animation sur la diapositive active après un changement de largeur; la navigation normale garde son animation.
+
+Un helper borne l’index de page et calcule son offset; une régression vérifie les largeurs avant/après rotation, les index hors limites et le branchement du recalage à la largeur de fenêtre. Vérification sur émulateur/appareil à compléter; aucun appel API, préférence, APK ou règle métier ne change.

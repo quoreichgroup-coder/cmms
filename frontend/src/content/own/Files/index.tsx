@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -46,7 +47,7 @@ function Files() {
     CompanySettingsContext
   );
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { files, loadingGet } = useSelector((state) => state.files);
+  const { files, loadingGet, loadError } = useSelector((state) => state.files);
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: [],
     pageSize: 10,
@@ -333,6 +334,23 @@ function Files() {
                 justifyContent: 'space-between'
               }}
             >
+              {loadError && (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => dispatch(getFiles(criteria))}
+                    >
+                      {t('retry')}
+                    </Button>
+                  }
+                  sx={{ width: '95%', mb: 2 }}
+                >
+                  {t('file_load_error')}
+                </Alert>
+              )}
               <Box sx={{ width: '95%' }}>
                 <CustomDatagrid2
                   columns={columns}

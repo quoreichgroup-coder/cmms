@@ -9,6 +9,7 @@ const locale = {
   open_source_no_warranty:
     'This software is provided without warranty, as permitted by the license.',
   asset_export_failure: 'Could not export assets. Please try again.',
+  file_load_error: 'Files could not be loaded. Please try again.',
   open_source_source: 'View the corresponding source code',
   open_source_upstream:
     'This edition is derived from Atlas CMMS. The upstream project and its contributors retain their applicable copyright notices.',
