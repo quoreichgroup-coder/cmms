@@ -140,6 +140,7 @@
     "test:api-key-clipboard": "node --test scripts/api-key-clipboard.test.cjs",
     "test:logout-fallback": "node --test scripts/logout-fallback.test.cjs",
     "test:request-list-errors": "node --test scripts/request-list-error.test.cjs",
+    "test:request-cancellation-errors": "node --test scripts/request-cancellation-errors.test.cjs",
     "test:request-detail-load-errors": "node --test scripts/request-detail-load-error.test.cjs",
     "test:work-order-list-errors": "node --test scripts/work-order-list-error.test.cjs",
     "test:work-order-detail-load-errors": "node --test scripts/work-order-detail-load-error.test.cjs",

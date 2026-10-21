@@ -6,64 +6,73 @@ import { IField } from '../type';
 import { useContext } from 'react';
 import { cancelRequest } from 'src/slices/request';
 import { useDispatch } from 'src/store';
+import { CustomSnackBarContext } from 'src/contexts/CustomSnackBarContext';
+import { getErrorMessage } from 'src/utils/api';
 
 interface SignatureProps {
-    open: boolean;
-    requestId: number;
-    onClose: () => void;
-    onCancel:()=>void;
+  open: boolean;
+  requestId: number;
+  onClose: () => void;
+  onCancel: () => void;
 }
 export default function CompleteWOModal({
-    open,
-    onClose,
-    requestId,
-    onCancel
-
+  open,
+  onClose,
+  requestId,
+  onCancel
 }: SignatureProps) {
-    const { t }: { t: any } = useTranslation();
-    const dispatch = useDispatch();
+  const { t }: { t: any } = useTranslation();
+  const dispatch = useDispatch();
+  const { showSnackBar } = useContext(CustomSnackBarContext);
 
-    const fields: IField[] = [
-        {
-            name: 'feedback',
-            type: 'text',
-            label: t('feedback'),
-            multiple: true
-        }
-    ];
-    const shape = {
-        feedback: Yup.string().required(t('required_feedback'))
-    };
+  const fields: IField[] = [
+    {
+      name: 'feedback',
+      type: 'text',
+      label: t('feedback'),
+      multiple: true
+    }
+  ];
+  const shape = {
+    feedback: Yup.string().required(t('required_feedback'))
+  };
 
-    return (
-        <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
-            <DialogTitle
-                sx={{
-                    p: 3
-                }}
-            >
-                <Typography variant="h4" gutterBottom>
-                    {t('reject')}
-                </Typography>
-            </DialogTitle>
-            <DialogContent
-                dividers
-                sx={{
-                    p: 3
-                }}
-            >
-                <Form
-                    fields={fields}
-                    validation={Yup.object().shape(shape)}
-                    submitText={t('reject')}
-                    values={{}}
-                    onChange={({ field, e }) => { }}
-                    onSubmit={async (values) => {
-                        return dispatch(cancelRequest(requestId, values.feedback))
-                        .then(onCancel)
-                    }}
-                />
-            </DialogContent>
-        </Dialog>
-    );
+  return (
+    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+      <DialogTitle
+        sx={{
+          p: 3
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          {t('reject')}
+        </Typography>
+      </DialogTitle>
+      <DialogContent
+        dividers
+        sx={{
+          p: 3
+        }}
+      >
+        <Form
+          fields={fields}
+          validation={Yup.object().shape(shape)}
+          submitText={t('reject')}
+          values={{}}
+          onChange={({ field, e }) => {}}
+          onSubmit={async (values) => {
+            try {
+              await dispatch(cancelRequest(requestId, values.feedback));
+              onCancel();
+            } catch (error) {
+              showSnackBar(
+                getErrorMessage(error, t('an_error_occured')),
+                'error'
+              );
+            }
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
 }

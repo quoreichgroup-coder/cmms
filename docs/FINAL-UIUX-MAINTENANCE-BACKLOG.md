@@ -828,6 +828,17 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 - `api-key-clipboard.test.cjs` vérifie l’écriture réussie, le rejet de permission et l’absence du presse-papiers. Endpoints, permissions et durée de vie des secrets restent inchangés.
 - Test ciblé **1/1**, typecheck Web, ESLint ciblé, Prettier et `git diff --check` réussis; test navigateur du refus de permission à faire.
 
+### WEB — retour d’erreur pour le rejet d’une demande — 21 octobre 2026
+
+- Si `cancelRequest` échouait, le dialogue de rejet restait ouvert sans message; le formulaire générique terminait seulement son indicateur de soumission. Le modal affiche maintenant l’erreur API localisée et reste disponible pour un nouvel essai. Il ne ferme le dialogue qu’après succès.
+- `request-cancellation-errors.test.cjs` reproduit l’échec puis un nouvel essai réussi. Endpoint, permissions et transitions de statut côté serveur restent inchangés.
+- Test ciblé **1/1**, typecheck Web, ESLint ciblé, Prettier et `git diff --check` réussis; recette authentifiée du rejet sur navigateur reste à faire.
+
+### MOBILE — reprise des erreurs de hiérarchie des localisations — 21 octobre 2026
+
+- Une erreur du chargement enfant était absorbée et ressemblait à une hiérarchie réellement vide. Les erreurs sont maintenant suivies par localisation, affichées séparément de l’état vide, et relançables pour le premier chargement comme pour la pagination.
+- Test ciblé **3/3**, suite Mobile **48/48**, TypeScript, Prettier, onboarding **5/5**, helpers de disponibilité **5/5** et `git diff --check` réussis. Test réseau réel et appareil non vérifiés; aucun APK n’a été généré.
+
 ### MOBILE — fraîcheur des recherches Personnes et Équipes — 21 octobre 2026
 
 - Personnes et Équipes masquent les données de la recherche précédente pendant le debounce et ne paginent pas avant que la réponse corresponde aux critères courants. Les erreurs de la recherche active restent relançables; paramètres API et accès sont inchangés.

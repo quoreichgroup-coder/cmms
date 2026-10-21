@@ -1174,3 +1174,9 @@ Régression ciblée vérifie l’usage du verrou, l’appel d’authentification
 La liste conservait ses lignes après modification du texte de recherche, pendant le délai de debounce d’une seconde; sa pagination pouvait également charger une page avec les anciens critères. Personnes et Équipes masquent maintenant le cache jusqu’à ce que recherche, critères appliqués et réponse chargée correspondent, puis n’autorisent la pagination que pour ces résultats. Une erreur de la requête courante conserve un état réessayable. Les endpoints, paramètres de recherche et règles d’accès restent inchangés.
 
 Régression ciblée couvre les deux répertoires, le cache périmé, la garde de pagination et le renouvellement d’erreur à la saisie. Suite Mobile **47/47**, TypeScript, Prettier, onboarding **5/5**, disponibilités **5/5** et `git diff --check` réussis. La vérification tactile sur appareil reste à faire; aucun APK n’est généré.
+
+## Hiérarchie des localisations — distinguer l’erreur d’un état vide — 21 octobre 2026
+
+Le chargement des enfants d’une localisation absorbait les erreurs réseau/API et terminait comme une liste vide. Une panne pouvait donc être interprétée comme l’absence réelle de sous-localisations, sans action de reprise. L’écran distingue maintenant l’échec d’un résultat vide et propose une nouvelle tentative, y compris après une erreur de pagination lorsque des lignes sont déjà visibles. Une réponse réussie efface l’erreur propre au parent chargé. Les API, données, permissions et règles métier ne changent pas.
+
+Régression ciblée vérifie l’enregistrement de l’échec sans bloquer le chargement, l’effacement de l’erreur après reprise réussie et la présence des deux états UI avec action de reprise. Test ciblé réussi; suite Mobile **48/48**, TypeScript, Prettier ciblé, onboarding **5/5**, disponibilité **5/5** et `git diff --check` réussis. Le comportement réseau réel et l’affichage sur appareil restent à vérifier; aucun APK n’est généré.

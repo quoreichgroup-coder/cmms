@@ -25,6 +25,7 @@ interface LocationState {
   cacheGeneration: number;
   locationChildrenPageNum: { [key: number]: number };
   locationChildrenLastPage: { [key: number]: boolean };
+  locationChildrenLoadErrors: { [key: number]: boolean };
   loadingGet: boolean;
 }
 
@@ -42,6 +43,7 @@ const initialState: LocationState = {
   cacheGeneration: 0,
   locationChildrenPageNum: {},
   locationChildrenLastPage: {},
+  locationChildrenLoadErrors: {},
   loadingGet: false
 };
 
@@ -172,6 +174,7 @@ const slice = createSlice({
         delete state.locationInfos[locationId];
         delete state.locationChildrenPageNum[locationId];
         delete state.locationChildrenLastPage[locationId];
+        delete state.locationChildrenLoadErrors[locationId];
       });
 
       // Mini DTOs omit parent IDs, so invalidate the whole cache: it may
@@ -236,6 +239,14 @@ const slice = createSlice({
 
       state.locationChildrenPageNum[id] = pageNum;
       state.locationChildrenLastPage[id] = lastPage;
+      state.locationChildrenLoadErrors[id] = false;
+    },
+    setLocationChildrenLoadError(
+      state: LocationState,
+      action: PayloadAction<{ id: number; error: boolean }>
+    ) {
+      state.locationChildrenLoadErrors[action.payload.id] =
+        action.payload.error;
     },
     setLoadingGet(
       state: LocationState,
@@ -387,6 +398,9 @@ export const getLocationChildren =
     const cacheGeneration = locationCacheGeneration;
     try {
       dispatch(slice.actions.beginCacheRequest(cacheGeneration));
+      dispatch(
+        slice.actions.setLocationChildrenLoadError({ id, error: false })
+      );
       dispatch(slice.actions.setLoadingGet({ loading: true }));
       const page = await api.get<Page<Location>>(
         `locations/children/${id}/paginated?page=${pageNum}&size=${pageSize}`
@@ -402,8 +416,13 @@ export const getLocationChildren =
           })
         })
       );
-    } catch (e) {
-      logSafeError('Mobile operation failed', e);
+    } catch (error) {
+      if (!isAbortError(error)) {
+        logSafeError('Could not load location hierarchy:', error);
+        dispatch(
+          slice.actions.setLocationChildrenLoadError({ id, error: true })
+        );
+      }
     } finally {
       dispatch(slice.actions.setLoadingGet({ loading: false }));
     }

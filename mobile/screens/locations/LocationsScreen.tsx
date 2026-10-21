@@ -47,7 +47,8 @@ export default function LocationsScreen({
     currentPageNum,
     lastPage,
     locationChildrenPageNum,
-    locationChildrenLastPage
+    locationChildrenLastPage,
+    locationChildrenLoadErrors
   } = useSelector((state) => state.locations);
   const theme = useAppTheme();
   const [view, setView] = useState<'hierarchy' | 'list'>('hierarchy');
@@ -200,6 +201,8 @@ export default function LocationsScreen({
     route.params?.hierarchy,
     route.params?.id
   ]);
+  const currentChildrenLoadError =
+    locationChildrenLoadErrors[route.params?.id ?? 0] ?? false;
 
   const onQueryChange = (query) => {
     onSearchQueryChange<Location>(
@@ -450,6 +453,12 @@ export default function LocationsScreen({
                 style={styles.listLoading}
                 color={theme.colors.primary}
               />
+            ) : currentChildrenLoadError ? (
+              <AsyncStateFeedback
+                mode="error"
+                message={t('locations_load_error')}
+                onRetry={onRefresh}
+              />
             ) : (
               <View
                 style={[
@@ -476,6 +485,12 @@ export default function LocationsScreen({
               <ActivityIndicator
                 style={styles.listLoading}
                 color={theme.colors.primary}
+              />
+            ) : currentChildrenLoadError && currentLocations.length > 0 ? (
+              <AsyncStateFeedback
+                mode="banner"
+                message={t('locations_load_error')}
+                onRetry={loadNextLocationChildren}
               />
             ) : null
           }
