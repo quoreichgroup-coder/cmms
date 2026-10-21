@@ -23,6 +23,7 @@ import DirectoryCard from '../../components/DirectoryCard';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import DirectoryPaginationFooter from '../../components/DirectoryPaginationFooter';
 import { qpmLayoutTokens } from '../../theme/tokens';
+import { hasFreshSearchResults } from '../../utils/searchCriteriaFreshness';
 
 export default function CustomersScreen({
   navigation
@@ -68,9 +69,21 @@ export default function CustomersScreen({
   const [criteria, setCriteria] = useState<SearchCriteria>(
     getCriteriaFromFilterFields([])
   );
+  const [loadedCriteria, setLoadedCriteria] = useState<{
+    filterFields: FilterField[];
+    searchQuery: string;
+  } | null>(null);
+  const hasCurrentCriteriaResults = hasFreshSearchResults(
+    loadedCriteria,
+    criteria.filterFields,
+    searchQuery
+  );
+  const visibleCustomers = hasCurrentCriteriaResults ? customers.content : [];
   const loadCustomers = useCallback(async () => {
     if (!canView) return;
     const requestId = ++listRequestSequence.current;
+    const requestFilterFields = criteria.filterFields;
+    const requestSearchQuery = searchQuery;
     paginationRequestSequence.current += 1;
     loadingMoreRef.current = false;
     setLoadingMore(false);
@@ -85,12 +98,18 @@ export default function CustomersScreen({
           direction: 'DESC'
         })
       );
+      if (requestId === listRequestSequence.current) {
+        setLoadedCriteria({
+          filterFields: requestFilterFields,
+          searchQuery: requestSearchQuery
+        });
+      }
     } catch (_error) {
       if (requestId === listRequestSequence.current) setLoadError(true);
     } finally {
       if (requestId === listRequestSequence.current) setHasLoadedList(true);
     }
-  }, [canView, criteria, dispatch]);
+  }, [canView, criteria, dispatch, searchQuery]);
 
   useEffect(() => {
     void loadCustomers();
@@ -113,6 +132,7 @@ export default function CustomersScreen({
         loadingMoreRef.current ||
         listLoading ||
         lastPage ||
+        !hasCurrentCriteriaResults ||
         (loadMoreError && !retry)
       )
         return;
@@ -147,6 +167,7 @@ export default function CustomersScreen({
       currentPageNum,
       dispatch,
       lastPage,
+      hasCurrentCriteriaResults,
       loadMoreError,
       listLoading
     ]
@@ -195,7 +216,7 @@ export default function CustomersScreen({
       <FlatList
         style={styles.scrollView}
         contentContainerStyle={styles.listContent}
-        data={canView ? customers.content : []}
+        data={canView ? visibleCustomers : []}
         keyExtractor={(customer) => String(customer.id)}
         renderItem={({ item: customer }) => (
           <DirectoryCard
@@ -245,7 +266,7 @@ export default function CustomersScreen({
           ) : undefined
         }
         ListHeaderComponent={
-          loadError && customers.content.length > 0 ? (
+          loadError && visibleCustomers.length > 0 ? (
             <AsyncStateFeedback
               mode="banner"
               message={t('directory_load_error')}
@@ -254,7 +275,10 @@ export default function CustomersScreen({
           ) : null
         }
         ListEmptyComponent={
-          canView && (listLoading || !hasLoadedList) ? (
+          canView &&
+          (listLoading ||
+            !hasLoadedList ||
+            (!hasCurrentCriteriaResults && !loadError)) ? (
             <View
               style={{
                 alignItems: 'center',
@@ -312,7 +336,7 @@ export default function CustomersScreen({
           )
         }
         ListFooterComponent={
-          canView && customers.content.length > 0 && !lastPage ? (
+          canView && visibleCustomers.length > 0 && !lastPage ? (
             <DirectoryPaginationFooter
               loading={loadingMore}
               error={loadMoreError}

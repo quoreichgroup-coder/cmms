@@ -131,6 +131,7 @@
     "prepare": "cd .. && husky install frontend/.husky",
     "test:license-console": "cross-env TZ=Europe/Berlin node --test scripts/license-authority-console.test.cjs",
     "test:asset-analytics": "node --test scripts/asset-analytics-error-state.test.cjs",
+    "test:asset-export-error": "node --test scripts/asset-export-error-message.test.cjs",
     "test:asset-downtime-permission": "node --test scripts/asset-downtime-permission.test.cjs",
     "test:asset-maintenance": "node --test scripts/asset-maintenance-summary.test.cjs",
     "test:license-ui": "node --test scripts/company-license.test.cjs scripts/company-profile.test.cjs",

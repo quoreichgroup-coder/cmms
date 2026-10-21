@@ -848,3 +848,8 @@ Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGE
 
 - Le chargement des tâches d’une maintenance préventive absorbait les erreurs API, ce qui faisait apparaître une liste vide comme si elle n’avait aucune tâche. Le store distingue maintenant erreur, chargement et succès; le détail affiche une erreur localisée et un bouton Réessayer.
 - Le test `pm-task-load-error.test.cjs` vérifie une première erreur puis un retry réussi qui efface l’état d’erreur. Aucun endpoint, droit ou comportement métier n’a changé.
+
+### WEB — message localisé d’échec de l’export des équipements — 21 octobre 2026
+
+- L’export CSV des équipements utilisait `t('Export failed')` comme fallback, mais cette clé n’existait pas dans les catalogues; une erreur sans message serveur exploitable montrait donc le libellé anglais brut, y compris dans l’interface française. Le workflow utilise maintenant une clé d’erreur localisée en français et anglais.
+- `asset-export-error-message.test.cjs` vérifie le branchement et les deux traductions. Export et permissions restent inchangés.
