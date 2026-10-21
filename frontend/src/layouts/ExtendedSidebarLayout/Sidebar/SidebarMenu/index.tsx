@@ -236,6 +236,10 @@ const SubMenuWrapper = styled(Box)(
               &.active:before {
                 background: ${theme.colors.primary.main};
               }
+
+              &:hover:before {
+                background: ${theme.colors.primary.main};
+              }
             }
           }
         }

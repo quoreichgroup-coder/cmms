@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   debounce,
@@ -26,6 +27,11 @@ import { GeneralPreferences } from '../../../../models/owns/generalPreferences';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import api from '../../../../utils/api';
+import { isUemoaCountry } from '../../../../utils/regionalCurrency';
+
+interface CompanyLegalProfile {
+  registrationCountry?: string | null;
+}
 
 const businessTypes = [
   'BUILDING_MANAGEMENT',
@@ -54,10 +60,46 @@ function GeneralSettings() {
     internationalization.changeLanguage(lng);
   };
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { patchGeneralPreferences, companySettings, hasFeature } = useAuth();
+  const { patchGeneralPreferences, companySettings, hasFeature, company } =
+    useAuth();
   const { generalPreferences } = companySettings;
   const dispatch = useDispatch();
   const { currencies } = useSelector((state) => state.currencies);
+  const xofCurrency = currencies.find(
+    (currency) => currency.code.trim().toUpperCase() === 'XOF'
+  );
+  const [registrationCountry, setRegistrationCountry] = useState<string | null>(
+    null
+  );
+  const [savingSuggestedCurrency, setSavingSuggestedCurrency] = useState(false);
+
+  const applyXofRecommendation = async () => {
+    if (!xofCurrency || savingSuggestedCurrency) return;
+    setSavingSuggestedCurrency(true);
+    try {
+      await patchGeneralPreferences({ currency: xofCurrency });
+      showSnackBar(t('changes_saved_success'), 'success');
+    } catch {
+      showSnackBar(t('currency_save_error'), 'error');
+    } finally {
+      setSavingSuggestedCurrency(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get<CompanyLegalProfile>(`companies/${company.id}/legal-profile`)
+      .then((profile) => {
+        if (active) setRegistrationCountry(profile.registrationCountry || null);
+      })
+      .catch(() => {
+        // The suggestion is optional; a missing legal profile must not block settings.
+      });
+    return () => {
+      active = false;
+    };
+  }, [company.id]);
 
   useEffect(() => {
     dispatch(getCurrencies());
@@ -229,6 +271,29 @@ function GeneralSettings() {
                           ))}
                       </Field>
                     </Grid>
+                    {isUemoaCountry(registrationCountry) &&
+                      xofCurrency &&
+                      generalPreferences.currency?.code
+                        ?.trim()
+                        .toUpperCase() !== 'XOF' && (
+                        <Grid item xs={12}>
+                          <Alert
+                            severity="info"
+                            action={
+                              <Button
+                                color="inherit"
+                                size="small"
+                                onClick={applyXofRecommendation}
+                                disabled={savingSuggestedCurrency}
+                              >
+                                {t('use_suggested_currency')}
+                              </Button>
+                            }
+                          >
+                            {t('uemoa_currency_suggestion')}
+                          </Alert>
+                        </Grid>
+                      )}
                     <Grid item xs={12}>
                       <Typography variant="h6" sx={{ mb: 0.5 }}>
                         {t('days_before_pm_notification')}
@@ -324,10 +389,7 @@ function GeneralSettings() {
                           patchGeneralPreferences({
                             businessType: event.target.value
                           }).then(() =>
-                            showSnackBar(
-                              t('changes_saved_success'),
-                              'success'
-                            )
+                            showSnackBar(t('changes_saved_success'), 'success')
                           );
                         }}
                         value={generalPreferences.businessType}

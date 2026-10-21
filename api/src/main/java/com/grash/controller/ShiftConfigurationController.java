@@ -51,6 +51,17 @@ public class ShiftConfigurationController {
         return shiftConfigurationService.getUsersWithShiftConfig(userIds, currentUser.getCompany().getId());
     }
 
+    /** Returns only the authenticated user's own weekly availability configuration. */
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
+    public ShiftConfigurationShowDTO getCurrentUserShift(
+            @Parameter(hidden = true) @CurrentUser User currentUser) {
+        ShiftConfiguration ownConfiguration = currentUser.getShiftConfiguration();
+        return ownConfiguration == null
+                ? new ShiftConfigurationShowDTO()
+                : shiftConfigurationMapper.toShowDto(ownConfiguration);
+    }
+
     @PatchMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
     public ShiftConfigurationShowDTO patchForUser(@PathVariable Long userId,

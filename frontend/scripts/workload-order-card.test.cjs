@@ -13,6 +13,8 @@ test('workload orders use a readable, keyboard-openable draggable card', () => {
   const view = read('src/content/own/WorkOrders/WorkloadView/index.tsx');
 
   assert.match(view, /<WorkloadOrderCard/);
+  assert.match(view, /<Fragment key=\{userSummary\.userId\}>/);
+  assert.match(view, /getWorkloadUserDisplayName\(user\.id, allUsers\)/);
   assert.match(card, /aria-label=\{t\('workload_open_order_aria'/);
   assert.match(card, /onKeyDownCapture=\{handleKeyDown\}/);
   assert.doesNotMatch(card, /dragHandleProps\?\.onKeyDown/);

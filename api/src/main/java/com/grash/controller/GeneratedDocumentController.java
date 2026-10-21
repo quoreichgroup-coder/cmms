@@ -1,6 +1,7 @@
 package com.grash.controller;
 
 import com.grash.dto.GeneratedDocumentDTO;
+import com.grash.dto.ReportFieldDefinitionDTO;
 import com.grash.dto.ReportConfig;
 import com.grash.model.User;
 import com.grash.service.GeneratedDocumentService;
@@ -21,6 +22,14 @@ import java.util.List;
 public class GeneratedDocumentController {
     private final GeneratedDocumentService generatedDocumentService;
     private final UserService userService;
+
+    @GetMapping("/work-orders/{workOrderId}/report/fields")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public List<ReportFieldDefinitionDTO> listWorkOrderReportFields(@PathVariable Long workOrderId,
+                                                                     HttpServletRequest request) {
+        User user = userService.whoami(request);
+        return generatedDocumentService.listWorkOrderReportFields(workOrderId, user);
+    }
 
     @PostMapping("/work-orders/{workOrderId}/report/issue")
     @PreAuthorize("hasRole('ROLE_CLIENT')")

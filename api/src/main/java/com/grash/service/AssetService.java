@@ -508,10 +508,35 @@ public class AssetService {
         return assetRepository.findByNameIgnoreCaseAndCompany_Id(assetName, companyId);
     }
 
+    public Optional<Asset> findByExchangeIdAndCompany(UUID exchangeId, Long companyId) {
+        return assetRepository.findByExchangeIdAndCompany_Id(exchangeId, companyId);
+    }
+
+    public List<Asset> findByExchangeIdsAndCompany(Collection<UUID> exchangeIds, Long companyId) {
+        return exchangeIds == null || exchangeIds.isEmpty()
+                ? Collections.emptyList()
+                : assetRepository.findByExchangeIdInAndCompany_Id(exchangeIds, companyId);
+    }
+
     public void setAssetFieldsFromImportDto(Asset asset, AssetImportDTO dto, Company company,
                                             Map<String, Asset> assetsByName) {
+        setAssetFieldsFromImportDto(asset, dto, company, assetsByName, null);
+    }
+
+    public void setAssetFieldsFromImportDto(Asset asset, AssetImportDTO dto, Company company,
+                                            Map<String, Asset> assetsByName,
+                                            Map<String, Asset> assetsByExchangeId) {
+        setAssetFieldsFromImportDto(asset, dto, company, assetsByName, assetsByExchangeId, null);
+    }
+
+    public void setAssetFieldsFromImportDto(Asset asset, AssetImportDTO dto, Company company,
+                                            Map<String, Asset> assetsByName,
+                                            Map<String, Asset> assetsByExchangeId,
+                                            Map<UUID, Location> locationsByExchangeId) {
         checkUsageBasedLimit(company);
-        if (!licenseService.hasEntitlement(LicenseEntitlement.ASSET_HIERARCHY) && dto.getParentAssetName() != null && !dto.getParentAssetName().isEmpty())
+        if (!licenseService.hasEntitlement(LicenseEntitlement.ASSET_HIERARCHY)
+                && ((dto.getParentAssetName() != null && !dto.getParentAssetName().isEmpty())
+                || dto.getParentExchangeId() != null))
             throw new CustomException("You need a license to import assets with hierarchy", HttpStatus.FORBIDDEN);
         Long companyId = company.getId();
         asset.setCompany(company);
@@ -519,14 +544,11 @@ public class AssetService {
         if (dto.getBarCode() != null && !dto.getBarCode().trim().isEmpty()) {
             Optional<Asset> optionalAssetWithSameBarCode = findByBarcodeAndCompany(dto.getBarCode(), company.getId());
             if (optionalAssetWithSameBarCode.isPresent()) {
-                boolean hasError = false;
-                if (dto.getId() == null) {//creation
-                    hasError = true;
-                } else {//update
-                    if (!dto.getId().equals(optionalAssetWithSameBarCode.get().getId())) {
-                        hasError = true;
-                    }
-                }
+                Asset barcodeMatch = optionalAssetWithSameBarCode.get();
+                boolean sameAsset = dto.getExchangeId() != null
+                        ? dto.getExchangeId().equals(barcodeMatch.getExchangeId())
+                        : dto.getId() != null && dto.getId().equals(barcodeMatch.getId());
+                boolean hasError = !sameAsset;
                 if (hasError)
                     throw new CustomException("Asset with same barcode exists: " + dto.getBarCode(),
                             HttpStatus.NOT_ACCEPTABLE);
@@ -540,16 +562,48 @@ public class AssetService {
         asset.setPower(dto.getPower());
         asset.setCustomId(getAssetNumber(company));
         asset.setManufacturer(dto.getManufacturer());
-        Optional<Location> optionalLocation = locationService.findByNameIgnoreCaseAndCompany(dto.getLocationName(),
-                companyId).stream().findFirst();
-        optionalLocation.ifPresent(asset::setLocation);
-        // Check parent asset in batch first, then in database
-        if (dto.getParentAssetName() != null && !dto.getParentAssetName().isEmpty()) {
-            Asset parentAsset = assetsByName != null ? assetsByName.get(dto.getParentAssetName()) : null;
-            if (parentAsset == null) {
-                parentAsset = findByNameIgnoreCaseAndCompany(dto.getParentAssetName(), companyId)
-                        .stream().findFirst().orElse(null);
+        if (dto.getLocationExchangeId() != null) {
+            Location installationLocation = locationsByExchangeId == null ? null
+                    : locationsByExchangeId.get(dto.getLocationExchangeId());
+            if (installationLocation == null) {
+                installationLocation = locationService.findByExchangeIdAndCompany(dto.getLocationExchangeId(), companyId)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Installation functional location exchange key not found in this company"));
             }
+            asset.setLocation(installationLocation);
+        } else if (dto.getLocationName() != null && !dto.getLocationName().isBlank()) {
+            List<Location> matchingLocations = locationService.findByNameIgnoreCaseAndCompany(
+                    dto.getLocationName().trim(), companyId);
+            if (matchingLocations.size() > 1) {
+                throw new IllegalArgumentException("Ambiguous installation functional location name: " + dto.getLocationName());
+            }
+            if (!matchingLocations.isEmpty()) asset.setLocation(matchingLocations.get(0));
+        }
+        // Check parent asset in batch first, then in database
+        if (dto.getParentExchangeId() != null) {
+            Asset parentAsset = assetsByExchangeId != null
+                    ? assetsByExchangeId.get(dto.getParentExchangeId().toString()) : null;
+            if (parentAsset == null) {
+                parentAsset = findByExchangeIdAndCompany(dto.getParentExchangeId(), companyId)
+                        .orElseThrow(() -> new IllegalArgumentException("Parent asset exchange key not found in this company"));
+            }
+            HierarchyImportValidator.assertNoExistingCycle(
+                    asset, parentAsset, Asset::getId, Asset::getParentAsset, "asset");
+            asset.setParentAsset(parentAsset);
+        } else if (dto.getParentAssetName() != null && !dto.getParentAssetName().isBlank()) {
+            String parentAssetName = dto.getParentAssetName().trim();
+            Asset parentAsset = assetsByName != null ? assetsByName.get(parentAssetName) : null;
+            if (parentAsset == null) {
+                List<Asset> existingParents = findByNameIgnoreCaseAndCompany(parentAssetName, companyId);
+                if (existingParents.size() != 1) {
+                    throw new IllegalArgumentException(existingParents.isEmpty()
+                            ? "Parent asset not found: " + parentAssetName
+                            : "Ambiguous parent asset name: " + parentAssetName);
+                }
+                parentAsset = existingParents.get(0);
+            }
+            HierarchyImportValidator.assertNoExistingCycle(
+                    asset, parentAsset, Asset::getId, Asset::getParentAsset, "asset");
             asset.setParentAsset(parentAsset);
         }
         if (dto.getCategory() != null && !dto.getCategory().isBlank()) {
@@ -613,43 +667,41 @@ public class AssetService {
     }
 
     public static List<AssetImportDTO> orderAssets(List<AssetImportDTO> assets) {
-        Map<String, List<AssetImportDTO>> assetMap = new HashMap<>();
-        List<AssetImportDTO> identifiedTopLevelAssets = new ArrayList<>();
-
-        Set<String> allAssetNames = new HashSet<>();
-        for (AssetImportDTO asset : assets) {
-            if (asset.getName() != null) { // Guard against assets with null names if possible
-                allAssetNames.add(asset.getName());
-            }
+        Map<UUID, Integer> rowsByExchangeId = new HashMap<>();
+        Map<String, List<Integer>> rowsByName = new HashMap<>();
+        for (int i = 0; i < assets.size(); i++) {
+            AssetImportDTO asset = assets.get(i);
+            if (asset.getExchangeId() != null) rowsByExchangeId.put(asset.getExchangeId(), i);
+            if (asset.getName() != null) rowsByName.computeIfAbsent(asset.getName(), ignored -> new ArrayList<>()).add(i);
         }
 
-        // Group assets by parent name and identify top-level assets
-        // Using a HashSet here to ensure we only consider each unique asset object once
-        // for building the map and topLevelAssets, in case the input list has duplicate object references.
-        Set<AssetImportDTO> distinctInputAssets = new HashSet<>(assets);
-
-        for (AssetImportDTO asset : distinctInputAssets) { // Iterate over unique asset objects
-            String parentName = asset.getParentAssetName();
-            assetMap.computeIfAbsent(parentName, k -> new ArrayList<>()).add(asset);
-
-            // An asset is top-level if it has no parent,
-            // or its declared parent doesn't exist in the provided list of assets.
-            if (parentName == null || !allAssetNames.contains(parentName)) {
-                identifiedTopLevelAssets.add(asset);
+        List<List<Integer>> children = new ArrayList<>();
+        for (int i = 0; i < assets.size(); i++) children.add(new ArrayList<>());
+        List<Integer> roots = new ArrayList<>();
+        for (int i = 0; i < assets.size(); i++) {
+            AssetImportDTO asset = assets.get(i);
+            Integer parentIndex = asset.getParentExchangeId() == null
+                    ? null : rowsByExchangeId.get(asset.getParentExchangeId());
+            if (parentIndex == null && asset.getParentExchangeId() == null
+                    && asset.getParentAssetName() != null) {
+                List<Integer> candidates = rowsByName.getOrDefault(asset.getParentAssetName(), List.of());
+                if (candidates.size() == 1) parentIndex = candidates.get(0);
             }
+            if (parentIndex == null) roots.add(i);
+            else children.get(parentIndex).add(i);
         }
 
-        List<AssetImportDTO> orderedAssets = new ArrayList<>();
-        Set<AssetImportDTO> visited = new HashSet<>(); // Keep track of visited assets
+        List<AssetImportDTO> ordered = new ArrayList<>();
+        Set<Integer> visited = new HashSet<>();
+        for (Integer root : roots) orderAssetRows(root, assets, children, visited, ordered);
+        return ordered;
+    }
 
-        // Process identified top-level assets.
-        // The `visited` set will ensure each asset is added only once,
-        // even if it appears multiple times in `identifiedTopLevelAssets`
-        // (e.g., multiple distinct orphan objects point to the same non-existent parent)
-        // or if children of different top-level assets overlap due to same names.
-        orderAssetsRecursive(assetMap, identifiedTopLevelAssets, orderedAssets, visited);
-
-        return orderedAssets;
+    private static void orderAssetRows(int index, List<AssetImportDTO> assets, List<List<Integer>> children,
+                                       Set<Integer> visited, List<AssetImportDTO> ordered) {
+        if (!visited.add(index)) return;
+        ordered.add(assets.get(index));
+        for (Integer child : children.get(index)) orderAssetRows(child, assets, children, visited, ordered);
     }
 
     private static void orderAssetsRecursive(Map<String, List<AssetImportDTO>> assetMap,

@@ -73,6 +73,36 @@ public class ImportService {
 
     @Transactional
     public ImportResponse importAssets(List<AssetImportDTO> toImport, Company company) {
+        Set<UUID> assetExchangeKeys = new HashSet<>();
+        toImport.forEach(dto -> {
+            if (dto.getExchangeId() != null) assetExchangeKeys.add(dto.getExchangeId());
+            if (dto.getParentExchangeId() != null) assetExchangeKeys.add(dto.getParentExchangeId());
+        });
+        Map<UUID, Asset> companyAssetsByExchangeId = new HashMap<>();
+        assetService.findByExchangeIdsAndCompany(assetExchangeKeys, company.getId())
+                .forEach(asset -> companyAssetsByExchangeId.put(asset.getExchangeId(), asset));
+        Set<UUID> installationLocationKeys = new HashSet<>();
+        toImport.stream().map(AssetImportDTO::getLocationExchangeId).filter(Objects::nonNull)
+                .forEach(installationLocationKeys::add);
+        Map<UUID, Location> companyLocationsByExchangeId = new HashMap<>();
+        locationService.findByExchangeIdsAndCompany(installationLocationKeys, company.getId())
+                .forEach(location -> companyLocationsByExchangeId.put(location.getExchangeId(), location));
+        if (companyLocationsByExchangeId.size() != installationLocationKeys.size()) {
+            throw new IllegalArgumentException("An installation functional location exchange key was not found in this company");
+        }
+        Map<String, Asset> resolvedExternalParents = HierarchyImportValidator.validate(
+                toImport,
+                AssetImportDTO::getName,
+                dto -> dto.getParentExchangeId() == null ? dto.getParentAssetName() : null,
+                AssetImportDTO::getId,
+                parentName -> assetService.findByNameIgnoreCaseAndCompany(parentName, company.getId()),
+                Asset::getId,
+                "asset");
+        Map<String, Asset> resolvedExternalParentsByExchangeId = HierarchyImportValidator.validateExchangeReferences(
+                toImport, AssetImportDTO::getExchangeId, AssetImportDTO::getParentExchangeId,
+                companyAssetsByExchangeId::get,
+                "asset");
+
         // Check for duplicate non-null barcodes
         Set<String> seenBarcodes = new java.util.HashSet<>();
         for (AssetImportDTO dto : toImport) {
@@ -93,30 +123,50 @@ public class ImportService {
             assetService.findByIdsAndCompany(idsToCheck, company.getId())
                     .forEach(asset -> existingAssets.put(asset.getId(), asset));
         }
-
         Map<String, Asset> assetsByName = new java.util.HashMap<>();
+        assetsByName.putAll(resolvedExternalParents);
+        Map<String, Asset> assetsByExchangeId = new HashMap<>(resolvedExternalParentsByExchangeId);
         List<Asset> assetsToSave = new java.util.ArrayList<>();
         int created = 0;
         int updated = 0;
 
-        for (AssetImportDTO dto : AssetService.orderAssets(toImport)) {
+        List<AssetImportDTO> orderedAssets = AssetService.orderAssets(toImport);
+        if (orderedAssets.size() != toImport.size()) {
+            throw new IllegalArgumentException("Asset hierarchy import contains unresolved parent cycles");
+        }
+
+        for (AssetImportDTO dto : orderedAssets) {
             Long id = dto.getId();
             Asset asset;
+            boolean updatingExisting = false;
 
-            if (id == null) {
+            if (dto.getExchangeId() != null && companyAssetsByExchangeId.containsKey(dto.getExchangeId())) {
+                asset = companyAssetsByExchangeId.get(dto.getExchangeId());
+                updatingExisting = true;
+                updated++;
+            } else if (dto.getExchangeId() != null) {
+                asset = new Asset();
+                asset.setExchangeId(dto.getExchangeId());
+                created++;
+            } else if (id == null) {
                 asset = new Asset();
                 created++;
             } else if (existingAssets.containsKey(id)) {
                 asset = existingAssets.get(id);
+                updatingExisting = true;
                 updated++;
             } else {
                 asset = new Asset();
                 created++;
             }
 
-            assetService.setAssetFieldsFromImportDto(asset, dto, company, assetsByName);
+            String existingCustomId = asset.getCustomId();
+            assetService.setAssetFieldsFromImportDto(asset, dto, company, assetsByName,
+                    assetsByExchangeId, companyLocationsByExchangeId);
+            if (updatingExisting) asset.setCustomId(existingCustomId);
             assetsToSave.add(asset);
             assetsByName.put(asset.getName(), asset);
+            assetsByExchangeId.put(asset.getExchangeId().toString(), asset);
         }
 
         if (!assetsToSave.isEmpty()) {
@@ -131,6 +181,27 @@ public class ImportService {
 
     @Transactional
     public ImportResponse importLocations(List<LocationImportDTO> toImport, Company company) {
+        Set<UUID> locationExchangeKeys = new HashSet<>();
+        toImport.forEach(dto -> {
+            if (dto.getExchangeId() != null) locationExchangeKeys.add(dto.getExchangeId());
+            if (dto.getParentExchangeId() != null) locationExchangeKeys.add(dto.getParentExchangeId());
+        });
+        Map<UUID, Location> companyLocationsByExchangeId = new HashMap<>();
+        locationService.findByExchangeIdsAndCompany(locationExchangeKeys, company.getId())
+                .forEach(location -> companyLocationsByExchangeId.put(location.getExchangeId(), location));
+        Map<String, Location> resolvedExternalParents = HierarchyImportValidator.validate(
+                toImport,
+                LocationImportDTO::getName,
+                dto -> dto.getParentExchangeId() == null ? dto.getParentLocationName() : null,
+                LocationImportDTO::getId,
+                parentName -> locationService.findByNameIgnoreCaseAndCompany(parentName, company.getId()),
+                Location::getId,
+                "functional location");
+        Map<String, Location> resolvedExternalParentsByExchangeId = HierarchyImportValidator.validateExchangeReferences(
+                toImport, LocationImportDTO::getExchangeId, LocationImportDTO::getParentExchangeId,
+                companyLocationsByExchangeId::get,
+                "functional location");
+
         List<Long> idsToCheck = toImport.stream()
                 .map(LocationImportDTO::getId)
                 .filter(Objects::nonNull)
@@ -141,30 +212,49 @@ public class ImportService {
             locationService.findByIdsAndCompany(idsToCheck, company.getId())
                     .forEach(location -> existingLocations.put(location.getId(), location));
         }
-
         Map<String, Location> locationsByName = new java.util.HashMap<>();
+        locationsByName.putAll(resolvedExternalParents);
+        Map<String, Location> locationsByExchangeId = new HashMap<>(resolvedExternalParentsByExchangeId);
         List<Location> locationsToSave = new java.util.ArrayList<>();
         int created = 0;
         int updated = 0;
 
-        for (LocationImportDTO dto : LocationService.orderLocations(toImport)) {
+        List<LocationImportDTO> orderedLocations = LocationService.orderLocations(toImport);
+        if (orderedLocations.size() != toImport.size()) {
+            throw new IllegalArgumentException("Functional location hierarchy import contains unresolved parent cycles");
+        }
+
+        for (LocationImportDTO dto : orderedLocations) {
             Long id = dto.getId();
             Location location;
+            boolean updatingExisting = false;
 
-            if (id == null) {
+            if (dto.getExchangeId() != null && companyLocationsByExchangeId.containsKey(dto.getExchangeId())) {
+                location = companyLocationsByExchangeId.get(dto.getExchangeId());
+                updatingExisting = true;
+                updated++;
+            } else if (dto.getExchangeId() != null) {
+                location = new Location();
+                location.setExchangeId(dto.getExchangeId());
+                created++;
+            } else if (id == null) {
                 location = new Location();
                 created++;
             } else if (existingLocations.containsKey(id)) {
                 location = existingLocations.get(id);
+                updatingExisting = true;
                 updated++;
             } else {
                 location = new Location();
                 created++;
             }
 
-            locationService.setLocationFieldsFromImportDto(location, dto, company, locationsByName);
+            String existingCustomId = location.getCustomId();
+            locationService.setLocationFieldsFromImportDto(location, dto, company, locationsByName, locationsByExchangeId);
+            if (updatingExisting) location.setCustomId(existingCustomId);
             locationsToSave.add(location);
             locationsByName.put(location.getName(), location);
+            locationsByExchangeId.put(location.getExchangeId().toString(), location);
         }
 
         if (!locationsToSave.isEmpty()) {

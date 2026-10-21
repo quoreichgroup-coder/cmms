@@ -6,6 +6,7 @@ import { RootStackParamList, RootTabScreenProps } from '../types';
 import useAuth from '../hooks/useAuth';
 import { PermissionEntity } from '../models/role';
 import { UiConfiguration } from '../models/uiConfiguration';
+import { PlanFeature } from '../models/subscriptionPlan';
 import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function MoreEntitiesScreen({
@@ -13,7 +14,7 @@ export default function MoreEntitiesScreen({
 }: RootTabScreenProps<'MoreEntities'>) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { hasViewPermission, user } = useAuth();
+  const { hasViewPermission, hasFeature, user } = useAuth();
   const entities: {
     label: string;
     icon: IconSource;
@@ -21,6 +22,12 @@ export default function MoreEntitiesScreen({
     visible: boolean;
     uiConfigKey?: keyof UiConfiguration;
   }[] = [
+    {
+      label: 'my_shift_availability',
+      icon: 'calendar-account',
+      link: 'MyShiftAvailability',
+      visible: true
+    },
     {
       label: 'locations',
       icon: 'map-marker',
@@ -48,6 +55,14 @@ export default function MoreEntitiesScreen({
       icon: 'archive-outline',
       link: 'Parts',
       visible: hasViewPermission(PermissionEntity.PARTS_AND_MULTIPARTS)
+    },
+    {
+      label: 'purchase_orders',
+      icon: 'clipboard-list-outline',
+      link: 'PurchaseOrders',
+      visible:
+        hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
+        hasFeature(PlanFeature.PURCHASE_ORDER)
     },
     {
       label: 'meters',

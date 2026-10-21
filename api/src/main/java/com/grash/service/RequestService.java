@@ -386,6 +386,8 @@ public class RequestService {
             workflows.forEach(workflow -> workflowService.runRequest(workflow, savedRequest));
 
             WorkOrder createdWorkOrder = createWorkOrderFromRequest(savedRequest, user);
+            workflows.forEach(workflow -> workflowService.addApprovedRequestChecklist(
+                    workflow, savedRequest, createdWorkOrder));
             if (savedRequest.getAsset() != null && requestApproveDTO.getAssetStatus() != null) {
                 savedRequest.getAsset().setStatus(requestApproveDTO.getAssetStatus());
                 assetService.save(savedRequest.getAsset());

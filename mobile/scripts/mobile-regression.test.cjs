@@ -62,6 +62,58 @@ test('persisted account cache resets before the storage flush completes', async 
   assert.match(auth, /clearPersistedAppState\(globalDispatch/);
   assert.equal((server.match(/clearServerSessionState\(/g) || []).length, 2);
 });
+test('work order PDF preview uses the authenticated stream and private app storage', () => {
+  const workOrders = fs.readFileSync(
+    path.join(__dirname, '..', 'slices/workOrder.ts'),
+    'utf8'
+  );
+  const details = fs.readFileSync(
+    path.join(__dirname, '..', 'screens/workOrders/WODetailsScreen.tsx'),
+    'utf8'
+  );
+  const fileDownload = fs.readFileSync(
+    path.join(__dirname, '..', 'utils/fileDownload.ts'),
+    'utf8'
+  );
+  const authenticatedPdfSave = fileDownload.slice(
+    fileDownload.indexOf('export const openPdfResponse'),
+    fileDownload.indexOf('export const downloadFile')
+  );
+
+  assert.match(
+    workOrders,
+    /api\.post<Response>\(`\$\{basePath\}\/report\/\$\{id\}\/stream`,\s*\{\},\s*\{\s*raw:\s*true\s*\}\)/
+  );
+  assert.doesNotMatch(
+    workOrders,
+    /api\.get<\{ success: boolean; message: string \}>\(/
+  );
+  assert.match(details, /openPdfResponse\(response, fileName\)/);
+  assert.match(workOrders, /\$\{basePath\}\/\$\{id\}\/documents/);
+  assert.match(workOrders, /\$\{basePath\}\/\$\{id\}\/report\/issue/);
+  assert.match(workOrders, /documents\/\$\{documentId\}\/download/);
+  assert.match(details, /confirmIssueReport/);
+  assert.match(details, /issuedReports\.map\(\(document\)/);
+  assert.match(details, /reportHistoryRequestId\.current/);
+  assert.match(details, /ownerKey === reportOwnerKeyRef\.current/);
+  assert.doesNotMatch(details, /WRITE_EXTERNAL_STORAGE|PermissionsAndroid/);
+  assert.match(fileDownload, /FileSystem\.documentDirectory/);
+  assert.match(fileDownload, /FileSystem\.EncodingType\.Base64/);
+  assert.match(fileDownload, /contentType\.includes\('application\/pdf'\)/);
+  assert.doesNotMatch(authenticatedPdfSave, /Linking\.openURL\(uri\)/);
+});
+test('PDF byte encoding preserves binary data across base64 chunk boundaries', () => {
+  const { encodeBytesToBase64 } = mobileRuntime().load('utils/encodeBase64.ts');
+  const bytes = Uint8Array.from(
+    Array.from({ length: 0x8000 + 19 }, (_, index) => (index * 73) % 256)
+  );
+
+  assert.equal(
+    encodeBytesToBase64(bytes),
+    Buffer.from(bytes).toString('base64')
+  );
+  assert.equal(encodeBytesToBase64(new Uint8Array()), '');
+});
 test('single category picker announces and marks the current selection', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '..', 'screens/modals/SelectCategoryModal.tsx'),
@@ -2972,6 +3024,35 @@ test('server 5xx feedback hides backend exception details in French and English'
     assert.equal(
       module.getErrorMessage(error),
       'The server encountered an error. Please try again later.'
+    );
+    return true;
+  });
+});
+test('native fetch network failures show localized server-unreachable feedback', async () => {
+  const runtime = mobileRuntime({
+    fetch: async () => {
+      throw new Error('Network request failed');
+    }
+  });
+  const module = runtime.load('utils/api.ts');
+  const i18n = runtime.load('i18n/i18n.ts').default;
+
+  await i18n.changeLanguage('fr');
+  await assert.rejects(module.default.get('work-orders'), (error) => {
+    assert.equal(module.isNetworkError(error), true);
+    assert.equal(
+      module.getErrorMessage(error),
+      'Le serveur CMMS est inaccessible. Vérifiez son adresse.'
+    );
+    return true;
+  });
+
+  await i18n.changeLanguage('en');
+  await assert.rejects(module.default.get('work-orders'), (error) => {
+    assert.equal(module.isNetworkError(error), true);
+    assert.equal(
+      module.getErrorMessage(error),
+      'The CMMS server is unreachable. Check its address.'
     );
     return true;
   });

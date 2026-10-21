@@ -2,7 +2,6 @@ import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, Tooltip } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
-import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import { getCompleteByCategory } from '../../../../../slices/analytics/workOrder';
@@ -11,18 +10,12 @@ import Loading from '../../Loading';
 import { getPartConsumptionsByPartCategory } from '../../../../../slices/analytics/part';
 
 interface PartConsumptionByCategoryProps {
-  handleOpenModal: (
-    columns: string[],
-    filters: Filter[],
-    title: string
-  ) => void;
   start: Date;
   end: Date;
   companyId?: number;
 }
 
 function PartConsumptionByCategory({
-  handleOpenModal,
   start,
   end,
   companyId
@@ -38,14 +31,11 @@ function PartConsumptionByCategory({
     dispatch(getPartConsumptionsByPartCategory(start, end, companyId));
   }, [start, end, companyId]);
 
-  const columns = ['id'];
-
   const formattedData = partConsumptionsByCategory.map((category) => {
     return {
       label: category.name,
       value: category.cost,
-      color: getQpmChartColor(`part-category-${category.id}`),
-      filters: [{ key: 'category', value: category.id }]
+      color: getQpmChartColor(`part-category-${category.id}`)
     };
   });
   const title = t('grouped_by_category');
@@ -72,13 +62,7 @@ function PartConsumptionByCategory({
             fill={theme.palette.primary.main}
           >
             {formattedData.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={entry.color}
-                onClick={() => {
-                  handleOpenModal(columns, entry.filters, title);
-                }}
-              />
+              <Cell key={index} fill={entry.color} />
             ))}
           </Pie>
           <Tooltip />

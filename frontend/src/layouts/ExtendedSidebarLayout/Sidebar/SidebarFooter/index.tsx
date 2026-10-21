@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import PowerSettingsNewOutlinedIcon from '@mui/icons-material/PowerSettingsNewOutlined';
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useAuth from 'src/hooks/useAuth';
 import UpgradeOutlinedIcon from '@mui/icons-material/UpgradeOutlined';
@@ -64,9 +65,9 @@ function SidebarFooter({ forceExpanded = false }: { forceExpanded?: boolean }) {
   return (
     <Box
       sx={{
-        // IconButton has a 48px minimum hit target. Three stacked actions need
-        // 144px before the vertical padding and divider are accounted for.
-        minHeight: collapsed ? 160 : 60,
+        // IconButton has a 48px minimum hit target. Leave the navigation
+        // footer large enough for its actions in the collapsed rail.
+        minHeight: collapsed ? 208 : 60,
         flexShrink: 0,
         borderTop: `1px solid ${theme.sidebar.dividerBg}`,
         backgroundColor: theme.sidebar.background,
@@ -79,6 +80,16 @@ function SidebarFooter({ forceExpanded = false }: { forceExpanded?: boolean }) {
       alignItems="center"
       justifyContent="center"
     >
+      <LightTooltip placement="top" arrow title={t('help_center_title')}>
+        <IconButton
+          aria-label={t('help_center_title')}
+          sx={footerButtonSx}
+          component={RouterLink}
+          to="/app/help"
+        >
+          <HelpOutlineOutlinedIcon fontSize="small" />
+        </IconButton>
+      </LightTooltip>
       {user.ownsCompany && user.superAccountRelations.length === 0 && (
         <LightTooltip placement="top" arrow title={t('upgrade_now')}>
           <IconButton

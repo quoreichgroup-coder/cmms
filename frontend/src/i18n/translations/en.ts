@@ -11,6 +11,75 @@ const locale = {
   open_source_source: 'View the corresponding source code',
   open_source_upstream:
     'This edition is derived from Atlas CMMS. The upstream project and its contributors retain their applicable copyright notices.',
+  help_center_title: 'QPM Help Center',
+  help_center_intro:
+    'Short guides to help you find common maintenance actions.',
+  help_search_placeholder: 'Search the guides',
+  help_permissions_note:
+    'Guides are shown according to your permissions. If you expect a screen that is missing, contact your administrator.',
+  help_open_module: 'Open module',
+  help_no_results: 'No guides match this search.',
+  help_results_count_singular: '{{count}} guide available',
+  help_results_count_plural: '{{count}} guides available',
+  help_work_orders_title: 'Work Orders',
+  help_work_orders_summary: 'Follow work from planning through confirmation.',
+  help_work_orders_step_1:
+    'Open an order to review its equipment, priority, description, and dates.',
+  help_work_orders_step_2:
+    'Review tasks, parts, and assigned people before starting.',
+  help_work_orders_step_3:
+    'When completing an order, review the summary: elapsed duration, labor time, feedback, and signature if requested.',
+  help_work_orders_step_4:
+    'Confirm only after reviewing it. Completion follows the permissions and rules configured in QPM.',
+  help_requests_title: 'Maintenance Requests',
+  help_requests_summary:
+    'Describe an issue and follow its handling by the maintenance team.',
+  help_requests_step_1:
+    'Create a request with a clear description and the equipment, if known.',
+  help_requests_step_2:
+    'Check its status and information added during handling.',
+  help_requests_step_3:
+    'Depending on your permissions, a request may be reviewed and linked to a Work Order.',
+  help_equipment_title: 'Equipment',
+  help_equipment_summary:
+    'Find available equipment information and its maintenance history.',
+  help_equipment_step_1: 'Search the list by equipment name or code.',
+  help_equipment_step_2:
+    'Open a record to review its details, related Work Orders, and available readings.',
+  help_equipment_step_3:
+    'Visible sections depend on recorded data and your permissions.',
+  help_inventory_title: 'Parts and Inventory',
+  help_inventory_summary:
+    'Review tracked part references and quantities by store.',
+  help_inventory_step_1: 'Search for a part by name or reference.',
+  help_inventory_step_2:
+    'Check the store, available quantity, and displayed threshold.',
+  help_inventory_step_3:
+    'Stock changes must follow the process authorized by your organization.',
+  help_planning_title: 'Work Order Planning',
+  help_planning_summary: 'Use the calendar view to browse orders by date.',
+  help_planning_step_1:
+    'From Work Orders, choose the calendar view when it is available.',
+  help_planning_step_2:
+    'Use the screen filters to narrow results to your scope.',
+  help_planning_step_3:
+    'Displayed dates and assignments reflect information recorded in QPM.',
+  help_account_title: 'Profile and Preferences',
+  help_account_summary:
+    'Adjust the personal settings available for your account.',
+  help_account_step_1: 'Open your profile from the account menu.',
+  help_account_step_2:
+    'Review your details and available language or display preferences.',
+  help_account_step_3:
+    'Contact an administrator if you need access or a role change.',
+  help_settings_title: 'Settings',
+  help_settings_summary: 'Find company settings and configurable features.',
+  help_settings_step_1:
+    'Visible settings depend on your role and the features enabled for your company.',
+  help_settings_step_2:
+    'Before changing a workflow or form, review the impact described on the page.',
+  help_settings_step_3:
+    'Configuration changes may affect other users; contact your administrator if you are unsure.',
   plan_catalog: 'Plan catalog',
   plan_catalog_description:
     'Choose which modules are available in each plan. Changes apply to every company using that plan.',
@@ -301,6 +370,9 @@ const locale = {
   details: 'Details',
   updates: 'Updates',
   id: 'ID',
+  exchange_id: 'Exchange ID',
+  parent_exchange_id: 'Parent Exchange ID',
+  location_exchange_id: 'Location Exchange ID',
   due_date: 'Due Date',
   location: 'Location',
   asset: 'Asset',
@@ -452,6 +524,35 @@ const locale = {
   vendors: 'Vendors',
   categories: 'Categories',
   settings: 'Settings',
+  sidebar_sap_maintenance_dashboard: 'Maintenance Overview',
+  sidebar_sap_maintenance_orders: 'Maintenance Orders',
+  sidebar_sap_maintenance_plans: 'Maintenance Plans',
+  sidebar_sap_maintenance_analytics: 'Maintenance Analytics',
+  sidebar_sap_order_status: 'Order Status',
+  sidebar_sap_order_analysis: 'Order Analysis',
+  sidebar_sap_order_aging: 'Order Aging',
+  sidebar_sap_time_and_cost: 'Time and Costs',
+  sidebar_sap_equipment: 'Equipment',
+  sidebar_sap_equipment_reliability: 'Equipment Reliability',
+  sidebar_sap_maintenance_costs: 'Maintenance Costs',
+  sidebar_sap_materials: 'Materials',
+  sidebar_sap_material_consumption: 'Material Consumption',
+  sidebar_sap_maintenance_requests: 'Maintenance Requests',
+  sidebar_sap_request_analysis: 'Request Analysis',
+  sidebar_sap_functional_locations: 'Functional Locations',
+  sidebar_sap_materials_inventory: 'Materials & Inventory',
+  sidebar_sap_material_kits: 'Material Kits',
+  sidebar_sap_procurement: 'Maintenance Procurement',
+  sidebar_sap_measuring_points: 'Measuring Points',
+  sidebar_sap_maintenance_personnel_teams: 'Maintenance Resources',
+  sidebar_sap_personnel: 'Personnel',
+  sidebar_sap_teams: 'Teams',
+  sidebar_sap_suppliers_service_providers: 'Suppliers & Service Providers',
+  sidebar_sap_suppliers: 'Suppliers',
+  sidebar_sap_customers: 'Customers',
+  sidebar_sap_technical_categories: 'Categories',
+  sidebar_sap_documents: 'Documents',
+  sidebar_sap_settings: 'Settings',
   cancelled: 'Cancelled',
   reject: 'Reject',
   approve: 'Approve',
@@ -711,6 +812,11 @@ const locale = {
   po_create_partial_failure:
     'The purchase order was created, but saving its parts or approval failed. Review the order and complete the missing step.',
   approve_while_submitting: 'Approve while submitting',
+  purchase_order_approval_confirmation_title: 'Confirm purchase order approval',
+  purchase_order_approval_confirmation_body:
+    'Approving this purchase order immediately adds the quantities on all its lines to inventory.',
+  purchase_order_approval_effect_hint:
+    'In the current workflow, approval posts the full listed quantities to stock immediately. Partial receipt is not supported here.',
   invalid_fax: 'The fax number is invalid',
   submit: 'Submit',
   each_item_superior_zero: 'Each Item quantity must be superior to 0',
@@ -1341,6 +1447,9 @@ const locale = {
   matched_to_field: 'Matched to {{field}}',
   next: 'Next',
   not_enough_rows: 'Not enough rows in the file',
+  import_invalid_file:
+    'This file is invalid or cannot be read as a spreadsheet.',
+  import_file_read_error: 'The file could not be read. Please try again.',
   there_are_duplicates: 'There are duplicates: {{duplicates}}',
   assigned_by: 'Assigned By',
   percent_rows_have_value: '{{percent}}% of rows have value',
@@ -1600,6 +1709,14 @@ const locale = {
   manufacturer: 'Manufacturer',
   power: 'Power',
   import_error: "The import didn't succeed",
+  hierarchy_import_invalid:
+    '{{issues}} at rows {{rows}}. Correct the file before importing.',
+  hierarchy_issue_ambiguous_parent: 'Ambiguous parent name',
+  hierarchy_issue_parent_name_mismatch:
+    'Parent name casing differs from its row',
+  hierarchy_issue_duplicate_exchange_id: 'Duplicate exchange ID',
+  hierarchy_issue_invalid_exchange_id: 'Invalid exchange ID',
+  hierarchy_issue_cycle: 'Hierarchy cycle',
   request_upgrade: 'Request upgrade',
   operation_success: 'The operation is a success',
   purchase_order_approved: 'Purchase order approved successfully',
@@ -2100,6 +2217,7 @@ const locale = {
   integration_step_external: 'Prepare tool',
   integration_step_qpm: 'Configure QPM',
   integration_step_verify: 'Verify flow',
+  integration_step_progress: 'Step {{current}} of {{total}}: {{label}}',
   integration_step_external_desc:
     'Create a workflow in the external platform with an HTTPS webhook trigger. Choose the maintenance events and channel or destination that match your team process.',
   integration_step_external_n8n_note:
@@ -2109,6 +2227,8 @@ const locale = {
     'Create a QPM webhook endpoint for the workflow URL and select only the events it needs. QPM signs webhook deliveries; keep the signing secret private.',
   integration_step_qpm_note:
     'Use a dedicated endpoint and limit subscriptions to required events. The receiver must verify the HMAC signature before processing. Teams Workflows does not verify QPM signatures automatically, so add a verification step. Do not place sensitive data in public channels.',
+  integration_webhook_replay_limit:
+    'The HMAC signature covers only the raw JSON body. The timestamp and delivery ID are not signed, so they do not prevent replay by themselves. Do not trigger an approval, closure or purchase from this webhook alone.',
   integration_step_verify_desc:
     'Trigger a real, non-critical QPM event and check the receiving workflow execution history. Confirm that the expected fields arrive and are handled safely.',
   integration_step_verify_note:
@@ -2270,6 +2390,8 @@ const locale = {
   confirm_delete_row: 'Are you sure you want to delete this row?',
   scheduled: 'Scheduled',
   customize_shift: 'Customize Shift',
+  shift_capacity_not_roster:
+    'This is an individual availability and workload-capacity setting. It is not a published team roster or confirmed shift assignment.',
   default_schedule: 'Default Schedule',
   custom_capacity_by_week: 'Custom Capacity by Week',
   total_weekly_capacity: 'Total weekly capacity {{hours}}h {{minutes}}m',
@@ -2349,7 +2471,11 @@ const locale = {
   legal_company_name: 'Legal company name',
   registration_country: 'Country of registration (ISO code)',
   registration_country_hint:
-    'Enter the two-letter country code, for example BF or FR.',
+    'Enter the two-letter country code, for example BF, SN or FR. For a UEMOA country, QPM can suggest XOF as the currency.',
+  uemoa_currency_suggestion:
+    'This company’s registration country is in UEMOA. The BCEAO CFA franc (XOF) is suggested. Existing amounts will not be converted.',
+  use_suggested_currency: 'Use XOF',
+  currency_save_error: 'Could not save the currency.',
   business_registration_number: 'Business registration number',
   tax_identification_number: 'Tax identification number',
   registered_address: 'Registered address',

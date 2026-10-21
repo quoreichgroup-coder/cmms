@@ -12,31 +12,19 @@ import {
   YAxis
 } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
-import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
-import { getIncompleteByAsset } from '../../../../../slices/analytics/workOrder';
 import Loading from '../../Loading';
 import { getRequestsResolvedByDate } from '../../../../../slices/analytics/request';
 import { getDayAndMonth } from '../../../../../utils/dates';
 
 interface OwnProps {
-  handleOpenModal: (
-    columns: string[],
-    filters: Filter[],
-    title: string
-  ) => void;
   start: Date;
   end: Date;
   companyId?: number;
 }
 
-function RequestsResolution({
-  handleOpenModal,
-  start,
-  end,
-  companyId
-}: OwnProps) {
+function RequestsResolution({ start, end, companyId }: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const { requestsResolvedByDate, loading, errors } = useSelector(
@@ -48,14 +36,11 @@ function RequestsResolution({
     dispatch(getRequestsResolvedByDate(start, end, companyId));
   }, [start, end, companyId]);
 
-  const columns: string[] = ['id'];
-
   const formattedData: {
     label: string;
     received: number;
     resolved: number;
     resolutionRate: number;
-    filters: Filter[];
   }[] = requestsResolvedByDate.map((stat) => {
     return {
       label: getDayAndMonth(stat.date),
@@ -63,8 +48,7 @@ function RequestsResolution({
       resolved: stat.resolved,
       resolutionRate: Number(
         stat.received ? ((stat.resolved / stat.received) * 100).toFixed(2) : '0'
-      ),
-      filters: []
+      )
     };
   });
   const title = t('resolution_rate');
@@ -91,14 +75,8 @@ function RequestsResolution({
             name={t('count')}
             yAxisId="left-axis"
           >
-            {formattedData.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={theme.palette.primary.main}
-                onClick={() => {
-                  handleOpenModal(columns, entry.filters, t(title));
-                }}
-              />
+            {formattedData.map((_, index) => (
+              <Cell key={index} fill={theme.palette.primary.main} />
             ))}
           </Bar>
           <Bar
@@ -107,14 +85,8 @@ function RequestsResolution({
             name={t('resolved')}
             yAxisId="left-axis"
           >
-            {formattedData.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={theme.palette.success.main}
-                onClick={() => {
-                  handleOpenModal(columns, entry.filters, t(title));
-                }}
-              />
+            {formattedData.map((_, index) => (
+              <Cell key={index} fill={theme.palette.success.main} />
             ))}
           </Bar>
           <Line

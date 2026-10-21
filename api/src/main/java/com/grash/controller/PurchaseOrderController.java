@@ -25,6 +25,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -153,10 +156,11 @@ public class PurchaseOrderController {
 
     @PatchMapping("/{id}/respond")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
     public PurchaseOrderShowDTO respond(@Parameter(description = "Whether the purchase order is approved") @RequestParam("approved") boolean approved, @PathVariable("id") Long id,
                                         HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findById(id);
+        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdForUpdate(id);
 
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
@@ -171,9 +175,9 @@ public class PurchaseOrderController {
                             part.setQuantity(part.getQuantity() + partQuantity.getQuantity());
                             partService.save(part);
 
-                            // Dispatch webhook for part quantity change from purchase order
-                            dispatchPartQuantityChangeWebhook(part, previousQuantity, part.getQuantity(),
-                                    partQuantity, savedPurchaseOrder, user.getCompany());
+                            // Notify external consumers only if the stock and PO status commit successfully.
+                            dispatchPartQuantityChangeWebhookAfterCommit(part, previousQuantity,
+                                    part.getQuantity(), partQuantity, savedPurchaseOrder, user.getCompany());
                         });
                     }
                     savedPurchaseOrder.setStatus(approved ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED);
@@ -223,6 +227,24 @@ public class PurchaseOrderController {
         Object serializedPart = partMapper.toShowDto(part);
         webhookDispatchService.dispatchWebhook(company, WebhookEvent.PART_QUANTITY_CHANGED, webhookPayload,
                 "changedPart", serializedPart, null, null, null, null, changedFields);
+    }
+
+    private void dispatchPartQuantityChangeWebhookAfterCommit(Part part, double previousQuantity,
+                                                              double newQuantity, PartQuantity partQuantity,
+                                                              PurchaseOrder purchaseOrder, Company company) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatchPartQuantityChangeWebhook(part, previousQuantity, newQuantity, partQuantity,
+                    purchaseOrder, company);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dispatchPartQuantityChangeWebhook(part, previousQuantity, newQuantity, partQuantity,
+                        purchaseOrder, company);
+            }
+        });
     }
 }
 

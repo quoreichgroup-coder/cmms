@@ -8,6 +8,7 @@ import { getInitialPage, Page, SearchCriteria } from '../models/page';
 import { revertAll } from '../utils/redux';
 import { createWorkOrderWithTasks } from '../utils/workOrderCreation';
 import { WorkOrderLifecycleEvent } from '../models/workOrderHistories';
+import type { GeneratedDocument } from '../models/generatedDocument';
 
 const basePath = 'work-orders';
 
@@ -20,6 +21,7 @@ interface WorkOrderState {
   latestListRequestId: number;
   currentPageNum: number;
   lastPage: boolean;
+  sessionGeneration: number;
   calendar: {
     events: WorkOrder[];
   };
@@ -34,6 +36,7 @@ const initialState: WorkOrderState = {
   latestListRequestId: 0,
   currentPageNum: 0,
   lastPage: true,
+  sessionGeneration: 0,
   calendar: {
     events: []
   }
@@ -42,7 +45,11 @@ const initialState: WorkOrderState = {
 const slice = createSlice({
   name: 'workOrders',
   initialState,
-  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
+  extraReducers: (builder) =>
+    builder.addCase(revertAll, (state) => ({
+      ...initialState,
+      sessionGeneration: (state.sessionGeneration ?? 0) + 1
+    })),
   reducers: {
     getWorkOrders(
       state: WorkOrderState,
@@ -68,9 +75,18 @@ const slice = createSlice({
     },
     getWorkOrderDetails(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrder; id: number }>
+      action: PayloadAction<{
+        workOrder;
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrder, id } = action.payload;
+      const { workOrder, id, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       if (state.workOrderInfos[id]) {
         state.workOrderInfos[id] = { ...state.workOrderInfos[id], workOrder };
       } else state.workOrderInfos[id] = { workOrder };
@@ -82,16 +98,32 @@ const slice = createSlice({
     },
     addWorkOrder(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrder: WorkOrder }>
+      action: PayloadAction<{
+        workOrder: WorkOrder;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrder } = action.payload;
+      const { workOrder, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       state.workOrders.content = [workOrder, ...state.workOrders.content];
     },
     editWorkOrder(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrder: WorkOrder }>
+      action: PayloadAction<{
+        workOrder: WorkOrder;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrder } = action.payload;
+      const { workOrder, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       if (state.workOrderInfos[workOrder.id]) {
         state.workOrderInfos[workOrder.id].workOrder = workOrder;
       } else state.workOrderInfos[workOrder.id] = { workOrder };
@@ -104,9 +136,14 @@ const slice = createSlice({
     },
     deleteWorkOrder(
       state: WorkOrderState,
-      action: PayloadAction<{ id: number }>
+      action: PayloadAction<{ id: number; sessionGeneration?: number }>
     ) {
-      const { id } = action.payload;
+      const { id, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       const workOrderIndex = state.workOrders.content.findIndex(
         (workOrder) => workOrder.id === id
       );
@@ -115,23 +152,46 @@ const slice = createSlice({
     },
     getWorkOrdersByLocation(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrders: WorkOrder[]; id: number }>
+      action: PayloadAction<{
+        workOrders: WorkOrder[];
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrders, id } = action.payload;
+      const { workOrders, id, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       state.workOrdersByLocation[id] = workOrders;
     },
     getWorkOrdersByPart(
       state: WorkOrderState,
-      action: PayloadAction<{ workOrders: WorkOrder[]; id: number }>
+      action: PayloadAction<{
+        workOrders: WorkOrder[];
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrders, id } = action.payload;
+      const { workOrders, id, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       state.workOrdersByPart[id] = workOrders;
     },
     getEvents(
       state: WorkOrderState,
-      action: PayloadAction<{ events: WorkOrder[] }>
+      action: PayloadAction<{ events: WorkOrder[]; sessionGeneration?: number }>
     ) {
-      const { events } = action.payload;
+      const { events, sessionGeneration } = action.payload;
+      if (
+        sessionGeneration !== undefined &&
+        sessionGeneration !== state.sessionGeneration
+      )
+        return;
       state.calendar.events = events;
     },
     setLoadingGet(
@@ -190,18 +250,21 @@ export const getMoreWorkOrders =
   };
 export const getWorkOrderDetails =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrder = await api.get<WorkOrder>(`${basePath}/${id}`);
     dispatch(
       slice.actions.getWorkOrderDetails({
         id,
-        workOrder
+        workOrder,
+        sessionGeneration
       })
     );
   };
 export const addWorkOrder =
   (workOrder): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrderResponse = await createWorkOrderWithTasks(
       workOrder,
       (payload) => api.post<WorkOrder>(basePath, payload),
@@ -213,73 +276,102 @@ export const addWorkOrder =
           true
         )
     );
-    dispatch(slice.actions.addWorkOrder({ workOrder: workOrderResponse }));
+    dispatch(
+      slice.actions.addWorkOrder({
+        workOrder: workOrderResponse,
+        sessionGeneration
+      })
+    );
   };
 export const editWorkOrder =
   (id: number, workOrder): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrderResponse = await api.patch<WorkOrder>(
       `${basePath}/${id}`,
       workOrder
     );
-    dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
-    if (workOrder.archived) dispatch(slice.actions.deleteWorkOrder({ id }));
+    dispatch(
+      slice.actions.editWorkOrder({
+        workOrder: workOrderResponse,
+        sessionGeneration
+      })
+    );
+    if (workOrder.archived)
+      dispatch(slice.actions.deleteWorkOrder({ id, sessionGeneration }));
   };
 export const deleteWorkOrder =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrderResponse = await api.deletes<{ success: boolean }>(
       `${basePath}/${id}`
     );
     const { success } = workOrderResponse;
     if (success) {
-      dispatch(slice.actions.deleteWorkOrder({ id }));
+      dispatch(slice.actions.deleteWorkOrder({ id, sessionGeneration }));
     }
   };
 
 export const getWorkOrdersByLocation =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrders = await api.get<WorkOrder[]>(`${basePath}/location/${id}`);
     dispatch(
       slice.actions.getWorkOrdersByLocation({
         id,
-        workOrders
+        workOrders,
+        sessionGeneration
       })
     );
   };
 
 export const getWorkOrdersByPart =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrders = await api.get<WorkOrder[]>(`${basePath}/part/${id}`);
     dispatch(
       slice.actions.getWorkOrdersByPart({
         id,
-        workOrders
+        workOrders,
+        sessionGeneration
       })
     );
   };
 export const getPDFReport =
   (id: number): AppThunk =>
-  async (dispatch): Promise<string> => {
-    const response = await api.get<{ success: boolean; message: string }>(
-      `${basePath}/report/${id}`
-    );
-    const { message } = response;
-    return message;
-  };
+  async (): Promise<Response> =>
+    api.post<Response>(`${basePath}/report/${id}/stream`, {}, { raw: true });
+
+export const getIssuedWorkOrderReports =
+  (id: number): AppThunk =>
+  async () =>
+    api.get<GeneratedDocument[]>(`${basePath}/${id}/documents`);
+
+export const issueWorkOrderReport =
+  (id: number): AppThunk =>
+  async () =>
+    api.post<GeneratedDocument>(`${basePath}/${id}/report/issue`, {});
+
+export const downloadIssuedWorkOrderReport =
+  (documentId: number): AppThunk =>
+  async () =>
+    api.get<Response>(`documents/${documentId}/download`, { raw: true });
 
 export const getWorkOrderEvents =
   (start: Date, end: Date): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const response = await api.post<WorkOrder[]>(`${basePath}/events`, {
       start,
       end
     });
     dispatch(
       slice.actions.getEvents({
-        events: response
+        events: response,
+        sessionGeneration
       })
     );
   };
@@ -288,22 +380,34 @@ export const changeWorkOrderStatus =
     id: number,
     body: { status: string; feedback?: string; signature?: string }
   ): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrderResponse = await api.patch<WorkOrder>(
       `${basePath}/${id}/change-status`,
       body
     );
-    dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
+    dispatch(
+      slice.actions.editWorkOrder({
+        workOrder: workOrderResponse,
+        sessionGeneration
+      })
+    );
   };
 
 export const reopenWorkOrder =
   (id: number, reason: string): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().workOrders.sessionGeneration ?? 0;
     const workOrderResponse = await api.post<WorkOrder>(
       `${basePath}/${id}/reopen`,
       { reason }
     );
-    dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
+    dispatch(
+      slice.actions.editWorkOrder({
+        workOrder: workOrderResponse,
+        sessionGeneration
+      })
+    );
     return workOrderResponse;
   };
 

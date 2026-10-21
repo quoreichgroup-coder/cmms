@@ -36,7 +36,14 @@ function WOStatusPie({
     dispatch(getIncompleteByStatus(start, end, companyId));
   }, [start, end, companyId]);
 
-  const columns = ['id'];
+  const columns = [
+    'customId',
+    'title',
+    'status',
+    'priority',
+    'asset',
+    'createdAt'
+  ];
   const formattedData = [
     // {
     //   label: 'Complete',

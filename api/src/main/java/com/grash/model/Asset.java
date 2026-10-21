@@ -28,10 +28,14 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toCollection;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_asset_company_exchange_id", columnNames = {"company_id", "exchange_id"}))
 @Data
 @NoArgsConstructor
 @Schema(description = "Asset entity representing equipment, machinery, or property in the CMMS system")
 public class Asset extends CompanyAudit {
+
+    @Column(name = "exchange_id", nullable = false, updatable = false)
+    private UUID exchangeId = UUID.randomUUID();
 
     @Schema(description = "Custom identifier for the asset", accessMode = Schema.AccessMode.READ_ONLY)
     private String customId;

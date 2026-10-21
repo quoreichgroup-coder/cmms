@@ -55,6 +55,7 @@ import { useTranslation } from 'react-i18next';
 import { FAB, IconButton, Text } from 'react-native-paper';
 import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
 import MoreEntitiesScreen from '../screens/MoreEntitiesScreen';
+import MyShiftAvailabilityScreen from '../screens/MyShiftAvailabilityScreen';
 import MetersScreen from '../screens/meters/MetersScreen';
 import WorkOrdersScreen from '../screens/workOrders/WorkOrdersScreen';
 import { SheetManager } from 'react-native-actions-sheet';
@@ -72,6 +73,7 @@ import SelectTasksModal from '../screens/modals/SelectTasksModal';
 import SelectChecklistsModal from '../screens/modals/SelectChecklistsModal';
 import SelectTasksOrChecklistModal from '../screens/modals/SelectTasksOrChecklistModal';
 import PartsScreen from '../screens/parts/PartsScreen';
+import PurchaseOrdersScreen from '../screens/purchaseOrders/PurchaseOrdersScreen';
 import VendorsAndCustomersScreen from '../screens/vendorsCustomers';
 import PeopleAndTeamsScreen from '../screens/peopleTeams';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -126,6 +128,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppearance } from '../contexts/AppearanceContext';
 import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
 import { shouldShowOnboarding } from '../utils/onboardingState';
+import { PlanFeature } from '../models/subscriptionPlan';
 
 export default function Navigation() {
   const { colorScheme, theme } = useAppearance();
@@ -206,8 +209,13 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function RootNavigator() {
   const { t } = useTranslation();
-  const { hasViewPermission, user, userSettings, fetchUserSettings } =
-    useAuth();
+  const {
+    hasViewPermission,
+    hasFeature,
+    user,
+    userSettings,
+    fetchUserSettings
+  } = useAuth();
   const [startupRoute, setStartupRoute] = React.useState<
     'Root' | 'Onboarding' | null
   >(null);
@@ -215,6 +223,9 @@ function RootNavigator() {
   const canViewRequests =
     hasViewPermission(PermissionEntity.REQUESTS) &&
     user.uiConfiguration.requests;
+  const canViewPurchaseOrders =
+    hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
+    hasFeature(PlanFeature.PURCHASE_ORDER);
 
   React.useEffect(() => {
     if (!user) return;
@@ -359,6 +370,13 @@ function RootNavigator() {
         component={PartsScreen}
         options={{ title: t('parts') }}
       />
+      {canViewPurchaseOrders && (
+        <Stack.Screen
+          name="PurchaseOrders"
+          component={PurchaseOrdersScreen}
+          options={{ title: t('purchase_orders') }}
+        />
+      )}
       <Stack.Screen
         name="PartDetails"
         component={PartDetails}
@@ -484,6 +502,11 @@ function RootNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{ title: t('settings') }}
+      />
+      <Stack.Screen
+        name="MyShiftAvailability"
+        component={MyShiftAvailabilityScreen}
+        options={{ title: t('my_shift_availability') }}
       />
       <Stack.Screen
         name="WorkOrderFilters"
@@ -757,13 +780,16 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { t } = useTranslation();
-  const { hasViewPermission, user } = useAuth();
+  const { hasViewPermission, hasFeature, user } = useAuth();
   const uiConfiguration = user.uiConfiguration;
   const isRequester = user.role.code === 'REQUESTER';
   const canViewRequests =
     hasViewPermission(PermissionEntity.REQUESTS) && uiConfiguration.requests;
-  const canViewMoreEntities = viewMoreEntities.some((entity) =>
-    hasViewPermission(entity)
+  const canViewMoreEntities = viewMoreEntities.some(
+    (entity) =>
+      hasViewPermission(entity) &&
+      (entity !== PermissionEntity.PURCHASE_ORDERS ||
+        hasFeature(PlanFeature.PURCHASE_ORDER))
   );
 
   return (

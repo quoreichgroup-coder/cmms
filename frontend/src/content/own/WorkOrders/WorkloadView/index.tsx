@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 import {
   Alert,
   Box,
@@ -215,7 +222,9 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
         <LinearProgress
           variant="determinate"
           value={Math.min(percent, 100)}
-          aria-valuetext={t('workload_capacity_used', { percent })}
+          aria-valuetext={t('workload_capacity_used', {
+            percent: Math.round(percent)
+          })}
           color={barColor(percent)}
           sx={{ height: 10, borderRadius: 1, width: '100%' }}
         />
@@ -229,6 +238,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
     label?: string
   ) => {
     const percent = getCapacityUtilizationPercent(allocated, capacity);
+    const displayPercent = percent === null ? null : Math.round(percent);
     return (
       <Box sx={{ p: 0.5 }}>
         {label && (
@@ -241,7 +251,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
           variant="caption"
           color={percent === null ? 'text.secondary' : pctTextColor(percent)}
         >
-          {percent === null ? '—' : `${percent}%`}
+          {displayPercent === null ? '—' : `${displayPercent}%`}
         </Typography>
       </Box>
     );
@@ -477,7 +487,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
               >
                 {allUsers.map((user) => (
                   <MenuItem key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName}
+                    {getWorkloadUserDisplayName(user.id, allUsers)}
                   </MenuItem>
                 ))}
               </Select>
@@ -699,9 +709,8 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                     </Box>
                   )}
                   {allUniqueUsers.map((userSummary) => (
-                    <>
+                    <Fragment key={userSummary.userId}>
                       <Box
-                        key={`name-${userSummary.userId}`}
                         sx={{
                           p: 1,
                           borderBottom: 1,
@@ -885,7 +894,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                           </Droppable>
                         );
                       })}
-                    </>
+                    </Fragment>
                   ))}
                 </Box>
               </Box>

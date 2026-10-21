@@ -3,6 +3,11 @@ import {
   Button,
   CircularProgress,
   debounce,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Grid,
   IconButton,
@@ -30,6 +35,8 @@ import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import { respondPurchaseOrder } from '../../../slices/purchaseOrder';
 import BasicField from '../components/BasicField';
 import { getErrorMessage } from '../../../utils/api';
+import Alert from '@mui/material/Alert';
+import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
 
 interface PurchaseOrderDetailsProps {
   purchaseOrder: PurchaseOrder;
@@ -44,8 +51,8 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const [approving, setApproving] = useState<boolean>(false);
   const [cancelling, setCancelling] = useState<boolean>(false);
-  const { hasEditPermission, hasDeletePermission, hasViewPermission } =
-    useAuth();
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const { hasEditPermission, hasDeletePermission, user } = useAuth();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const theme = useTheme();
@@ -71,8 +78,8 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     () => debounce(onPartQuantityChange, 1500),
     []
   );
-  const onRespond = async (approved: boolean) => {
-    if (approving || cancelling) return;
+  const onRespond = async (approved: boolean): Promise<boolean> => {
+    if (approving || cancelling) return false;
     if (approved) {
       setApproving(true);
     } else {
@@ -84,8 +91,10 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
         t(approved ? 'purchase_order_approved' : 'purchase_order_rejected'),
         'success'
       );
+      return true;
     } catch (error) {
       showSnackBar(getErrorMessage(error), 'error');
+      return false;
     } finally {
       setApproving(false);
       setCancelling(false);
@@ -223,7 +232,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
       </Grid>
       <Divider />
       {purchaseOrder.status === 'PENDING' &&
-        hasViewPermission(PermissionEntity.SETTINGS) && (
+        canRespondToPurchaseOrders(user?.role) && (
           <>
             <Grid
               item
@@ -256,7 +265,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
                     <CheckOutlinedIcon />
                   )
                 }
-                onClick={() => onRespond(true)}
+                onClick={() => setApprovalDialogOpen(true)}
                 disabled={approving || cancelling}
                 variant="contained"
               >
@@ -266,6 +275,56 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             <Divider />
           </>
         )}
+      <Dialog
+        open={approvalDialogOpen}
+        onClose={() => {
+          if (!approving) setApprovalDialogOpen(false);
+        }}
+        aria-labelledby="purchase-order-approval-title"
+        aria-describedby="purchase-order-approval-description"
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle id="purchase-order-approval-title">
+          {t('purchase_order_approval_confirmation_title')}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            id="purchase-order-approval-description"
+            sx={{ mb: 2 }}
+          >
+            {t('purchase_order_approval_confirmation_body')}
+          </DialogContentText>
+          <Alert severity="warning">
+            {t('purchase_order_approval_effect_hint')}
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setApprovalDialogOpen(false)}
+            disabled={approving}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              const approved = await onRespond(true);
+              if (approved) setApprovalDialogOpen(false);
+            }}
+            disabled={approving || cancelling}
+            startIcon={
+              approving ? (
+                <CircularProgress size="1rem" />
+              ) : (
+                <CheckOutlinedIcon />
+              )
+            }
+          >
+            {t('approve')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Grid item xs={12}>
         <Tabs
           onChange={handleTabsChange}

@@ -56,8 +56,9 @@ export const createDashboardCurrencyFormatter = (
   locale: string,
   configuredCurrency?: string
 ): Pick<Intl.NumberFormat, 'format'> => {
-  const currency = configuredCurrency?.trim() || 'EUR';
+  const currency = configuredCurrency?.trim();
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+  if (!currency) return number;
 
   try {
     return new Intl.NumberFormat(locale, {

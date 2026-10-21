@@ -3,6 +3,8 @@ package com.grash.controller;
 import com.grash.model.User;
 import com.grash.model.UserSettings;
 import com.grash.exception.CustomException;
+import com.grash.dto.userSettings.OnboardingPreferenceDTO;
+import com.grash.model.enums.OnboardingStatus;
 import com.grash.service.UserService;
 import com.grash.service.UserSettingsService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,5 +63,67 @@ class UserSettingsControllerTest {
         UserSettingsController controller = new UserSettingsController(userSettingsService, userService);
         assertThrows(CustomException.class, () -> controller.patch(otherSettings, 99L, request));
         verify(userSettingsService, never()).update(any(UserSettings.class));
+    }
+
+    @Test
+    void onboardingPatchRejectsAnotherUsersSettings() {
+        UserSettings ownSettings = new UserSettings();
+        ownSettings.setId(12L);
+        UserSettings otherSettings = new UserSettings();
+        otherSettings.setId(99L);
+        User user = new User();
+        user.setUserSettings(ownSettings);
+        when(userService.whoami(request)).thenReturn(user);
+        when(userSettingsService.findById(99L)).thenReturn(Optional.of(otherSettings));
+
+        OnboardingPreferenceDTO preference = new OnboardingPreferenceDTO();
+        preference.setVersion(1);
+        preference.setStatus(OnboardingStatus.COMPLETED);
+
+        UserSettingsController controller = new UserSettingsController(userSettingsService, userService);
+        assertThrows(CustomException.class, () -> controller.updateOnboarding(99L, preference, request));
+        verify(userSettingsService, never()).updateOnboarding(any(), anyInt(), any());
+    }
+
+    @Test
+    void onboardingPatchRejectsUnsupportedVersionsAndInitialState() {
+        UserSettings ownSettings = new UserSettings();
+        ownSettings.setId(12L);
+        User user = new User();
+        user.setUserSettings(ownSettings);
+        when(userService.whoami(request)).thenReturn(user);
+        when(userSettingsService.findById(12L)).thenReturn(Optional.of(ownSettings));
+
+        OnboardingPreferenceDTO futureVersion = new OnboardingPreferenceDTO();
+        futureVersion.setVersion(2);
+        futureVersion.setStatus(OnboardingStatus.COMPLETED);
+        OnboardingPreferenceDTO initialState = new OnboardingPreferenceDTO();
+        initialState.setVersion(1);
+        initialState.setStatus(OnboardingStatus.NOT_STARTED);
+
+        UserSettingsController controller = new UserSettingsController(userSettingsService, userService);
+        assertThrows(CustomException.class, () -> controller.updateOnboarding(12L, futureVersion, request));
+        assertThrows(CustomException.class, () -> controller.updateOnboarding(12L, initialState, request));
+        verify(userSettingsService, never()).updateOnboarding(any(), anyInt(), any());
+    }
+
+    @Test
+    void onboardingPatchAcceptsCurrentUsersCompletedOrSkippedState() {
+        UserSettings ownSettings = new UserSettings();
+        ownSettings.setId(12L);
+        User user = new User();
+        user.setUserSettings(ownSettings);
+        when(userService.whoami(request)).thenReturn(user);
+        when(userSettingsService.findById(12L)).thenReturn(Optional.of(ownSettings));
+        when(userSettingsService.updateOnboarding(ownSettings, 1, OnboardingStatus.SKIPPED))
+                .thenReturn(ownSettings);
+
+        OnboardingPreferenceDTO preference = new OnboardingPreferenceDTO();
+        preference.setVersion(1);
+        preference.setStatus(OnboardingStatus.SKIPPED);
+
+        UserSettingsController controller = new UserSettingsController(userSettingsService, userService);
+        assertEquals(12L, controller.updateOnboarding(12L, preference, request).getId());
+        verify(userSettingsService).updateOnboarding(ownSettings, 1, OnboardingStatus.SKIPPED);
     }
 }

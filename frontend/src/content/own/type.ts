@@ -62,6 +62,8 @@ export interface IField {
   helperText?: string;
   fullWidth?: boolean;
   multiple?: boolean;
+  /** Include requester accounts in user selectors that support it. */
+  includeRequesters?: boolean;
   midWidth?: boolean;
   onPress?: () => void;
   required?: boolean;

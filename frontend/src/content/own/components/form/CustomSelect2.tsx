@@ -99,7 +99,7 @@ export const CustomSelect = ({
     (state) => state.locations
   );
   const { categories } = useSelector((state) => state.categories);
-  const { usersMini } = useSelector((state) => state.users);
+  const { usersMini, allUsersMini } = useSelector((state) => state.users);
   const { assetsMini } = useSelector((state) => state.assets);
   const { teamsMini } = useSelector((state) => state.teams);
   const { roles } = useSelector((state) => state.roles);
@@ -113,8 +113,8 @@ export const CustomSelect = ({
   const fetchVendors = async () => {
     dispatch(getVendorsMini());
   };
-  const fetchUsers = async () => {
-    dispatch(getUsersMini());
+  const fetchUsers = async (includeRequesters = false) => {
+    dispatch(getUsersMini(includeRequesters || undefined));
   };
   const fetchLocations = async () => {
     dispatch(getLocationsMini());
@@ -242,13 +242,15 @@ export const CustomSelect = ({
       onOpen = fetchVendors;
       break;
     case 'user':
-      const userOptions = usersMini.map((user) => {
+      const userOptions = (
+        field.includeRequesters ? allUsersMini : usersMini
+      ).map((user) => {
         return {
           label: `${user.firstName} ${user.lastName}`,
           value: user.id
         };
       });
-      onOpen = fetchUsers;
+      onOpen = () => fetchUsers(Boolean(field.includeRequesters));
 
       return (
         <>

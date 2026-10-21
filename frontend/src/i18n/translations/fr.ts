@@ -11,6 +11,79 @@ const frJSON = {
   open_source_source: 'Consulter le code source correspondant',
   open_source_upstream:
     'Cette édition est dérivée d’Atlas CMMS. Le projet amont et ses contributeurs conservent leurs mentions de droits applicables.',
+  help_center_title: 'Centre d’aide QPM',
+  help_center_intro:
+    'Des repères courts pour retrouver les principales actions de maintenance.',
+  help_search_placeholder: 'Rechercher dans les guides',
+  help_permissions_note:
+    'Les guides affichés dépendent de vos droits. Si un écran attendu est absent, contactez votre administrateur.',
+  help_open_module: 'Ouvrir le module',
+  help_no_results: 'Aucun guide ne correspond à cette recherche.',
+  help_results_count_singular: '{{count}} guide disponible',
+  help_results_count_plural: '{{count}} guides disponibles',
+  help_work_orders_title: 'Ordres de travail',
+  help_work_orders_summary:
+    'Suivez un travail depuis sa préparation jusqu’à sa confirmation.',
+  help_work_orders_step_1:
+    'Ouvrez un ordre pour vérifier l’équipement, la priorité, la description et les dates.',
+  help_work_orders_step_2:
+    'Consultez les tâches, pièces et personnes affectées avant de commencer.',
+  help_work_orders_step_3:
+    'À la clôture, vérifiez le récapitulatif : durée écoulée, temps de main-d’œuvre, retour et signature si demandés.',
+  help_work_orders_step_4:
+    'Confirmez seulement après cette relecture. La clôture suit les droits et les règles configurés dans QPM.',
+  help_requests_title: 'Demandes d’intervention',
+  help_requests_summary:
+    'Décrivez un problème et suivez son traitement par l’équipe de maintenance.',
+  help_requests_step_1:
+    'Créez une demande avec une description claire et l’équipement concerné, si connu.',
+  help_requests_step_2:
+    'Consultez son statut et les informations ajoutées pendant son traitement.',
+  help_requests_step_3:
+    'Selon vos droits, une demande peut être examinée puis liée à un ordre de travail.',
+  help_equipment_title: 'Équipements',
+  help_equipment_summary:
+    'Retrouvez les informations disponibles sur un équipement et son historique.',
+  help_equipment_step_1:
+    'Recherchez par nom ou code d’équipement dans la liste.',
+  help_equipment_step_2:
+    'Ouvrez la fiche pour consulter les détails, les ordres liés et les relevés disponibles.',
+  help_equipment_step_3:
+    'Les sections visibles dépendent des données renseignées et de vos autorisations.',
+  help_inventory_title: 'Pièces et inventaire',
+  help_inventory_summary:
+    'Consultez les références et les quantités suivies dans les magasins.',
+  help_inventory_step_1: 'Recherchez une pièce par son nom ou sa référence.',
+  help_inventory_step_2:
+    'Vérifiez le magasin, la quantité disponible et le seuil affiché.',
+  help_inventory_step_3:
+    'Toute modification de stock doit suivre le processus autorisé de votre organisation.',
+  help_planning_title: 'Planning des ordres',
+  help_planning_summary:
+    'Utilisez la vue calendrier pour parcourir les ordres selon leur date.',
+  help_planning_step_1:
+    'Depuis les ordres de travail, choisissez la vue calendrier lorsque celle-ci est disponible.',
+  help_planning_step_2:
+    'Utilisez les filtres de l’écran pour réduire la liste à votre périmètre.',
+  help_planning_step_3:
+    'Les dates et affectations affichées reflètent les informations enregistrées dans QPM.',
+  help_account_title: 'Profil et préférences',
+  help_account_summary:
+    'Ajustez les paramètres personnels disponibles pour votre compte.',
+  help_account_step_1: 'Ouvrez votre profil depuis le menu du compte.',
+  help_account_step_2:
+    'Vérifiez vos informations et vos préférences de langue ou d’affichage disponibles.',
+  help_account_step_3:
+    'Pour un accès manquant ou une modification de rôle, contactez un administrateur.',
+  help_settings_title: 'Paramètres',
+  help_settings_summary:
+    'Retrouvez les réglages d’entreprise et les fonctions configurables.',
+  help_settings_step_1:
+    'Les paramètres visibles dépendent de votre rôle et des fonctions activées pour votre entreprise.',
+  help_settings_step_2:
+    'Avant de modifier un workflow ou un formulaire, vérifiez les conséquences indiquées sur la page.',
+  help_settings_step_3:
+    'Les changements de configuration peuvent affecter d’autres utilisateurs; contactez votre administrateur en cas de doute.',
   plan_catalog: 'Catalogue des forfaits',
   plan_catalog_description:
     'Définissez les modules disponibles dans chaque forfait. Les changements s’appliquent à toutes les entreprises qui utilisent ce forfait.',
@@ -415,6 +488,9 @@ const frJSON = {
   details: 'Détails',
   updates: 'Historique',
   id: 'ID',
+  exchange_id: 'Clé d’échange',
+  parent_exchange_id: 'Clé d’échange du parent',
+  location_exchange_id: 'Clé d’échange du poste technique',
   due_date: "Date d'échéance",
   location: 'Emplacement',
   asset: 'Équipement',
@@ -572,6 +648,35 @@ const frJSON = {
   vendors: 'Fournisseurs',
   categories: 'Catégories',
   settings: 'Paramètres',
+  sidebar_sap_maintenance_dashboard: 'Pilotage de la maintenance',
+  sidebar_sap_maintenance_orders: 'Ordres de maintenance',
+  sidebar_sap_maintenance_plans: 'Plans de maintenance',
+  sidebar_sap_maintenance_analytics: 'Analyses de maintenance',
+  sidebar_sap_order_status: 'Statuts des ordres',
+  sidebar_sap_order_analysis: 'Analyse des ordres',
+  sidebar_sap_order_aging: 'Ancienneté des ordres',
+  sidebar_sap_time_and_cost: 'Temps et coûts',
+  sidebar_sap_equipment: 'Équipements',
+  sidebar_sap_equipment_reliability: 'Fiabilité des équipements',
+  sidebar_sap_maintenance_costs: 'Coûts de maintenance',
+  sidebar_sap_materials: 'Articles',
+  sidebar_sap_material_consumption: 'Consommation des articles',
+  sidebar_sap_maintenance_requests: 'Demandes de maintenance',
+  sidebar_sap_request_analysis: 'Analyse des demandes',
+  sidebar_sap_functional_locations: 'Postes techniques',
+  sidebar_sap_materials_inventory: 'Articles et stocks',
+  sidebar_sap_material_kits: 'Kits de pièces',
+  sidebar_sap_procurement: 'Approvisionnement maintenance',
+  sidebar_sap_measuring_points: 'Points de mesure',
+  sidebar_sap_maintenance_personnel_teams: 'Ressources de maintenance',
+  sidebar_sap_personnel: 'Personnel',
+  sidebar_sap_teams: 'Équipes',
+  sidebar_sap_suppliers_service_providers: 'Fournisseurs et prestataires',
+  sidebar_sap_suppliers: 'Fournisseurs',
+  sidebar_sap_customers: 'Clients',
+  sidebar_sap_technical_categories: 'Catégories',
+  sidebar_sap_documents: 'Documents',
+  sidebar_sap_settings: 'Paramètres',
   //request
   cancelled: 'Annulé',
   reject: 'Rejeter',
@@ -850,6 +955,12 @@ const frJSON = {
   po_create_partial_failure:
     'Le bon de commande a été créé, mais l’enregistrement des articles ou l’approbation a échoué. Vérifiez-le et terminez l’étape manquante.',
   approve_while_submitting: 'Approuver lors de la soumission',
+  purchase_order_approval_confirmation_title:
+    "Confirmer l'approbation du bon d'achat",
+  purchase_order_approval_confirmation_body:
+    "L'approbation de ce bon d'achat ajoute immédiatement au stock les quantités de toutes ses lignes.",
+  purchase_order_approval_effect_hint:
+    "Dans le fonctionnement actuel, l'approbation ajoute immédiatement au stock toutes les quantités indiquées. La réception partielle n'est pas prise en charge ici.",
   invalid_fax: "Le numéro de fax n'est pas valide",
   submit: 'Soumettre',
   each_item_superior_zero: 'Chaque quantité de pièce doit être supérieure à 0',
@@ -1511,6 +1622,9 @@ const frJSON = {
   matched_to_field: 'Correspond à {{field}}',
   next: 'Suivant',
   not_enough_rows: 'Pas assez de lignes dans le fichier',
+  import_invalid_file:
+    'Ce fichier est invalide ou ne peut pas être lu comme un tableur.',
+  import_file_read_error: 'Le fichier n’a pas pu être lu. Veuillez réessayer.',
   there_are_duplicates: 'Il y a des doublons: {{duplicates}}',
   assigned_by: 'Assigné Par',
   percent_rows_have_value: '{{percent}}% des lignes ont une valeur',
@@ -1799,6 +1913,14 @@ const frJSON = {
   manufacturer: 'Fabriquant',
   power: 'Puissance',
   import_error: "L'importation a échoué",
+  hierarchy_import_invalid:
+    '{{issues}} aux lignes {{rows}}. Corrigez le fichier avant l’import.',
+  hierarchy_issue_ambiguous_parent: 'Nom du parent ambigu',
+  hierarchy_issue_parent_name_mismatch:
+    'La casse du nom du parent diffère de sa ligne',
+  hierarchy_issue_duplicate_exchange_id: 'Clé d’échange dupliquée',
+  hierarchy_issue_invalid_exchange_id: 'Clé d’échange invalide',
+  hierarchy_issue_cycle: 'Cycle dans la hiérarchie',
   request_upgrade: 'Demander un changement de plan',
   operation_success: "L'opération a réussi",
   purchase_order_approved: "Le bon d'achat a été approuvé",
@@ -2311,6 +2433,7 @@ const frJSON = {
   integration_step_external: 'Préparer l’outil',
   integration_step_qpm: 'Configurer QPM',
   integration_step_verify: 'Vérifier le flux',
+  integration_step_progress: 'Étape {{current}} sur {{total}} : {{label}}',
   integration_step_external_desc:
     'Créez un flux dans la plateforme externe avec un déclencheur webhook HTTPS. Choisissez les événements de maintenance et le canal ou la destination adaptés à votre équipe.',
   integration_step_external_n8n_note:
@@ -2320,6 +2443,8 @@ const frJSON = {
     'Créez un endpoint webhook QPM avec l’URL du flux, puis sélectionnez uniquement les événements nécessaires. QPM signe les livraisons webhook : gardez le secret confidentiel.',
   integration_step_qpm_note:
     'Utilisez un endpoint dédié et limitez les événements au besoin. Le destinataire doit vérifier la signature HMAC avant tout traitement. Teams Workflows ne valide pas automatiquement la signature QPM; prévoyez une étape de vérification. N’incluez pas de données sensibles dans un canal public.',
+  integration_webhook_replay_limit:
+    'La signature HMAC porte uniquement sur le corps JSON brut. L’horodatage et l’identifiant de livraison ne sont pas signés : ils ne suffisent pas à empêcher un rejeu. Ne déclenchez pas une approbation, une clôture ou un achat sur ce seul webhook.',
   integration_step_verify_desc:
     'Déclenchez un événement QPM réel et non critique, puis consultez l’historique d’exécution du flux externe. Vérifiez les champs reçus et leur traitement.',
   integration_step_verify_note:
@@ -2502,6 +2627,8 @@ const frJSON = {
   confirm_delete_row: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
   scheduled: 'Planifié',
   customize_shift: 'Personnaliser le quart de travail',
+  shift_capacity_not_roster:
+    'Ce réglage décrit les disponibilités et la capacité de charge d’une personne. Il ne constitue pas un planning d’équipe publié ni une affectation de quart confirmée.',
   default_schedule: 'Horaire par défaut',
   custom_capacity_by_week: 'Capacité personnalisée par semaine',
   total_weekly_capacity: 'Capacité hebdomadaire totale {{hours}}h {{minutes}}m',
@@ -2587,7 +2714,11 @@ const frJSON = {
   legal_company_name: 'Raison sociale',
   registration_country: 'Pays d’enregistrement (code ISO)',
   registration_country_hint:
-    'Saisissez le code pays à deux lettres, par exemple BF ou FR.',
+    'Saisissez le code pays à deux lettres, par exemple BF, SN ou FR. Pour un pays UEMOA, QPM pourra suggérer le XOF comme devise.',
+  uemoa_currency_suggestion:
+    'Le pays d’enregistrement de cette entreprise appartient à l’UEMOA. Le franc CFA BCEAO (XOF) est proposé comme devise. Aucun montant existant ne sera converti.',
+  use_suggested_currency: 'Utiliser XOF',
+  currency_save_error: 'Impossible d’enregistrer la devise.',
   business_registration_number: 'Numéro d’immatriculation',
   tax_identification_number: 'Identifiant fiscal',
   registered_address: 'Adresse enregistrée',

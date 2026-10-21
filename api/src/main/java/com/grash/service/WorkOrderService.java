@@ -1181,7 +1181,7 @@ public class WorkOrderService {
 
         String reportHtml = thymeleafTemplateEngine.process("work-order-report.html", thymeleafContext);
 
-        String reportHtmlTransformed = variables.get("dir") == "rtl" ?
+        String reportHtmlTransformed = "rtl".equals(variables.get("dir")) ?
                 TextDirectionUtils.transformHtmlText(reportHtml) : reportHtml;
 
         HtmlConverter.convertToPdf(reportHtmlTransformed, outputStream,

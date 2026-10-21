@@ -23,13 +23,14 @@ import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { editPOPartQuantities } from '../../../slices/partQuantity';
 import { createPurchaseOrderWorkflow } from './createPurchaseOrderWorkflow';
 import PartQuantity from '../../../models/owns/partQuantity';
+import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
 
 function CreatePurchaseOrder() {
   const { t }: { t: any } = useTranslation();
   const { setTitle } = useContext(TitleContext);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { hasCreatePermission, hasFeature, hasViewPermission } = useAuth();
+  const { hasCreatePermission, hasFeature, user } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   useEffect(() => {
     setTitle(t('new_po'));
@@ -197,11 +198,12 @@ function CreatePurchaseOrder() {
   ];
   const getFields = () => {
     let fields = [...defaultFields];
-    if (hasViewPermission(PermissionEntity.SETTINGS)) {
+    if (canRespondToPurchaseOrders(user?.role)) {
       fields.push({
         name: 'approveOnSubmit',
         type: 'switch',
-        label: t('approve_while_submitting')
+        label: t('approve_while_submitting'),
+        helperText: t('purchase_order_approval_effect_hint')
       });
     }
     return fields;

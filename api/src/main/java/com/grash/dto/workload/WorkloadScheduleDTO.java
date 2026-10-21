@@ -1,6 +1,7 @@
 package com.grash.dto.workload;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +14,8 @@ import java.util.Date;
 public class WorkloadScheduleDTO {
     private LocalDate localDate;
     @Schema(description = "User ID to assign as primary user / assignee")
+    @Positive
     private Long primaryUserId;
+    @Positive
     private Double estimatedDuration;
 }

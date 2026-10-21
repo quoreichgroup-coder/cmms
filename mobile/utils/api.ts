@@ -250,6 +250,9 @@ export const getErrorMessage = (
   if (error?.code === 'REQUEST_TIMEOUT') {
     return i18n.t('request_timeout', { defaultValue: defaultMessage });
   }
+  if (isNetworkError(error)) {
+    return i18n.t('server_unreachable', { defaultValue: defaultMessage });
+  }
   const status = Number(error?.status ?? error?.response?.status);
   if (status >= 500) {
     return i18n.t('api_server_error', { defaultValue: defaultMessage });
@@ -266,14 +269,21 @@ export const isNetworkError = (error: any): boolean => {
   if (!error) return false;
   if (error instanceof TypeError) return true;
   if (error?.status === 502) return true;
+  const code = String(error?.code ?? '').toLowerCase();
   const message = String(error?.message ?? '').toLowerCase();
   return (
+    code === 'err_network' ||
+    code === 'econnrefused' ||
+    code === 'econnreset' ||
     message.includes('failed to fetch') ||
     message.includes('networkerror') ||
     message.includes('network error') ||
+    message.includes('network request failed') ||
     message.includes('load failed') ||
     message.includes('connection refused') ||
-    message.includes('err_connection_refused')
+    message.includes('connection reset') ||
+    message.includes('err_connection_refused') ||
+    message.includes('err_connection_reset')
   );
 };
 

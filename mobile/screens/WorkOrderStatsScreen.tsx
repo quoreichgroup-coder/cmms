@@ -27,7 +27,7 @@ import {
   getDashboardWorkOrderScope,
   withDashboardWorkOrderScope
 } from '../utils/analytics';
-import { getUtcDayRange } from '../utils/dashboardDates';
+import { getCompanyDayRange } from '../utils/dashboardDates';
 
 type DashboardMetric = {
   label: ExtendedWorkOrderStatus;
@@ -49,7 +49,8 @@ export default function WorkOrderStatsScreen({
     fetchUserSettings,
     hasViewPermission,
     hasViewOtherPermission,
-    user
+    user,
+    companySettings
   } = useAuth();
   const canViewWorkOrders = hasViewPermission(PermissionEntity.WORK_ORDERS);
   const canViewOtherWorkOrders = hasViewOtherPermission(
@@ -89,7 +90,10 @@ export default function WorkOrderStatsScreen({
     workOrderScope,
     user?.id
   );
-  const [todayStart, tomorrowStart] = getUtcDayRange();
+  const [todayStart, tomorrowStart] = getCompanyDayRange(
+    new Date(),
+    companySettings?.generalPreferences?.timeZone ?? 'UTC'
+  );
 
   useEffect(() => {
     if (workOrderScope !== null)
@@ -169,7 +173,7 @@ export default function WorkOrderStatsScreen({
         filterFields: [
           {
             field: 'dueDate',
-            operation: 'gt',
+            operation: 'ge',
             value: todayStart,
             enumName: 'JS_DATE'
           },

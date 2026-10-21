@@ -26,8 +26,19 @@ test('compact desktop footer stacks all actions while the mobile drawer stays ex
     footer,
     /const collapsed = desktopSidebarCollapsed && !forceExpanded/
   );
-  assert.match(footer, /minHeight: collapsed \? 160 : 60/);
+  assert.match(footer, /minHeight: collapsed \? 208 : 60/);
   assert.match(footer, /flexShrink: 0/);
   assert.match(footer, /flexDirection: collapsed \? 'column' : 'row'/);
   assert.match(sidebar, /<SidebarFooter forceExpanded \/>/);
+});
+
+test('submenu hover has a visible QPM accent marker', () => {
+  const menu = fs.readFileSync(
+    'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/index.tsx',
+    'utf8'
+  );
+  assert.match(
+    menu,
+    /&:hover:before\s*\{\s*background: \$\{theme\.colors\.primary\.main\};/
+  );
 });

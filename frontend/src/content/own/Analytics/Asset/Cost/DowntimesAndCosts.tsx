@@ -61,7 +61,7 @@ function DowntimesAndCosts({
       duration: Number((asset.duration / 3600).toFixed(2)),
       cost: Number(asset.workOrdersCosts.toFixed(2)),
       color: getQpmChartColor(`asset-${asset.id}`),
-      filters: [{ key: 'user', value: asset.id }]
+      filters: [{ key: 'asset', value: asset.id }]
     };
   });
   const title = t('downtime_and_costs');

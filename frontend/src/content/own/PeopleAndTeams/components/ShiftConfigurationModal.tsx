@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -358,6 +359,11 @@ function ShiftConfigurationModal({ user, open, onClose, onSave }: PropsType) {
           </Stack>
         </Stack>
       </DialogTitle>
+      <DialogContent sx={{ pt: 0, pb: 1 }}>
+        <Alert severity="info" sx={{ borderRadius: 1 }}>
+          {t('shift_capacity_not_roster')}
+        </Alert>
+      </DialogContent>
       <Tabs
         value={currentTab}
         onChange={handleTabsChange}

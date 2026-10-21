@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import { getWOBaseFields } from '../utils/woBase';
 import moment from 'moment-timezone';
+import { findVisibleFieldConfiguration } from '../utils/visibleFieldConfiguration';
+import { formatCompanyCurrency } from '../utils/formatCurrency';
 
 type CompanySettingsContext = {
   getFormattedDate: (dateString: string | Date, hideTime?: boolean) => string;
@@ -36,15 +38,18 @@ export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
   const { companySettings, getFilteredFields, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const generalPreferences = companySettings?.generalPreferences ?? {
-    dateFormat: 'DDMMYY', currency: { code: '$' }, timeZone: moment.tz.guess()
+    dateFormat: 'DDMMYY',
+    currency: { code: '' },
+    timeZone: moment.tz.guess()
   };
-  const workOrderRequestConfiguration = companySettings?.workOrderRequestConfiguration;
+  const workOrderRequestConfiguration =
+    companySettings?.workOrderRequestConfiguration;
   const { allUsersMini } = useSelector((state) => state.users);
   const { workOrderConfiguration } = companySettings ?? {
     workOrderFieldConfigurations: []
   };
   const { children } = props;
-  const { t }: { t: any } = useTranslation();
+  const { t, i18n }: { t: any; i18n: { language: string } } = useTranslation();
 
   const getFormattedDate = (dateString: string | Date, hideTime?: boolean) => {
     if (!dateString) return '';
@@ -62,12 +67,12 @@ export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
       return `${day}/${month}/${year} ${time}`.trim();
     }
   };
-  const getFormattedCurrency = (amount: number): string => {
-    const code = generalPreferences.currency?.code ?? '$';
-    const currenciesToReverse = ['$'];
-    return currenciesToReverse.includes(code)
-      ? `${code} ${amount} `
-      : `${amount} ${code}`;
+  const getFormattedCurrency = (amount: number | string): string => {
+    return formatCompanyCurrency(
+      amount,
+      generalPreferences.currency?.code,
+      i18n.language
+    );
   };
   const uploadFiles = async (
     files: { uri: string; name: string; type: string }[],
@@ -131,14 +136,15 @@ export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
     const fieldMap = { images: 'image' };
     fieldsToConfigure.forEach((name) => {
       const trueFieldName = fieldMap[name] || name;
-      const fieldConfig =
-        workOrderConfiguration.workOrderFieldConfigurations.find(
-          (woFC) => woFC.fieldName === name
-        );
-      const fieldIndexInFields = fields.findIndex(
-        (field) => field.name === trueFieldName
+      const visibleConfiguration = findVisibleFieldConfiguration(
+        fields,
+        trueFieldName,
+        workOrderConfiguration?.workOrderFieldConfigurations,
+        name
       );
-      if (fieldIndexInFields !== -1) {
+      if (visibleConfiguration) {
+        const { fieldIndex: fieldIndexInFields, configuration: fieldConfig } =
+          visibleConfiguration;
         if (fieldConfig.fieldType === 'REQUIRED') {
           fields[fieldIndexInFields] = {
             ...fields[fieldIndexInFields],
@@ -200,37 +206,39 @@ export const CompanySettingsProvider: FC<{ children: ReactNode }> = (props) => {
       'team'
     ];
     fieldsToConfigure.forEach((name) => {
-      const fieldConfig =
-        workOrderRequestConfiguration.fieldConfigurations.find(
-          (fc) => fc.fieldName === name
-        );
-      const fieldIndexInFields = fields.findIndex(
-        (field) => field.name === name
+      const visibleConfiguration = findVisibleFieldConfiguration(
+        fields,
+        name,
+        workOrderRequestConfiguration?.fieldConfigurations
       );
-      if (fieldConfig.fieldType === 'REQUIRED') {
-        fields[fieldIndexInFields] = {
-          ...fields[fieldIndexInFields],
-          required: true
-        };
-        const requiredMessage = t('required_field');
-        let yupSchema;
-        switch (fields[fieldIndexInFields].type) {
-          case 'text':
-            yupSchema = Yup.string().required(requiredMessage);
-            break;
-          case 'date':
-            yupSchema = Yup.string().required(requiredMessage);
-            break;
-          case 'number':
-            yupSchema = Yup.number().required(requiredMessage);
-            break;
-          default:
-            yupSchema = Yup.object().required(requiredMessage).nullable();
-            break;
+      if (visibleConfiguration) {
+        const { fieldIndex: fieldIndexInFields, configuration: fieldConfig } =
+          visibleConfiguration;
+        if (fieldConfig.fieldType === 'REQUIRED') {
+          fields[fieldIndexInFields] = {
+            ...fields[fieldIndexInFields],
+            required: true
+          };
+          const requiredMessage = t('required_field');
+          let yupSchema;
+          switch (fields[fieldIndexInFields].type) {
+            case 'text':
+              yupSchema = Yup.string().required(requiredMessage);
+              break;
+            case 'date':
+              yupSchema = Yup.string().required(requiredMessage);
+              break;
+            case 'number':
+              yupSchema = Yup.number().required(requiredMessage);
+              break;
+            default:
+              yupSchema = Yup.object().required(requiredMessage).nullable();
+              break;
+          }
+          shape[name] = yupSchema;
+        } else if (fieldConfig.fieldType === 'HIDDEN') {
+          fields.splice(fieldIndexInFields, 1);
         }
-        shape[name] = yupSchema;
-      } else if (fieldConfig.fieldType === 'HIDDEN') {
-        fields.splice(fieldIndexInFields, 1);
       }
     });
 

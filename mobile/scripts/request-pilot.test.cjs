@@ -39,7 +39,10 @@ test('approval returns the created work order and updates the request', async ()
     return { id: 91 };
   });
   assert.equal(
-    await requests.approveRequest(12)((action) => actions.push(action)),
+    await requests.approveRequest(12)(
+      (action) => actions.push(action),
+      () => ({ requests: { sessionGeneration: 0 } })
+    ),
     91
   );
   assert.equal(actions[0].payload.id, 12);
@@ -54,7 +57,13 @@ test('approval sends the selected asset status through the existing endpoint', a
     });
     return { id: 91 };
   });
-  assert.equal(await requests.approveRequest(12, 'DOWN')(() => undefined), 91);
+  assert.equal(
+    await requests.approveRequest(12, 'DOWN')(
+      () => undefined,
+      () => ({ requests: { sessionGeneration: 0 } })
+    ),
+    91
+  );
 });
 
 test('rejection preserves the complete reason in the query string', async () => {
@@ -66,7 +75,10 @@ test('rejection preserves the complete reason in the query string', async () => 
     assert.equal(parsed.searchParams.get('reason'), reason);
     assert.equal([...parsed.searchParams].length, 1);
   });
-  await requests.cancelRequest(12, reason)((action) => actions.push(action));
+  await requests.cancelRequest(12, reason)(
+    (action) => actions.push(action),
+    () => ({ requests: { sessionGeneration: 0 } })
+  );
   assert.equal(actions[0].type, 'requests/cancelRequest');
   assert.equal(actions[0].payload.id, 12);
 });
@@ -79,7 +91,10 @@ for (const operation of ['approveRequest', 'cancelRequest']) {
       throw error;
     });
     await assert.rejects(
-      requests[operation](12, 'reason')((action) => actions.push(action)),
+      requests[operation](12, 'reason')(
+        (action) => actions.push(action),
+        () => ({ requests: { sessionGeneration: 0 } })
+      ),
       (actual) => actual === error
     );
     assert.equal(actions.length, 0);

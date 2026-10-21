@@ -1,10 +1,20 @@
 import * as React from 'react';
 import renderer from 'react-test-renderer';
+import { PaperProvider } from 'react-native-paper';
 
 import { MonoText } from '../StyledText';
+import { customTheme } from '../../custom-theme';
 
 it(`renders correctly`, () => {
-  const tree = renderer.create(<MonoText>Snapshot test!</MonoText>).toJSON();
+  let tree;
+  renderer.act(() => {
+    tree = renderer.create(
+      <PaperProvider theme={customTheme}>
+        <MonoText>Snapshot test!</MonoText>
+      </PaperProvider>
+    );
+  });
 
-  expect(tree).toMatchSnapshot();
+  expect(tree.toJSON()).toMatchSnapshot();
+  renderer.act(() => tree.unmount());
 });

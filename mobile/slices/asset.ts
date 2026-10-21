@@ -28,6 +28,7 @@ interface AssetState {
   latestListRequestId: number;
   loadingGet: boolean;
   loadingWorkOrders: boolean;
+  sessionGeneration: number;
 }
 
 const initialState: AssetState = {
@@ -44,43 +45,75 @@ const initialState: AssetState = {
   listLoading: false,
   latestListRequestId: 0,
   loadingGet: false,
-  loadingWorkOrders: false
+  loadingWorkOrders: false,
+  sessionGeneration: 0
 };
+
+const isCurrentGeneration = (state: AssetState, generation?: number) =>
+  generation === undefined || generation === state.sessionGeneration;
 
 const slice = createSlice({
   name: 'assets',
   initialState,
-  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
+  extraReducers: (builder) =>
+    builder.addCase(revertAll, (state) => ({
+      ...initialState,
+      sessionGeneration: (state.sessionGeneration ?? 0) + 1
+    })),
   reducers: {
     getAssets(
       state: AssetState,
-      action: PayloadAction<{ assets: Page<AssetDTO>; requestId: number }>
+      action: PayloadAction<{
+        assets: Page<AssetDTO>;
+        requestId: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { assets, requestId } = action.payload;
-      if (requestId !== state.latestListRequestId) return;
+      const { assets, requestId, sessionGeneration } = action.payload;
+      if (
+        requestId !== state.latestListRequestId ||
+        !isCurrentGeneration(state, sessionGeneration)
+      )
+        return;
       state.assets = assets;
       state.currentPageNum = 0;
       state.lastPage = assets.last;
     },
     getMoreAssets(
       state: AssetState,
-      action: PayloadAction<{ assets: Page<AssetDTO>; requestId: number }>
+      action: PayloadAction<{
+        assets: Page<AssetDTO>;
+        requestId: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { assets, requestId } = action.payload;
-      if (requestId !== state.latestListRequestId) return;
+      const { assets, requestId, sessionGeneration } = action.payload;
+      if (
+        requestId !== state.latestListRequestId ||
+        !isCurrentGeneration(state, sessionGeneration)
+      )
+        return;
       state.assets.content = state.assets.content.concat(assets.content);
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = assets.last;
     },
     getAssetsMini(
       state: AssetState,
-      action: PayloadAction<{ assets: AssetMiniDTO[] }>
+      action: PayloadAction<{
+        assets: AssetMiniDTO[];
+        sessionGeneration?: number;
+      }>
     ) {
-      const { assets } = action.payload;
+      const { assets, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.assetsMini = assets;
     },
-    addAsset(state: AssetState, action: PayloadAction<{ asset: AssetDTO }>) {
-      const { asset } = action.payload;
+    addAsset(
+      state: AssetState,
+      action: PayloadAction<{ asset: AssetDTO; sessionGeneration?: number }>
+    ) {
+      const { asset, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.assets.content = [...state.assets.content, asset];
       state.assetsMini = [
         ...state.assetsMini,
@@ -90,14 +123,22 @@ const slice = createSlice({
         }
       ];
     },
-    editAsset(state: AssetState, action: PayloadAction<{ asset: AssetDTO }>) {
-      const { asset } = action.payload;
+    editAsset(
+      state: AssetState,
+      action: PayloadAction<{ asset: AssetDTO; sessionGeneration?: number }>
+    ) {
+      const { asset, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       if (state.assetInfos[asset.id]) {
         state.assetInfos[asset.id].asset = asset;
       } else state.assetInfos[asset.id] = { asset, workOrders: [] };
     },
-    deleteAsset(state: AssetState, action: PayloadAction<{ id: number }>) {
-      const { id } = action.payload;
+    deleteAsset(
+      state: AssetState,
+      action: PayloadAction<{ id: number; sessionGeneration?: number }>
+    ) {
+      const { id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       const assetIndex = state.assets.content.findIndex(
         (asset) => asset.id === id
       );
@@ -120,9 +161,10 @@ const slice = createSlice({
     },
     setLoadingGet(
       state: AssetState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; sessionGeneration?: number }>
     ) {
-      const { loading } = action.payload;
+      const { loading, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.loadingGet = loading;
     },
     beginListRequest(state: AssetState, action: PayloadAction<number>) {
@@ -136,9 +178,10 @@ const slice = createSlice({
     },
     setLoadingWorkOrders(
       state: AssetState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; sessionGeneration?: number }>
     ) {
-      const { loading } = action.payload;
+      const { loading, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.loadingWorkOrders = loading;
     },
     getAssetChildren(
@@ -148,9 +191,12 @@ const slice = createSlice({
         id: number;
         pageNum: number;
         lastPage: boolean;
+        sessionGeneration?: number;
       }>
     ) {
-      const { assets, id, pageNum, lastPage } = action.payload;
+      const { assets, id, pageNum, lastPage, sessionGeneration } =
+        action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       const parent = state.assetsHierarchy.findIndex(
         (asset) => asset.id === id
       );
@@ -180,34 +226,54 @@ const slice = createSlice({
     },
     getAssetDetails(
       state: AssetState,
-      action: PayloadAction<{ asset: AssetDTO; id: number }>
+      action: PayloadAction<{
+        asset: AssetDTO;
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { asset, id } = action.payload;
+      const { asset, id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       if (state.assetInfos[id]) {
         state.assetInfos[id] = { ...state.assetInfos[id], asset };
       } else state.assetInfos[id] = { asset, workOrders: [] };
     },
     getAssetWorkOrders(
       state: AssetState,
-      action: PayloadAction<{ workOrders: WorkOrder[]; id: number }>
+      action: PayloadAction<{
+        workOrders: WorkOrder[];
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { workOrders, id } = action.payload;
+      const { workOrders, id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       if (state.assetInfos[id]) {
         state.assetInfos[id] = { ...state.assetInfos[id], workOrders };
       } else state.assetInfos[id] = { workOrders };
     },
     getAssetsByLocation(
       state: AssetState,
-      action: PayloadAction<{ assets: AssetDTO[]; id: number }>
+      action: PayloadAction<{
+        assets: AssetDTO[];
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { assets, id } = action.payload;
+      const { assets, id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.assetsByLocation[id] = assets;
     },
     getAssetsByPart(
       state: AssetState,
-      action: PayloadAction<{ assets: AssetDTO[]; id: number }>
+      action: PayloadAction<{
+        assets: AssetDTO[];
+        id: number;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { assets, id } = action.payload;
+      const { assets, id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.assetsByPart[id] = assets;
     }
   }
@@ -219,7 +285,8 @@ let listRequestSequence = 0;
 
 export const getAssets =
   (criteria: SearchCriteria): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const requestId = ++listRequestSequence;
     const { signal } = createCancellableRequest('getAssets');
     try {
@@ -229,7 +296,9 @@ export const getAssets =
         criteria,
         { signal }
       );
-      dispatch(slice.actions.getAssets({ assets, requestId }));
+      dispatch(
+        slice.actions.getAssets({ assets, requestId, sessionGeneration })
+      );
     } catch (error) {
       if (isAbortError(error)) return;
       throw error;
@@ -239,7 +308,8 @@ export const getAssets =
   };
 export const getMoreAssets =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const requestId = ++listRequestSequence;
     const { signal } = createCancellableRequest('getMoreAssets');
     criteria = { ...criteria, pageNum };
@@ -250,7 +320,9 @@ export const getMoreAssets =
         criteria,
         { signal }
       );
-      dispatch(slice.actions.getMoreAssets({ assets, requestId }));
+      dispatch(
+        slice.actions.getMoreAssets({ assets, requestId, sessionGeneration })
+      );
     } catch (error) {
       if (isAbortError(error)) return;
       throw error;
@@ -260,57 +332,73 @@ export const getMoreAssets =
   };
 export const getAssetsMini =
   (locationId?: number | null): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const { signal } = createCancellableRequest('getAssetsMini');
     try {
-      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: true, sessionGeneration })
+      );
       const assets = await api.get<AssetMiniDTO[]>(
         `${basePath}/mini?locationId=${locationId ?? ''}`,
         { signal }
       );
-      dispatch(slice.actions.getAssetsMini({ assets }));
+      dispatch(slice.actions.getAssetsMini({ assets, sessionGeneration }));
     } catch (error) {
       if (isAbortError(error)) return;
       throw error;
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+      );
     }
   };
 export const addAsset =
   (asset): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assetResponse = await api.post<AssetDTO>(basePath, asset);
-    dispatch(slice.actions.addAsset({ asset: assetResponse }));
+    dispatch(
+      slice.actions.addAsset({ asset: assetResponse, sessionGeneration })
+    );
     return assetResponse;
   };
 export const editAsset =
   (id: number, asset: Partial<AssetDTO>): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assetResponse = await api.patch<AssetDTO>(`${basePath}/${id}`, asset);
-    dispatch(slice.actions.editAsset({ asset: assetResponse }));
+    dispatch(
+      slice.actions.editAsset({ asset: assetResponse, sessionGeneration })
+    );
   };
 export const getSingleAsset =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assetResponse = await api.get<AssetDTO>(`${basePath}/${id}`);
-    dispatch(slice.actions.editAsset({ asset: assetResponse }));
+    dispatch(
+      slice.actions.editAsset({ asset: assetResponse, sessionGeneration })
+    );
   };
 export const deleteAsset =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assetResponse = await api.deletes<{ success: boolean }>(
       `${basePath}/${id}`
     );
     const { success } = assetResponse;
     if (success) {
-      dispatch(slice.actions.deleteAsset({ id }));
+      dispatch(slice.actions.deleteAsset({ id, sessionGeneration }));
     }
   };
 
 export const getAssetChildren =
   (id: number, parents: number[], pageNum = 0, pageSize = 20): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
+    dispatch(slice.actions.setLoadingGet({ loading: true, sessionGeneration }));
     try {
       const page = await api.get<Page<AssetDTO>>(
         `${basePath}/children/${id}/paginated?page=${pageNum}&size=${pageSize}`
@@ -320,93 +408,119 @@ export const getAssetChildren =
           id,
           pageNum,
           lastPage: page.last,
+          sessionGeneration,
           assets: page.content.map((asset) => {
             return { ...asset, hierarchy: [...parents, asset.id] };
           })
         })
       );
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+      );
     }
   };
 
 export const getAssetDetails =
   (id: number): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
+    dispatch(slice.actions.setLoadingGet({ loading: true, sessionGeneration }));
     try {
       const asset = await api.get<AssetDTO>(`${basePath}/${id}`);
       dispatch(
         slice.actions.getAssetDetails({
           id,
-          asset
+          asset,
+          sessionGeneration
         })
       );
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+      );
     }
   };
 export const getAssetByNfc =
   (nfcId: string): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
+    dispatch(slice.actions.setLoadingGet({ loading: true, sessionGeneration }));
     try {
       return await api.get<AssetMiniDTO>(
         `${basePath}/nfc?nfcId=${encodeURIComponent(nfcId)}`
       );
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+      );
     }
   };
 export const getAssetByBarcode =
   (barCode: string): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
+    dispatch(slice.actions.setLoadingGet({ loading: true, sessionGeneration }));
     try {
       return await api.get<AssetMiniDTO>(
         `${basePath}/barcode?data=${encodeURIComponent(barCode)}`
       );
     } finally {
-      dispatch(slice.actions.setLoadingGet({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+      );
     }
   };
 export const getAssetWorkOrders =
   (id: number): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setLoadingWorkOrders({ loading: true }));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
+    dispatch(
+      slice.actions.setLoadingWorkOrders({ loading: true, sessionGeneration })
+    );
     try {
       const workOrders = await api.get<WorkOrder[]>(`work-orders/asset/${id}`);
       dispatch(
         slice.actions.getAssetWorkOrders({
           id,
-          workOrders
+          workOrders,
+          sessionGeneration
         })
       );
     } finally {
-      dispatch(slice.actions.setLoadingWorkOrders({ loading: false }));
+      dispatch(
+        slice.actions.setLoadingWorkOrders({
+          loading: false,
+          sessionGeneration
+        })
+      );
     }
   };
 
 export const getAssetsByLocation =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assets = await api.get<AssetDTO[]>(`${basePath}/location/${id}`);
     dispatch(
       slice.actions.getAssetsByLocation({
         id,
-        assets
+        assets,
+        sessionGeneration
       })
     );
   };
 
 export const getAssetsByPart =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().assets.sessionGeneration ?? 0;
     const assets = await api.get<AssetDTO[]>(`${basePath}/part/${id}`);
     dispatch(
       slice.actions.getAssetsByPart({
         id,
-        assets
+        assets,
+        sessionGeneration
       })
     );
   };

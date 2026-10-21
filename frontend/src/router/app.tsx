@@ -107,6 +107,7 @@ const UserProfile = Loader(lazy(() => import('../content/own/UserProfile')));
 const AboutLicenses = Loader(
   lazy(() => import('../content/own/AboutLicenses'))
 );
+const HelpCenter = Loader(lazy(() => import('../content/own/HelpCenter')));
 const CompanyProfile = Loader(
   lazy(() => import('../content/own/CompanyProfile'))
 );
@@ -298,6 +299,7 @@ const appRoutes = [
     ]
   },
   { path: 'about-licenses', element: <AboutLicenses /> },
+  { path: 'help', element: <HelpCenter /> },
   {
     path: 'subscription',
     children: [

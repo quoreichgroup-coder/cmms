@@ -8,19 +8,22 @@ import { revertAll } from 'src/utils/redux';
 import { getWorkOrders } from './workOrder';
 
 const basePath = 'notifications';
+let notificationRequestId = 0;
 
 interface NotificationState {
   notifications: Page<Notification>;
   currentPageNum: number;
   lastPage: boolean;
   loadingGet: boolean;
+  requestId: number;
 }
 
 const initialState: NotificationState = {
   notifications: getInitialPage<Notification>(),
   currentPageNum: 0,
   lastPage: false,
-  loadingGet: false
+  loadingGet: false,
+  requestId: 0
 };
 
 const slice = createSlice({
@@ -30,18 +33,26 @@ const slice = createSlice({
   reducers: {
     getNotifications(
       state: NotificationState,
-      action: PayloadAction<{ notifications: Page<Notification> }>
+      action: PayloadAction<{
+        notifications: Page<Notification>;
+        requestId: number;
+      }>
     ) {
-      const { notifications } = action.payload;
+      const { notifications, requestId } = action.payload;
+      if (requestId !== state.requestId) return;
       state.notifications = notifications;
       state.currentPageNum = 0;
       state.lastPage = notifications.last;
     },
     getMoreNotifications(
       state: NotificationState,
-      action: PayloadAction<{ notifications: Page<Notification> }>
+      action: PayloadAction<{
+        notifications: Page<Notification>;
+        requestId: number;
+      }>
     ) {
-      const { notifications } = action.payload;
+      const { notifications, requestId } = action.payload;
+      if (requestId !== state.requestId) return;
       state.notifications.content = state.notifications.content.concat(
         notifications.content
       );
@@ -53,9 +64,7 @@ const slice = createSlice({
       action: PayloadAction<{ notification: Notification }>
     ) {
       const { notification } = action.payload;
-      state.notifications.content.unshift(
-        notification
-      );
+      state.notifications.content.unshift(notification);
     },
     editNotification(
       state: NotificationState,
@@ -71,21 +80,26 @@ const slice = createSlice({
         }
       );
     },
-    readAll(
-      state: NotificationState,
-      action: PayloadAction<{}>
-    ) {
+    readAll(state: NotificationState, action: PayloadAction<{}>) {
       state.notifications.content = state.notifications.content.map(
         (notification1) => {
           return { ...notification1, seen: true };
         }
       );
     },
+    startRequest(
+      state: NotificationState,
+      action: PayloadAction<{ requestId: number }>
+    ) {
+      state.requestId = action.payload.requestId;
+      state.loadingGet = true;
+    },
     setLoadingGet(
       state: NotificationState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; requestId: number }>
     ) {
-      const { loading } = action.payload;
+      const { loading, requestId } = action.payload;
+      if (requestId !== state.requestId) return;
       state.loadingGet = loading;
     }
   }
@@ -95,64 +109,64 @@ export const reducer = slice.reducer;
 
 export const getNotifications =
   (criteria: SearchCriteria): AppThunk =>
-    async (dispatch) => {
-      try {
-        dispatch(slice.actions.setLoadingGet({ loading: true }));
-        const notifications = await api.post<Page<Notification>>(
-          `${basePath}/search`,
-          criteria
-        );
-        dispatch(slice.actions.getNotifications({ notifications }));
-      } finally {
-        dispatch(slice.actions.setLoadingGet({ loading: false }));
-      }
-    };
+  async (dispatch) => {
+    const requestId = ++notificationRequestId;
+    try {
+      dispatch(slice.actions.startRequest({ requestId }));
+      const notifications = await api.post<Page<Notification>>(
+        `${basePath}/search`,
+        criteria
+      );
+      dispatch(slice.actions.getNotifications({ notifications, requestId }));
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false, requestId }));
+    }
+  };
 
 export const getMoreNotifications =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
-    async (dispatch) => {
-      criteria = { ...criteria, pageNum };
-      try {
-        dispatch(slice.actions.setLoadingGet({ loading: true }));
-        const notifications = await api.post<Page<Notification>>(
-          `${basePath}/search`,
-          criteria
-        );
-        dispatch(slice.actions.getMoreNotifications({ notifications }));
-      } finally {
-        dispatch(slice.actions.setLoadingGet({ loading: false }));
-      }
-    };
+  async (dispatch, getState) => {
+    const currentState = getState().notifications;
+    if (currentState.loadingGet || currentState.lastPage) return;
+    const requestId = currentState.requestId;
+    criteria = { ...criteria, pageNum };
+    try {
+      dispatch(slice.actions.setLoadingGet({ loading: true, requestId }));
+      const notifications = await api.post<Page<Notification>>(
+        `${basePath}/search`,
+        criteria
+      );
+      dispatch(
+        slice.actions.getMoreNotifications({ notifications, requestId })
+      );
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false, requestId }));
+    }
+  };
 export const editNotification =
   (id: number, notification): AppThunk =>
-    async (dispatch) => {
-      const notificationResponse = await api.patch<Notification>(
-        `${basePath}/${id}`,
-        notification
-      );
-      dispatch(
-        slice.actions.editNotification({ notification: notificationResponse })
-      );
-    };
-export const readAllNotifications =
-  (): AppThunk =>
-    async (dispatch) => {
-      const notificationResponse = await api.get<{ success: boolean }>(
-        `${basePath}/read-all`
-      );
-      if (notificationResponse.success)
-        dispatch(
-          slice.actions.readAll({})
-        );
-    };
+  async (dispatch) => {
+    const notificationResponse = await api.patch<Notification>(
+      `${basePath}/${id}`,
+      notification
+    );
+    dispatch(
+      slice.actions.editNotification({ notification: notificationResponse })
+    );
+  };
+export const readAllNotifications = (): AppThunk => async (dispatch) => {
+  const notificationResponse = await api.get<{ success: boolean }>(
+    `${basePath}/read-all`
+  );
+  if (notificationResponse.success) dispatch(slice.actions.readAll({}));
+};
 export const newReceivedNotification =
   (notification: Notification): AppThunk =>
-    async (dispatch) => {
+  async (dispatch) => {
+    dispatch(slice.actions.newReceivedNotification({ notification }));
+    if (notification.notificationType === 'WORK_ORDER')
       dispatch(
-        slice.actions.newReceivedNotification({ notification })
-      );
-      if (notification.notificationType === 'WORK_ORDER')
-        dispatch(getWorkOrders({
+        getWorkOrders({
           filterFields: [
             {
               field: 'priority',
@@ -177,6 +191,7 @@ export const newReceivedNotification =
           pageSize: 10,
           pageNum: 0,
           direction: 'DESC'
-        }));
-    };
+        })
+      );
+  };
 export default slice;

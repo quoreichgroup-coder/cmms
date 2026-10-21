@@ -38,6 +38,7 @@ export type RootStackParamList = {
   AddWorkOrder: { location?: Location; asset?: AssetDTO };
   WorkOrderStats: undefined;
   Requests: undefined;
+  PurchaseOrders: undefined;
   EditWorkOrder: { workOrder: WorkOrder; tasks: Task[] };
   EditRequest: { request: Request };
   EditAsset: { asset: AssetDTO };
@@ -83,6 +84,7 @@ export type RootStackParamList = {
   UserDetails: { id: number; userProp?: OwnUser };
   UserProfile: undefined;
   CompanyProfile: undefined;
+  MyShiftAvailability: undefined;
   TeamDetails: { id: number; teamProp?: Team };
   PartDetails: { id: number; partProp?: Part };
   MeterDetails: {

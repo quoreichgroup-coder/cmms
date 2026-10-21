@@ -230,12 +230,28 @@ class CsvFileGeneratorTest {
         void withHeaders_writesHeaderAndRecords() {
             StringWriter writer = createWriter();
             Asset asset = buildAsset(1L);
+            Asset parent = buildAsset(2L);
+            parent.setName("Pump train");
+            asset.setParentAsset(parent);
+            Location site = buildLocation(10L);
+            site.setName("Plant A");
+            Location area = buildLocation(11L);
+            area.setName("Utilities");
+            area.setParentLocation(site);
+            asset.setLocation(area);
             when(assetDowntimeService.findByAsset(asset.getId())).thenReturn(Collections.emptyList());
 
             csvFileGenerator.writeAssetsToCsv(List.of(asset), writer, LOCALE, CSV_SEPARATOR, true);
 
             String output = writer.toString();
             assertTrue(output.contains("Name"));
+            assertTrue(output.contains("Exchange_ID"));
+            assertTrue(output.contains("Parent_Exchange_ID"));
+            assertTrue(output.contains("Equipment_Hierarchy_Path"));
+            assertTrue(output.contains("Functional_Location_Path"));
+            assertTrue(output.contains("Pump train / " + asset.getName()));
+            assertTrue(output.contains("Plant A / Utilities"));
+            assertTrue(output.contains(asset.getExchangeId().toString()));
             assertTrue(output.contains(asset.getName()));
         }
 
@@ -256,6 +272,20 @@ class CsvFileGeneratorTest {
         }
 
         @Test
+        void cyclicLegacyHierarchyDoesNotPreventExport() {
+            StringWriter writer = createWriter();
+            Asset first = buildAsset(1L);
+            Asset second = buildAsset(2L);
+            first.setParentAsset(second);
+            second.setParentAsset(first);
+            when(assetDowntimeService.findByAsset(any())).thenReturn(Collections.emptyList());
+
+            assertDoesNotThrow(() -> csvFileGenerator.writeAssetsToCsv(
+                    List.of(first), writer, LOCALE, CSV_SEPARATOR, false));
+            assertTrue(writer.toString().contains("Asset-2 / Asset-1"));
+        }
+
+        @Test
         void emptyCollection_writesNothing() {
             StringWriter writer = createWriter();
 
@@ -272,11 +302,19 @@ class CsvFileGeneratorTest {
         void withHeaders_writesHeaderAndRecords() {
             StringWriter writer = createWriter();
             Location loc = buildLocation(1L);
+            Location parent = buildLocation(2L);
+            parent.setName("Plant A");
+            loc.setParentLocation(parent);
 
             csvFileGenerator.writeLocationsToCsv(List.of(loc), writer, LOCALE, CSV_SEPARATOR, true);
 
             String output = writer.toString();
             assertTrue(output.contains("Name"));
+            assertTrue(output.contains("Exchange_ID"));
+            assertTrue(output.contains("Parent_Exchange_ID"));
+            assertTrue(output.contains("Functional_Location_Path"));
+            assertTrue(output.contains("Plant A / " + loc.getName()));
+            assertTrue(output.contains(loc.getExchangeId().toString()));
             assertTrue(output.contains(loc.getName()));
             assertTrue(output.contains(loc.getAddress()));
         }

@@ -7,6 +7,10 @@ export const getOwnHeadersConfig = (
 ): Record<EntityType, OwnHeader[]> => {
   const idFormatter = (value) => (isNaN(value) ? null : value);
   const arrayFormatter = (value) => value?.split(',') ?? [];
+  const uuidFormatter = (value) =>
+    value === null || value === undefined || String(value).trim() === ''
+      ? null
+      : String(value).trim();
 
   const workOrderHeaders: (Omit<OwnHeader, 'keyName'> & {
     keyName: keyof WorkOrderImportDTO;
@@ -51,6 +55,12 @@ export const getOwnHeadersConfig = (
         keyName: 'id',
         formatter: idFormatter
       },
+      { label: t('exchange_id'), keyName: 'exchangeId', formatter: uuidFormatter },
+      {
+        label: t('parent_exchange_id'),
+        keyName: 'parentExchangeId',
+        formatter: uuidFormatter
+      },
       { label: t('name'), keyName: 'name', required: true },
       { label: t('address'), keyName: 'address' },
       { label: t('longitude'), keyName: 'longitude' },
@@ -83,10 +93,21 @@ export const getOwnHeadersConfig = (
         keyName: 'id',
         formatter: idFormatter
       },
+      { label: t('exchange_id'), keyName: 'exchangeId', formatter: uuidFormatter },
+      {
+        label: t('parent_exchange_id'),
+        keyName: 'parentExchangeId',
+        formatter: uuidFormatter
+      },
       { label: t('name'), keyName: 'name', required: true },
       { label: t('archived'), keyName: 'archived' },
       { label: t('description'), keyName: 'description' },
       { label: t('location_name'), keyName: 'locationName' },
+      {
+        label: t('location_exchange_id'),
+        keyName: 'locationExchangeId',
+        formatter: uuidFormatter
+      },
       { label: t('parent_asset'), keyName: 'parentAssetName' },
       { label: t('area'), keyName: 'area' },
       { label: t('barcode'), keyName: 'barCode' },

@@ -18,6 +18,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -78,11 +83,14 @@ public class CsvFileGenerator {
             CSVFormat csvFormat = CSVFormat.DEFAULT.withDelimiter(csvSeparator.charAt(0));
             CSVPrinter printer = new CSVPrinter(writer, csvFormat);
             if (includeHeaders) {
-                List<String> headers = Arrays.asList("ID", "Name",
+                List<String> headers = Arrays.asList("ID", "Exchange_ID", "Parent_Exchange_ID", "Name",
+                        "Equipment_Hierarchy_Path",
                         "Description",
                         "Status",
                         "Archived",
                         "Location_Name",
+                        "Location_Exchange_ID",
+                        "Functional_Location_Path",
                         "Parent_Asset",
                         "Area",
                         "Barcode",
@@ -105,11 +113,16 @@ public class CsvFileGenerator {
                         .reduce(0L, Long::sum);
 
                 printer.printRecord(asset.getId(),
+                        asset.getExchangeId(),
+                        asset.getParentAsset() == null ? null : asset.getParentAsset().getExchangeId(),
                         asset.getName(),
+                        hierarchyPath(asset, Asset::getParentAsset, Asset::getName),
                         asset.getDescription(),
                         messageSource.getMessage(asset.getStatus().toString(), null, locale),
                         Helper.getStringFromBoolean(asset.isArchived(), messageSource, locale),
                         asset.getLocation() == null ? null : asset.getLocation().getName(),
+                        asset.getLocation() == null ? null : asset.getLocation().getExchangeId(),
+                        asset.getLocation() == null ? null : hierarchyPath(asset.getLocation(), Location::getParentLocation, Location::getName),
                         asset.getParentAsset() == null ? null : asset.getParentAsset().getName(),
                         asset.getArea(),
                         asset.getBarCode(),
@@ -138,7 +151,8 @@ public class CsvFileGenerator {
             CSVFormat csvFormat = CSVFormat.DEFAULT.withDelimiter(csvSeparator.charAt(0));
             CSVPrinter printer = new CSVPrinter(writer, csvFormat);
             if (includeHeaders) {
-                List<String> headers = Arrays.asList("ID", "Name",
+                List<String> headers = Arrays.asList("ID", "Exchange_ID", "Parent_Exchange_ID", "Name",
+                        "Functional_Location_Path",
                         "Address",
                         "Parent_Location",
                         "Workers",
@@ -149,7 +163,10 @@ public class CsvFileGenerator {
             }
             for (Location location : locations) {
                 printer.printRecord(location.getId(),
+                        location.getExchangeId(),
+                        location.getParentLocation() == null ? null : location.getParentLocation().getExchangeId(),
                         location.getName(),
+                        hierarchyPath(location, Location::getParentLocation, Location::getName),
                         location.getAddress(),
                         location.getParentLocation() == null ? null : location.getParentLocation().getName(),
                         Helper.enumerate(location.getWorkers().stream().map(User::getEmail).collect(Collectors.toList())),
@@ -162,6 +179,26 @@ public class CsvFileGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Produces a human-readable path alongside stable exchange IDs so exports
+     * can be reviewed and reconciled by people without using database IDs.
+     * Identity-based cycle protection keeps corrupt legacy hierarchies from
+     * hanging an export.
+     */
+    private <T> String hierarchyPath(T node, Function<T, T> parentAccessor, Function<T, String> nameAccessor) {
+        if (node == null) return null;
+        Set<T> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<String> segments = new ArrayList<>();
+        T current = node;
+        while (current != null && visited.add(current)) {
+            String name = nameAccessor.apply(current);
+            if (name != null && !name.isBlank()) segments.add(name.trim());
+            current = parentAccessor.apply(current);
+        }
+        Collections.reverse(segments);
+        return String.join(" / ", segments);
     }
 
     public void writePartsToCsv(Collection<Part> parts, Writer writer, Locale locale, String csvSeparator,

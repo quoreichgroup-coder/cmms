@@ -10,7 +10,6 @@ import {
   YAxis
 } from 'recharts';
 import AnalyticsCard from '../../AnalyticsCard';
-import { Filter } from '../WOModal';
 import { useDispatch, useSelector } from '../../../../../store';
 import { useEffect } from 'react';
 import Loading from '../../Loading';
@@ -18,17 +17,12 @@ import { getRequestsByDate } from '../../../../../slices/analytics/request';
 import { getDayAndMonth } from '../../../../../utils/dates';
 
 interface OwnProps {
-  handleOpenModal: (
-    columns: string[],
-    filters: Filter[],
-    title: string
-  ) => void;
   start: Date;
   end: Date;
   companyId?: number;
 }
 
-function RequestsByDate({ handleOpenModal, start, end, companyId }: OwnProps) {
+function RequestsByDate({ start, end, companyId }: OwnProps) {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -43,12 +37,12 @@ function RequestsByDate({ handleOpenModal, start, end, companyId }: OwnProps) {
   const formattedData: {
     label: string;
     cycleTime: string;
-    filters: Filter[];
+    date: string;
   }[] = requestsByDate.map((data) => {
     return {
       cycleTime: data.cycleTime.toFixed(2),
       label: getDayAndMonth(data.date),
-      filters: [{ key: 'range', value: data.date }]
+      date: data.date
     };
   });
   const lines: { label: string; dataKey: string; color: string }[] = [
@@ -80,6 +74,12 @@ function RequestsByDate({ handleOpenModal, start, end, companyId }: OwnProps) {
               type="monotone"
               dataKey={line.dataKey}
               stroke={line.color}
+              dot={{
+                r: 4,
+                fill: line.color,
+                stroke: theme.palette.background.paper,
+                strokeWidth: 2
+              }}
             />
           ))}
         </LineChart>

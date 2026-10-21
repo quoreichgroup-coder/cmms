@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,12 @@ public class LocationImportDTO {
 
     @Schema(description = "Unique identifier")
     private Long id;
+
+    @Schema(description = "Stable QPM UUID used to match this functional location across CSV transfers")
+    private UUID exchangeId;
+
+    @Schema(description = "Stable exchange UUID of the parent functional location")
+    private UUID parentExchangeId;
     
     @Schema(description = "Name")
     private String name;

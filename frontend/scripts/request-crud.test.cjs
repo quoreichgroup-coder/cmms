@@ -45,10 +45,10 @@ test('request create and edit persist through existing endpoints and update Redu
       return { id: 31, title: 'Updated bearing inspection' };
     }
   });
-  const store = configureStore({ reducer: requests.reducer });
+  const store = configureStore({ reducer: { requests: requests.reducer } });
   await store.dispatch(requests.addRequest({ title: 'Bearing inspection' }));
-  assert.equal(store.getState().requests.content[0].id, 31);
-  assert.equal(store.getState().pendingCount, 1);
+  assert.equal(store.getState().requests.requests.content[0].id, 31);
+  assert.equal(store.getState().requests.pendingCount, 1);
   await store.dispatch(
     requests.editRequest(31, { title: 'Updated bearing inspection' })
   );
@@ -60,7 +60,7 @@ test('request create and edit persist through existing endpoints and update Redu
     ]
   );
   assert.equal(
-    store.getState().requests.content[0].title,
+    store.getState().requests.requests.content[0].title,
     'Updated bearing inspection'
   );
 });
@@ -74,7 +74,7 @@ test('reject reason is encoded and cancellation updates list and direct detail s
       return { id: 42, title: 'Pump leak', cancelled: true };
     }
   });
-  const store = configureStore({ reducer: requests.reducer });
+  const store = configureStore({ reducer: { requests: requests.reducer } });
   await store.dispatch(requests.getSingleRequest(42));
   store.dispatch(
     requests.default.actions.getRequests({
@@ -92,9 +92,9 @@ test('reject reason is encoded and cancellation updates list and direct detail s
     calls[0],
     'requests/42/cancel?reason=V%C3%A9rifier%20pompe%20%26%20moteur%20%2B%20zone%20%232'
   );
-  assert.equal(store.getState().requests.content[0].cancelled, true);
-  assert.equal(store.getState().singleRequest.cancelled, true);
-  assert.equal(store.getState().pendingCount, 0);
+  assert.equal(store.getState().requests.requests.content[0].cancelled, true);
+  assert.equal(store.getState().requests.singleRequest.cancelled, true);
+  assert.equal(store.getState().requests.pendingCount, 0);
 });
 
 test('request delete changes list and pending count only after server success', async () => {

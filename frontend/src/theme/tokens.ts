@@ -22,7 +22,7 @@ export const qpmNavigationTokens = {
   text: '#344054',
   mutedText: '#475467',
   divider: '#E4E7EC',
-  hover: '#EEF2FF',
+  hover: '#E0E7FF',
   active: '#4B5FE8',
   activeText: '#FFFFFF'
 } as const;

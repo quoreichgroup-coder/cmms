@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
     boolean existsBySite_Id(Long siteId);
@@ -63,6 +64,10 @@ public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecific
     List<Asset> findByNameIgnoreCaseAndCompany_Id(String assetName, Long companyId);
 
     Optional<Asset> findByIdAndCompany_Id(Long id, Long companyId);
+
+    Optional<Asset> findByExchangeIdAndCompany_Id(UUID exchangeId, Long companyId);
+
+    List<Asset> findByExchangeIdInAndCompany_Id(Collection<UUID> exchangeIds, Long companyId);
 
     List<Asset> findByIdInAndCompany_Id(List<Long> ids, Long companyId);
 

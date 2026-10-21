@@ -1164,6 +1164,16 @@ class AssetServiceTest {
         }
 
         @Test
+        void stableExchangeKeysOrderParentBeforeChildWhenNamesAreNotUnique() {
+            UUID parentKey = UUID.randomUUID();
+            AssetImportDTO parent = AssetImportDTO.builder().name("Pump").exchangeId(parentKey).build();
+            AssetImportDTO child = AssetImportDTO.builder().name("Pump").exchangeId(UUID.randomUUID())
+                    .parentExchangeId(parentKey).build();
+
+            assertEquals(Arrays.asList(parent, child), AssetService.orderAssets(Arrays.asList(child, parent)));
+        }
+
+        @Test
         void childWithMissingParent_isTreatedAsTopLevel() {
             AssetImportDTO a = asset("A", "MissingParent");
 

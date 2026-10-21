@@ -21,14 +21,7 @@ import CustomDatagrid2, {
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import { useDispatch, useSelector } from '../../../store';
-import {
-  addFiles,
-  clearSingleFile,
-  deleteFile,
-  editFile,
-  getFiles,
-  getSingleFile
-} from '../../../slices/file';
+import { addFiles, deleteFile, editFile, getFiles } from '../../../slices/file';
 import { IField } from '../type';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -41,9 +34,7 @@ import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import NoRowsMessageWrapper from '../components/NoRowsMessageWrapper';
-import { useParams } from 'react-router-dom';
 import { SearchCriteria } from '../../../models/owns/page';
-import { isNumeric } from '../../../utils/validators';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import { openSafeWindow } from '../../../utils/safeWindow';
@@ -55,15 +46,13 @@ function Files() {
     CompanySettingsContext
   );
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { files, loadingGet, singleFile } = useSelector((state) => state.files);
-  const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
+  const { files, loadingGet } = useSelector((state) => state.files);
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: [],
     pageSize: 10,
     pageNum: 0,
     direction: 'DESC'
   });
-  const { fileId } = useParams();
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
   const [openDelete, setOpenDelete] = useState<boolean>(false);
@@ -139,36 +128,8 @@ function Files() {
   }, []);
 
   useEffect(() => {
-    if (fileId && isNumeric(fileId)) {
-      dispatch(getSingleFile(Number(fileId)));
-    }
-  }, [fileId]);
-
-  useEffect(() => {
     if (hasViewPermission(PermissionEntity.FILES)) dispatch(getFiles(criteria));
   }, [criteria]);
-
-  //see changes in ui on edit
-  useEffect(() => {
-    if (singleFile || files.content.length) {
-      const currentInContent = files.content.find(
-        (file) => file.id === currentFile?.id
-      );
-      const updatedFile = currentInContent ?? singleFile;
-      if (updatedFile) {
-        if (openDrawerFromUrl) {
-          setCurrentFile(updatedFile);
-        } else {
-          //TODO
-          // handleOpenDrawer(updatedFile);
-          setOpenDrawerFromUrl(true);
-        }
-      }
-    }
-    return () => {
-      dispatch(clearSingleFile());
-    };
-  }, [singleFile, files]);
 
   const columnHelper = createColumnHelper<File>();
 

@@ -50,7 +50,8 @@ export const viewMoreEntities: PermissionEntity[] = [
   PermissionEntity.METERS,
   PermissionEntity.PREVENTIVE_MAINTENANCES,
   PermissionEntity.LOCATIONS,
-  PermissionEntity.VENDORS_AND_CUSTOMERS
+  PermissionEntity.VENDORS_AND_CUSTOMERS,
+  PermissionEntity.PURCHASE_ORDERS
 ];
 export type PermissionRoot =
   | 'createPermissions'

@@ -37,6 +37,9 @@ export interface WorkOrderImportDTO {
 
 interface AssetImportDTO {
   id: number;
+  exchangeId?: string;
+  parentExchangeId?: string;
+  locationExchangeId?: string;
   archived: string;
   locationName: string;
   parentAssetName: string;
@@ -62,6 +65,8 @@ interface AssetImportDTO {
 
 interface LocationImportDTO {
   id: number;
+  exchangeId?: string;
+  parentExchangeId?: string;
   name: string;
   address: string;
   longitude: number;

@@ -5,6 +5,7 @@ import com.grash.exception.CustomException;
 import com.grash.mapper.WorkflowMapper;
 import com.grash.model.*;
 import com.grash.model.enums.ApprovalStatus;
+import com.grash.model.enums.TaskType;
 import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.repository.*;
 import com.grash.utils.AuditComparator;
@@ -15,7 +16,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +31,7 @@ public class WorkflowService {
     private final RequestRepository requestRepository;
     private final AssetRepository assetRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final TaskRepository taskRepository;
 
     public Workflow create(Workflow Workflow) {
         Sanitizer.sanitizeWorkflow(Workflow);
@@ -67,7 +72,7 @@ public class WorkflowService {
             WorkflowAction action = workflow.getAction();
             switch (action.getWorkOrderAction()) {
                 case ADD_CHECKLIST:
-                    //TODO
+                    addChecklistToWorkOrder(workflow, workOrder);
                     return;
                 case SEND_REMINDER_EMAIL:
                     //TODO
@@ -94,6 +99,62 @@ public class WorkflowService {
                     break;
             }
             workOrderRepository.save(workOrder);
+        }
+    }
+
+    /**
+     * Copies checklist task templates to a work order once. Workflows can be
+     * evaluated more than once for the same order, so existing task templates
+     * are retained and never duplicated.
+     */
+    public void addChecklistToWorkOrder(Workflow workflow, WorkOrder workOrder) {
+        WorkflowAction action = workflow.getAction();
+        Checklist checklist = action == null ? null : action.getChecklist();
+        if (checklist == null || checklist.getTaskBases() == null || workOrder == null
+                || workflow.getCompany() == null || workOrder.getCompany() == null
+                || checklist.getCompanySettings() == null
+                || checklist.getCompanySettings().getCompany() == null
+                || !workflow.getCompany().getId().equals(workOrder.getCompany().getId())
+                || !checklist.getCompanySettings().getCompany().getId().equals(workOrder.getCompany().getId())) {
+            return;
+        }
+
+        List<Task> existingTasks = taskRepository.findByWorkOrder_IdOrderByTaskOrderAscCreatedAtAscIdAsc(
+                workOrder.getId());
+        Set<Long> existingTaskBaseIds = existingTasks.stream()
+                .map(Task::getTaskBase)
+                .filter(java.util.Objects::nonNull)
+                .map(TaskBase::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        int nextOrder = existingTasks.stream().mapToInt(Task::getTaskOrder).max().orElse(-1) + 1;
+        AtomicInteger taskOrder = new AtomicInteger(nextOrder);
+        List<Task> tasksToCreate = checklist.getTaskBases().stream()
+                .filter(java.util.Objects::nonNull)
+                .filter(taskBase -> taskBase.getId() != null && !existingTaskBaseIds.contains(taskBase.getId()))
+                .filter(taskBase -> taskBase.getCompany() != null
+                        && taskBase.getCompany().getId().equals(workOrder.getCompany().getId()))
+                .map(taskBase -> {
+                    String initialValue = "";
+                    if (TaskType.SUBTASK.equals(taskBase.getTaskType())) initialValue = "OPEN";
+                    else if (TaskType.INSPECTION.equals(taskBase.getTaskType())) initialValue = "FLAG";
+                    Task task = new Task(taskBase, workOrder, null, initialValue);
+                    task.setTaskOrder(taskOrder.getAndIncrement());
+                    task.setCompany(workOrder.getCompany());
+                    existingTaskBaseIds.add(taskBase.getId());
+                    return task;
+                })
+                .collect(Collectors.toList());
+        if (!tasksToCreate.isEmpty()) taskRepository.saveAll(tasksToCreate);
+    }
+
+    /** Applies a Request workflow's checklist after approval has created its Work Order. */
+    public void addApprovedRequestChecklist(Workflow workflow, Request request, WorkOrder workOrder) {
+        if (workflow.getSecondaryConditions().stream().allMatch(condition -> condition.isMetForRequest(request))
+                && workflow.getAction() != null
+                && com.grash.model.enums.workflow.RequestAction.ADD_CHECKLIST.equals(
+                        workflow.getAction().getRequestAction())) {
+            addChecklistToWorkOrder(workflow, workOrder);
         }
     }
 

@@ -19,5 +19,5 @@ public class ShiftConfigurationPatchDTO {
     @Schema(description = "Date-specific exceptions")
     private List<@Valid ShiftException> exceptions;
 
-    private boolean enabled;
+    private Boolean enabled;
 }

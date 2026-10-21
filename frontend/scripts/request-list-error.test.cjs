@@ -71,19 +71,19 @@ test('request list failures are visible and a retry clears the error', async () 
       };
     }
   });
-  const store = configureStore({ reducer: requests.reducer });
+  const store = configureStore({ reducer: { requests: requests.reducer } });
   const criteria = { pageNum: 0, pageSize: 10, direction: 'DESC' };
 
   await store.dispatch(requests.getRequests(criteria));
-  assert.equal(store.getState().loadingGet, false);
-  assert.equal(store.getState().requestsError, 'Service unavailable');
-  assert.deepEqual(store.getState().requests.content, []);
+  assert.equal(store.getState().requests.loadingGet, false);
+  assert.equal(store.getState().requests.requestsError, 'Service unavailable');
+  assert.deepEqual(store.getState().requests.requests.content, []);
 
   shouldFail = false;
   await store.dispatch(requests.getRequests(criteria));
-  assert.equal(store.getState().loadingGet, false);
-  assert.equal(store.getState().requestsError, null);
-  assert.equal(store.getState().requests.content[0].id, 12);
+  assert.equal(store.getState().requests.loadingGet, false);
+  assert.equal(store.getState().requests.requestsError, null);
+  assert.equal(store.getState().requests.requests.content[0].id, 12);
 });
 
 test('request deletion only updates the list and pending count after API success', async () => {
@@ -107,7 +107,8 @@ test('request deletion only updates the list and pending count after API success
         loadingGet: false,
         requestsError: null,
         singleRequestLoading: false,
-        singleRequestError: null
+        singleRequestError: null,
+        sessionGeneration: 0
       }
     }
   });

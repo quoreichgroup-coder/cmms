@@ -51,19 +51,22 @@ test('direct request load failure stops loading and can be retried', async () =>
       return { id: 17, title: 'Repair pump seal' };
     }
   });
-  const store = configureStore({ reducer: requests.reducer });
+  const store = configureStore({ reducer: { requests: requests.reducer } });
 
   await store.dispatch(requests.getSingleRequest(17));
-  assert.equal(store.getState().loadingGet, false);
-  assert.equal(store.getState().singleRequestLoading, false);
-  assert.equal(store.getState().singleRequestError, 'Request unavailable');
+  assert.equal(store.getState().requests.loadingGet, false);
+  assert.equal(store.getState().requests.singleRequestLoading, false);
+  assert.equal(
+    store.getState().requests.singleRequestError,
+    'Request unavailable'
+  );
 
   shouldFail = false;
   await store.dispatch(requests.getSingleRequest(17));
-  assert.equal(store.getState().loadingGet, false);
-  assert.equal(store.getState().singleRequestLoading, false);
-  assert.equal(store.getState().singleRequestError, null);
-  assert.equal(store.getState().singleRequest.id, 17);
+  assert.equal(store.getState().requests.loadingGet, false);
+  assert.equal(store.getState().requests.singleRequestLoading, false);
+  assert.equal(store.getState().requests.singleRequestError, null);
+  assert.equal(store.getState().requests.singleRequest.id, 17);
 });
 
 test('late request detail response cannot replace the most recently requested item', async () => {
@@ -71,7 +74,7 @@ test('late request detail response cannot replace the most recently requested it
   const requests = loadRequestSlice({
     get: (url) => new Promise((resolve) => resolveByUrl.set(url, resolve))
   });
-  const store = configureStore({ reducer: requests.reducer });
+  const store = configureStore({ reducer: { requests: requests.reducer } });
 
   const firstLoad = store.dispatch(requests.getSingleRequest(17));
   const latestLoad = store.dispatch(requests.getSingleRequest(18));
@@ -80,7 +83,7 @@ test('late request detail response cannot replace the most recently requested it
   resolveByUrl.get('requests/17')({ id: 17, title: 'Stale request' });
   await firstLoad;
 
-  assert.equal(store.getState().singleRequest.id, 18);
-  assert.equal(store.getState().singleRequestLoading, false);
-  assert.equal(store.getState().loadingGet, false);
+  assert.equal(store.getState().requests.singleRequest.id, 18);
+  assert.equal(store.getState().requests.singleRequestLoading, false);
+  assert.equal(store.getState().requests.loadingGet, false);
 });

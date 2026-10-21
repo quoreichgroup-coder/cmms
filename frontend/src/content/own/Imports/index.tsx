@@ -26,7 +26,7 @@ import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import { useContext, useEffect, useState } from 'react';
 import FileUpload from '../components/FileUpload';
 import { TitleContext } from 'src/contexts/TitleContext';
-import { read, utils } from 'xlsx';
+import { parseImportWorkbook } from 'src/utils/importWorkbook';
 import WarningAmberIcon from '@mui/icons-material/WarningAmberOutlined';
 import Spreadsheet, { CellBase, Matrix } from 'react-spreadsheet';
 import { arrayToAoA } from 'src/utils/overall';
@@ -46,6 +46,8 @@ import i18n from 'i18next';
 import { getApiErrorMessage } from '../../../utils/apiError';
 import downloadFile from 'downloadjs';
 import useImport, { EntityType } from 'src/hooks/useImport';
+import { findHierarchyImportIssues } from 'src/utils/hierarchyImportPreflight';
+import { buildImportPayload } from 'src/utils/importPayload';
 
 interface OwnProps {}
 
@@ -167,6 +169,53 @@ const Import = ({}: OwnProps) => {
           return;
         }
       }
+
+      if (entity === 'assets' || entity === 'locations') {
+        const nameHeader = matches.find(
+          ({ ownHeader }) => ownHeader.keyName === 'name'
+        )?.userHeader;
+        const parentKey =
+          entity === 'assets' ? 'parentAssetName' : 'parentLocationName';
+        const parentHeader = matches.find(
+          ({ ownHeader }) => ownHeader.keyName === parentKey
+        )?.userHeader;
+        const exchangeIdHeader = matches.find(
+          ({ ownHeader }) => ownHeader.keyName === 'exchangeId'
+        )?.userHeader;
+        const parentExchangeIdHeader = matches.find(
+          ({ ownHeader }) => ownHeader.keyName === 'parentExchangeId'
+        )?.userHeader;
+
+        if (
+          (nameHeader && parentHeader) ||
+          parentExchangeIdHeader ||
+          exchangeIdHeader
+        ) {
+          const issues = findHierarchyImportIssues(
+            jsonData.map((row) => ({
+              name: nameHeader ? row[nameHeader] : '',
+              parentName: parentHeader ? row[parentHeader] : '',
+              exchangeId: exchangeIdHeader ? row[exchangeIdHeader] : '',
+              parentExchangeId: parentExchangeIdHeader
+                ? row[parentExchangeIdHeader]
+                : ''
+            }))
+          );
+          if (issues.length) {
+            const rows = [...new Set(issues.map(({ row }) => row + 2))]
+              .sort((a, b) => a - b)
+              .join(', ');
+            const issueTypes = [...new Set(issues.map(({ type }) => type))]
+              .map((type) => t(`hierarchy_issue_${type}`))
+              .join(', ');
+            showSnackBar(
+              t('hierarchy_import_invalid', { rows, issues: issueTypes }),
+              'error'
+            );
+            return;
+          }
+        }
+      }
     }
     setActiveStep((step) => step + 1);
   };
@@ -226,25 +275,14 @@ const Import = ({}: OwnProps) => {
   };
   const onImport = () => {
     const data = [...jsonData];
-    const payload: ImportDTO[] = data.map((userElement) => {
-      let result = {} as ImportDTO;
-      headerKeysConfig[entity].forEach(({ keyName, formatter }) => {
-        let value =
-          userElement[
-            matches.find(
-              (headerMatching) => headerMatching.ownHeader.keyName === keyName
-            )?.userHeader
-          ];
-        if (formatter) {
-          value = formatter(value);
-        }
-        result = {
-          ...result,
-          [keyName]: value
-        };
-      });
-      return result;
-    });
+    const payload = buildImportPayload(
+      data,
+      headerKeysConfig[entity],
+      matches.map(({ ownHeader, userHeader }) => ({
+        keyName: ownHeader.keyName,
+        userHeader
+      }))
+    ) as ImportDTO[];
 
     importEntityHook(entity, payload)
       .then((response: ImportResponse) => {
@@ -417,32 +455,42 @@ const Import = ({}: OwnProps) => {
                   const reader = new FileReader();
 
                   reader.onload = (e: any) => {
-                    const data = new Uint8Array(e.target.result);
+                    try {
+                      const result = e.target?.result;
+                      if (!(result instanceof ArrayBuffer)) {
+                        throw new Error('The uploaded file could not be read');
+                      }
+                      const parsedWorkbook = parseImportWorkbook(
+                        new Uint8Array(result)
+                      );
 
-                    const workbook = read(data, { type: 'array' });
+                      if (parsedWorkbook.rowsAsArrays.length > 1) {
+                        setJsonData(parsedWorkbook.rows);
+                        setUserHeaders(parsedWorkbook.headers);
 
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-
-                    /* 3. Convert to JSON */
-                    const localJsonArray: any[][] = utils.sheet_to_json(sheet, {
-                      header: 1
-                    });
-                    const localJson = utils.sheet_to_json(sheet);
-
-                    if (localJsonArray.length > 1) {
-                      setJsonData(localJson);
-                      setUserHeaders(localJsonArray[0].filter(Boolean));
-
-                      const localObjectOfArrayOfArrays =
-                        arrayToAoA(localJsonArray);
-                      setSpreadSheetsConfig(localObjectOfArrayOfArrays);
+                        const localObjectOfArrayOfArrays = arrayToAoA(
+                          parsedWorkbook.rowsAsArrays
+                        );
+                        setSpreadSheetsConfig(localObjectOfArrayOfArrays);
+                        setLoading(false);
+                        handleNext();
+                      } else {
+                        setLoading(false);
+                        showSnackBar(t('not_enough_rows'), 'error');
+                      }
+                    } catch {
                       setLoading(false);
-                      handleNext();
-                    } else {
-                      setLoading(false);
-                      showSnackBar(t('not_enough_rows'), 'error');
+                      showSnackBar(t('import_invalid_file'), 'error');
                     }
+                  };
+
+                  reader.onerror = () => {
+                    setLoading(false);
+                    showSnackBar(t('import_file_read_error'), 'error');
+                  };
+                  reader.onabort = () => {
+                    setLoading(false);
+                    showSnackBar(t('import_file_read_error'), 'error');
                   };
 
                   reader.readAsArrayBuffer(file);

@@ -38,7 +38,21 @@ function settings(companySettings) {
       if (id.endsWith('/apiError'))
         return { getApiErrorMessage: () => 'request_failed' };
       if (id === 'react-i18next')
-        return { useTranslation: () => ({ t: (x) => x }) };
+        return {
+          useTranslation: () => ({ t: (x) => x, i18n: { language: 'en-US' } })
+        };
+      if (id.endsWith('/utils/formatCurrency')) {
+        const formatterExports = {};
+        const formatterSource = ts.transpileModule(
+          fs.readFileSync('src/utils/formatCurrency.ts', 'utf8'),
+          { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+        ).outputText;
+        vm.runInNewContext(formatterSource, {
+          exports: formatterExports,
+          Intl
+        });
+        return formatterExports;
+      }
       if (id.endsWith('/CustomSnackBarContext'))
         return { CustomSnackBarContext: React.createContext({}) };
       if (id === '../slices/file' || id === '../slices/user') return {};
@@ -68,18 +82,26 @@ test('company without currency renders amounts without inventing a unit', () => 
   assert.equal(c.getFormattedCurrency(25), '25');
   assert.equal(c.getFormattedCurrency(null), '');
 });
-test('configured currencies retain prefix and suffix formatting', () => {
+test('configured symbols and ISO currencies use safe localized formatting', () => {
   assert.equal(
     settings({
       generalPreferences: { currency: { code: '$' } }
     }).getFormattedCurrency(5),
-    '$ 5 '
+    '$ 5'
   );
-  assert.equal(
+  assert.match(
     settings({
       generalPreferences: { currency: { code: 'EUR' } }
     }).getFormattedCurrency(5),
-    '5 EUR'
+    /€5\.00/
+  );
+});
+test('UEMOA companies render XOF amounts as FCFA', () => {
+  assert.equal(
+    settings({
+      generalPreferences: { currency: { code: 'XOF' } }
+    }).getFormattedCurrency(1250000),
+    '1,250,000 FCFA'
   );
 });
 test('missing preferences permit currency and UTC date rendering', () => {

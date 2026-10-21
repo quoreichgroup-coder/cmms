@@ -142,6 +142,11 @@ public class WorkloadService {
 
     @Transactional
     public WorkOrder scheduleWorkOrder(Long workOrderId, WorkloadScheduleDTO dto, User user) {
+        if (dto.getEstimatedDuration() != null
+                && (!Double.isFinite(dto.getEstimatedDuration()) || dto.getEstimatedDuration() <= 0)) {
+            throw new CustomException("Estimated duration must be greater than 0", HttpStatus.BAD_REQUEST);
+        }
+
         WorkOrder workOrder = workOrderRepository.findById(workOrderId)
                 .orElseThrow(() -> new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND));
 

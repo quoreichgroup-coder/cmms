@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, UIEventHandler } from 'react';
 import PropTypes from 'prop-types';
 import { Scrollbars } from 'react-custom-scrollbars-2';
 
@@ -8,6 +8,7 @@ interface ScrollbarProps {
   className?: string;
   children?: ReactNode;
   style?: React.CSSProperties;
+  onScroll?: UIEventHandler<HTMLDivElement>;
 }
 
 const Scrollbar: FC<ScrollbarProps> = ({ className, children, ...rest }) => {

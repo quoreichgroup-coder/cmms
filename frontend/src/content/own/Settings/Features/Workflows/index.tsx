@@ -51,6 +51,7 @@ import { getLocationsMini } from '../../../../../slices/location';
 import { getCategories } from '../../../../../slices/category';
 import { getAssetsMini } from '../../../../../slices/asset';
 import { getTeamsMini } from '../../../../../slices/team';
+import { getChecklists } from '../../../../../slices/checklist';
 import { AssetMiniDTO } from '../../../../../models/owns/asset';
 import { LocationMiniDTO } from '../../../../../models/owns/location';
 import { PartMiniDTO } from '../../../../../models/owns/part';
@@ -59,6 +60,7 @@ import { UserMiniDTO } from '../../../../../models/user';
 import { VendorMiniDTO } from '../../../../../models/owns/vendor';
 import { TeamMiniDTO } from '../../../../../models/owns/team';
 import Category from '../../../../../models/owns/category';
+import { Checklist } from '../../../../../models/owns/checklists';
 import DateTimePicker from '@mui/lab/DateTimePicker';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { useBrand } from '../../../../../hooks/useBrand';
@@ -101,6 +103,7 @@ function Workflows() {
   const [currentMainCondition, setCurrentMainCondition] =
     useState<WFMainCondition>(mainConditions[0]);
   const { setTitle } = useContext(TitleContext);
+  const checklists = useSelector((state) => state.checklists.checklists);
 
   const [currentConditions, setCurrentConditions] = useState<UICondition[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
@@ -128,7 +131,7 @@ function Workflows() {
     },
     REQUEST_CREATED: {
       conditions: requestConditions,
-      actions: requestActions
+      actions: requestActions.filter((action) => action !== 'ADD_CHECKLIST')
     },
     REQUEST_APPROVED: {
       conditions: requestConditions,
@@ -136,7 +139,7 @@ function Workflows() {
     },
     REQUEST_REJECTED: {
       conditions: workOrderConditions,
-      actions: requestActions
+      actions: requestActions.filter((action) => action !== 'ADD_CHECKLIST')
     },
     PURCHASE_ORDER_CREATED: {
       conditions: purchaseOrderConditions,
@@ -193,6 +196,9 @@ function Workflows() {
   const fetchTeams = async () => {
     if (!teamsMini.length) dispatch(getTeamsMini());
   };
+  const fetchChecklists = async () => {
+    if (!checklists.length) dispatch(getChecklists());
+  };
   const objectFormatter = (value) => ({ id: Number(value) });
   const conditionsConfig: Record<
     WorkflowConditionType,
@@ -204,6 +210,7 @@ function Workflows() {
       | UserMiniDTO
       | VendorMiniDTO
       | TeamMiniDTO
+      | Checklist
       | Category,
       WorkflowCondition
     >
@@ -330,12 +337,22 @@ function Workflows() {
       | UserMiniDTO
       | VendorMiniDTO
       | TeamMiniDTO
+      | Checklist
       | Category,
       WorkflowAction
     >
   > = {
-    //TODO
-    ADD_CHECKLIST: { type: 'simple' },
+    ADD_CHECKLIST: {
+      type: 'select',
+      items: checklists,
+      accessor: 'checklist',
+      onOpen: fetchChecklists,
+      formatter: (checklist: Checklist) => ({
+        label: checklist.name,
+        value: checklist.id
+      }),
+      apiFormatter: objectFormatter
+    },
     APPROVE: { type: 'simple' },
     ASSIGN_ASSET: {
       type: 'select',
@@ -510,15 +527,26 @@ function Workflows() {
       values
     }));
   };
+  const resetEditor = () => {
+    const defaultMainCondition = mainConditions[0];
+    setCurrentTitle('');
+    setCurrentWorkflowId(undefined);
+    setCurrentMainCondition(defaultMainCondition);
+    setCurrentConditions([]);
+    setCurrentAction({
+      type: mainConfig[defaultMainCondition].actions[0],
+      value: null
+    });
+  };
   const onWorkflowCreationSuccess = () => {
     showSnackBar(t('workflow_creation_success'), 'success');
+    resetEditor();
     setView('list');
-    //TODO reset state
   };
   const onWorkflowEditSuccess = () => {
     showSnackBar(t('workflow_edit_success'), 'success');
+    resetEditor();
     setView('list');
-    //TODO reset state
   };
   const onEdit = (workflow: Workflow) => {
     fetchCategories('work-order-categories');
@@ -934,7 +962,10 @@ function Workflows() {
                     mb: 2
                   }}
                   variant="contained"
-                  onClick={() => setView('create')}
+                  onClick={() => {
+                    resetEditor();
+                    setView('create');
+                  }}
                   disabled={
                     !hasFeature(PlanFeature.WORKFLOW) && workflows.length > 0
                   }
@@ -1052,7 +1083,13 @@ function Workflows() {
               </Grid>
               <Grid item xs={12}>
                 <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" onClick={() => setView('list')}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      resetEditor();
+                      setView('list');
+                    }}
+                  >
                     {t('cancel')}
                   </Button>
                   <Button

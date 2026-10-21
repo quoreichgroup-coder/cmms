@@ -1,6 +1,7 @@
 package com.grash.service;
 
 import com.grash.dto.GeneratedDocumentDTO;
+import com.grash.dto.ReportFieldDefinitionDTO;
 import com.grash.dto.ReportConfig;
 import com.grash.exception.CustomException;
 import com.grash.factory.StorageServiceFactory;
@@ -28,17 +29,63 @@ import java.util.UUID;
 public class GeneratedDocumentService {
     private static final String TEMPLATE_VERSION = "work-order-report-v1";
     private static final ObjectMapper SNAPSHOT_MAPPER = new ObjectMapper();
+    private static final List<ReportFieldDefinitionDTO> WORK_ORDER_REPORT_FIELDS = List.of(
+            new ReportFieldDefinitionDTO("workOrder.customId", "report.field.workOrder.customId", "workOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.title", "report.field.workOrder.title", "workOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.description", "report.field.workOrder.description", "workOrder", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.status", "report.field.workOrder.status", "workOrder", "enum", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.priority", "report.field.workOrder.priority", "workOrder", "enum", false, false, "priority"),
+            new ReportFieldDefinitionDTO("workOrder.dueDate", "report.field.workOrder.dueDate", "workOrder", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.completedAt", "report.field.workOrder.completedAt", "workOrder", "dateTime", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.estimatedDuration", "report.field.workOrder.estimatedDuration", "workOrder", "duration", false, false, "estimatedTime"),
+            new ReportFieldDefinitionDTO("workOrder.category", "report.field.workOrder.category", "workOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("asset.name", "report.field.asset.name", "asset", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("location.name", "report.field.location.name", "location", "string", false, false, "locationAddress"),
+            new ReportFieldDefinitionDTO("asset.serialNumber", "report.field.asset.serialNumber", "asset", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.team", "report.field.workOrder.team", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.completedBy", "report.field.workOrder.completedBy", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.customFields", "report.field.workOrder.customFields", "workOrder", "object", true, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("site.name", "report.field.site.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.name", "report.field.company.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.legalName", "report.field.company.legalName", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registeredAddress", "report.field.company.registeredAddress", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registrationNumber", "report.field.company.registrationNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.taxNumber", "report.field.company.taxNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.phone", "report.field.company.phone", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.email", "report.field.company.email", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.assignedTo", "report.field.workOrder.assignedTo", "people", "string", true, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.tasks", "report.field.workOrder.tasks", "execution", "object", true, false, "tasks"),
+            new ReportFieldDefinitionDTO("workOrder.comments", "report.field.workOrder.comments", "execution", "object", true, false, "comments"),
+            new ReportFieldDefinitionDTO("workOrder.history", "report.field.workOrder.history", "execution", "object", true, false, "workOrderHistory"),
+            new ReportFieldDefinitionDTO("workOrder.signature", "report.field.workOrder.signature", "execution", "string", false, false, "signature"),
+            new ReportFieldDefinitionDTO("workOrder.parts", "report.field.workOrder.parts", "costs", "object", true, true, "cost"),
+            new ReportFieldDefinitionDTO("workOrder.labor", "report.field.workOrder.labor", "costs", "object", true, true, "cost"),
+            new ReportFieldDefinitionDTO("workOrder.additionalCosts", "report.field.workOrder.additionalCosts", "costs", "object", true, true, "cost"),
+            new ReportFieldDefinitionDTO("workOrder.relations", "report.field.workOrder.relations", "relatedRecords", "object", true, false, "relations"),
+            new ReportFieldDefinitionDTO("workOrder.files", "report.field.workOrder.files", "attachments", "file", true, false, "files")
+    );
     private final GeneratedDocumentRepository repository;
     private final WorkOrderService workOrderService;
     private final StorageServiceFactory storageServiceFactory;
     private final DocumentContextResolver documentContextResolver;
+
+    @Transactional(readOnly = true)
+    public List<ReportFieldDefinitionDTO> listWorkOrderReportFields(Long workOrderId, User user) {
+        WorkOrder workOrder = workOrderService.findById(workOrderId)
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.getCompany().getId().equals(user.getCompany().getId()))
+            throw new CustomException("Work order not found", HttpStatus.NOT_FOUND);
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return WORK_ORDER_REPORT_FIELDS;
+    }
 
     @Transactional
     public GeneratedDocumentDTO issueWorkOrderReport(Long workOrderId, ReportConfig config, User user) {
         WorkOrder workOrder = workOrderService.findById(workOrderId)
                 .filter(wo -> wo.getCompany().getId().equals(user.getCompany().getId()))
                 .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
-        if (!workOrder.canBeViewedBy(user) || !workOrder.canBeEditedBy(user))
+        if (!workOrder.canIssueReportBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
 
         byte[] pdf = workOrderService.generatePdfBytes(workOrder, user, config);

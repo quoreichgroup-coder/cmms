@@ -34,6 +34,8 @@ function Overview({
   }, [start, end, companyId]);
 
   const totalCount = overview.approved + overview.pending + overview.cancelled;
+  const getPercentage = (value: number) =>
+    totalCount ? `${((value * 100) / totalCount).toFixed(0)}%` : '0%';
 
   const formattedData: {
     label: string;
@@ -44,50 +46,37 @@ function Overview({
     };
   }[] = [
     {
-      label:
-        t('approved_requests') +
-        ` (${((overview.approved * 100) / totalCount).toFixed(0)}%)`,
+      label: t('approved_requests') + ` (${getPercentage(overview.approved)})`,
       value: overview.approved,
       config: {
         columns: ['id'],
-        filters: [{ key: 'fs', value: false }]
+        filters: [{ key: 'status', value: 'APPROVED' }]
       }
     },
     {
-      label:
-        t('pending_requests') +
-        ` (${((overview.pending * 100) / totalCount).toFixed(0)}%)`,
+      label: t('pending_requests') + ` (${getPercentage(overview.pending)})`,
       value: overview.pending,
       config: {
         columns: ['id'],
-        filters: [{ key: 'fs', value: false }]
+        filters: [{ key: 'status', value: 'PENDING' }]
       }
     },
     {
       label:
-        t('cancelled_requests') +
-        ` (${((overview.cancelled * 100) / totalCount).toFixed(0)}%)`,
+        t('cancelled_requests') + ` (${getPercentage(overview.cancelled)})`,
       value: overview.cancelled,
       config: {
         columns: ['id'],
-        filters: [{ key: 'fs', value: false }]
+        filters: [{ key: 'status', value: 'CANCELLED' }]
       }
     },
     {
       label: t('average_cycle_time'),
-      value: overview.cycleTime,
-      config: {
-        columns: ['id'],
-        filters: [{ key: 'fs', value: false }]
-      }
+      value: overview.cycleTime
     },
     {
       label: t('total'),
-      value: totalCount,
-      config: {
-        columns: ['id'],
-        filters: [{ key: 'fs', value: false }]
-      }
+      value: totalCount
     }
   ];
   return (
@@ -106,13 +95,29 @@ function Overview({
                   variant="h2"
                   fontWeight="bold"
                   style={{ cursor: data.config ? 'pointer' : 'auto' }}
+                  role={data.config ? 'button' : undefined}
+                  tabIndex={data.config ? 0 : undefined}
                   onClick={() =>
+                    data.config &&
                     handleOpenModal(
                       data.config.columns,
                       data.config.filters,
                       t('the_numbers')
                     )
                   }
+                  onKeyDown={(event) => {
+                    if (
+                      data.config &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
+                      event.preventDefault();
+                      handleOpenModal(
+                        data.config.columns,
+                        data.config.filters,
+                        t('the_numbers')
+                      );
+                    }
+                  }}
                 >
                   {data.value}
                 </Typography>

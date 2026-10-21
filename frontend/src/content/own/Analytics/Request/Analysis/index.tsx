@@ -16,7 +16,10 @@ interface WOStatusStatsProps {
   handleOpenWOModal: (
     columns: string[],
     filters: Filter[],
-    title: string
+    title: string,
+    start?: Date,
+    end?: Date,
+    companyId?: number
   ) => void;
 }
 
@@ -36,6 +39,12 @@ function RequestAnalysis({ handleOpenWOModal }: WOStatusStatsProps) {
     setTitle(t('requests_analysis'));
   }, []);
 
+  const handleOpenRequestModal = (
+    columns: string[],
+    filters: Filter[],
+    title: string
+  ) => handleOpenWOModal(columns, filters, title, start, end, companyId);
+
   return (
     <>
       <Helmet>
@@ -50,22 +59,44 @@ function RequestAnalysis({ handleOpenWOModal }: WOStatusStatsProps) {
         paddingX={1}
       >
         <Grid item xs={6}>
-          <CustomDateRangePicker start={start} end={end} setStart={setStart} setEnd={setEnd} companyId={companyId} onCompanyChange={setCompanyId} />
+          <CustomDateRangePicker
+            start={start}
+            end={end}
+            setStart={setStart}
+            setEnd={setEnd}
+            companyId={companyId}
+            onCompanyChange={setCompanyId}
+          />
         </Grid>
         <Grid item xs={12}>
-          <Overview handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <Overview
+            handleOpenModal={handleOpenRequestModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <RequestStatsByPriority handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <RequestStatsByPriority
+            handleOpenModal={handleOpenRequestModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <RequestsByCategory handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <RequestsByCategory
+            handleOpenModal={handleOpenRequestModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12}>
-          <RequestsResolution handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <RequestsResolution start={start} end={end} companyId={companyId} />
         </Grid>
         <Grid item xs={12}>
-          <RequestsByDate handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <RequestsByDate start={start} end={end} companyId={companyId} />
         </Grid>
       </Grid>
     </>

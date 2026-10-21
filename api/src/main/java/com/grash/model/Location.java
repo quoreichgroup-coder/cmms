@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.TreeSet;
 
 import static java.util.Comparator.comparingLong;
@@ -24,10 +25,13 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toCollection;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_location_company_exchange_id", columnNames = {"company_id", "exchange_id"}))
 @Data
 @NoArgsConstructor
 @Schema(description = "Location entity representing a physical place, facility, or area in the CMMS system")
 public class Location extends CompanyAudit {
+    @Column(name = "exchange_id", nullable = false, updatable = false)
+    private UUID exchangeId = UUID.randomUUID();
     @Schema(description = "Custom identifier for the location", accessMode = Schema.AccessMode.READ_ONLY)
     private String customId;
 

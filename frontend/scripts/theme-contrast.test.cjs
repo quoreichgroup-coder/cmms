@@ -131,6 +131,15 @@ test('light sidebar text, muted labels, hover and active states meet WCAG AA', (
   }
 });
 
+test('sidebar hover surface is distinguishable from the white navigation surface', () => {
+  const { qpmNavigationTokens } = moduleExports;
+  assert.notEqual(qpmNavigationTokens.hover, qpmNavigationTokens.sidebar);
+  assert.ok(
+    contrastRatio(qpmNavigationTokens.hover, qpmNavigationTokens.sidebar) > 1.2,
+    'hover surface should remain visible against the sidebar'
+  );
+});
+
 test('nested sidebar items show a filled hover and selected state', () => {
   const menu = fs.readFileSync(
     'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/index.tsx',

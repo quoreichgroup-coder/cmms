@@ -1,14 +1,18 @@
+import moment from 'moment-timezone';
+
 /**
- * The mobile overview endpoint defines "today" using UTC midnight. Keep the
- * dashboard drill-down boundaries in the same timezone so the displayed count
- * and the resulting work-order list describe the same day.
+ * Matches the mobile overview API's company-local definition of "today".
+ * The exclusive end is the next local midnight, so DST days can be 23 or 25
+ * hours without shifting the dashboard drill-down to a different date.
  */
-export const getUtcDayRange = (date: Date = new Date()): [Date, Date] => {
-  const start = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return [start, end];
+export const getCompanyDayRange = (
+  date: Date = new Date(),
+  timeZone = 'UTC'
+): [Date, Date] => {
+  const resolvedTimeZone = moment.tz.zone(timeZone) ? timeZone : 'UTC';
+  const start = moment.tz(date, resolvedTimeZone).startOf('day');
+  const end = start.clone().add(1, 'day');
+  return [start.toDate(), end.toDate()];
 };
 
 export const formatDashboardDate = (date: Date, locale?: string): string =>

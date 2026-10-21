@@ -33,7 +33,10 @@ import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../models/role';
 import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
 import { useIsFocused } from '@react-navigation/native';
-import { formatDashboardDate, getUtcDayRange } from '../utils/dashboardDates';
+import {
+  formatDashboardDate,
+  getCompanyDayRange
+} from '../utils/dashboardDates';
 import { createAsyncActionLock } from '../utils/asyncActionLock';
 import {
   canNavigateDashboardWorkOrders,
@@ -55,7 +58,8 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     hasViewPermission,
     hasViewOtherPermission,
     patchUserSettings,
-    user
+    user,
+    companySettings
   } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const canViewWorkOrders = hasViewPermission(PermissionEntity.WORK_ORDERS);
@@ -100,7 +104,10 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     workOrderScope,
     user?.id
   );
-  const [todayStart, tomorrowStart] = getUtcDayRange();
+  const [todayStart, tomorrowStart] = getCompanyDayRange(
+    new Date(),
+    companySettings?.generalPreferences?.timeZone ?? 'UTC'
+  );
 
   const loadUnreadNotificationCount = React.useCallback(() => {
     return dispatch(getUnreadNotificationCount());
@@ -231,7 +238,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
       filterFields: [
         {
           field: 'dueDate',
-          operation: 'gt',
+          operation: 'ge',
           value: todayStart,
           enumName: 'JS_DATE'
         },

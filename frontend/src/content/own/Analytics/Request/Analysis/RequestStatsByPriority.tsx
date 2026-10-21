@@ -49,25 +49,25 @@ function RequestStatsByPriority({
       label: t('high_priority'),
       count: requestStatsByPriority.high.count,
       color: qpmPriorityTokens.HIGH.foreground,
-      filters: [{ key: 'fs', value: false }]
+      filters: [{ key: 'priority', value: 'HIGH' }]
     },
     {
       label: t('medium_priority'),
       count: requestStatsByPriority.medium.count,
       color: qpmPriorityTokens.MEDIUM.foreground,
-      filters: [{ key: 'fs', value: false }]
+      filters: [{ key: 'priority', value: 'MEDIUM' }]
     },
     {
       label: t('low_priority'),
       count: requestStatsByPriority.low.count,
       color: qpmPriorityTokens.LOW.foreground,
-      filters: [{ key: 'fs', value: false }]
+      filters: [{ key: 'priority', value: 'LOW' }]
     },
     {
       label: t('none_priority'),
       count: requestStatsByPriority.none.count,
       color: qpmPriorityTokens.DEFAULT.foreground,
-      filters: [{ key: 'fs', value: false }]
+      filters: [{ key: 'priority', value: 'NONE' }]
     }
   ];
   const title = t('requests_by_priority');

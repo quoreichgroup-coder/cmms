@@ -20,6 +20,7 @@ interface RequestState {
   requestsError: string | null;
   singleRequestLoading: boolean;
   singleRequestError: string | null;
+  sessionGeneration: number;
 }
 
 const initialState: RequestState = {
@@ -29,52 +30,79 @@ const initialState: RequestState = {
   loadingGet: false,
   requestsError: null,
   singleRequestLoading: false,
-  singleRequestError: null
+  singleRequestError: null,
+  sessionGeneration: 0
 };
+
+const isCurrentGeneration = (state: RequestState, generation?: number) =>
+  generation === undefined || generation === (state.sessionGeneration ?? 0);
 
 const slice = createSlice({
   name: 'requests',
   initialState,
-  extraReducers: (builder) => builder.addCase(revertAll, () => initialState),
+  extraReducers: (builder) =>
+    builder.addCase(revertAll, (state) => ({
+      ...initialState,
+      sessionGeneration: (state.sessionGeneration ?? 0) + 1
+    })),
   reducers: {
     getRequests(
       state: RequestState,
-      action: PayloadAction<{ requests: Page<Request> }>
+      action: PayloadAction<{
+        requests: Page<Request>;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { requests } = action.payload;
+      const { requests, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.requests = requests;
     },
     getSingleRequest(
       state: RequestState,
-      action: PayloadAction<{ request: Request }>
+      action: PayloadAction<{ request: Request; sessionGeneration?: number }>
     ) {
-      const { request } = action.payload;
+      const { request, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.singleRequest = request;
       state.singleRequestError = null;
     },
-    startSingleRequest(state: RequestState) {
+    startSingleRequest(
+      state: RequestState,
+      action: PayloadAction<{ sessionGeneration?: number }>
+    ) {
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
       state.singleRequest = null;
       state.singleRequestLoading = true;
       state.singleRequestError = null;
     },
-    finishSingleRequest(state: RequestState) {
+    finishSingleRequest(
+      state: RequestState,
+      action: PayloadAction<{ sessionGeneration?: number }>
+    ) {
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
       state.singleRequestLoading = false;
     },
-    setSingleRequestError(state: RequestState, action: PayloadAction<string>) {
-      state.singleRequestError = action.payload;
+    setSingleRequestError(
+      state: RequestState,
+      action: PayloadAction<{ error: string; sessionGeneration?: number }>
+    ) {
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
+      state.singleRequestError = action.payload.error;
     },
     addRequest(
       state: RequestState,
-      action: PayloadAction<{ request: Request }>
+      action: PayloadAction<{ request: Request; sessionGeneration?: number }>
     ) {
-      const { request } = action.payload;
+      const { request, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.requests.content = [request, ...state.requests.content];
     },
     editRequest(
       state: RequestState,
-      action: PayloadAction<{ request: Request }>
+      action: PayloadAction<{ request: Request; sessionGeneration?: number }>
     ) {
-      const { request } = action.payload;
+      const { request, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       const inContent = state.requests.content.some(
         (request1) => request1.id === request.id
       );
@@ -89,8 +117,12 @@ const slice = createSlice({
         state.singleRequest = request;
       }
     },
-    deleteRequest(state: RequestState, action: PayloadAction<{ id: number }>) {
-      const { id } = action.payload;
+    deleteRequest(
+      state: RequestState,
+      action: PayloadAction<{ id: number; sessionGeneration?: number }>
+    ) {
+      const { id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       const requestIndex = state.requests.content.findIndex(
         (request) => request.id === id
       );
@@ -98,9 +130,14 @@ const slice = createSlice({
     },
     approveRequest(
       state: RequestState,
-      action: PayloadAction<{ id: number; workOrder: WorkOrder }>
+      action: PayloadAction<{
+        id: number;
+        workOrder: WorkOrder;
+        sessionGeneration?: number;
+      }>
     ) {
-      const { id, workOrder } = action.payload;
+      const { id, workOrder, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.requests.content = state.requests.content.map((request) => {
         if (request.id === id) {
           return { ...request, workOrder };
@@ -111,8 +148,12 @@ const slice = createSlice({
         state.singleRequest = { ...state.singleRequest, workOrder };
       }
     },
-    cancelRequest(state: RequestState, action: PayloadAction<{ id: number }>) {
-      const { id } = action.payload;
+    cancelRequest(
+      state: RequestState,
+      action: PayloadAction<{ id: number; sessionGeneration?: number }>
+    ) {
+      const { id, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.requests.content = state.requests.content.map((request) => {
         if (request.id === id) {
           return { ...request, cancelled: true };
@@ -125,16 +166,21 @@ const slice = createSlice({
     },
     setLoadingGet(
       state: RequestState,
-      action: PayloadAction<{ loading: boolean }>
+      action: PayloadAction<{ loading: boolean; sessionGeneration?: number }>
     ) {
-      const { loading } = action.payload;
+      const { loading, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.loadingGet = loading;
     },
     setRequestsError(
       state: RequestState,
-      action: PayloadAction<string | null>
+      action: PayloadAction<{
+        error: string | null;
+        sessionGeneration?: number;
+      }>
     ) {
-      state.requestsError = action.payload;
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
+      state.requestsError = action.payload.error;
     },
     clearSingleRequest(state: RequestState) {
       state.singleRequest = null;
@@ -143,15 +189,24 @@ const slice = createSlice({
     },
     getPendingCount(
       state: RequestState,
-      action: PayloadAction<{ count: number }>
+      action: PayloadAction<{ count: number; sessionGeneration?: number }>
     ) {
-      const { count } = action.payload;
+      const { count, sessionGeneration } = action.payload;
+      if (!isCurrentGeneration(state, sessionGeneration)) return;
       state.pendingCount = count;
     },
-    incrementPendingCount(state: RequestState) {
+    incrementPendingCount(
+      state: RequestState,
+      action: PayloadAction<{ sessionGeneration?: number }>
+    ) {
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
       state.pendingCount += 1;
     },
-    decrementPendingCount(state: RequestState) {
+    decrementPendingCount(
+      state: RequestState,
+      action: PayloadAction<{ sessionGeneration?: number }>
+    ) {
+      if (!isCurrentGeneration(state, action.payload.sessionGeneration)) return;
       state.pendingCount = Math.max(0, state.pendingCount - 1);
     }
   }
@@ -161,61 +216,96 @@ export const reducer = slice.reducer;
 
 export const getRequests =
   (criteria: SearchCriteria): AppThunk =>
-  async (dispatch) => {
-    dispatch(slice.actions.setRequestsError(null));
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
+    dispatch(
+      slice.actions.setRequestsError({ error: null, sessionGeneration })
+    );
     try {
       await cancellableFetch(
         dispatch,
         'getRequests',
         (signal) =>
           api.post<Page<Request>>(`${basePath}/search`, criteria, { signal }),
-        (requests) => dispatch(slice.actions.getRequests({ requests })),
-        (loading) => dispatch(slice.actions.setLoadingGet({ loading }))
+        (requests) =>
+          dispatch(slice.actions.getRequests({ requests, sessionGeneration })),
+        (loading) =>
+          dispatch(slice.actions.setLoadingGet({ loading, sessionGeneration }))
       );
     } catch (error) {
-      dispatch(slice.actions.setRequestsError(getErrorMessage(error)));
+      dispatch(
+        slice.actions.setRequestsError({
+          error: getErrorMessage(error),
+          sessionGeneration
+        })
+      );
     }
   };
 
 export const getSingleRequest =
   (id: number): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const loadId = ++latestSingleRequestLoad;
-    dispatch(slice.actions.startSingleRequest());
-    dispatch(slice.actions.setLoadingGet({ loading: true }));
+    dispatch(slice.actions.startSingleRequest({ sessionGeneration }));
+    dispatch(slice.actions.setLoadingGet({ loading: true, sessionGeneration }));
     try {
       const request = await api.get<Request>(`${basePath}/${id}`);
-      if (loadId !== latestSingleRequestLoad) return;
-      dispatch(slice.actions.getSingleRequest({ request }));
+      if (
+        loadId !== latestSingleRequestLoad ||
+        getState().requests.sessionGeneration !== sessionGeneration
+      )
+        return;
+      dispatch(slice.actions.getSingleRequest({ request, sessionGeneration }));
     } catch (error) {
-      if (loadId === latestSingleRequestLoad)
-        dispatch(slice.actions.setSingleRequestError(getErrorMessage(error)));
+      if (
+        loadId === latestSingleRequestLoad &&
+        getState().requests.sessionGeneration === sessionGeneration
+      )
+        dispatch(
+          slice.actions.setSingleRequestError({
+            error: getErrorMessage(error),
+            sessionGeneration
+          })
+        );
     } finally {
-      if (loadId === latestSingleRequestLoad) {
-        dispatch(slice.actions.finishSingleRequest());
-        dispatch(slice.actions.setLoadingGet({ loading: false }));
+      if (
+        loadId === latestSingleRequestLoad &&
+        getState().requests.sessionGeneration === sessionGeneration
+      ) {
+        dispatch(slice.actions.finishSingleRequest({ sessionGeneration }));
+        dispatch(
+          slice.actions.setLoadingGet({ loading: false, sessionGeneration })
+        );
       }
     }
   };
 export const addRequest =
   (request): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const requestResponse = await api.post<Request>(basePath, request);
-    dispatch(slice.actions.addRequest({ request: requestResponse }));
-    dispatch(slice.actions.incrementPendingCount());
+    dispatch(
+      slice.actions.addRequest({ request: requestResponse, sessionGeneration })
+    );
+    dispatch(slice.actions.incrementPendingCount({ sessionGeneration }));
   };
 export const editRequest =
   (id: number, request): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const requestResponse = await api.patch<Request>(
       `${basePath}/${id}`,
       request
     );
-    dispatch(slice.actions.editRequest({ request: requestResponse }));
+    dispatch(
+      slice.actions.editRequest({ request: requestResponse, sessionGeneration })
+    );
   };
 export const deleteRequest =
   (id: number): AppThunk =>
   async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const wasPending = getState().requests.requests.content.some(
       (request) => request.id === id && !request.cancelled && !request.workOrder
     );
@@ -224,42 +314,50 @@ export const deleteRequest =
     );
     const { success } = requestResponse;
     if (success) {
-      dispatch(slice.actions.deleteRequest({ id }));
-      if (wasPending) dispatch(slice.actions.decrementPendingCount());
+      dispatch(slice.actions.deleteRequest({ id, sessionGeneration }));
+      if (wasPending)
+        dispatch(slice.actions.decrementPendingCount({ sessionGeneration }));
     }
     return success;
   };
 
 export const approveRequest =
   (id: number, assetStatus: AssetStatus): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const workOrder = await api.patch<WorkOrder>(`${basePath}/${id}/approve`, {
       assetStatus
     });
-    dispatch(slice.actions.approveRequest({ id, workOrder }));
-    dispatch(slice.actions.decrementPendingCount());
+    dispatch(
+      slice.actions.approveRequest({ id, workOrder, sessionGeneration })
+    );
+    dispatch(slice.actions.decrementPendingCount({ sessionGeneration }));
     return workOrder.id;
   };
 export const cancelRequest =
   (id: number, reason: string): AppThunk =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
     const request = await api.patch<Request>(
       `${basePath}/${id}/cancel?reason=${encodeURIComponent(reason)}`,
       {}
     );
-    dispatch(slice.actions.cancelRequest({ id }));
-    dispatch(slice.actions.decrementPendingCount());
+    dispatch(slice.actions.cancelRequest({ id, sessionGeneration }));
+    dispatch(slice.actions.decrementPendingCount({ sessionGeneration }));
   };
-export const getPendingRequestsCount = (): AppThunk => async (dispatch) => {
-  const response = await api.get<{ success: boolean; message: string }>(
-    `${basePath}/pending`
-  );
-  dispatch(
-    slice.actions.getPendingCount({
-      count: Number(response.message)
-    })
-  );
-};
+export const getPendingRequestsCount =
+  (): AppThunk => async (dispatch, getState) => {
+    const sessionGeneration = getState().requests.sessionGeneration ?? 0;
+    const response = await api.get<{ success: boolean; message: string }>(
+      `${basePath}/pending`
+    );
+    dispatch(
+      slice.actions.getPendingCount({
+        count: Number(response.message),
+        sessionGeneration
+      })
+    );
+  };
 export const clearSingleRequest = (): AppThunk => async (dispatch) => {
   dispatch(slice.actions.clearSingleRequest());
 };

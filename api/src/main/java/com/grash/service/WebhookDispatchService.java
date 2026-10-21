@@ -19,8 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -38,7 +39,7 @@ public class WebhookDispatchService {
 
     private final WebhookEndpointRepository webhookEndpointRepository;
     private final CompanyRepository companyRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = WebhookHttpClientFactory.create();
     private final ObjectMapper objectMapper;
     private final LicenseService licenseService;
 
@@ -112,7 +113,13 @@ public class WebhookDispatchService {
                 webhookEndpointRepository.save(endpoint);
 
             } catch (Exception e) {
-                log.error("Failed to send webhook to: {}", endpoint.getUrl(), e);
+                // Do not log the full URL: webhook URLs can contain bearer-like tokens in their query string.
+                Throwable cause = e;
+                while (cause.getCause() != null && cause.getCause() != cause) {
+                    cause = cause.getCause();
+                }
+                log.warn("Webhook delivery failed (endpointId={}, event={}, cause={})",
+                        endpoint.getId(), eventType, cause.getClass().getSimpleName());
             }
         }
     }
@@ -120,7 +127,6 @@ public class WebhookDispatchService {
     private void sendWebhook(WebhookEndpoint endpoint, WebhookEvent eventType, Object payload) {
         try {
             WebhookUrlValidator.validate(endpoint.getUrl());
-            log.info("Sending webhook to: {}", endpoint.getUrl());
             String jsonPayload = objectMapper.writeValueAsString(payload);
             String signature = generateSignature(jsonPayload, endpoint.getSecret());
             String timestamp = String.valueOf(System.currentTimeMillis());
@@ -134,14 +140,19 @@ public class WebhookDispatchService {
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(
+            HttpStatusCode status = restTemplate.execute(
                     endpoint.getUrl(),
-                    request,
-                    String.class
+                    HttpMethod.POST,
+                    outboundRequest -> {
+                        outboundRequest.getHeaders().putAll(request.getHeaders());
+                        WebhookHttpClientFactory.writeJsonPayload(
+                                outboundRequest.getBody(), jsonPayload);
+                    },
+                    response -> response.getStatusCode()
             );
 
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Webhook failed with status: " + response.getStatusCode());
+            if (status == null || !status.is2xxSuccessful()) {
+                throw new RuntimeException("Webhook failed with status: " + status);
             }
 
         } catch (Exception e) {

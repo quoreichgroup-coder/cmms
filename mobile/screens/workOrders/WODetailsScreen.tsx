@@ -5,7 +5,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
-  PermissionsAndroid,
   Platform,
   Pressable,
   RefreshControl,
@@ -59,11 +58,14 @@ import { getTasks } from '../../slices/task';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import {
   changeWorkOrderStatus,
+  downloadIssuedWorkOrderReport,
   deleteWorkOrder,
   editWorkOrder,
+  getIssuedWorkOrderReports,
   getPDFReport,
   getWorkOrderDetails,
   getWorkOrderLifecycleEvents,
+  issueWorkOrderReport,
   reopenWorkOrder
 } from '../../slices/workOrder';
 import { PlanFeature } from '../../models/subscriptionPlan';
@@ -72,13 +74,14 @@ import AdditionalCostsCard from './components/AdditionalCostsCard';
 import AdditionalTimesCard from './components/AdditionalTimesCard';
 import { SheetManager } from 'react-native-actions-sheet';
 import WorkOrder from '../../models/workOrder';
+import type { GeneratedDocument } from '../../models/generatedDocument';
 import { AudioPlayer } from '../../components/AudioPlayer';
 import { isTaskComplete, Task } from '../../models/tasks';
 import { getErrorMessage } from '../../utils/api';
 import ImageView from '../../components/ImageViewer';
 import { getCustomFieldValuesForDetails } from '../../models/form';
 import CommentItem from '../../components/CommentItem';
-import { downloadFile } from '../../utils/fileDownload';
+import { downloadFile, openPdfResponse } from '../../utils/fileDownload';
 import { getCommentsByWorkOrder, createComment } from '../../slices/comment';
 import { getUsersMini } from '../../slices/user';
 import { TriggersConfig } from 'react-native-controlled-mentions/dist/types/types';
@@ -105,6 +108,7 @@ import {
   WorkOrderLoadErrorKey
 } from '../../utils/workOrderLoadError';
 import { isWorkOrderTaskExecutionReadOnly } from '../../utils/workOrderTaskAccess';
+import { getWorkOrderFieldConfigurations } from '../../utils/visibleFieldConfiguration';
 
 const getRemainingTasksLength = (tasks: Task[]): number =>
   tasks.filter((task) => !isTaskComplete(task)).length;
@@ -144,16 +148,34 @@ export default function WODetailsScreen({
     hasFeature,
     hasViewPermission
   } = useAuth();
+  const reportOwnerKey = `${user?.id ?? 'anonymous'}:${
+    user?.companyId ?? 'none'
+  }`;
   const hasTimeTrackingEntitlement = useLicenseEntitlement('TIME_TRACKING');
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { uploadFiles } = useContext(CompanySettingsContext);
   const { workOrderConfiguration, generalPreferences } = companySettings;
+  const workOrderFieldConfigurations = getWorkOrderFieldConfigurations(
+    workOrderConfiguration
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const reportDownloadInProgress = useRef(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [openCompleteConfirmation, setOpenCompleteConfirmation] =
     useState(false);
   const [openReopenDialog, setOpenReopenDialog] = useState(false);
+  const [openReportDialog, setOpenReportDialog] = useState(false);
+  const [issuedReports, setIssuedReports] = useState<GeneratedDocument[]>([]);
+  const [reportHistoryLoading, setReportHistoryLoading] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [reportAction, setReportAction] = useState<
+    'preview' | 'issue' | 'download' | null
+  >(null);
+  const reportOwnerKeyRef = useRef(reportOwnerKey);
+  const reportHistoryRequestId = useRef(0);
+  if (reportOwnerKeyRef.current !== reportOwnerKey) {
+    reportOwnerKeyRef.current = reportOwnerKey;
+  }
   const [reopenReason, setReopenReason] = useState('');
   const [reopening, setReopening] = useState(false);
   const reopeningRef = useRef(false);
@@ -170,6 +192,16 @@ export default function WODetailsScreen({
   const triggersConfig = createTriggersConfig(theme.colors.primary);
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    reportHistoryRequestId.current += 1;
+    reportDownloadInProgress.current = false;
+    setIssuedReports([]);
+    setReportHistoryLoading(false);
+    setReportError('');
+    setReportAction(null);
+    setOpenReportDialog(false);
+  }, [reportOwnerKey]);
   const scrollViewRef = useRef<ScrollView>(null);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const dispatch = useDispatch();
@@ -328,7 +360,7 @@ export default function WODetailsScreen({
     (refreshWorkOrder = false) => {
       if (refreshWorkOrder || !workOrderProp) void loadWorkOrder();
       const requiredFields = new Set(
-        workOrderConfiguration.workOrderFieldConfigurations
+        workOrderFieldConfigurations
           .filter((field) => field.fieldType === 'REQUIRED')
           .map((field) => field.fieldName)
       );
@@ -354,7 +386,7 @@ export default function WODetailsScreen({
       generalPreferences.simplifiedWorkOrder,
       id,
       loadWorkOrder,
-      workOrderConfiguration.workOrderFieldConfigurations,
+      workOrderFieldConfigurations,
       workOrderProp
     ]
   );
@@ -446,10 +478,14 @@ export default function WODetailsScreen({
     }
   };
 
-  const actualDownload = async (uri: string): Promise<void> => {
+  const actualDownload = async (
+    response: Response,
+    requestedFileName?: string
+  ): Promise<void> => {
     const rawFileName = workOrder?.title ?? `work-order-${id}`;
-    const fileName = `${rawFileName.replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
-    await downloadFile(uri, fileName);
+    const fileName =
+      requestedFileName ?? `${rawFileName.replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
+    await openPdfResponse(response, fileName);
   };
   const onDeleteSuccess = () => {
     showSnackBar(t('wo_delete_success'), 'success');
@@ -494,47 +530,131 @@ export default function WODetailsScreen({
       setArchiving(false);
     }
   };
-  const onGenerateReport = async () => {
+  const loadIssuedReports = async () => {
+    const ownerKey = reportOwnerKey;
+    const requestId = ++reportHistoryRequestId.current;
+    setReportHistoryLoading(true);
+    setReportError('');
+    try {
+      const documents = await dispatch(getIssuedWorkOrderReports(id));
+      if (
+        requestId === reportHistoryRequestId.current &&
+        ownerKey === reportOwnerKeyRef.current
+      ) {
+        setIssuedReports(documents);
+      }
+    } catch (error) {
+      if (
+        requestId === reportHistoryRequestId.current &&
+        ownerKey === reportOwnerKeyRef.current
+      ) {
+        setReportError(getErrorMessage(error));
+      }
+    } finally {
+      if (
+        requestId === reportHistoryRequestId.current &&
+        ownerKey === reportOwnerKeyRef.current
+      ) {
+        setReportHistoryLoading(false);
+      }
+    }
+  };
+
+  const onGenerateReport = () => {
+    setReportError('');
+    setOpenReportDialog(true);
+    void loadIssuedReports();
+  };
+
+  const handlePreviewReport = async () => {
     if (reportDownloadInProgress.current) return;
+    const ownerKey = reportOwnerKey;
     reportDownloadInProgress.current = true;
+    setReportAction('preview');
+    setReportError('');
     setLoading(true);
     try {
-      const uri: string = await dispatch(getPDFReport(id));
-      let reportOpened = false;
-      if (Platform.OS === 'ios') {
-        await actualDownload(uri);
-        reportOpened = true;
-      } else if (Platform.OS === 'android' && Platform.Version < 29) {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-          );
-          if (granted === 'granted') {
-            await actualDownload(uri);
-            reportOpened = true;
-          } else {
-            Alert.alert(t('error'), t('storage_permission_needed_description'));
-          }
-        } catch (err) {
-          showSnackBar(getErrorMessage(err), 'error');
-        }
-      } else {
-        await actualDownload(uri);
-        reportOpened = true;
-      }
-      if (reportOpened) {
-        showSnackBar(t('wo_report_download_success'), 'success');
-      }
+      const response: Response = await dispatch(getPDFReport(id));
+      if (ownerKey !== reportOwnerKeyRef.current) return;
+      await actualDownload(response);
+      showSnackBar(t('wo_report_download_success'), 'success');
     } catch (err) {
-      showSnackBar(getErrorMessage(err), 'error');
+      if (ownerKey === reportOwnerKeyRef.current) {
+        setReportError(getErrorMessage(err));
+      }
     } finally {
-      reportDownloadInProgress.current = false;
-      setLoading(false);
+      if (ownerKey === reportOwnerKeyRef.current) {
+        reportDownloadInProgress.current = false;
+        setReportAction(null);
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleIssueReport = async () => {
+    if (reportDownloadInProgress.current) return;
+    const ownerKey = reportOwnerKey;
+    reportDownloadInProgress.current = true;
+    setReportAction('issue');
+    setReportError('');
+    try {
+      await dispatch(issueWorkOrderReport(id));
+      if (ownerKey !== reportOwnerKeyRef.current) return;
+      showSnackBar(t('issued_document_saved'), 'success');
+      await loadIssuedReports();
+    } catch (error) {
+      if (ownerKey === reportOwnerKeyRef.current) {
+        setReportError(getErrorMessage(error));
+      }
+    } finally {
+      if (ownerKey === reportOwnerKeyRef.current) {
+        reportDownloadInProgress.current = false;
+        setReportAction(null);
+      }
+    }
+  };
+
+  const confirmIssueReport = () => {
+    Alert.alert(
+      t('issued_document_confirm_title'),
+      t('issued_document_confirm_description'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('issue_archive_document'),
+          onPress: () => void handleIssueReport()
+        }
+      ]
+    );
+  };
+
+  const handleDownloadIssuedReport = async (document: GeneratedDocument) => {
+    if (reportDownloadInProgress.current) return;
+    const ownerKey = reportOwnerKey;
+    reportDownloadInProgress.current = true;
+    setReportAction('download');
+    setReportError('');
+    try {
+      const response: Response = await dispatch(
+        downloadIssuedWorkOrderReport(document.id)
+      );
+      if (ownerKey !== reportOwnerKeyRef.current) return;
+      await actualDownload(response, document.fileName);
+      showSnackBar(t('wo_report_download_success'), 'success');
+    } catch (error) {
+      if (ownerKey === reportOwnerKeyRef.current) {
+        setReportError(getErrorMessage(error));
+      }
+    } finally {
+      if (ownerKey === reportOwnerKeyRef.current) {
+        reportDownloadInProgress.current = false;
+        setReportAction(null);
+      }
     }
   };
   const canComplete = (): boolean => {
     const loadIssues = getWorkOrderCompletionLoadIssues(
-      workOrderConfiguration.workOrderFieldConfigurations,
+      workOrderFieldConfigurations,
       {
         workOrder: workOrderLoadError
           ? 'error'
@@ -594,7 +714,7 @@ export default function WODetailsScreen({
       }
     ];
     const blockers = getWorkOrderCompletionBlockers(
-      workOrderConfiguration.workOrderFieldConfigurations,
+      workOrderFieldConfigurations,
       fieldsToTest
     );
     if (blockers.length > 0) {
@@ -605,23 +725,20 @@ export default function WODetailsScreen({
   };
   const retryFailedCompletionData = () => {
     const failedSources = new Set(
-      getWorkOrderCompletionLoadIssues(
-        workOrderConfiguration.workOrderFieldConfigurations,
-        {
-          workOrder: workOrderLoadError
-            ? 'error'
-            : loadingWorkOrder
-            ? 'loading'
-            : workOrder
-            ? 'success'
-            : 'idle',
-          comments: commentLoadStatusByWorkOrder[id],
-          tasks: taskLoadStatus,
-          labor: laborLoadStatus,
-          parts: partQuantityLoadStatusByWorkOrder[id],
-          costs: costLoadStatusByWorkOrder[id]
-        }
-      )
+      getWorkOrderCompletionLoadIssues(workOrderFieldConfigurations, {
+        workOrder: workOrderLoadError
+          ? 'error'
+          : loadingWorkOrder
+          ? 'loading'
+          : workOrder
+          ? 'success'
+          : 'idle',
+        comments: commentLoadStatusByWorkOrder[id],
+        tasks: taskLoadStatus,
+        labor: laborLoadStatus,
+        parts: partQuantityLoadStatusByWorkOrder[id],
+        costs: costLoadStatusByWorkOrder[id]
+      })
         .filter((issue) => issue.status === 'error')
         .map((issue) => issue.source)
     );
@@ -789,6 +906,104 @@ export default function WODetailsScreen({
             onPress={() => void submitReopenWorkOrder()}
           >
             {t('work_order_reopen_action')}
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+
+  const renderReportDialog = () => (
+    <Portal>
+      <Dialog
+        visible={openReportDialog}
+        onDismiss={() => {
+          if (!reportAction) setOpenReportDialog(false);
+        }}
+      >
+        <Dialog.Title>{t('pdf_report')}</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
+            {t('work_order_report_mobile_description')}
+          </Text>
+          {reportError ? (
+            <Text
+              accessibilityRole="alert"
+              style={{ color: theme.colors.error, marginBottom: 12 }}
+            >
+              {reportError}
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Button
+              mode="outlined"
+              icon="file-eye-outline"
+              loading={reportAction === 'preview'}
+              disabled={reportAction !== null || reportHistoryLoading}
+              style={{ flexGrow: 1 }}
+              onPress={() => void handlePreviewReport()}
+            >
+              {t('preview_print')}
+            </Button>
+            <Button
+              mode="contained"
+              icon="archive-arrow-down-outline"
+              loading={reportAction === 'issue'}
+              disabled={reportAction !== null || reportHistoryLoading}
+              style={{ flexGrow: 1 }}
+              onPress={confirmIssueReport}
+            >
+              {t('issue_archive_document')}
+            </Button>
+          </View>
+          <Divider style={{ marginVertical: 16 }} />
+          <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+            {t('issued_documents')}
+          </Text>
+          {reportHistoryLoading ? (
+            <ActivityIndicator
+              accessibilityLabel={t('loading')}
+              style={{ marginVertical: 16 }}
+            />
+          ) : issuedReports.length === 0 && !reportError ? (
+            <Text variant="bodyMedium" style={{ opacity: 0.72 }}>
+              {t('issued_documents_empty')}
+            </Text>
+          ) : (
+            <ScrollView style={{ maxHeight: 280 }}>
+              {issuedReports.map((document) => (
+                <List.Item
+                  key={document.id}
+                  title={document.fileName}
+                  description={`${new Date(
+                    document.issuedAt
+                  ).toLocaleString()} · SHA-256 ${document.sha256.slice(
+                    0,
+                    12
+                  )}…`}
+                  left={(props) => <List.Icon {...props} icon="file-pdf-box" />}
+                  right={(props) => (
+                    <IconButton
+                      {...props}
+                      icon="download-outline"
+                      accessibilityLabel={`${t('download')} ${
+                        document.fileName
+                      }`}
+                      disabled={reportAction !== null}
+                      loading={reportAction === 'download'}
+                      onPress={() => void handleDownloadIssuedReport(document)}
+                    />
+                  )}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button
+            disabled={reportAction !== null}
+            onPress={() => setOpenReportDialog(false)}
+          >
+            {t('close')}
           </Button>
         </Dialog.Actions>
       </Dialog>
@@ -1251,6 +1466,7 @@ export default function WODetailsScreen({
           {renderConfirmArchive()}
           {renderConfirmComplete()}
           {renderReopenDialog()}
+          {renderReportDialog()}
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
@@ -1404,7 +1620,7 @@ export default function WODetailsScreen({
                 )}
                 {renderLifecycleEvents()}
                 {getWorkOrderCompletionLoadIssues(
-                  workOrderConfiguration.workOrderFieldConfigurations,
+                  workOrderFieldConfigurations,
                   {
                     workOrder: workOrderLoadError
                       ? 'error'

@@ -63,6 +63,11 @@ public class PurchaseOrderService {
         return purchaseOrderRepository.findById(id);
     }
 
+    @Transactional
+    public Optional<PurchaseOrder> findByIdForUpdate(Long id) {
+        return purchaseOrderRepository.findByIdForUpdate(id);
+    }
+
     public Collection<PurchaseOrder> findByCompany(Long id) {
         return purchaseOrderRepository.findByCompany_Id(id);
     }

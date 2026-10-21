@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-21-hierarchy-exchange-ids" author="qpm">
+        <addColumn tableName="asset">
+            <column name="exchange_id" type="UUID" defaultValueComputed="gen_random_uuid()"/>
+        </addColumn>
+        <addColumn tableName="location">
+            <column name="exchange_id" type="UUID" defaultValueComputed="gen_random_uuid()"/>
+        </addColumn>
+        <sql>UPDATE asset SET exchange_id = gen_random_uuid() WHERE exchange_id IS NULL;</sql>
+        <sql>UPDATE location SET exchange_id = gen_random_uuid() WHERE exchange_id IS NULL;</sql>
+        <addNotNullConstraint tableName="asset" columnName="exchange_id" columnDataType="UUID"/>
+        <addNotNullConstraint tableName="location" columnName="exchange_id" columnDataType="UUID"/>
+        <addUniqueConstraint tableName="asset" columnNames="company_id, exchange_id"
+                             constraintName="uk_asset_company_exchange_id"/>
+        <addUniqueConstraint tableName="location" columnNames="company_id, exchange_id"
+                             constraintName="uk_location_company_exchange_id"/>
+    </changeSet>
+</databaseChangeLog>

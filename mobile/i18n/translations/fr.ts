@@ -1,4 +1,25 @@
 const frJSON = {
+  my_shift_availability: 'Mes disponibilités',
+  my_shift_availability_description:
+    'Consultez les disponibilités hebdomadaires enregistrées pour votre compte.',
+  shift_weekly_availability: 'Disponibilités hebdomadaires',
+  shift_availability_enabled: 'Disponibilités activées',
+  shift_availability_disabled: 'Disponibilités actuellement désactivées',
+  shift_availability_not_configured: 'Aucune disponibilité configurée',
+  shift_availability_not_configured_help:
+    'Demandez à votre superviseur de configurer vos disponibilités dans QPM Web.',
+  shift_availability_disclaimer:
+    'Cette configuration indique vos disponibilités. Elle ne constitue pas un planning d’équipe publié ni une affectation de quart confirmée.',
+  shift_availability_load_error: 'Impossible de charger vos disponibilités.',
+  shift_date_exceptions: 'Exceptions à venir',
+  shift_day_off: 'Indisponible',
+  shift_day_monday: 'Lundi',
+  shift_day_tuesday: 'Mardi',
+  shift_day_wednesday: 'Mercredi',
+  shift_day_thursday: 'Jeudi',
+  shift_day_friday: 'Vendredi',
+  shift_day_saturday: 'Samedi',
+  shift_day_sunday: 'Dimanche',
   more_options: 'Plus d’options',
   remove_attachment: 'Retirer la pièce jointe',
   open_in_maps: 'Ouvrir dans Plans',
@@ -663,6 +684,16 @@ const frJSON = {
   work_order_lifecycle_transition: '{{from}} → {{to}}',
   wo_report_download_success:
     'Le rapport du bon de travail est prêt à être consulté',
+  work_order_report_mobile_description:
+    'Prévisualisez le rapport actuel ou émettez une copie officielle archivée. Les copies émises restent dans l’historique du bon de travail.',
+  preview_print: 'Prévisualiser le PDF',
+  issue_archive_document: 'Émettre une copie officielle',
+  issued_documents: 'Documents émis',
+  issued_documents_empty: 'Aucun rapport officiel n’a encore été émis.',
+  issued_document_saved: 'Le rapport officiel a été émis et archivé.',
+  issued_document_confirm_title: 'Émettre le rapport officiel ?',
+  issued_document_confirm_description:
+    'Cette action crée une copie datée et archivée du rapport actuel. Elle ne modifie pas le bon de travail.',
   wo_delete_failure: "Le bon de travail n'a pas pu être supprimé",
   status: 'Statut',
   title: 'Titre',
@@ -782,6 +813,13 @@ const frJSON = {
   locations: 'Emplacements',
   parts_and_inventory: 'Pièces/Inventaire',
   purchase_orders: 'Bons de commande',
+  purchase_orders_load_error: 'Impossible de charger les bons de commande.',
+  purchase_orders_empty: 'Aucun bon de commande trouvé.',
+  purchase_orders_read_only_note:
+    'Consultation uniquement : les quantités reçues et les mises à jour de stock ne sont pas suivies ici.',
+  purchase_order_due_date: 'Livraison prévue',
+  purchase_order_items_count: '{{count}} article(s)',
+  purchase_order_quantity: 'Quantité commandée',
   meters: 'Compteurs',
   people_teams: 'Personnes & Equipes',
   people: 'Personnes',
@@ -1643,8 +1681,7 @@ const frJSON = {
   toggle_menu: 'Commuter le menu',
   no_results: 'Aucun résultat trouvé',
   an_error_occured: "Une erreur s'est produite.",
-  api_server_error:
-    'Le serveur a rencontré une erreur. Réessayez plus tard.',
+  api_server_error: 'Le serveur a rencontré une erreur. Réessayez plus tard.',
   user_settings_load_error:
     'Impossible de charger vos préférences de notification. Vérifiez votre connexion et réessayez.',
   profile_image_permission_denied:

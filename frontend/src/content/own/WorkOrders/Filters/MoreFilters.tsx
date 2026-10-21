@@ -39,7 +39,7 @@ function MoreFilters({
   const { customersMini } = useSelector((state) => state.customers);
   const { locationsMini } = useSelector((state) => state.locations);
   const { categories } = useSelector((state) => state.categories);
-  const { usersMini } = useSelector((state) => state.users);
+  const { usersMini, allUsersMini } = useSelector((state) => state.users);
   const { assetsMini } = useSelector((state) => state.assets);
   const { teamsMini } = useSelector((state) => state.teams);
   const dispatch = useDispatch();
@@ -57,6 +57,11 @@ function MoreFilters({
     { accessor: 'locations', fieldName: 'location', type: 'array' },
     { accessor: 'createdBy', fieldName: 'createdBy', type: 'array' },
     { accessor: 'completedBy', fieldName: 'completedBy', type: 'array' },
+    {
+      accessor: 'requestedBy',
+      fieldName: 'parentRequest.createdBy',
+      type: 'array'
+    },
     {
       accessor: 'customers',
       fieldName: 'customers',
@@ -96,10 +101,12 @@ function MoreFilters({
           type: 'select',
           label: t('status'),
           multiple: true,
-          items: ['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETE'].map((value) => ({
-            label: t(value),
-            value
-          }))
+          items: ['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETE'].map(
+            (value) => ({
+              label: t(value),
+              value
+            })
+          )
         }
       ]
     : [];
@@ -159,14 +166,14 @@ function MoreFilters({
       type2: 'user',
       multiple: true
     },
-    //TODO
-    // {
-    //   name: 'requestedBy',
-    //   type: 'select',
-    //   label: t('requested_by'),
-    //   type2: 'user',
-    //   multiple: true
-    // },
+    {
+      name: 'requestedBy',
+      type: 'select',
+      label: t('requested_by'),
+      type2: 'user',
+      includeRequesters: true,
+      multiple: true
+    },
     {
       name: 'primaryUsers',
       type: 'select',
@@ -247,13 +254,13 @@ function MoreFilters({
           }
         : { label: t('ALL'), value: 'ALL' },
       priority:
-        filterFields.find(
-          (filterField) => filterField.field === 'priority'
-        )?.values?.map((value) => ({ label: t(value), value })) ?? [],
+        filterFields
+          .find((filterField) => filterField.field === 'priority')
+          ?.values?.map((value) => ({ label: t(value), value })) ?? [],
       status:
-        filterFields.find(
-          (filterField) => filterField.field === 'status'
-        )?.values?.map((value) => ({ label: t(value), value })) ?? [],
+        filterFields
+          .find((filterField) => filterField.field === 'status')
+          ?.values?.map((value) => ({ label: t(value), value })) ?? [],
       archived: filterFields.find(
         (filterField) => filterField.field === 'archived'
       ).value,
@@ -282,6 +289,13 @@ function MoreFilters({
         filterFields,
         usersMini,
         'completedBy',
+        null,
+        (user: UserMiniDTO) => `${user.firstName} ${user.lastName}`
+      ),
+      requestedBy: getLabelAndValue(
+        filterFields,
+        allUsersMini.length ? allUsersMini : usersMini,
+        'parentRequest.createdBy',
         null,
         (user: UserMiniDTO) => `${user.firstName} ${user.lastName}`
       ),
@@ -314,7 +328,13 @@ function MoreFilters({
     };
   };
   const shape = {};
-  const USER_FIELDS = ['primaryUser', 'completedBy', 'createdBy', 'assignedTo'];
+  const USER_FIELDS = [
+    'primaryUser',
+    'completedBy',
+    'createdBy',
+    'assignedTo',
+    'parentRequest.createdBy'
+  ];
 
   useEffect(() => {
     const fieldsInUse = new Set(filterFields.map((f) => f.field));
@@ -332,7 +352,9 @@ function MoreFilters({
       dispatch(getCategories('work-order-categories'));
     if (USER_FIELDS.some((f) => fieldsInUse.has(f)) && !usersMini.length)
       dispatch(getUsersMini());
-  }, [filterFields.length]);
+    if (fieldsInUse.has('parentRequest.createdBy') && !allUsersMini.length)
+      dispatch(getUsersMini(true));
+  }, [filterFields.length, allUsersMini.length, usersMini.length]);
 
   return (
     <Grid

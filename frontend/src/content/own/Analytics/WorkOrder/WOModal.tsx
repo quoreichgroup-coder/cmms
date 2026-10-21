@@ -1,18 +1,18 @@
 import {
+  Alert,
+  Button,
   Box,
   Dialog,
   DialogContent,
   DialogTitle,
   Typography
 } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CustomDataGrid, {
   CustomDatagridColumn
 } from '../../components/CustomDatagrid';
-import {
-  GridRenderCellParams,
-  GridToolbar,
-  GridValueGetterParams
-} from '@mui/x-data-grid';
+import { GridRenderCellParams, GridValueGetterParams } from '@mui/x-data-grid';
 import NoRowsMessageWrapper from '../../components/NoRowsMessageWrapper';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
 import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
@@ -28,6 +28,9 @@ import File from '../../../../models/owns/file';
 import { useTranslation } from 'react-i18next';
 import { useContext } from 'react';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
+import api, { getErrorMessage } from '../../../../utils/api';
+import { Page } from '../../../../models/owns/page';
+import { buildStatusWorkOrderCriteria } from './statusDrilldown';
 
 export interface Filter {
   key: string;
@@ -39,19 +42,89 @@ interface WOModalProps {
   title: string;
   columns: string[];
   filters: Filter[];
+  start?: Date;
+  end?: Date;
+  companyId?: number;
 }
 export default function WOModal({
   open,
   onClose,
   title,
-  columns
+  columns,
+  filters,
+  start,
+  end,
+  companyId
 }: WOModalProps) {
   const { t }: { t: any } = useTranslation();
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
   );
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<WorkOrder[]>([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [retryCount, setRetryCount] = useState(0);
+  const status = filters.find((filter) => filter.key === 'status')?.value;
+
+  useEffect(() => {
+    if (open) setPage(0);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !start || !end || typeof status !== 'string') {
+      setLoading(false);
+      return;
+    }
+    const criteria = buildStatusWorkOrderCriteria(
+      status,
+      start,
+      end,
+      page,
+      pageSize,
+      companyId
+    );
+    if (!criteria) {
+      setLoadError(t('no_wo_found'));
+      setRows([]);
+      setRowCount(0);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+    setLoadError(null);
+    api
+      .post<Page<WorkOrder>>('work-orders/search', criteria, {
+        signal: controller.signal
+      })
+      .then((result) => {
+        setRows(result.content ?? []);
+        setRowCount(result.totalElements ?? 0);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setRows([]);
+        setRowCount(0);
+        setLoadError(getErrorMessage(error, t('error')));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [open, status, start, end, companyId, page, pageSize, retryCount, t]);
 
   const defaultColumns: CustomDatagridColumn[] = [
+    {
+      field: 'customId',
+      headerName: t('id'),
+      description: t('id'),
+      width: 140
+    },
     {
       field: 'id',
       headerName: t('id'),
@@ -230,16 +303,46 @@ export default function WOModal({
           p: 3
         }}
       >
+        {loadError && (
+          <Alert
+            severity="error"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => setRetryCount((count) => count + 1)}
+              >
+                {t('retry')}
+              </Button>
+            }
+            sx={{ mb: 2 }}
+          >
+            {loadError}
+          </Alert>
+        )}
         <Box sx={{ width: '95%' }}>
           <CustomDataGrid
             columns={getColumns()}
-            notClickable
-            rows={[]}
-            loading={false}
+            rows={rows}
+            loading={loading}
+            rowCount={rowCount}
+            paginationMode="server"
+            page={page}
+            pageSize={pageSize}
+            rowsPerPageOptions={[10, 25, 50]}
+            onPageChange={(nextPage) => setPage(nextPage)}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              setPage(0);
+            }}
+            onRowClick={(params) => {
+              onClose();
+              navigate(`/app/work-orders/${params.row.id}`);
+            }}
             components={{
               NoRowsOverlay: () => (
                 <NoRowsMessageWrapper
-                  message={t('No Work Order found')}
+                  message={t('no_wo_found')}
                   action={null}
                 />
               )

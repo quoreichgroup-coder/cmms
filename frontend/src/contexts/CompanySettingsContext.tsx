@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { utcToZonedTime } from 'date-fns-tz';
 import { openSafeWindow } from '../utils/safeWindow';
 import { getApiErrorMessage } from '../utils/apiError';
+import { formatCompanyCurrency } from '../utils/formatCurrency';
 
 type CompanySettingsContext = {
   getFormattedDate: (dateString: string, hideTime?: boolean) => string;
@@ -46,7 +47,7 @@ export const CompanySettingsProvider: FC = ({ children }) => {
   const { workOrderConfiguration } = companySettings ?? {
     workOrderFieldConfigurations: []
   };
-  const { t }: { t: any } = useTranslation();
+  const { t, i18n }: { t: any; i18n: { language: string } } = useTranslation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const brandConfig = useBrand();
 
@@ -64,13 +65,12 @@ export const CompanySettingsProvider: FC = ({ children }) => {
       return format(date, 'dd/MM/yy') + timeStr;
     }
   };
-  const getFormattedCurrency = (amount: number): string => {
-    const code = generalPreferences?.currency?.code;
-    if (!code) return String(amount ?? '');
-    const currenciesToReverse = ['$'];
-    return currenciesToReverse.includes(code)
-      ? `${code} ${amount} `
-      : `${amount} ${code}`;
+  const getFormattedCurrency = (amount: number | string): string => {
+    return formatCompanyCurrency(
+      amount,
+      generalPreferences?.currency?.code,
+      i18n.language
+    );
   };
 
   const onUploadError = (err: {

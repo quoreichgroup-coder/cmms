@@ -11,7 +11,7 @@ export const getCapacityUtilizationPercent = (
     return null;
   }
 
-  return Math.round((allocatedMinutes / capacityMinutes) * 100);
+  return (allocatedMinutes / capacityMinutes) * 100;
 };
 
 export type CapacityBalance =

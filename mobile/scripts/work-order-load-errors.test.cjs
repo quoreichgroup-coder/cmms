@@ -41,6 +41,18 @@ test('classifies Work Order API failures without exposing server messages', () =
     'work_orders_network_error'
   );
   assert.equal(
+    getWorkOrderLoadErrorKey(new Error('Network request failed')),
+    'work_orders_network_error'
+  );
+  assert.equal(
+    getWorkOrderLoadErrorKey({ code: 'ERR_NETWORK' }),
+    'work_orders_network_error'
+  );
+  assert.equal(
+    getWorkOrderLoadErrorKey({ code: 'ECONNRESET' }),
+    'work_orders_network_error'
+  );
+  assert.equal(
     getWorkOrderLoadErrorKey({ status: 422, message: 'Validation failed' }),
     'work_orders_load_error'
   );

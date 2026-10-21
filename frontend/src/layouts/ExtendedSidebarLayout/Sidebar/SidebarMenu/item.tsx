@@ -48,6 +48,41 @@ const TooltipWrapper = styled(({ className, ...props }: TooltipProps) => (
   }
 }));
 
+// Keep SAP-compatible navigation terminology local to the Web sidebar. The
+// underlying translation keys are also used by pages and forms, so changing
+// those shared labels would unintentionally rename business UI elsewhere.
+const sidebarLabelKeys: Record<string, string> = {
+  maintenance_dashboard: 'sidebar_sap_maintenance_dashboard',
+  work_orders: 'sidebar_sap_maintenance_orders',
+  preventive_maintenance: 'sidebar_sap_maintenance_plans',
+  Statistics: 'sidebar_sap_maintenance_analytics',
+  status_report: 'sidebar_sap_order_status',
+  wo_analysis: 'sidebar_sap_order_analysis',
+  wo_aging: 'sidebar_sap_order_aging',
+  time_and_cost: 'sidebar_sap_time_and_cost',
+  assets: 'sidebar_sap_equipment',
+  reliability_dashboard: 'sidebar_sap_equipment_reliability',
+  total_maintenance_cost: 'sidebar_sap_maintenance_costs',
+  parts: 'sidebar_sap_materials',
+  parts_consumption: 'sidebar_sap_material_consumption',
+  requests: 'sidebar_sap_maintenance_requests',
+  requests_analysis: 'sidebar_sap_request_analysis',
+  locations: 'sidebar_sap_functional_locations',
+  parts_and_inventory: 'sidebar_sap_materials_inventory',
+  sets_of_parts: 'sidebar_sap_material_kits',
+  purchase_orders: 'sidebar_sap_procurement',
+  meters: 'sidebar_sap_measuring_points',
+  people_teams: 'sidebar_sap_maintenance_personnel_teams',
+  people: 'sidebar_sap_personnel',
+  teams: 'sidebar_sap_teams',
+  vendors_customers: 'sidebar_sap_suppliers_service_providers',
+  vendors: 'sidebar_sap_suppliers',
+  customers: 'sidebar_sap_customers',
+  categories: 'sidebar_sap_technical_categories',
+  files: 'sidebar_sap_documents',
+  settings: 'sidebar_sap_settings'
+};
+
 const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
   children,
   link,
@@ -63,6 +98,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
   const [menuToggle, setMenuToggle] = useState<boolean>(openParent);
   const submenuId = `sidebar-submenu-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   const { t }: { t: any } = useTranslation();
+  const label = t(sidebarLabelKeys[name] ?? name, { defaultValue: t(name) });
   const { closeSidebar, desktopSidebarCollapsed } = useContext(SidebarContext);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const collapsedRail = desktopSidebarCollapsed && !inPopover;
@@ -80,15 +116,13 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
       return (
         <ListItem component="div" key={name} {...rest}>
           <TooltipWrapper
-            title={badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)}
+            title={badgeTooltip ? `${label}: ${badgeTooltip}` : label}
             arrow
             placement="right"
           >
             <Button
               className={clsx({ active: active || openParent })}
-              aria-label={
-                badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)
-              }
+              aria-label={badgeTooltip ? `${label}: ${badgeTooltip}` : label}
               aria-expanded={Boolean(anchorEl)}
               aria-controls={`${submenuId}-popover`}
               onClick={(event) => setAnchorEl(event.currentTarget)}
@@ -146,7 +180,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
       <ListItem component="div" className="Mui-children" key={name} {...rest}>
         <Button
           className={clsx({ active, expanded: menuToggle })}
-          aria-label={t(name)}
+          aria-label={label}
           startIcon={
             Icon &&
             (badge !== undefined && badge !== null ? (
@@ -180,7 +214,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
           ) : (
             <Badge badgeContent={badge} />
           )}
-          {t(name)}
+          {label}
         </Button>
         <Collapse id={submenuId} in={menuToggle}>
           {children}
@@ -198,8 +232,8 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
       aria-label={
         collapsedRail
           ? badgeTooltip
-            ? `${t(name)}: ${badgeTooltip}`
-            : t(name)
+            ? `${label}: ${badgeTooltip}`
+            : label
           : undefined
       }
       onClick={closeSidebar}
@@ -231,7 +265,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
           : undefined
       }
     >
-      {!collapsedRail && t(name)}
+      {!collapsedRail && label}
       {!collapsedRail &&
         (badgeTooltip ? (
           <TooltipWrapper title={badgeTooltip} arrow placement="right">
@@ -253,7 +287,7 @@ const SidebarMenuItem: FC<SidebarMenuItemProps> = ({
     <ListItem component="div" key={name} {...rest}>
       {collapsedRail ? (
         <TooltipWrapper
-          title={badgeTooltip ? `${t(name)}: ${badgeTooltip}` : t(name)}
+          title={badgeTooltip ? `${label}: ${badgeTooltip}` : label}
           arrow
           placement="right"
         >

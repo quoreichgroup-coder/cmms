@@ -17,16 +17,23 @@ export function getWorkOrderLoadErrorKey(
   if (status >= 500) return 'work_orders_server_error';
 
   const message = String(value?.message ?? '').toLowerCase();
+  const code = String(value?.code ?? '').toLowerCase();
   if (
-    value?.code === 'REQUEST_TIMEOUT' ||
+    code === 'request_timeout' ||
+    code === 'err_network' ||
+    code === 'econnrefused' ||
+    code === 'econnreset' ||
     error instanceof TypeError ||
     status === 0 ||
     message.includes('failed to fetch') ||
     message.includes('networkerror') ||
     message.includes('network error') ||
+    message.includes('network request failed') ||
     message.includes('load failed') ||
     message.includes('connection refused') ||
-    message.includes('err_connection_refused')
+    message.includes('connection reset') ||
+    message.includes('err_connection_refused') ||
+    message.includes('err_connection_reset')
   ) {
     return 'work_orders_network_error';
   }

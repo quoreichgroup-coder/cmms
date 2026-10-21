@@ -1,6 +1,7 @@
 import {
   cloneElement,
   ReactElement,
+  UIEvent,
   useContext,
   useEffect,
   useRef,
@@ -33,6 +34,7 @@ import Text from 'src/components/Text';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../../../../store';
+import { CustomSnackBarContext } from '../../../../../contexts/CustomSnackBarContext';
 import {
   editNotification,
   getMoreNotifications,
@@ -66,6 +68,7 @@ import { SearchCriteria } from '../../../../../models/owns/page';
 import useAuth from 'src/hooks/useAuth';
 import { createAuthenticatedStompClient } from 'src/utils/authenticatedStompClient';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import { getErrorMessage } from '../../../../../utils/api';
 
 const BoxComposed = styled(Box)(
   () => `
@@ -123,6 +126,13 @@ const IconButtonWrapper = styled(IconButton)(
 `
 );
 
+const initialCriteria: SearchCriteria = {
+  filterFields: [],
+  pageSize: 25,
+  pageNum: 0,
+  direction: 'DESC'
+};
+
 function HeaderNotifications() {
   const ref = useRef<any>(null);
   const [isOpen, setOpen] = useState<boolean>(false);
@@ -134,25 +144,23 @@ function HeaderNotifications() {
     (state) => state.notifications
   );
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const initialCriteria: SearchCriteria = {
-    filterFields: [],
-    pageSize: 25,
-    pageNum: 0,
-    direction: 'DESC'
-  };
-  const [criteria, setCriteria] = useState<SearchCriteria>(initialCriteria);
+  const criteria = initialCriteria;
   const { user } = useAuth();
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   useEffect(() => {
-    dispatch(getNotifications(criteria));
-  }, []);
+    if (user?.id) dispatch(getNotifications(criteria));
+  }, [user?.id, dispatch]);
   useEffect(() => {
     if (!user?.id || !user.email) {
       return;
     }
 
     const client = createAuthenticatedStompClient();
+    let isActive = true;
     client.onConnect = () => {
+      if (!isActive) return;
       client.subscribe(`/user/${user.email}/notifications`, (message) => {
+        if (!isActive) return;
         try {
           const notification: Notification = JSON.parse(message.body);
           dispatch(newReceivedNotification(notification));
@@ -164,6 +172,7 @@ function HeaderNotifications() {
     client.activate();
 
     return () => {
+      isActive = false;
       void client.deactivate().catch(() => undefined);
     };
   }, [user?.id, user?.email, dispatch]);
@@ -174,7 +183,7 @@ function HeaderNotifications() {
   const handleClose = (): void => {
     setOpen(false);
   };
-  const onReadNotification = (notification: Notification) => {
+  const onReadNotification = async (notification: Notification) => {
     let url;
     const id = notification.resourceId;
     switch (notification.notificationType) {
@@ -210,16 +219,26 @@ function HeaderNotifications() {
     if (notification.seen) {
       if (url) {
         navigate(url);
-        handleClose();
       }
-    } else
-      dispatch(editNotification(notification.id, { seen: true }))
-        .then(() => {
-          if (url) {
-            navigate(url);
-          }
-        })
-        .finally(handleClose);
+      handleClose();
+      return;
+    }
+
+    try {
+      await dispatch(editNotification(notification.id, { seen: true }));
+      if (url) navigate(url);
+      handleClose();
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    }
+  };
+
+  const handleReadAll = async () => {
+    try {
+      await dispatch(readAllNotifications());
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    }
   };
   const notificationIcons: Record<NotificationType, ReactElement> = {
     ASSET: <Inventory2OutlinedIcon />,
@@ -232,11 +251,10 @@ function HeaderNotifications() {
     INFO: <NotificationsNoneOutlinedIcon />,
     PURCHASE_ORDER: <ReceiptOutlinedIcon />
   };
-  // TODO It is not triggered
-  const onScroll = (e) => {
-    const bottom =
-      e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-    if (bottom && !loadingGet && !lastPage) {
+  const onScroll = (event: UIEvent<HTMLDivElement>) => {
+    const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 2;
+    if (atBottom && !loadingGet && !lastPage) {
       dispatch(getMoreNotifications(criteria, currentPageNum + 1));
     }
   };
@@ -343,7 +361,7 @@ function HeaderNotifications() {
           {!!notifications.content.filter((notification) => !notification.seen)
             .length && (
             <Button
-              onClick={() => dispatch(readAllNotifications())}
+              onClick={() => void handleReadAll()}
               startIcon={<CheckCircleOutlineIcon />}
             >
               {t('mark_all_as_seen')}
@@ -367,8 +385,8 @@ function HeaderNotifications() {
                 }}
               />
             )}
-            <Scrollbar>
-              <List onScroll={onScroll} sx={{ position: 'relative' }}>
+            <Scrollbar onScroll={onScroll}>
+              <List sx={{ position: 'relative' }}>
                 {notifications.content.map((notification) => (
                   <ListItemButton
                     selected={!notification.seen}

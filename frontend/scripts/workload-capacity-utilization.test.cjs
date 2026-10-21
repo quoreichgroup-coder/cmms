@@ -26,6 +26,8 @@ test('calculates utilization and preserves over-capacity values', () => {
   const getPercent = moduleExports.getCapacityUtilizationPercent;
   assert.equal(getPercent(45, 60), 75);
   assert.equal(getPercent(75, 60), 125);
+  assert.ok(getPercent(600.1, 600) > 100);
+  assert.ok(getPercent(480.1, 600) > 80);
 });
 
 test('reports capacity balance as unavailable, remaining, or over capacity', () => {
@@ -59,7 +61,7 @@ test('workload renders over-capacity and unavailable labels explicitly', () => {
   assert.match(view, /t\('workload_capacity_over'/);
   assert.match(
     view,
-    /aria-valuetext=\{t\('workload_capacity_used', \{ percent \}\)\}/
+    /aria-valuetext=\{t\('workload_capacity_used', \{\s*percent: Math\.round\(percent\)\s*\}\)\}/
   );
   assert.match(view, /balance\.kind === 'unavailable'/);
 });

@@ -183,9 +183,6 @@ public class WebhookEndpointController {
     public ResponseEntity<SuccessResponse> deleteEndpoint(
             @Parameter(hidden = true) @CurrentUser User user,
             @PathVariable Long id) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)) {
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        }
         webhookEndpointService.delete(id, user);
         return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
                 HttpStatus.OK);
@@ -221,12 +218,9 @@ public class WebhookEndpointController {
     public ResponseEntity<SuccessResponse> rotateSecret(
             @Parameter(hidden = true) @CurrentUser User user,
             @PathVariable Long id) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)) {
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        }
         String newSecret = webhookEndpointService.rotateSecret(
                 id,
-                user.getCompany().getId()
+                user
         );
 
         return ResponseEntity.ok(new SuccessResponse(true, newSecret));

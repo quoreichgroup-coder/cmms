@@ -121,6 +121,19 @@ public class WorkOrder extends WorkOrderBase {
                 || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId())) || isAssignedTo(user));
     }
 
+    /**
+     * Report issuance is a read/export operation and must remain possible after
+     * completion. Keep the same company, visibility, and actor checks as normal
+     * editing, but do not make a completed work order editable again.
+     */
+    public boolean canIssueReportBy(User user) {
+        return belongsToUserCompany(user)
+                && canBeViewedBy(user)
+                && (user.getRole().getEditOtherPermissions().contains(PermissionEntity.WORK_ORDERS)
+                || (this.getCreatedBy() != null && this.getCreatedBy().equals(user.getId()))
+                || isAssignedTo(user));
+    }
+
     public boolean canBeDeletedBy(User user) {
         return belongsToUserCompany(user)
                 && !Status.COMPLETE.equals(getStatus())

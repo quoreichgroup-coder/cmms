@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,12 @@ public class AssetImportDTO {
 
     @Schema(description = "Unique identifier")
     private Long id;
+
+    @Schema(description = "Stable QPM UUID used to match this asset across CSV transfers")
+    private UUID exchangeId;
+
+    @Schema(description = "Stable exchange UUID of the parent asset")
+    private UUID parentExchangeId;
     
     @Schema(description = "Whether the asset is archived")
     private String archived;
@@ -27,6 +34,9 @@ public class AssetImportDTO {
 
     @Schema(description = "Location name")
     private String locationName;
+
+    @Schema(description = "Stable exchange UUID of the installation functional location")
+    private UUID locationExchangeId;
 
     @Schema(description = "Parent asset name")
     private String parentAssetName;

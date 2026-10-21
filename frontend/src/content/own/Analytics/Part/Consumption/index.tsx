@@ -51,25 +51,61 @@ function PartsConsumption({ handleOpenWOModal }: WOStatusStatsProps) {
         paddingX={1}
       >
         <Grid item xs={6}>
-          <CustomDateRangePicker start={start} end={end} setStart={setStart} setEnd={setEnd} companyId={companyId} onCompanyChange={setCompanyId} />
+          <CustomDateRangePicker
+            start={start}
+            end={end}
+            setStart={setStart}
+            setEnd={setEnd}
+            companyId={companyId}
+            onCompanyChange={setCompanyId}
+          />
         </Grid>
         <Grid item xs={12} md={12}>
-          <Overview handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <Overview
+            handleOpenModal={handleOpenWOModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <PartConsumptionsPareto handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <PartConsumptionsPareto
+            handleOpenModal={handleOpenWOModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <PartConsumptionsByAsset handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <PartConsumptionsByAsset
+            handleOpenModal={handleOpenWOModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <PartConsumptionByCategory handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <PartConsumptionByCategory
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12} md={6}>
-          <PartConsumptionByWOCategory handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <PartConsumptionByWOCategory
+            handleOpenModal={handleOpenWOModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
         <Grid item xs={12}>
-          <PartConsumptionsByDate handleOpenModal={handleOpenWOModal} start={start} end={end} companyId={companyId} />
+          <PartConsumptionsByDate
+            handleOpenModal={handleOpenWOModal}
+            start={start}
+            end={end}
+            companyId={companyId}
+          />
         </Grid>
       </Grid>
     </>

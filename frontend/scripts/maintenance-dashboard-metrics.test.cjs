@@ -50,4 +50,6 @@ test('currency formatter supports ISO codes and legacy display symbols', () => {
 
   assert.match(formatCurrency('en-US', 'USD').format(1234), /\$1,234/);
   assert.equal(formatCurrency('en-US', '$').format(1234), '$ 1,234');
+  assert.equal(formatCurrency('en-US', '€').format(1234), '€ 1,234');
+  assert.equal(formatCurrency('en-US').format(1234), '1,234');
 });

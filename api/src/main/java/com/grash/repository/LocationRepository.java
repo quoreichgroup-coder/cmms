@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface LocationRepository extends JpaRepository<Location, Long>, JpaSpecificationExecutor<Location> {
     Collection<Location> findByCompany_Id(Long id);
@@ -33,6 +34,10 @@ public interface LocationRepository extends JpaRepository<Location, Long>, JpaSp
     List<Location> findByNameIgnoreCaseAndCompany_Id(String locationName, Long companyId);
 
     Optional<Location> findByIdAndCompany_Id(Long id, Long companyId);
+
+    Optional<Location> findByExchangeIdAndCompany_Id(UUID exchangeId, Long companyId);
+
+    List<Location> findByExchangeIdInAndCompany_Id(Collection<UUID> exchangeIds, Long companyId);
 
     List<Location> findByIdInAndCompany_Id(List<Long> ids, Long companyId);
 

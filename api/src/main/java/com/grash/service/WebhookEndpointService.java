@@ -29,8 +29,8 @@ public class WebhookEndpointService {
     private final LicenseService licenseService;
 
     public WebhookEndpoint create(WebhookEndpointPostDTO webhookEndpointReq, User user) {
+        ensureCanManageWebhooks(user);
         if (!(licenseService.hasEntitlement(LicenseEntitlement.WEBHOOK)
-                && user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
                 && user.getCompany().getSubscription().getSubscriptionPlan().getFeatures()
                 .contains(PlanFeatures.WEBHOOK)))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -47,8 +47,8 @@ public class WebhookEndpointService {
     }
 
     public WebhookEndpoint update(Long id, WebhookEndpointPatchDTO webhookEndpointReq, User user) {
+        ensureCanManageWebhooks(user);
         if (!(licenseService.hasEntitlement(LicenseEntitlement.WEBHOOK)
-                && user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
                 && user.getCompany().getSubscription().getSubscriptionPlan().getFeatures()
                 .contains(PlanFeatures.WEBHOOK)))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -64,6 +64,7 @@ public class WebhookEndpointService {
     }
 
     public void delete(Long id, User user) {
+        ensureCanManageWebhooks(user);
         WebhookEndpoint endpoint = webhookEndpointRepository
                 .findByIdAndCompanyId(id, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
@@ -71,16 +72,26 @@ public class WebhookEndpointService {
     }
 
 
-    public String rotateSecret(Long endpointId, Long companyId) {
+    public String rotateSecret(Long endpointId, User user) {
+        ensureCanManageWebhooks(user);
         WebhookEndpoint endpoint = webhookEndpointRepository
-                .findByIdAndCompanyId(endpointId, companyId)
-                .orElseThrow(() -> new RuntimeException("Webhook endpoint not found"));
+                .findByIdAndCompanyId(endpointId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Webhook endpoint not found", HttpStatus.NOT_FOUND));
 
         String newSecret = generateWebhookSecret();
         endpoint.setSecret(newSecret);
         webhookEndpointRepository.save(endpoint);
 
         return newSecret;
+    }
+
+    private void ensureCanManageWebhooks(User user) {
+        if (user != null && user.isOwnsCompany()) return;
+        if (user == null || user.getRole() == null
+                || !user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                || !user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
     }
 
     private String generateWebhookSecret() {

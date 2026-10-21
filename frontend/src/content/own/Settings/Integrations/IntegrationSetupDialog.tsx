@@ -75,12 +75,37 @@ function IntegrationSetupDialog({
       </DialogTitle>
       <DialogContent dividers>
         <Stepper activeStep={step} alternativeLabel sx={{ mb: 3, mt: 1 }}>
-          {steps.map((label) => (
-            <Step key={label}>
+          {steps.map((label, index) => (
+            <Step
+              key={label}
+              aria-current={index === step ? 'step' : undefined}
+            >
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
         </Stepper>
+        <Box
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          sx={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: 0
+          }}
+        >
+          {t('integration_step_progress', {
+            current: step + 1,
+            total: steps.length,
+            label: steps[step]
+          })}
+        </Box>
 
         {step === 0 && (
           <Stack spacing={2}>
@@ -117,6 +142,9 @@ function IntegrationSetupDialog({
               {t('integration_create_webhook')}
             </Button>
             <Alert severity="info">{t('integration_step_qpm_note')}</Alert>
+            <Alert severity="warning">
+              {t('integration_webhook_replay_limit')}
+            </Alert>
           </Stack>
         )}
 

@@ -1,7 +1,29 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
+### WEB/MOBILE — mises à jour partielles des disponibilités — 21 octobre 2026
+
+- Le DTO `ShiftConfigurationPatchDTO` utilisait un booléen Java primitif et le mapper MapStruct pouvait appliquer des champs omis (`enabled`, jours ou exceptions) comme valeurs par défaut/null. Une modification partielle risquait donc d’éteindre une configuration ou de supprimer des jours et exceptions qui n’étaient pas dans la requête.
+- Le champ `enabled` est maintenant nullable dans le DTO et le mapper ignore les valeurs nulles. Une valeur explicite `false` continue de désactiver la configuration. Aucun endpoint, modèle de données, droit ou cycle de rotation n’a changé.
+- `ShiftConfigurationMapperTest` vérifie la conservation des champs omis et la désactivation explicite (**2/2**); `ShiftConfigurationControllerTest` vérifie aussi la lecture de la configuration personnelle (**2/2**). Ensemble, **4/4** tests ciblés passent après recompilation Maven. Reste une recette de l’édition Web et de la lecture Mobile avec une configuration de test réelle.
+
+### Revalidation Mobile et validation API Webhook — 21 octobre 2026
+
+- Mobile : tests de régression **38/38**, onboarding première connexion **5/5**, TypeScript Mobile et Prettier ciblé réussis. Cela valide les chemins automatisés de navigation/dates/erreurs/format monétaire couverts par ces scripts, pas le rendu tactile réel sur Android ou iOS.
+- Web/API : Workload ciblé **4/4**, tests backend `WorkloadServiceTest` **2/2**; contrôle des intégrations webhook par service et contrôleur **5/5**. Le nouveau test MockMvc refuse la lecture sans `SETTINGS.view` avant accès au service; le contexte MockMvc désactive les filtres, donc il ne remplace pas la recette JWT authentifiée.
+- Runtime Docker vérifié séparément : API et Nginx étaient `Running`, `/api/health-check` répondait HTTP 200. Ce contrôle porte sur l’image déjà présente, pas sur les changements locaux de cette session. Aucun build/recréation de conteneur, migration, commit, push ou déploiement n’a été fait.
+
+### MOB — dates d’exception des disponibilités de shift — 21 octobre 2026
+
+- L’écran personnel acceptait tout texte au format `YYYY-MM-DD`, même des dates inexistantes. Le helper valide maintenant le jour/mois/année réels (y compris les années bissextiles) avant d’afficher une exception. Les jours hebdomadaires absents d’une réponse API ancienne retombent sans crash sur le défaut existant de 8 h.
+- Couverture ajoutée à `test:shift-availability` : **5/5**. Régression Mobile complète **38/38**, onboarding **5/5**, TypeScript Mobile et Prettier passent. Aucun changement API ou métier; vérification sur appareil non effectuée.
+
 **Statut : base de navigation Mobile et onboarding versionné intégrés; backend `mvn test` complet réussi. La recette Work Orders contre API réelle, Chromium authentifié et validation appareil restent ouvertes. APK signé 1.0.59 reconstruit le 20 octobre.**
 Ce document complète [`WEB-UI-REDESIGN-BACKLOG.md`](WEB-UI-REDESIGN-BACKLOG.md) et [`MVP-MOBILE-QPM.md`](MVP-MOBILE-QPM.md). Il conserve les routes, contrats et règles métier tant qu’un lot backend dédié n’a pas été cadré.
+
+### Suite Workload Web — validation de durée et date — 21 octobre 2026
+
+- Le Web refuse maintenant les dates calendaires impossibles et les identifiants de technicien invalides dans les cibles de glisser-déposer. Le serveur refuse une durée estimée non finie ou non positive avant toute modification d’OT; les champs HTTP concernés portent aussi `@Positive`.
+- Les quatre tests Workload ciblés, la suite Web complète, le typecheck Web, ESLint et Prettier ciblés passent. `mvn -f api/pom.xml -Dtest=WorkloadServiceTest test` réussit (**2/2**, après compilation de 825 sources et 128 sources de test). La validation endpoint/API réelle, la recette visuelle et le build CRA récent restent ouverts.
 
 ## Audit initial fondé sur le dépôt
 
@@ -15,6 +37,7 @@ Ce document complète [`WEB-UI-REDESIGN-BACKLOG.md`](WEB-UI-REDESIGN-BACKLOG.md)
 | Arrêts planifiés | Recherche statique dans `api/src/main/java`, `frontend/src` et `mobile` : aucun module Shutdown Calendar dédié trouvé. Les traductions d’arrêt d’urgence ne prouvent pas l’existence d’un calendrier. | Nouveau domaine probable, distinct des OT et shifts; cadrer le modèle BP versionné, l’audit trail et les contrats avant création. |
 | Pièces / approvisionnement | `Part`, `PartQuantity`, `PurchaseOrder`, workflows d’achat et pages/API existent; quantités liées aux pièces, OT et commandes. | Étendre autour des objets présents : vérifier PR, réservations, réceptions partielles et suivi fournisseur avant tout nouvel écran/champ. Ne pas créer un second inventaire ou outil d’achat. |
 | Préparation maintenance | Planning OT, shifts individuels, pièces et achats existent partiellement. | Aucune disponibilité/readiness complète confirmée. Indicateurs explicables seulement, avec état inconnu quand une source manque; ne jamais autoriser automatiquement l’exécution. |
+| Hiérarchies Équipements / Postes techniques | Deux arbres distincts restent en place; l’import/export propose maintenant des UUID `exchangeId`, clés de parent/poste et chemins complets lisibles dans les exports; mises à jour idempotentes dans la société cible, garde-fou sur collisions d’ID SQL, parents absents/ambigus et cycles. Migration additive ajoutée mais non exécutée. | Recette avec migration sur base de test, export/import réel entre environnements, contrôle du périmètre de site et vérification de tous les exports paginés. Le chemin est exporté pour lecture/réconciliation; les UUID demeurent les clés de rattachement. Le détail est dans la section « Hiérarchies techniques et transferts de données » de [`WEB-UI-REDESIGN-BACKLOG.md`](WEB-UI-REDESIGN-BACKLOG.md). Tests générateur CSV **23/23** en build temporaire; migration et échange inter-environnements non vérifiés. |
 
 Audit statique seulement : les routes présentes ne prouvent pas le fonctionnement en production. Les permissions par site, parcours multi-utilisateur et comportements sur appareil restent à valider.
 
@@ -28,7 +51,7 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 | MOB-WO-04 | P0 | **Correctif de coercition implémenté; tests du moteur avancé 43/43** : les chaînes date sont converties en `Date`/`Timestamp` selon le type réel du champ. Ce chemin correspond à l’exception signalée, sans confirmer qu’il s’agissait du payload fautif du serveur. | Compilation et tests ciblés réussis dans une copie temporaire du code courant; trace complète, payload production et recette des WO avec API réelle restent requis avant fermeture. Aucun changement de schéma/API. |
 | MOB-NAV-05 | P1 | **Corrections intégrées et couvertes par tests** : onglet OT compact sur petits écrans, labels accessibles, Scan élevé selon les tokens QPM, FAB Add séparé, contextuel, autorisé et masqué au clavier. | Routes/droits existants conservés. Bundles Android/iOS valides; reste la recette réelle tactile, safe-area, grands textes et petits appareils. |
 | MOB-ONBOARD-06 | P2 | **Implémenté dans le code** : cinq écrans EN/FR, progression par balayage/boutons, contenu adapté aux rôles et modules autorisés, skip/fin persistés par utilisateur et replay depuis Paramètres. | Préférence dans `UserSettings`; endpoint dédié protégé à l’utilisateur courant; migration Liquibase additive. Appliquer la migration et valider l’API puis la recette Android/iOS avant livraison. Aucun changement de rôle/droit ni permission caméra/NFC pendant l’introduction. |
-| WEB-SIDEBAR-01 | P1 | Le pied compact est corrigé pour réserver 160 px aux trois actions empilées et éviter leur débordement; restent labels, scroll indépendant, tablette et drawer mobile à vérifier visuellement. | Complète UX-02/UX-14 existants; aucun changement de route/droit. Test de layout dédié passe; recette navigateur réelle encore requise. |
+| WEB-SIDEBAR-01 | P1 | Le pied compact réserve maintenant 208 px pour empiler jusqu’à quatre actions avec des cibles de 48 px; la liste de navigation garde son défilement indépendant. Restent les labels, la tablette et le drawer mobile à vérifier visuellement. | Complète UX-02/UX-14 existants; aucun changement de route/droit. Le test de layout vérifie la réserve; recette navigateur réelle encore requise. |
 | WEB-SIDEBAR-02 | P2 | Vérifier la surface claire, les sous-entrées en survol/sélection, les contrastes et les captures à plusieurs largeurs. | Décision visuelle avec contrôles responsive et WCAG AA; tenir compte de l’accent entreprise. |
 | SHIFT-ROSTER-01 | P2 | Spécifier puis étendre le roster par site/centre : shifts et rotations configurables, équipes/personnes, repos, absences, remplacements, validation, relève et présence prévue/réelle. | Réutiliser shift config et People/Teams; migration/API probable. Import/export et détection de conflits après contrats validés. |
 | SHUTDOWN-01 | P2 | Découverte, puis BP baseline/révisions immuables, planifié/réel, reports historisés, site/zone, multi-jours et import Excel avec prévisualisation. | Nouveau domaine backend, migrations, droits par site et audit. Liens OT/ressources en lecture d’abord. |
@@ -90,7 +113,7 @@ Audit statique seulement : les routes présentes ne prouvent pas le fonctionneme
 
 ## Prochaine étape recommandée
 
-Installer le build 1.0.59 sur un appareil Android et vérifier premier login/skip/complétion/replay de l’onboarding, navigation, scan QR/NFC et clôture WO. Aucun appareil n’est connecté à la session actuelle; ces contrôles natifs ne sont donc pas revendiqués. Le P0 MOB-WO-04 reste ouvert jusqu’à reproduction de la liste/filtres/détails WO contre l’API réelle et examen de la trace/payload d’origine. La recette Chromium Web authentifiée reste ouverte faute de navigateur exécutable. Avant d’implémenter Shift Roster, Shutdown BP ou Procurement Tracking, produire des spécifications métier distinctes.
+Installer le build 1.0.59 sur un appareil Android et vérifier les scénarios natifs qui n’ont pas encore été réalisés. L’utilisateur indique que la plupart des recettes visuelles sur téléphone sont déjà effectuées et qu’aucun problème n’est signalé; ne pas reprogrammer une recette visuelle Mobile générale. Le P0 MOB-WO-04 reste ouvert jusqu’à reproduction de la liste/filtres/détails WO contre l’API réelle et examen de la trace/payload d’origine. La recette Chromium Web authentifiée reste ouverte faute de navigateur exécutable. Avant d’implémenter Shift Roster, Shutdown BP ou Procurement Tracking, produire des spécifications métier distinctes.
 
 ### Audit de préparation — Shift Roster, Shutdown Calendar et Procurement — 20 octobre 2026
 
@@ -152,9 +175,9 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Migration Liquibase additive; les préférences existantes sont initialisées comme résolues pour éviter de surprendre les utilisateurs actuels. Les nouveaux comptes démarrent en `NOT_STARTED`. Les mises à jour génériques des anciens clients conservent les champs d’onboarding.
 - Cinq écrans Mobile localisés EN/FR; swipe et boutons Précédent/Suivant/Ignorer, indicateur de progression, aperçu de modules autorisés et CTA final. Aucun accès caméra/NFC n’est demandé avant une action explicite. Replay ajouté dans Paramètres.
 - Garde au démarrage authentifié : charge les préférences avant de choisir l’écran initial pour éviter un flash Home; si le service de préférences est en panne, l’application reste accessible et ouvre Home. Les anciens serveurs sans champs d’onboarding n’imposent pas l’introduction.
-- Tests ciblés d’état : 5/5; suite Mobile : **31/31**; TypeScript Mobile, Prettier ciblé et export Expo Web passent. L’unique échec de la première suite était un test d’apparence qui comptait les icônes de Settings avant l’ajout de l’action Replay; l’attendu a été ajusté et la suite complète repasse. Le build/test Maven n’est pas disponible dans cet environnement (`mvn` et `api/mvnw` absents); le XML Liquibase est valide. Test visuel natif et application de migration en base restent à faire.
+- Tests ciblés d’état : 5/5; suite Mobile : **31/31**; TypeScript Mobile, Prettier ciblé et export Expo Web passent. L’unique échec de la première suite était un test d’apparence qui comptait les icônes de Settings avant l’ajout de l’action Replay; l’attendu a été ajusté et la suite complète repasse. Revalidation backend du 21 octobre : les tests `UserSettingsControllerTest` et `UserSettingsServiceOnboardingTest` passent **7/7** dans une copie de travail sous `/tmp` (la compilation directe dans `api/target` est bloquée par des fichiers immuables du répertoire cible). Le test Maven complet n’a pas été relancé. Test visuel natif et application de migration en base restent à faire.
 - Le contenu de bienvenue et de scan respecte les droits du compte : le scan n’est présenté que si l’accès Equipements est accordé; les aperçus de modules sont filtrés avec les permissions et la configuration déployée. Aucun état ou fonctionnalité n’est simulé comme actif.
-- Le même audit a trouvé que le PATCH générique `/user-settings/{id}` validait l’ID du chemin mais sauvegardait l’ID reçu dans le corps. Le contrôleur lie maintenant la sauvegarde à l’ID des préférences authentifiées; deux tests de régression couvrent la tentative de redirection et le refus d’une autre ligne utilisateur. Leur exécution reste à confirmer faute de Maven.
+- Le même audit a trouvé que le PATCH générique `/user-settings/{id}` validait l’ID du chemin mais sauvegardait l’ID reçu dans le corps. Le contrôleur lie maintenant la sauvegarde à l’ID des préférences authentifiées; les tests contrôleur incluent le refus d’accès aux préférences d’un autre utilisateur et passent dans la revalidation ciblée **7/7** du 21 octobre.
 - MOB-WO-04 reste P0 ouvert, faute de trace backend complète et d’accès Docker dans l’environnement courant.
 
 ### 19 octobre 2026 — Web Request, garde des champs configurés
@@ -190,7 +213,14 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 
 - Web : suite `node --test --test-reporter=dot scripts/*.test.cjs` et typecheck TypeScript terminent avec le code retour 0. Le build de production CRA a été lancé mais n’a produit aucun résultat exploitable après l’étape de compilation optimisée; il a été interrompu et reste **non vérifié**.
 - Mobile : suite `npm run test:mobile-regression` passe **31/31**; `npx tsc --noEmit --pretty false` passe. Les exports Expo natifs du bundle JavaScript réussissent pour iOS (**2 218 modules**) et Android (**2 227 modules**). Ils ne compilent pas le code natif et ne valident ni les permissions caméra/NFC, ni les interactions sur appareil.
-- Aucun changement de code applicatif dans cette vérification. Les prochains contrôles bloquants restent : trace/payload serveur complet pour MOB-WO-04, tests Maven/API de l’onboarding et de l’isolement, recette Chromium Web authentifiée, puis essais Android/iOS sur appareils réels. Shift Roster, Shutdown Calendar et Procurement restent en cadrage, sans modèle/API ajoutés.
+- Les prochains contrôles bloquants restent : trace/payload serveur complet pour MOB-WO-04, tests Maven/API de l’onboarding et de l’isolement, recette Chromium Web authentifiée, puis essais Android/iOS sur appareils réels. Le roster d’équipe complet, Shutdown Calendar et Procurement restent en cadrage; seul l’accès personnel en lecture aux disponibilités existantes est ajouté ci-dessous.
+
+### MOB-SHIFT — consultation personnelle des disponibilités — 21 octobre 2026
+
+- L’API existante expose les horaires d’autres personnes uniquement aux utilisateurs autorisés People & Teams; `auth/me` n’inclut pas la configuration de quart. Pour éviter d’élargir ces permissions, ajout d’un `GET /shift-configurations/me` qui ne prend aucun identifiant et retourne uniquement la configuration du principal authentifié. Une configuration absente renvoie une structure vide afin que l’application puisse afficher un état non configuré.
+- Mobile ajoute « Mes disponibilités » dans Plus, en lecture seule, avec horaires hebdomadaires, exceptions datées à venir, états chargement/erreur/réessai et messages français/anglais. Les durées par jour manquant suivent la valeur par défaut de l’éditeur Web existant (8 h, actif). L’écran rappelle que cette disponibilité n’est pas une affectation de quart publiée.
+- L’éditeur Web réutilisé pour régler la capacité individuelle indique maintenant explicitement en français/anglais qu’il ne publie pas de roster ni d’affectation de quart.
+- Tests Mobile ciblés **3/3**, TypeScript Mobile et Prettier passent. Le test contrôleur Maven du nouvel endpoint passe **2/2** dans une copie sous `/tmp`; le `api/target` du checkout contient des fichiers en lecture seule issus de builds Docker et n’a pas été modifié. Les scripts de régression Web complets passent; Prettier Web passe. Le typecheck Web et le lint ciblé n’ont pas fourni de résultat exploitable dans ce runner. Pas de migration, écriture, permission d’accès à autrui, build natif, déploiement ni publication.
 
 ### Reprise de session Mobile — erreurs temporaires sans changement de connectivité — 19 octobre 2026
 
@@ -296,6 +326,12 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Le numéro de version n’a pas été incrémenté. `adb devices` n’a pas pu démarrer le daemon dans cette session (`Operation not permitted`); installation et vérification physique restent à faire sur téléphone. Aucun IPA iOS n’a été généré.
 - Audit de taille : APK universel contenant les ABI `armeabi-v7a`, `arm64-v8a`, `x86` et `x86_64`; le manifeste conserve `CAMERA` et `NFC`, avec le matériel NFC facultatif. Les entrées principales incluent le bundle JS (9,03 MB), React Native natif et Barhopper/ML Kit barcode pour plusieurs ABI. Une future réduction peut comparer App Bundle/splits ABI après une matrice d’appareils; ne pas supprimer d’ABI avant validation de compatibilité.
 - Export iOS non natif réussi avec `NODE_ENV=production expo export --platform ios --max-workers 1` : **2 219 modules**, bundle Hermes **9,45 MB**, export dans le dossier ignoré `.expo-export-ios-check`. Cela ne compile ni ne signe l’app iOS; Fastlane/Xcode, Pods, IPA et test Core NFC physique restent bloqués par l’absence de macOS et de credentials Apple.
+
+### APK 1.0.59 — rebuild après correctif tableau de bord — 21 octobre 2026
+
+- `NODE_ENV=production npm run build:apk` termine avec `BUILD SUCCESSFUL` (**1 124 tâches, 18 exécutées, 1 106 à jour**). Le bundle Metro Android a compilé **2 231 modules**; l’APK de release utilise le keystore déjà présent et reste en `versionName 1.0.59` / `versionCode 42`.
+- Artefact : `mobile/dist/QPM-1.0.59.apk`, **101 MB**. `aapt dump badging` confirme `com.atlas.cmms`; `apksigner verify --verbose` confirme les signatures APK v2 et v3 avec un seul signataire. SHA-256 : `0dea0b3a84d4b9768e2441087aff80133febb8f4559c0bd4314597f3307abf17`.
+- Le code inclus aligne les filtres « aujourd’hui » de Home/Stats sur le fuseau de l’entreprise, avec bornes locales prenant en charge les journées de 23/25 h, et inclut la borne initiale inclusive (`ge`) pour correspondre à l’intervalle `[début, fin)` du backend. Suite Mobile **36/36**, onboarding **5/5**, TypeScript Mobile et Prettier ciblé réussis. Installation réelle sur téléphone non vérifiée. Aucun changement de version, migration, commit ou push.
 
 ### Correctif KPI Mobile — ordres dus aujourd’hui — 20 octobre 2026
 
@@ -479,3 +515,252 @@ Installer le build 1.0.59 sur un appareil Android et vérifier premier login/ski
 - Mobile : `npm run test:mobile-regression` réussit **35/35**; les tests Jest d’onboarding réussissent **5/5**; `./node_modules/.bin/tsc --noEmit --pretty false` termine avec le code **0**.
 - Recette navigateur toujours bloquée par l’environnement : `/snap/bin/chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --dump-dom about:blank` refuse de démarrer, car `snap-confine` exige `snapd.apparmor` actif et refuse l’exécution hors confinement. Aucune capture ni recette visuelle authentifiée n’est revendiquée.
 - Vérification seule, sans changement de source; aucun APK, rebuild Web, déploiement ou test réel appareil dans cette passe.
+
+### DOC-WEB-01 — centre d’aide intégré, première version — 20 octobre 2026
+
+- Ajout de `/app/help`, accessible depuis le pied du sidebar authentifié. Les guides FR/EN couvrent Work Orders et leur confirmation (durée écoulée vs temps de main-d’œuvre), Requests, équipements, inventaire, planning, profil et paramètres. Les entrées liées aux modules métier sont filtrées par le droit de consultation déjà exposé par l’application; aucune API ou permission n’a été modifiée.
+- Contrôles Web : suite complète `node --test --test-reporter=dot scripts/*.test.cjs` réussie; typecheck `tsc --noEmit --pretty false` réussi; Prettier et `git diff --check` réussis; build de production CRA réussi avec `NODE_OPTIONS=--max-old-space-size=2560 CI=true GENERATE_SOURCEMAP=false npm run build`. Le heap borné a évité l’arrêt mémoire constaté sur les premières tentatives.
+- Contrôles Mobile de non-régression : `npm run test:mobile-regression` **35/35**, Jest onboarding **5/5** (la suite les a exécutés puis un lancement explicite a confirmé le même résultat), typecheck TypeScript réussi. Aucun fichier Mobile ni comportement métier Mobile n’a changé.
+- Restent à faire : relecture par un utilisateur terrain, vérification visuelle responsive/clavier/lecteur d’écran et ajout de captures légères. La recette Chromium authentifiée n’est toujours pas disponible dans cet environnement.
+
+### INT-WEB — transport webhook borné — 20 octobre 2026
+
+- Le client webhook applique des délais de connexion/lecture, désactive les redirections, ne charge pas le corps de réponse du destinataire et ne journalise plus l’URL pouvant contenir un secret. Compilation de l’API et tests de transport ciblés réussis dans `/tmp` (**3/3**), y compris l’identité du JSON sortant UTF-8; le `api/target` local contient un artefact immuable. Contrats et logique métier inchangés.
+- Le DNS pinning, la signature du timestamp/ID, l’anti-rejeu, la file durable de livraison/retry et les scopes de clés restent ouverts.
+
+### MOB-REQ — tolérance aux configurations de formulaire absentes ou masquées — 20 octobre 2026
+
+- Les règles de champs des formulaires Request et Work Order ne sont appliquées que si le champ est encore visible et si sa configuration existe. Cela évite un crash lors de la construction du formulaire avec des réglages anciens/incomplets ou un champ retiré par la configuration UI. Les payloads, validations présentes, API et permissions ne changent pas.
+- Les tests ciblés couvrent règle présente, règle absente, champ masqué et correspondance du champ `images` avec le champ de formulaire `image`. La suite Mobile mise à jour passe **36/36**, l’onboarding **5/5**, le typecheck et Prettier passent. Recette sur appareil avec profils de configuration réels à faire.
+
+### MOB-WO — tolérance aux règles d’entreprise absentes sur le détail OT — 20 octobre 2026
+
+- Le formulaire OT gérait déjà les règles manquantes, mais `WODetailsScreen` dereférençait directement `workOrderConfiguration.workOrderFieldConfigurations` dans le chargement des dépendances et les contrôles de clôture. Les paramètres absents ou incomplets pouvaient donc interrompre l’affichage du détail avant l’exécution des règles métier.
+- Le détail OT consomme désormais une liste vide lorsque la configuration de règles est absente ou invalide. Les règles présentes, les permissions, les champs obligatoires connus, les appels API et le contrat de clôture restent inchangés.
+- Le test ciblé couvre configuration absente, null, liste absente, liste null et règles présentes; le test de formulaire Request est également lancé. Suite mobile complète : **36/36**; onboarding Jest : **5/5**; typecheck Mobile, tests Web complets et typecheck Web terminent avec le code **0**. Les profils d’entreprise réels et l’application sur appareil restent à tester.
+- Le build Web optimisé termine avec `Compiled successfully`; Prettier et `git diff --check` passent. Aucun APK, commit ou déploiement n’a été effectué.
+
+### WEB-ANALYTICS — détail paginé depuis le graphique OT par statut — 20 octobre 2026
+
+- Le dialogue vide derrière le graphique de statut OT affiche désormais les Work Orders correspondants pour `OPEN`, `IN_PROGRESS` et `ON_HOLD`, avec période et entreprise du rapport, pagination serveur, relance d’erreur et navigation vers le détail. Le drill-down est refusé côté interface sans permission Work Orders; l’endpoint applique les scopes utilisateur/société prévus pour les rôles autorisés.
+- La revue a relevé un point de contrat API : la chaîne globale exige une authentification sur les routes non publiques et `whoami` la résout; `getSearchCriteria` limite à la société et documente une consultation OT volontairement ouverte dans cette portée, avec des scopes plus fins pour les rôles qui ont la permission WO et REQUESTER. Confirmer cette règle métier avec la matrice des rôles et les tests d’accès avant de modifier le backend. Aucune exposition anonyme n’a été démontrée par cette revue. Le garde-fou UI limite ce nouveau drill-down selon la permission Web.
+- Le filtre de période reprend la date de création utilisée par l’agrégat de statut, sans retirer des OT archivés de la liste si le rapport les a inclus.
+
+### MOB-QA — fiabilisation du test Jest générique — 20 octobre 2026
+
+- Le test de composant d’exemple Expo rend maintenant `MonoText` dans le `PaperProvider` avec le thème QPM et utilise `act` pour monter/démonter le renderer. Il testait le contexte de thème sans le fournir, et laissait une mise à jour React asynchrone après le test.
+- Vérification : `npm test -- --runInBand` passe (**3 suites, 9 tests, 1 snapshot**); la suite mobile ciblée passe (**36/36**, avec onboarding **5/5**) et TypeScript Mobile passe. Un avertissement Expo `EXPO_OS` demeure sans échec; aucune source applicative ni dépendance n’a été modifiée.
+- Vérification : test critères **1/1**, suite Web complète, typecheck, Prettier et build optimisé réussis. Les autres graphiques d’analyse restent non activés tant que leurs filtres métier spéciaux ne sont pas interprétés explicitement. Recette Chromium authentifiée indisponible dans cet environnement.
+
+### Revalidation Web/Mobile — 21 octobre 2026
+
+- Mobile : `npm run test:mobile-regression` passe **36/36**; Jest passe **3 suites, 9 tests et 1 snapshot**; `tsc --noEmit --pretty false` termine avec le code **0**. La suite vérifie notamment les réglages d’apparence, l’état de sélection des formulaires, les demandes, les Work Orders, la navigation et l’onboarding.
+- Web : `node --test --test-reporter=dot scripts/*.test.cjs` et `npx tsc --noEmit --pretty false` terminent avec le code **0**. Aucun échec de régression détecté dans l’état de travail actuel.
+- Bundle Mobile Web : `npx expo export --platform web` réussit (**1 895 modules**). Build CRA de production relancé, mais le processus Node s’est arrêté sans journal final ni code de sortie exploitable; le build de cette passe reste **non vérifié**.
+- L’audit de cette passe n’a pas reproduit de défaut dans la persistance du thème ou la sélection d’équipement du formulaire Request; l’écran d’accueil natif attend la préférence d’apparence avant de masquer le splash. Le rendu navigateur authentifié, les tests de caméra/NFC et les scénarios API avec profils réels restent des recettes externes et ne sont pas déclarés vérifiés.
+- Aucun changement applicatif, de contrat API, de permission ou de données durant cette revalidation. Aucun build APK/IPA, déploiement, commit ou push dans cette passe.
+
+### MOB-WO-04 — revalidation des filtres Date/Timestamp — 21 octobre 2026
+
+- Dans une copie temporaire de l’API, `mvn -Dtest=SearchDateValueConverterTest,WrapperSpecificationTest test` réussit **43/43**. Cette exécution confirme les conversions ISO Date/Timestamp et les opérateurs de filtres couverts par le moteur générique.
+- Le run n’a pas utilisé la base de recette ni la requête mobile authentifiée. Il ne prouve donc pas que le payload historique de l’incident est corrigé; conserver MOB-WO-04 ouvert jusqu’à obtention de la trace serveur et validation des listes, filtres et détails avec l’API réelle. L’artefact `api/target` du checkout n’a pas été modifié.
+
+### DOC-WEB-01 — accessibilité du Centre d’aide — 21 octobre 2026
+
+- Le titre visible est maintenant exposé comme titre principal (`h1`) sans changer sa variante visuelle. Les étapes des guides utilisent une vraie liste ordonnée pour les lecteurs d’écran; un statut `aria-live="polite"` annonce le nombre de guides disponibles après recherche, en français et en anglais.
+- Validation : tests ciblés Help Center (accessibilité, routes, recherche) **3/3**; suite de scripts Web complète, TypeScript Web, ESLint ciblé, Prettier et `git diff --check` terminent avec le code **0**. La tentative de build CRA n’a pas donné de résultat exploitable dans le runner et a été interrompue; ne pas la compter comme validée. L’accessibilité sémantique est vérifiée dans le code, mais la navigation réelle au clavier/lecteur d’écran et le rendu visuel responsive attendent la recette Chromium authentifiée.
+### MOB-DASH — filtre « OT aujourd’hui » aligné sur le fuseau entreprise — 21 octobre 2026
+
+- Le backend calcule le compteur du jour avec le fuseau défini dans les préférences générales de l’entreprise. Les filtres de drilldown Home/Stats utilisaient encore les bornes UTC, ce qui pouvait afficher un nombre différent de la liste ouverte pour les entreprises hors UTC.
+- Les bornes du filtre sont maintenant le début du jour local et le début du jour local suivant, en conservant l’intervalle semi-ouvert attendu par l’API. Les journées de changement d’heure sont correctement de 23 ou 25 heures. Fuseau manquant/invalide : fallback UTC, comme le backend.
+- Une vérification supplémentaire a trouvé que les filtres utilisaient `gt` au début du jour alors que l’API compte l’intervalle semi-ouvert `[début, fin)`. Les deux drilldowns emploient maintenant `ge` puis `lt`; `SearchOperation` backend confirme ces opérateurs, et le test des écrans protège cette correspondance.
+- Vérification : tests ciblés fuseau/DST/bornes réussis; suite `npm run test:mobile-regression` **36/36**, Jest onboarding **5/5**, `tsc --noEmit --pretty false`, Prettier et `git diff --check` réussis. Aucun contrat API, donnée ou permission modifié. Recette sur compte et appareil réels à faire.
+
+### MOB-WO — reconnaissance des erreurs réseau natives — 21 octobre 2026
+
+- Les erreurs de fetch React Native peuvent être formulées comme `Network request failed` ou porter les codes `ERR_NETWORK`, `ECONNREFUSED` et `ECONNRESET`. Le classificateur Work Orders et le gestionnaire global les dirigent maintenant vers un message réseau localisé; le texte brut n’est pas montré à l’utilisateur. Les erreurs HTTP 4xx/5xx conservent leurs catégories.
+- Tests de non-régression dans `scripts/work-order-load-errors.test.cjs` et `scripts/mobile-regression.test.cjs`; suite Mobile **36/36**, onboarding **5/5**, TypeScript Mobile et Prettier passent. Aucun contrat API, flux métier ou droit n’a changé. Le message affiché lors d’une vraie panne réseau reste à valider sur appareil.
+
+### WEB / UX-06 — progression accessible de l’assistant d’intégration — 21 octobre 2026
+
+- L’étape active du guide d’intégration est annoncée par un statut accessible et localisé (FR/EN); le Stepper expose aussi l’étape en cours. Le parcours, ses liens, droits et interactions restent identiques.
+- Test Hub ciblé : **3/3**; suite Web et typecheck terminés avec le code **0**, ESLint, Prettier et `git diff --check` réussis. Le lecteur d’écran n’est pas disponible dans l’environnement; validation assistive réelle à conserver dans la recette Web.
+
+### WEB / UX-10 — retrait du drill-down imprécis des tendances Request — 21 octobre 2026
+
+- Les points de durée moyenne de cycle pouvaient ouvrir une liste filtrée seulement par date, alors que la moyenne inclut uniquement les demandes associées à un WO terminé et que certains points agrègent une plage de plusieurs jours. Le graphique reste informatif sans prétendre ouvrir ces lignes comme cohortes exactes.
+- Un drill-down précis attend un endpoint/filtre qui expose les limites de période et la population du calcul. Vérification : test analytics **6/6**, suite Web complète, typecheck, ESLint, Prettier et `git diff --check` réussis; aucun changement d’API, calcul ou permission.
+
+### WEB / UX-14 — survol visible des sous-entrées du sidebar — 21 octobre 2026
+
+- Le token de survol passe à un bleu pâle QPM un peu plus lisible, accompagné d’un repère bleu sur la sous-entrée survolée. Le contraste texte AA est conservé; routes, sélection active et comportement clavier ne changent pas.
+- Tests ciblés sidebar **3/3** et thème/contraste **23/23** réussis. Contrôle visuel Chromium responsive authentifié toujours ouvert.
+
+### WEB / Équipements — chemins hiérarchiques dans les exports — 21 octobre 2026
+
+- Les exports CSV distinguent maintenant le chemin des équipements et le chemin du poste technique d’installation; l’export des postes techniques contient le chemin complet de l’arbre. Les UUID `exchangeId` restent les clés de rattachement lors de l’import, et les chemins sont des repères lisibles pour revue et rapprochement.
+- Protection contre les cycles hérités au formatage du chemin. Compilation Java et `CsvFileGeneratorTest` **23/23** passés dans `/tmp` avec Mockito autorisé à s’attacher à la JVM; tests ciblés Web hiérarchie/sidebar passés. Aucun changement de schéma ou de contrat API; migration de clés encore non appliquée et transfert réel entre bases non testé.
+
+### WEB / Imports — round-trip des colonnes de hiérarchie — 21 octobre 2026
+
+- La conversion du fichier de prévisualisation en payload API n’envoie que les champs de l’entité déclarés dans le mapping. Les colonnes lisibles `Equipment_Hierarchy_Path` et `Functional_Location_Path` restent informatives; les clés `Exchange_ID`, `Parent_Exchange_ID` et `Location_Exchange_ID` sont préservées si elles sont sélectionnées.
+- Le parseur du classeur valide la feuille et la ligne d’en-tête; fichier invalide, erreur ou interruption de lecture arrête l’état de chargement et affiche un message localisé. Cela évite un wizard bloqué sans message exploitable.
+- `import-payload.test.cjs`, `import-workbook.test.cjs` et `hierarchy-import-preflight.test.cjs` passent; typecheck Web, ESLint ciblé, Prettier et `git diff --check` passent. La base de recette, la migration et l’import/export authentifiés entre deux environnements restent à vérifier.
+
+### Revalidation des régressions Web/Mobile — 21 octobre 2026
+
+- Suite des scripts Web `node --test --test-reporter=dot scripts/*.test.cjs` terminée avec le code **0** après les changements du wizard d’import.
+- Suite Mobile `npm run test:mobile-regression` : **36/36**; tests onboarding : **5/5**. Les deux exécutions d’onboarding déclenchées par la commande combinée ont réussi.
+- TypeScript Web et Mobile, ESLint ciblé, Prettier et `git diff --check` passent. Aucun test visuel authentifié, appel contre l’API de production, build APK, commit, push ou déploiement n’a été effectué.
+
+### MOB-WO — stabilité de la configuration pendant le chargement — 21 octobre 2026
+
+- Quand les préférences société ne contiennent pas encore `workOrderFieldConfigurations`, le helper retournait un nouveau tableau vide à chaque rendu. Dans le détail d’un WO, ce tableau participe aux dépendances de `getInfos`; son identité changeante pouvait donc relancer l’effet de chargement avant l’arrivée des préférences.
+- Le fallback vide est maintenant un singleton immuable, stable entre rendus; la configuration réelle continue d’être utilisée sans transformation. Le test `visible-field-configuration.test.cjs` vérifie l’identité stable en plus de la configuration absente/null et des règles normales.
+- Tests ciblés du chargement WO et configuration (**3/3 suites**), régression Mobile (**36/36**), onboarding (**5/5**), TypeScript Mobile, Prettier et `git diff --check` passent. Aucun endpoint, règle métier ou préférence serveur n’a changé.
+
+### WEB/MOBILE — devise XOF / affichage FCFA — 21 octobre 2026
+
+- Le catalogue de devises fournit déjà XOF, utilisé pour le CFA Franc BCEAO. Les formatteurs partagés des deux interfaces affichent désormais un montant configuré XOF sous la forme localisée `FCFA`, sans décimales; les montants vides restent vides et les valeurs malformées gardent le code `XOF` explicite.
+- Le profil légal de l’entreprise possède déjà `registrationCountry` (Profil de l’entreprise → Informations légales). Les Paramètres généraux Web le réutilisent pour suggérer XOF quand le code pays est l’un des huit pays UEMOA; l’administrateur confirme explicitement la suggestion. Aucun montant n’est converti et la devise actuelle n’est jamais remplacée automatiquement. Aucune migration ni modification API n’est nécessaire.
+- Le défaut global d’inscription reste inchangé tant que le pays légal n’est pas renseigné; langue et fuseau ne servent pas à déduire une devise comptable. Revalidation complète : tous les scripts Web `node --test --test-reporter=dot scripts/*.test.cjs`, typecheck Web, ESLint/Prettier ciblés et build CRA (`Compiled successfully`, heap limité à 1,5 Go) passent. Mobile : régression **36/36**, onboarding **5/5**, test du formateur FCFA, typecheck et Prettier passent. Le premier build Web à 2,5 Go s’est arrêté prématurément; la relance à 1,5 Go a réussi. La vérification avec une organisation UEMOA authentifiée et la recette visuelle sur appareil restent à réaliser.
+
+### Revalidation Web/Mobile et limites de recette visuelle — 21 octobre 2026
+
+- Après l’alignement du format monétaire Web/Mobile, la suite Web complète et les tests ciblés (formatteur, préférences société, métriques du dashboard) passent. TypeScript, ESLint/Prettier ciblés et `git diff --check` passent aussi. Mobile : régression **36/36**, onboarding **5/5**, test du formatteur et typecheck passent; les exports Hermes JavaScript iOS (**2 223 modules**) et Android (**2 232 modules**) réussissent. Ces exports ne génèrent ni IPA ni APK et ne valident pas les appareils.
+- Le build de production Web s’arrête avant la fin avec le diagnostic « process exited too early », vraisemblablement faute de mémoire; compilation production non validée pour ce lot. La recette Chromium n’a pas démarré : le navigateur d’automatisation ne trouve pas son binaire Chrome stable, Chromium Snap refuse le lancement à cause d’AppArmor/snapd et l’accès au serveur local est refusé par l’environnement isolé. Cela ne prouve pas que le serveur de l’application soit indisponible.
+- À faire : relancer le build Web en CI/runner disposant de mémoire, puis recette Chromium authentifiée avec comptes de test, sans enregistrer de secrets ni captures contenant des données personnelles. Aucun APK/IPA, appel production, commit, push ou déploiement n’a été fait.
+
+### WEB / Achats — confirmation de l’effet de l’approbation sur le stock — 21 octobre 2026
+
+- Audit des chemins existants : `PurchaseOrderController.respond(true)` crédite immédiatement l’inventaire avec les quantités entières du bon; le formulaire peut déclencher cette approbation à la création via « Approuver lors de la soumission ». Le modèle ne distingue pas quantité commandée, reçue et restante. Il ne s’agit donc pas d’une réception physique validée et aucune réception partielle n’est représentée.
+- Le détail demande désormais une confirmation explicite avant l’appel d’approbation et avertit que toutes les lignes sont créditées immédiatement. Le commutateur de création porte la même explication. Contrat API, permissions et logique serveur restent inchangés; l’UI rend l’effet actuel plus visible, elle ne le corrige pas.
+- Tests de régression ajoutés pour garantir la confirmation, le maintien du dialogue en cas d’échec API et les textes localisés. Suite frontend complète, TypeScript, lint ciblé, Prettier et `git diff --check` passent. Le build de production CRA a échoué avec « process exited too early » avant d’aboutir; il n’est pas validé.
+- Contrôle des permissions : les actions étaient auparavant visibles selon `SETTINGS.view`, mais l’API exige `ROLE_CLIENT` et `PURCHASE_ORDERS.editOther`. Le détail et l’option de préapprobation utilisent maintenant le même prédicat que l’endpoint; cela évite un bouton qui échoue en 403 et la création partielle déclenchée par un droit non suffisant. Contrat serveur inchangé.
+- **Ouvert P1 métier/intégrité** : concevoir séparément une réception effective et partielle, avec quantités reçues, idempotence, audit, droits, correction des données historiques et migration/API. Ne pas changer le comportement d’approbation vers une réception sans décision métier et migration revue.
+
+#### Proposition métier — réception partielle distincte de l’approbation
+
+- **Décision recommandée :** conserver l’approbation comme décision d’achat; elle ne doit pas augmenter le stock. La réception est une action distincte, enregistrée quand les pièces arrivent et sont contrôlées. Cette séparation reprend les principes décrits par SAP pour les réceptions partielles, l’historique d’achat et la réversion de mouvements; les statuts exacts varient selon le produit SAP et doivent être adaptés à QPM ([SAP — Receiving Overview](https://help.sap.com/docs/buying-invoicing/purchasing-guide-for-procurement-professionals/about-receiving), [SAP — Goods Receipts: Document Processing](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/9905622a5c1f49ba84e9076fc83a9c2c/b19ac7536e8e2a4be10000000a174cb4.html), [SAP — Cancellation of Goods Movements](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/e72f747389b340229f7fa343975bfa57/7bdbc353b677b44ce10000000a174cb4.html)).
+- **Cycle proposé :** `APPROVED/ORDERED` → première réception `PARTIALLY_RECEIVED` → réception complète `RECEIVED`; une fermeture courte explicite termine le reliquat sans prétendre l’avoir reçu. Garder l’approbation d’achat et la réception hors d’une même action ou transaction utilisateur.
+- **Données minimales à spécifier avant migration :** document de réception et lignes liées au bon/ligne, quantité reçue par ligne et unité, date/acteur, référence de livraison ou bon fournisseur facultative, quantité acceptée/refusée si l’inspection est activée, statut et motif de clôture du reliquat. L’historique des réceptions est append-only; une erreur se corrige par une réception d’annulation liée à l’original, jamais par l’effacement silencieux d’un mouvement déjà comptabilisé.
+- **Règles d’intégrité :** quantité positive strictement supérieure à zéro; réception cumulée ne dépassant pas la quantité commandée moins les annulations, sauf décision explicite de sur-réception; opération idempotente; mise à jour du stock et écriture de réception dans la même transaction; contrôle de concurrence sur le reliquat; contrôle des droits achat et du périmètre site/magasin; journal de l’utilisateur et de l’horodatage. La quantité disponible ne change qu’au moment où la réception est validée.
+- **Critères d’acceptation P1 :** approbation seule ne change pas le stock; deux livraisons partielles créent deux traces et actualisent le reliquat; double soumission ne double pas le stock; livraison finale ferme la ligne; clôture courte garde le reliquat non reçu visible; annulation référence et contre-passe le mouvement original une seule fois; utilisateur sans droit et utilisateur d’un autre site/société sont refusés; l’écran affiche commandé, reçu, annulé, restant et unité sans confondre réception et approbation.
+- **Plan d’exécution :** d’abord confirmer si QPM gère réception au niveau bon ou magasin, les unités fractionnaires, la tolérance de sur-réception, l’inspection/stock bloqué, et les droits de clôture courte/annulation. Ensuite concevoir migration additive et contrat API; migrer les anciennes commandes approuvées vers un état historique « stock crédité par approbation », sans fabriquer de documents de réception. Le flux actuel reste en place jusqu’à validation de ces règles.
+- **Écart Mobile partiellement résolu :** `mobile/screens/purchaseOrders/PurchaseOrdersScreen.tsx` fournit maintenant une consultation paginée et en lecture seule depuis Plus, conditionnée par le droit `PURCHASE_ORDERS.view` et le plan `PURCHASE_ORDER`. Elle affiche les quantités commandées. La future file « à recevoir », les quantités reçues/reliquat et la confirmation d’une réception ne peuvent être ajoutées avant le contrat métier/API distinct; ne pas exposer l’approbation comme réception physique.
+- **État du code à réutiliser :** `PurchaseOrderController.respond` est le point d’approbation et crédite aujourd’hui chaque `Part.quantity` à partir des `PartQuantity` liées au bon; `PurchaseOrder.status` ne représente que `PENDING/APPROVED/REJECTED`. `PartQuantity.quantity` est la quantité commandée ou affectée et ne porte aucun cumul reçu. Les actions approbation sont protégées par `PURCHASE_ORDERS.editOther`; la lecture/écriture par ID dépend aussi des gardes `CompanyAudit.@PostLoad` et `TenantAspect` (ce dernier vérifie les entités référencées dans les corps POST/PATCH), avec accès inter-société prévu pour le super-compte. Ajouter des tests HTTP d’isolation avant de remanier ces contrôles : l’absence de `findByIdAndCompanyId` visible dans le contrôleur n’établit pas, seule, une faille.
+- **Risque technique à traiter avec le nouveau service transactionnel :** l’approbation met à jour les pièces en boucle puis le statut du bon. Une réception dédiée doit garantir atomicité stock + document et éviter doublons lors d’un retry; le dispatch webhook doit être publié après commit pour ne pas annoncer un mouvement annulé. Ne pas simplement déplacer l’incrément de stock dans un autre écran Mobile.
+- **Garde-fou implémenté — approbations concurrentes :** l’action actuelle « approuver » ouvre maintenant une transaction et verrouille le bon (`PESSIMISTIC_WRITE`) avant le contrôle de statut et les mises à jour des quantités. Un second clic/retry concurrent attend la fin du premier et ne peut plus appliquer une seconde fois le même approvisionnement; les événements de variation de stock partent seulement après commit. Aucun contrat API ni schéma ne change. Compilation Java complète et tests ciblés **10/10** réussis dans une copie temporaire; le test protège les annotations transaction/verrouillage, mais un test concurrent réel contre PostgreSQL reste requis.
+
+### Mobile / consultation des bons de commande — 21 octobre 2026
+
+- Ajout d’une entrée « Bons de commande » dans Plus, affichée seulement aux comptes dotés de `PURCHASE_ORDERS.view`; la route est également protégée côté navigation et l’écran revalide le droit. Le backend garde le filtrage société/créateur sur la recherche et l’autorisation de lecture sur le détail.
+- La liste utilise le endpoint existant `POST /purchase-orders/search`, avec pagination, actualisation, états chargement/vide/erreur et reprise après échec. Les cartes affichent statut, fournisseur, date prévue et jusqu’à trois lignes avec **quantité commandée**. Aucun bouton d’approbation, création, édition, suppression ou réception n’est ajouté.
+- L’écran indique explicitement que les réceptions et mouvements de stock ne sont pas suivis dans cette vue. Il n’invente ni quantité reçue ni statut `RECEIVED`. La réception partielle demeure un chantier Web/API/Mobile séparé, dépendant de la définition des droits, des unités, de l’inspection, du reliquat et de la migration décrits ci-dessus.
+- Vérifications : test dédié de permissions/lecture seule, typecheck TypeScript Mobile et Prettier passent. Tests visuels Android/iOS et requête avec utilisateur réel restent à effectuer; aucun APK, commit, push ou déploiement n’a été réalisé.
+
+### Revalidation Web/Mobile — 21 octobre 2026
+
+- Web : `node --test --test-reporter=dot scripts/*.test.cjs` et le typecheck TypeScript terminent avec le code **0**.
+- Mobile : `npm run test:mobile-regression` passe **37/37**; les tests Jest d’onboarding passent **5/5**; le typecheck TypeScript termine avec le code **0**.
+- Cette passe n’a modifié aucun code applicatif. Elle ne remplace pas les recettes Chromium authentifiées, API avec rôles réels, appareils Android/iOS ou l’application des migrations requises; aucun build, déploiement, commit ou push n’a été effectué.
+
+### Nouvelle passe Mobile achats + validation production Web — 21 octobre 2026
+
+- Mobile : les bons de commande apparaissent dans Plus seulement si le rôle possède `PURCHASE_ORDERS.view` et si le plan expose `PURCHASE_ORDER`; l’écran revalide les deux conditions. La consultation est paginée et strictement en lecture seule, et affiche les quantités commandées. Tests dédiés, suite Mobile **38/38**, onboarding **5/5**, TypeScript et Prettier passent.
+- Web : suite `node --test --test-reporter=dot scripts/*.test.cjs` réussie. Le build optimisé CRA passe avec heap Node plafonné à 2 Go et sourcemaps désactivées pour ce runner. Aucun test navigateur authentifié n’a été possible.
+- Aucune API ni migration n’a été ajoutée pour la réception partielle; le flux demande encore une spécification métier et une migration séparée. Aucun APK/IPA, commit, push ou déploiement n’a été réalisé.
+
+### SEC-WEB — contrôle HTTP des lectures de clés API — 21 octobre 2026
+
+- Les contrôles d’écriture et de tenant étaient déjà couverts par `ApiKeyServiceTenantIsolationTest`; la lacune restante était l’absence de vérification aux routes. Le nouveau test MVC vérifie qu’un utilisateur Client sans `SETTINGS.view` reçoit 403 sur la recherche et le détail et qu’aucun accès au service n’est effectué.
+- Tests MVC + service : **7/7** réussis dans une copie temporaire Maven; aucune route, permission, donnée ou migration n’a été changée. Reste à valider les mutations sous une session HTTP complète et les rôles/abonnements réels en environnement de recette.
+
+### Mobile — isolation des réponses tardives des bons de commande — 21 octobre 2026
+
+- Le slice `mobile/slices/purchaseOrder.ts` associe désormais ses lectures et mutations à une génération de session. `revertAll` incrémente cette génération; une réponse reçue après déconnexion ou changement de compte ne peut plus réinjecter un bon de commande dans l’état Redux de la nouvelle session. Les réponses de la session courante et les indicateurs de chargement restent fonctionnels.
+- La vérification a aussi révélé que le thunk de pagination appelait `slice.actions.getMorePurchaseOrders`, action absente du slice. Le reducer d’ajout de page est maintenant défini et son test confirme le cumul de pages sans casser la liste.
+- Cette protection concerne l’état local de l’application : elle ne prétend pas annuler une opération déjà acceptée par le serveur. Aucun contrat API, droit, règle métier ou schéma n’a été modifié. Tests de course session/réponse et de lecture normale : **2/2 scripts** réussis; suite Mobile **39/39**, onboarding **5/5**, disponibilité des équipes **5/5**, typecheck TypeScript et contrôle Prettier réussis. Aucun APK, commit, push ou déploiement n’a été réalisé.
+
+### Mobile — isolation des résultats tardifs Assets et Work Orders — 21 octobre 2026
+
+- L’audit a trouvé des réponses tardives qui pouvaient repeupler les caches d’actifs et de bons de travail après `revertAll` lors d’une bascule de société. La génération de session protège maintenant les détails, les sélecteurs et listes associées d’équipement, les données de calendrier et les résultats des mutations Asset/Work Order. Les listes paginées gardent aussi leur protection existante par ID de requête et vérifient la génération de session.
+- Tests différés vérifient qu’une réponse de la société précédente ne repeuple ni le sélecteur d’actifs, ni le détail d’actif, ni le détail Work Order; les tests de chargement partagé continuent de passer. Régression Mobile **41/41**, onboarding **5/5**, disponibilité des équipes **5/5**, TypeScript et Prettier réussis. Aucun contrat API, permission ou schéma n’a changé; aucun APK, commit, push ou déploiement n’a été effectué. Recette sur appareil avec bascule de comptes reste à faire.
+# WEB / MOBILE — isolation des réponses Request au changement de session — 21 octobre 2026
+
+- Les listes, détails et compteurs de demandes d’intervention pouvaient être réécrits par une réponse API démarrée sous le compte précédent. Les reducers Web et Mobile portent maintenant une génération de session; les lectures et mutations de la génération précédente sont écartées après `revertAll`. Les listes paginées Mobile gardent aussi leur garde de requête la plus récente.
+- Couverture de régression : résolution tardive d’un détail et d’un compteur Web, résolution tardive d’un détail et d’une liste Mobile. Les tests Request CRUD, erreurs de chargement et approbation/rejet restent verts. Aucun endpoint, droit, statut métier ou donnée serveur n’a changé.
+- Vérification : suite complète Web, TypeScript Web/Mobile, ESLint ciblé, Prettier et `git diff --check` réussissent; régression Mobile complète ainsi que tests onboarding (**5/5**) et disponibilité des équipes (**5/5**) réussissent. Une recette authentifiée avec deux comptes/sociétés reste nécessaire pour valider le changement de session en conditions réelles. Aucun build, APK, commit, push ni déploiement n’a été lancé.
+
+### MOBILE — isolation des réponses tardives Pièces / Inventaire — 21 octobre 2026
+
+- L’inventaire Mobile pouvait repeupler les détails ou la mini-liste de pièces après un changement de compte. La génération de session protège maintenant les listes paginées, détails, sélecteurs mini, chargement, création, édition, suppression et ajustement de stock dans le cache local.
+- Le restock API reste inchangé; si le compte change pendant l’appel, la réponse ne modifie pas l’inventaire affiché dans la nouvelle session. La mutation déjà envoyée au serveur n’est pas annulée par cette protection UI.
+- Deux tests différés couvrent les réponses de détail et de sélecteur après `revertAll`. Régression Mobile complète (**43 scripts**), onboarding (**5/5**), disponibilités (**5/5**), TypeScript et Prettier passent. Aucun endpoint, droit, schéma ou contrat n’a changé. La vérification sur appareil avec deux comptes reste ouverte.
+
+## Document Management — backlog d’intégration préparé par audit — 21 octobre 2026
+
+Référence d’audit et de besoins : [`QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGEMENT.md`](QPM_MASTER_PROMPT_DOCUMENT_REPORT_MANAGEMENT.md). Ce prompt décrit une cible; il ne prouve pas que ces fonctions existent déjà. La base actuelle doit être étendue progressivement.
+
+### État vérifié à réutiliser
+
+- **Backend :** `GeneratedDocumentService`, `GeneratedDocumentController`, `GeneratedDocument` et `GeneratedDocumentRepository` gèrent l’émission, l’historique et le téléchargement d’un PDF d’ordre de travail. Routes existantes : `POST /work-orders/{id}/report/issue`, `GET /work-orders/{id}/documents`, `GET /documents/{id}/download`. Les métadonnées incluent société, site, source, émetteur, date, empreinte SHA-256, instantané de contexte et version fixe `work-order-report-v1`.
+- **Rendu :** `WorkOrderService.generatePdfStream/generatePdfBytes` utilise le contexte métier courant, Thymeleaf et iText HTML2PDF avec `work-order-report.html`. Les informations légales et la mise en page paysage A4 sont déjà gérées; ne pas reconstruire le flux WO.
+- **Web :** `ReportConfigModal.tsx` couvre l’aperçu PDF, l’émission/archivage, l’historique et le téléchargement avec le client API existant.
+- **Mobile :** `mobile/slices/workOrder.ts` utilise encore `GET /work-orders/report/{id}`. L’émission officielle, l’historique et le téléchargement n’ont pas de parcours unifié avec Web.
+- **Non présent dans le dépôt vérifié :** registre dynamique des types/providers/champs, concepteur de modèles, versions publiées immuables, templates configurables WR/PR/PO et jobs de rendu asynchrones.
+- **P0 fonctionnel confirmé :** `GeneratedDocumentService.issueWorkOrderReport` exigeait `canBeViewedBy` et `canBeEditedBy`. `WorkOrder.canBeEditedBy` retourne faux pour `COMPLETE`; le rapport officiel ne pouvait donc pas être émis après clôture. Le correctif DOC-01 ci-dessous permet l’émission sans rouvrir l’édition et garde les contrôles société et accès objet.
+- **P1 sécurité / limite du modèle :** l’audit des modèles `User`, `Role`, `Company` et `Site` ne trouve pas de relation d’affectation utilisateur-site ni d’autorité site-scoped. Les gardes existantes sont société + permissions/relations objet, pas une isolation individuelle par site. `siteId` dans un document est une métadonnée, pas une preuve d’autorisation. Ne pas annoncer ni tester comme existant un cloisonnement par site; toute exigence d’accès restreint par site demande d’abord une décision produit/sécurité et un audit transversal des endpoints.
+- **Tests à renforcer :** `GeneratedDocumentServiceTest` couvrait principalement l’émission réussie et ses métadonnées. Ajouter les refus par rôle/société, l’émission WO clôturée, le téléchargement après révocation d’accès à la source et les erreurs de rendu/stockage. Un test d’isolation individuelle par site attend une règle utilisateur-site explicite, absente du modèle audité.
+- **Licence :** le dépôt déclare AGPL et utilise iText (`kernel`, `html2pdf`, `font-asian`). Faire valider la compatibilité entre licence iText, distribution et modèle d’exploitation de QPM; la présence de ces dépendances ne suffit pas à conclure à une non-conformité.
+
+### Backlog priorisé et critères d’intégration
+
+| Priorité / ID | Lot | Critères d’acceptation et surface probable |
+| --- | --- | --- |
+| **P0 — DOC-01** | Émission sûre après clôture WO | Distinguer consultation, édition métier et émission. L’émission fonctionne sur WO `COMPLETE` pour les acteurs autorisés par la règle actuelle (WO visible et droit editOther, créateur ou assigné); un lecteur seul ne gagne aucun droit d’écriture. Vérifier objet, société, liste/téléchargement, WO absent, source inaccessible et échec du stockage. Pas de migration attendue. |
+| **P1 — DOC-02 (intégration faite, QA appareil ouverte)** | Contrat commun Web/Mobile | Le cycle « aperçu non officiel → émission archivée → historique → téléchargement authentifié » et DTO actuels sont documentés; Web et Mobile consomment les routes existantes. À valider sur appareils : ouverture/partage PDF, session expirée, réseau indisponible et accès refusé; garder le endpoint signé déprécié tant que des versions compatibles peuvent l’appeler. |
+| **P1 — DOC-03 (catalogue WO additif livré; provider de valeurs en attente)** | Providers et catalogue de champs sûrs | Route `GET /work-orders/{id}/report/fields` ajoutée : descripteurs allowlistés seulement, sans valeur du WO, et vérification société + `canBeViewedBy`. Le PDF courant n’est pas modifié et les clés ne sont pas des expressions exécutables. Avant de résoudre des valeurs configurables, trancher le droit aux coûts (aucune permission dédiée trouvée) puis ajouter un provider WO testable; cartographier WR/PR/PO aux services/entités réellement présents. Totaux calculés côté serveur. Aucun SQL, script, URL distante ou expression arbitraire venant du client. |
+| **P1 — DOC-04** | Schéma JSON de template versionné, minimal | Spécifier et valider une mise en page déclarative avec bindings typés, options papier et sections. Version publiée immuable; chaque génération conserve la version exacte. Introduire de manière additive et garder `ReportConfig` lisible pendant la migration. Contrat et rollback validés avant toute migration. |
+| **P1 — DOC-05** | Premier template WO configurable | Réutiliser Thymeleaf/iText pour Classic/Modern via le provider et template publiés. Inclure les données de main-d’œuvre/employés réelles quand elles existent et sont sélectionnées, les informations légales existantes, la pagination et A4/Letter portrait/paysage. Les rapports `work-order-report-v1` restent téléchargeables. |
+| **P2 — DOC-06** | Bibliothèque de modèles Web | Ajouter recherche, brouillon, duplication, aperçu, validation, publication, archivage et historique, avec composants MUI, design tokens, autorisations et états accessibles. Commencer par des blocs/champs prédéfinis; n’ajouter un éditeur drag-and-drop complet qu’après validation de l’usage. |
+| **P2 — DOC-07 (audit des sources fait)** | Demandes / Achats | Audit confirmé : `Request` est une demande de maintenance, pas une PR; `PurchaseOrder` est l’objet achats existant et ses lignes embarquent un coût. Ajouter providers distincts après DOC-03; total PO calculé par le backend. L’impression ne déclenche jamais approbation/réception. Pas de PDF PR tant qu’un vrai modèle PR n’existe pas. |
+| **P2 — DOC-08 (intégration faite, QA appareil ouverte)** | Documents officiels sur Mobile | Aperçu authentifié, émission confirmée, historique et téléchargement authentifié intégrés au détail WO; pas de designer sur téléphone. Valider permissions et ouverture/partage sur Android/iOS réels. Configuration mobile basée sur les options par défaut serveur; vérifier si la sélection de sections est réellement nécessaire. |
+| **P2 — DOC-09** | Preuve d’extensibilité Equipment Handover | Créer un type de certificat via le provider Asset, champs existants et données personnalisées déclaratives, puis produire le PDF sans code spécifique au type. Si QPM ne stocke pas condition/remise/signatures, ne pas inventer ces valeurs; décider séparément si un vrai workflow métier est requis. |
+| **P2 conditionnel — DOC-10** | Worker et jobs durables | Garder le rendu synchrone actuel jusqu’à mesure de saturation, latence ou mémoire. Si l’isolation est justifiée, borner ressources, concurrence, pages/taille et durée; désactiver réseau par défaut; ajouter idempotence, retries bornés, états, logs corrélés et stockage privé. Préférer d’abord la file PostgreSQL ou un mécanisme présent; pas de Kafka/Kubernetes/microservice par défaut. |
+| **P3 optionnel — DOC-11** | Jasper/Crystal | Vérifier installation/version SAP BO, API/runtime compatibles, licence, OS et besoin d’entreprise avant tout adaptateur. Le moteur PDF natif reste utilisable sans ces outils; aucune exécution `.rpt` ne sera annoncée sans preuve de runtime compatible. |
+| **P1 transversal — DOC-12** | Sécurité, rétention et exploitation | Valider licence, durée de conservation/suppression, stockage privé, contrôle d’accès à chaque téléchargement, empreintes, audit sans contenu sensible et limites de rendu. Tester société/rôle/objet, bindings inconnus, ressource malveillante, panne moteur et régressions métier. Décider séparément si un cloisonnement individuel par site est requis; ce contrôle n’est pas représenté dans le modèle utilisateur actuel. |
+
+### Séquence recommandée
+
+1. DOC-01 et tests d’autorisation, car l’émission post-clôture bloque l’archivage métier.
+2. DOC-02 et DOC-12 pour fixer cycle, contrat, permissions, conservation et licence.
+3. DOC-03 puis DOC-04 pour ajouter le provider et le format versionné sans casser le rapport existant.
+4. DOC-05 comme premier incrément de modèle configurable sur WO, puis DOC-06 (administration Web); DOC-08 est intégré au niveau client et attend la recette d’appareil.
+5. DOC-07 et DOC-09 pour élargir aux demandes/achats et prouver l’extensibilité.
+6. DOC-10/11 uniquement sur preuve de charge ou exigence d’intégration confirmée.
+
+**Garde-fous :** ne pas remplacer `GeneratedDocument` d’un coup, ne pas publier des URLs permanentes publiques, ne pas rendre une génération PDF dépendante d’une mutation du dossier métier, et ne pas migrer la base avant validation du contrat JSON, des autorités et du rollback. L’audit initial n’a modifié ni code ni données; les correctifs ultérieurs sont consignés dans la progression ci-dessous.
+
+### Progression après audit — DOC-01 et DOC-02 — 21 octobre 2026
+
+- **DOC-01 terminé :** `WorkOrder.canIssueReportBy` reprend la société, la visibilité et la relation/droit d’édition existants, mais n’applique pas l’interdiction d’édition du statut `COMPLETE`. `GeneratedDocumentService` utilise cette autorisation à l’émission. Les WO clôturés ne deviennent donc pas éditables; un utilisateur lecture seule reste refusé avant rendu/stockage; un autre tenant est rejeté avant rendu. Test `mvn -o -Dtest=GeneratedDocumentServiceTest test` : **5 tests, 0 échec**, couvrant émission normale, WO clôturé, lecteur refusé, tenant étranger refusé et téléchargement après perte d’accès au WO. Les règles de liste/téléchargement n’ont pas été élargies.
+- **Limite site consignée :** l’application n’a pas d’affectation utilisateur-site identifiable dans les modèles audités. Les règles de génération conservent les contrôles existants par société et objet; DOC-12 exige une décision distincte si des utilisateurs doivent être cloisonnés par site.
+- **DOC-02 — cycle Mobile intégré :** le client utilise maintenant les endpoints authentifiés existants pour l’aperçu sans archive, l’émission avec confirmation, l’historique et le téléchargement. Le verrou d’action empêche les doubles soumissions; les états de chargement/vide/erreur sont visibles. Les réponses d’historique lancées sous l’ancien compte sont écartées après un changement utilisateur/société. Les PDF sont vérifiés comme `application/pdf`, convertis en conservant les octets binaires au-delà des blocs de 32 Kio, écrits dans le répertoire privé puis ouverts; le parcours ne demande plus la permission générale de stockage Android. L’ancien lien signé reste disponible côté serveur pour les APK déjà distribués. Le client Mobile utilise la configuration de rapport par défaut du serveur; les choix de sections restent proposés sur le Web seulement.
+- **Vérification locale DOC-02 :** suite Mobile (**43 scripts**, dont contrôle des routes et des états), test de conversion Base64 sur données binaires couvrant la frontière de bloc, TypeScript Mobile et Prettier réussissent; les tests backend `GeneratedDocumentServiceTest` restent **5/5**. Les tests de code ne remplacent pas la recette d’ouverture/partage PDF sur appareils Android/iOS; celle-ci reste à faire. Aucun APK, changement de contrat API, permission, migration, commit, push ou déploiement n’a été effectué.
+- **Prochain incrément :** recette authentifiée sur téléphone des quatre actions, y compris compte autorisé/non autorisé, puis décider si Mobile doit permettre la sélection de sections ou garder le rapport standard. Retirer le endpoint legacy uniquement après preuve qu’aucune version supportée ne l’appelle.
+
+### Progression DOC-03 — catalogue WO initial — 21 octobre 2026
+
+- Route additive `GET /work-orders/{id}/report/fields` ajoutée. Elle renvoie une allowlist de clés typées/groupées et des métadonnées de sections, sans valeurs métier ni exécution de chemins fournis par le client. L’accès est revalidé par société et `canBeViewedBy`; un utilisateur sans visibilité sur un WO d’un autre créateur reçoit un refus.
+- Le catalogue initial porte sur les sections présentes dans le rapport WO actuel, notamment identité WO, équipement/localisation, société, exécution, historique, pièces et coûts. Les descripteurs de coûts sont signalés `sensitive`. Cette étiquette ne constitue pas une permission : l’audit n’a trouvé aucune permission dédiée aux coûts. L’interface de configuration ne doit donc pas rendre ces champs sélectionnables avant décision de politique et contrôle serveur correspondant.
+- Pas de migration, changement du PDF existant, ni modification des API d’aperçu/émission. Le provider de valeurs est séparé de ce premier catalogue et WR/PR/PO restent hors de l’allowlist.
+- Validation : `cd api && mvn -o -Dtest=GeneratedDocumentServiceTest test` réussit (**7 tests, 0 échec**), couvrant l’émission existante, ses restrictions, l’accès au catalogue, l’absence de bindings arbitraires et le refus d’accès à un WO non visible. La première exécution avait révélé une fixture trop permissive (`viewOther` activé); elle a été corrigée conformément à la sémantique réelle du rôle.
+- Défaut PDF corrigé en parallèle : la décision de transformer le rapport RTL comparait la chaîne de direction avec `==`. Elle utilise maintenant une comparaison de valeur (`"rtl".equals(...)`), sans changer les données du rapport. La compilation et `GeneratedDocumentServiceTest` réussissent après ce changement (**7/7**); aucun test de rendu PDF visuel RTL n’a été exécuté.
+
+### Audit des providers Request / Purchase Order — 21 octobre 2026
+
+- `Request` hérite des champs de maintenance et peut référencer le WO créé à l’approbation; aucune génération PDF existante n’a été trouvée. Le document Request doit rester une lecture et ne doit jamais appeler l’action d’approbation.
+- `PurchaseOrder` est le module d’achat existant; pas d’entité Purchase Request distincte repérée. Son détail contient des lignes `PartQuantity` et `PartMiniDTO.cost`, et le total de liste est calculé côté frontend. Un futur document PO devra recalculer le total côté backend et ne jamais appeler `respond`/réception.
+- Droits relevés : `REQUESTS.view` et `PURCHASE_ORDERS.view`, limités par `viewOther`/créateur/assigné selon le modèle. Aucun droit de coût séparé ni autorisation utilisateur-site n’a été trouvé. Cet audit ne crée aucun endpoint, migration ou provider; les constats et chemins sont dans `DOCUMENT-MANAGEMENT-INTEGRATION-CONTRACT.md`.
+- Le test de catalogue couvre maintenant aussi le cloisonnement société : une société étrangère reçoit `404`; suite `GeneratedDocumentServiceTest` **8/8** réussie après recompilation backend.

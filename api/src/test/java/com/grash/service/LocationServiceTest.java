@@ -831,6 +831,16 @@ class LocationServiceTest {
         }
 
         @Test
+        void stableExchangeKeysOrderParentBeforeChildWhenNamesAreNotUnique() {
+            UUID parentKey = UUID.randomUUID();
+            LocationImportDTO parent = LocationImportDTO.builder().name("Plant").exchangeId(parentKey).build();
+            LocationImportDTO child = LocationImportDTO.builder().name("Plant").exchangeId(UUID.randomUUID())
+                    .parentExchangeId(parentKey).build();
+
+            assertEquals(Arrays.asList(parent, child), LocationService.orderLocations(Arrays.asList(child, parent)));
+        }
+
+        @Test
         void childWithMissingParent_isTreatedAsTopLevel() {
             LocationImportDTO a = location("A", "MissingParent");
 

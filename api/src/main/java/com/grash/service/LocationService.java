@@ -184,8 +184,24 @@ public class LocationService {
         return locationRepository.findByNameIgnoreCaseAndCompany_Id(locationName, companyId);
     }
 
+    public Optional<Location> findByExchangeIdAndCompany(UUID exchangeId, Long companyId) {
+        return locationRepository.findByExchangeIdAndCompany_Id(exchangeId, companyId);
+    }
+
+    public List<Location> findByExchangeIdsAndCompany(Collection<UUID> exchangeIds, Long companyId) {
+        return exchangeIds == null || exchangeIds.isEmpty()
+                ? Collections.emptyList()
+                : locationRepository.findByExchangeIdInAndCompany_Id(exchangeIds, companyId);
+    }
+
     public void setLocationFieldsFromImportDto(Location location, LocationImportDTO dto, Company company,
                                                Map<String, Location> locationsByName) {
+        setLocationFieldsFromImportDto(location, dto, company, locationsByName, null);
+    }
+
+    public void setLocationFieldsFromImportDto(Location location, LocationImportDTO dto, Company company,
+                                               Map<String, Location> locationsByName,
+                                               Map<String, Location> locationsByExchangeId) {
         checkUsageBasedLimit(company);
         Long companyId = company.getId();
         location.setCompany(company);
@@ -194,12 +210,30 @@ public class LocationService {
         location.setLongitude(dto.getLongitude());
         location.setLatitude(dto.getLatitude());
         // Check parent location in batch first, then in database
-        if (dto.getParentLocationName() != null && !dto.getParentLocationName().isEmpty()) {
-            Location parentLocation = locationsByName != null ? locationsByName.get(dto.getParentLocationName()) : null;
+        if (dto.getParentExchangeId() != null) {
+            Location parentLocation = locationsByExchangeId != null
+                    ? locationsByExchangeId.get(dto.getParentExchangeId().toString()) : null;
             if (parentLocation == null) {
-                parentLocation = findByNameIgnoreCaseAndCompany(dto.getParentLocationName(), companyId)
-                        .stream().findFirst().orElse(null);
+                parentLocation = findByExchangeIdAndCompany(dto.getParentExchangeId(), companyId)
+                        .orElseThrow(() -> new IllegalArgumentException("Parent location exchange key not found in this company"));
             }
+            HierarchyImportValidator.assertNoExistingCycle(
+                    location, parentLocation, Location::getId, Location::getParentLocation, "functional location");
+            location.setParentLocation(parentLocation);
+        } else if (dto.getParentLocationName() != null && !dto.getParentLocationName().isBlank()) {
+            String parentLocationName = dto.getParentLocationName().trim();
+            Location parentLocation = locationsByName != null ? locationsByName.get(parentLocationName) : null;
+            if (parentLocation == null) {
+                List<Location> existingParents = findByNameIgnoreCaseAndCompany(parentLocationName, companyId);
+                if (existingParents.size() != 1) {
+                    throw new IllegalArgumentException(existingParents.isEmpty()
+                            ? "Parent functional location not found: " + parentLocationName
+                            : "Ambiguous parent functional location name: " + parentLocationName);
+                }
+                parentLocation = existingParents.get(0);
+            }
+            HierarchyImportValidator.assertNoExistingCycle(
+                    location, parentLocation, Location::getId, Location::getParentLocation, "functional location");
             location.setParentLocation(parentLocation);
         }
         List<User> workers = new ArrayList<>();
@@ -248,6 +282,34 @@ public class LocationService {
     }
 
     public static List<LocationImportDTO> orderLocations(List<LocationImportDTO> locations) {
+        if (locations.stream().anyMatch(location -> location.getExchangeId() != null)) {
+            Map<UUID, Integer> rowsByExchangeId = new HashMap<>();
+            Map<String, List<Integer>> rowsByName = new HashMap<>();
+            for (int i = 0; i < locations.size(); i++) {
+                LocationImportDTO location = locations.get(i);
+                if (location.getExchangeId() != null) rowsByExchangeId.put(location.getExchangeId(), i);
+                if (location.getName() != null) rowsByName.computeIfAbsent(location.getName(), ignored -> new ArrayList<>()).add(i);
+            }
+            List<List<Integer>> children = new ArrayList<>();
+            for (int i = 0; i < locations.size(); i++) children.add(new ArrayList<>());
+            List<Integer> roots = new ArrayList<>();
+            for (int i = 0; i < locations.size(); i++) {
+                LocationImportDTO location = locations.get(i);
+                Integer parentIndex = location.getParentExchangeId() == null
+                        ? null : rowsByExchangeId.get(location.getParentExchangeId());
+                if (parentIndex == null && location.getParentExchangeId() == null
+                        && location.getParentLocationName() != null) {
+                    List<Integer> candidates = rowsByName.getOrDefault(location.getParentLocationName(), List.of());
+                    if (candidates.size() == 1) parentIndex = candidates.get(0);
+                }
+                if (parentIndex == null) roots.add(i);
+                else children.get(parentIndex).add(i);
+            }
+            List<LocationImportDTO> ordered = new ArrayList<>();
+            Set<Integer> visited = new HashSet<>();
+            for (Integer root : roots) orderLocationRows(root, locations, children, visited, ordered);
+            return ordered;
+        }
         Map<String, List<LocationImportDTO>> locationMap = new HashMap<>();
         List<LocationImportDTO> identifiedTopLevelLocations = new ArrayList<>();
 
@@ -285,6 +347,14 @@ public class LocationService {
         orderLocationsRecursive(locationMap, identifiedTopLevelLocations, orderedLocations, visited);
 
         return orderedLocations;
+    }
+
+    private static void orderLocationRows(int index, List<LocationImportDTO> locations,
+                                          List<List<Integer>> children, Set<Integer> visited,
+                                          List<LocationImportDTO> ordered) {
+        if (!visited.add(index)) return;
+        ordered.add(locations.get(index));
+        for (Integer child : children.get(index)) orderLocationRows(child, locations, children, visited, ordered);
     }
 
     private static void orderLocationsRecursive(Map<String, List<LocationImportDTO>> locationMap,

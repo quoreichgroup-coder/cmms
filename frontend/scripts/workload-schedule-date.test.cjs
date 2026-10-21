@@ -31,4 +31,13 @@ test('workload drop target rejects non-column and malformed dates', () => {
   assert.equal(moduleExports.getWorkloadDestination('unscheduled'), null);
   assert.equal(moduleExports.getWorkloadDestination('user-x-2026-10-20'), null);
   assert.equal(moduleExports.getWorkloadDestination('user-42-2026-1-2'), null);
+  assert.equal(moduleExports.getWorkloadDestination('user-0-2026-10-20'), null);
+  assert.equal(
+    moduleExports.getWorkloadDestination('user-42-2026-02-30'),
+    null
+  );
+  assert.equal(
+    moduleExports.getWorkloadDestination('user-9007199254740992-2026-10-20'),
+    null
+  );
 });
