@@ -64,11 +64,8 @@ import {
   Sort
 } from '../../../models/owns/page';
 import Filters from './Filters';
-import {
-  fireGa4Event,
-  getImageAndFiles,
-  onSearchQueryChange
-} from '../../../utils/overall';
+import { fireGa4Event, getImageAndFiles } from '../../../utils/overall';
+import { buildFirstPageSearchCriteria } from '../../../utils/listSearch';
 import SearchInput from '../components/SearchInput';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import AssetStatusTag from './components/AssetStatusTag';
@@ -154,24 +151,6 @@ function Assets() {
     direction: 'DESC'
   };
   const [criteria, setCriteria] = useState<SearchCriteria>(initialCriteria);
-  const onQueryChange = (event) => {
-    setView(event.target.value ? 'list' : 'hierarchy');
-    onSearchQueryChange<AssetDTO>(event, criteria, setCriteria, [
-      'name',
-      'description',
-      'model',
-      'additionalInfos',
-      'barCode',
-      'area',
-      'serialNumber',
-      'manufacturer',
-      'power',
-      'customId',
-      'customFieldValues.value'
-    ]);
-  };
-  const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
-  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
   const onFilterChange = (newFilters: FilterField[]) => {
     const newCriteria = { ...criteria };
     newCriteria.filterFields = newFilters;
@@ -958,6 +937,30 @@ function Assets() {
     fieldMapping,
     initialPagination: { pageIndex: 0, pageSize: criteria.pageSize }
   });
+
+  const onQueryChange = (event) => {
+    const query = event.target.value;
+    setView(query ? 'list' : 'hierarchy');
+    tableState.setPagination((current) => ({ ...current, pageIndex: 0 }));
+    setPageable((current) => ({ ...current, page: 0 }));
+    setCriteria((current) =>
+      buildFirstPageSearchCriteria(current, query, [
+        'name',
+        'description',
+        'model',
+        'additionalInfos',
+        'barCode',
+        'area',
+        'serialNumber',
+        'manufacturer',
+        'power',
+        'customId',
+        'customFieldValues.value'
+      ])
+    );
+  };
+  const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
+  useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   // Prepare data for the table based on view type
   const tableData: (AssetRow | AssetDTO)[] =

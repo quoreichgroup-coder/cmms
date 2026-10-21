@@ -60,8 +60,18 @@ const slice = createSlice({
     ) {
       const { notifications, requestId } = action.payload;
       if (requestId !== state.latestListRequestId) return;
+      // A realtime notification can be inserted while the user is paging.
+      // Since the API uses offset pagination, that shifts the next page and
+      // can repeat its last record. Keep the already-rendered item/state.
+      const existingIds = new Set(
+        state.notifications.content.map((notification) => notification.id)
+      );
       state.notifications.content = state.notifications.content.concat(
-        notifications.content
+        notifications.content.filter((notification) => {
+          if (existingIds.has(notification.id)) return false;
+          existingIds.add(notification.id);
+          return true;
+        })
       );
       state.currentPageNum = state.currentPageNum + 1;
       state.lastPage = notifications.last;
@@ -214,14 +224,12 @@ export const editNotification =
       slice.actions.editNotification({ notification: notificationResponse })
     );
   };
-export const readAllNotifications =
-  (): AppThunk =>
-  async (dispatch) => {
-    const notificationResponse = await api.get<{ success: boolean }>(
-      `${basePath}/read-all`
-    );
-    if (notificationResponse.success) dispatch(slice.actions.readAll({}));
-  };
+export const readAllNotifications = (): AppThunk => async (dispatch) => {
+  const notificationResponse = await api.get<{ success: boolean }>(
+    `${basePath}/read-all`
+  );
+  if (notificationResponse.success) dispatch(slice.actions.readAll({}));
+};
 export const newReceivedNotification =
   (notification: Notification): AppThunk =>
   async (dispatch) => {

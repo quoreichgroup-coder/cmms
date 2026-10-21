@@ -64,3 +64,20 @@ test('clearing a search removes search filters and still resets the page', () =>
     { field: 'status', operation: 'eq', value: 'OPEN' }
   ]);
 });
+
+test('asset search uses current criteria and returns both views to their first page', () => {
+  const source = fs.readFileSync('src/content/own/Assets/index.tsx', 'utf8');
+
+  assert.match(
+    source,
+    /setCriteria\(\(current\)\s*=>\s*buildFirstPageSearchCriteria\(current, query/
+  );
+  assert.match(
+    source,
+    /tableState\.setPagination\(\(current\)\s*=>\s*\(\{\s*\.\.\.current, pageIndex: 0\s*\}\)\)/
+  );
+  assert.match(
+    source,
+    /setPageable\(\(current\)\s*=>\s*\(\{\s*\.\.\.current, page: 0\s*\}\)\)/
+  );
+});

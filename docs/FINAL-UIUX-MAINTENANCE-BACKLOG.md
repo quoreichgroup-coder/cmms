@@ -1,5 +1,17 @@
 # QPM — Backlog UI/UX final et modules de maintenance
 
+### MOBILE — doublons des notifications en pagination — 21 octobre 2026
+
+- Une notification reçue en temps réel est insérée en tête pendant que l’API utilise une pagination par offset. La page suivante peut alors répéter le dernier élément déjà affiché; le reducer ajoutait toutes les entrées sans déduplication.
+- La pagination des notifications écarte désormais les IDs déjà présents et conserve l’élément actuellement affiché. Les critères, routes API, ordre fourni par le serveur, compteur non lu et actions de notification restent inchangés.
+- Un test de régression simule la réception temps réel entre la première et la deuxième page; il passe avec le test principal `mobile-regression.test.cjs`, le typecheck Mobile et Prettier. Les validations sur appareil restent à faire.
+
+### WEB — recherche des équipements et pagination — 21 octobre 2026
+
+- La recherche d’équipements construisait ses nouveaux filtres depuis les critères capturés à l’ouverture de l’écran. Après avoir appliqué un filtre, une recherche ou son effacement pouvait donc rétablir des filtres obsolètes; la page courante n’était pas non plus réinitialisée, ce qui pouvait produire une liste vide après un changement de recherche.
+- Le gestionnaire utilise désormais une mise à jour fonctionnelle à partir des critères courants, préserve les filtres non liés à la recherche et remet à la première page les vues liste et hiérarchie. Les routes, APIs et règles métier restent inchangées.
+- Le test de recherche partagée vérifie les critères (**2/2**) et ajoute une vérification ciblée du câblage Équipements (**1/1**). TypeScript Web, ESLint sur l’écran, Prettier sur les deux fichiers et `git diff --check` passent; recette navigateur authentifiée restante.
+
 ### WEB/MOBILE — mises à jour partielles des disponibilités — 21 octobre 2026
 
 - Le DTO `ShiftConfigurationPatchDTO` utilisait un booléen Java primitif et le mapper MapStruct pouvait appliquer des champs omis (`enabled`, jours ou exceptions) comme valeurs par défaut/null. Une modification partielle risquait donc d’éteindre une configuration ou de supprimer des jours et exceptions qui n’étaient pas dans la requête.
