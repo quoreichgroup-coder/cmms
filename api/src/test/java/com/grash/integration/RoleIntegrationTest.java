@@ -49,6 +49,10 @@ class RoleIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Other integration tests can clear the shared Testcontainers database.
+        // Restore application defaults before asserting role lookup behavior.
+        roleService.updateDefaultRoles();
+
         SubscriptionPlan plan = SubscriptionPlan.builder()
                 .name("Test Plan")
                 .monthlyCostPerUser(10.0)
