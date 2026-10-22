@@ -15,6 +15,7 @@ public class GeneratedDocumentDTO {
     private String sha256;
     private String locale;
     private String templateVersion;
+    private Long templateVersionId;
     private Date issuedAt;
     private Long issuedBy;
 }

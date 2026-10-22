@@ -2,14 +2,20 @@ import { PermissionEntity, PermissionRoot } from '../models/owns/role';
 
 const allPermissionEntities = Object.values(PermissionEntity);
 
-const viewPermissionsExcluded = [PermissionEntity.SETTINGS];
+const documentTemplatePermission = PermissionEntity.DOCUMENT_TEMPLATES;
+const viewPermissionsExcluded = [
+  PermissionEntity.SETTINGS,
+  documentTemplatePermission
+];
 const editOtherPermissionsExcluded = [
   PermissionEntity.PEOPLE_AND_TEAMS,
-  PermissionEntity.CATEGORIES
+  PermissionEntity.CATEGORIES,
+  documentTemplatePermission
 ];
 const createPermissionsExcluded = [
   PermissionEntity.PEOPLE_AND_TEAMS,
-  PermissionEntity.CATEGORIES
+  PermissionEntity.CATEGORIES,
+  documentTemplatePermission
 ];
 const deleteOtherPermissionsExcluded = [
   PermissionEntity.WORK_ORDERS,
@@ -22,9 +28,10 @@ const deleteOtherPermissionsExcluded = [
   PermissionEntity.VENDORS_AND_CUSTOMERS,
   PermissionEntity.CATEGORIES,
   PermissionEntity.FILES,
-  PermissionEntity.PEOPLE_AND_TEAMS
+  PermissionEntity.PEOPLE_AND_TEAMS,
+  documentTemplatePermission
 ];
-const viewOtherPermissionsExcluded = [];
+const viewOtherPermissionsExcluded = [documentTemplatePermission];
 
 export const defaultPermissions: Record<PermissionRoot, PermissionEntity[]> = {
   viewPermissions: allPermissionEntities.filter(

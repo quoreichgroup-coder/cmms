@@ -100,3 +100,25 @@ test('sidebar groups use separate route-active and descendant-open states', () =
     /className=\{clsx\(\{ active, expanded: menuToggle \}\)\}/
   );
 });
+
+test('report management has a dedicated permission and keeps the legacy settings entry', () => {
+  const menu = fs.readFileSync(
+    'src/layouts/ExtendedSidebarLayout/Sidebar/SidebarMenu/items.ts',
+    'utf8'
+  );
+  const settingsLayout = fs.readFileSync(
+    'src/content/own/Settings/SettingsLayout.tsx',
+    'utf8'
+  );
+  const permissions = fs.readFileSync(
+    'src/content/own/Settings/Roles/PermissionsMatrix.tsx',
+    'utf8'
+  );
+
+  assert.match(menu, /link: '\/app\/settings\/documents'/);
+  assert.match(menu, /permission: PermissionEntity\.DOCUMENT_TEMPLATES/);
+  assert.match(menu, /permissionFallback: PermissionEntity\.SETTINGS/);
+  assert.match(settingsLayout, /PermissionEntity\.DOCUMENT_TEMPLATES/);
+  assert.match(settingsLayout, /documentsOnly/);
+  assert.match(permissions, /DOCUMENT_TEMPLATES: t\('report_management'\)/);
+});

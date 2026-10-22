@@ -414,7 +414,10 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
             const sectionClone = { ...section };
             sectionClone.items = sectionClone.items.filter((item) => {
               const hasPermission = item.permission
-                ? hasViewPermission(item.permission)
+                ? hasViewPermission(item.permission) ||
+                  (item.permissionFallback
+                    ? hasViewPermission(item.permissionFallback)
+                    : false)
                 : true;
               const featured = item.planFeature
                 ? hasFeature(item.planFeature)

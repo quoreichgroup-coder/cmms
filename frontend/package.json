@@ -139,6 +139,7 @@
     "test:pm-task-load-errors": "node --test scripts/pm-task-load-error.test.cjs",
     "test:file-load-errors": "node --test scripts/file-load-error.test.cjs",
     "test:reports": "node --test scripts/report-loading.test.cjs",
+    "test:document-templates": "node --test scripts/document-template-field-labels.test.cjs",
     "test:api-errors": "node --test scripts/api-error-message.test.cjs scripts/api-client-errors.test.cjs",
     "test:api-key-clipboard": "node --test scripts/api-key-clipboard.test.cjs",
     "test:logout-fallback": "node --test scripts/logout-fallback.test.cjs",

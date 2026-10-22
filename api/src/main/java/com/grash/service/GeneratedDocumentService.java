@@ -3,15 +3,25 @@ package com.grash.service;
 import com.grash.dto.GeneratedDocumentDTO;
 import com.grash.dto.ReportFieldDefinitionDTO;
 import com.grash.dto.ReportConfig;
+import com.grash.dto.PublishedReportTemplateOptionDTO;
 import com.grash.exception.CustomException;
 import com.grash.factory.StorageServiceFactory;
 import com.grash.model.GeneratedDocument;
 import com.grash.model.Company;
 import com.grash.model.User;
 import com.grash.model.WorkOrder;
+import com.grash.model.Request;
+import com.grash.model.abstracts.WorkOrderBase;
 import com.grash.repository.GeneratedDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.grash.model.DocumentTemplate;
+import com.grash.model.DocumentTemplateVersion;
+import com.grash.model.enums.DocumentTemplateStatus;
+import com.grash.model.enums.PermissionEntity;
+import com.grash.repository.DocumentTemplateRepository;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,10 +74,40 @@ public class GeneratedDocumentService {
             new ReportFieldDefinitionDTO("workOrder.relations", "report.field.workOrder.relations", "relatedRecords", "object", true, false, "relations"),
             new ReportFieldDefinitionDTO("workOrder.files", "report.field.workOrder.files", "attachments", "file", true, false, "files")
     );
+    private static final List<ReportFieldDefinitionDTO> REQUEST_REPORT_FIELDS = List.of(
+            new ReportFieldDefinitionDTO("request.customId", "report.field.request.customId", "request", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("request.title", "report.field.request.title", "request", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("request.description", "report.field.request.description", "request", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("request.priority", "report.field.request.priority", "request", "enum", false, false, "priority"),
+            new ReportFieldDefinitionDTO("request.dueDate", "report.field.request.dueDate", "request", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("request.estimatedDuration", "report.field.request.estimatedDuration", "request", "duration", false, false, "estimatedTime"),
+            new ReportFieldDefinitionDTO("request.contact", "report.field.request.contact", "request", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("request.cancelled", "report.field.request.cancelled", "request", "boolean", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("asset.name", "report.field.asset.name", "asset", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("asset.serialNumber", "report.field.asset.serialNumber", "asset", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("location.name", "report.field.location.name", "location", "string", false, false, "locationAddress"),
+            new ReportFieldDefinitionDTO("request.team", "report.field.request.team", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("site.name", "report.field.site.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.name", "report.field.company.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.legalName", "report.field.company.legalName", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registeredAddress", "report.field.company.registeredAddress", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registrationNumber", "report.field.company.registrationNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.taxNumber", "report.field.company.taxNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.phone", "report.field.company.phone", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.email", "report.field.company.email", "organization", "string", false, false, "workOrderInformation")
+    );
     private final GeneratedDocumentRepository repository;
     private final WorkOrderService workOrderService;
     private final StorageServiceFactory storageServiceFactory;
     private final DocumentContextResolver documentContextResolver;
+    private final WorkOrderReportDataProvider workOrderReportDataProvider;
+    private final RequestReportDataProvider requestReportDataProvider;
+    private final RequestService requestService;
+    private final DocumentTemplateRepository templateRepository;
+    private final ReportTemplateConfigurationValidator templateValidator;
+    private final DocumentDataProviderRegistry providerRegistry;
+    private final ConfigurableWorkOrderReportRenderer templateRenderer;
+    private final MessageSource messageSource;
 
     @Transactional(readOnly = true)
     public List<ReportFieldDefinitionDTO> listWorkOrderReportFields(Long workOrderId, User user) {
@@ -77,7 +117,48 @@ public class GeneratedDocumentService {
             throw new CustomException("Work order not found", HttpStatus.NOT_FOUND);
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        return WORK_ORDER_REPORT_FIELDS;
+        return WORK_ORDER_REPORT_FIELDS.stream()
+                .map(field -> field.withValueSupport(workOrderReportDataProvider.supports(field.key())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> previewWorkOrderReportData(Long workOrderId, List<String> requestedFields, User user) {
+        WorkOrder workOrder = workOrderService.findById(workOrderId)
+                .filter(wo -> wo.getCompany() != null && user.getCompany() != null
+                        && wo.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(workOrder);
+        return workOrderReportDataProvider.resolve(workOrder, context,
+                requestedFields == null ? null : new java.util.LinkedHashSet<>(requestedFields));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReportFieldDefinitionDTO> listRequestReportFields(Long requestId, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return REQUEST_REPORT_FIELDS.stream()
+                .map(field -> field.withValueSupport(requestReportDataProvider.supports(field.key())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> previewRequestReportData(Long requestId, List<String> requestedFields, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(request);
+        return requestReportDataProvider.resolve(request, context,
+                requestedFields == null ? null : new java.util.LinkedHashSet<>(requestedFields));
+    }
+
+    private Request findAuthorizedCompanyRequest(Long requestId, User user) {
+        if (user.getCompany() == null) throw new CustomException("Request not found", HttpStatus.NOT_FOUND);
+        return requestService.findById(requestId)
+                .filter(request -> request.getCompany() != null
+                        && request.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Request not found", HttpStatus.NOT_FOUND));
     }
 
     @Transactional
@@ -111,6 +192,221 @@ public class GeneratedDocumentService {
         return toDto(repository.save(document));
     }
 
+    @Transactional
+    public GeneratedDocumentDTO issueWorkOrderReportFromTemplate(Long workOrderId, Long templateId, User user) {
+        WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
+        if (!workOrder.canIssueReportBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user);
+        DocumentTemplateVersion version = requirePublishedVersion(template);
+        RenderedTemplate rendered = renderTemplate(template, version, workOrder, user);
+
+        String fileName = "WorkOrder-" + workOrder.getId() + "-" + UUID.randomUUID() + ".pdf";
+        String path = storageServiceFactory.getStorageService().upload(
+                rendered.pdf(), fileName, "issued-documents/" + user.getCompany().getId() + "/work-orders");
+        GeneratedDocument document = new GeneratedDocument();
+        document.setDocumentType("WORK_ORDER_REPORT");
+        document.setCompany(user.getCompany());
+        document.setSourceType("WORK_ORDER");
+        document.setSourceId(workOrderId);
+        document.setSite(workOrder.getSite());
+        document.setFileName(fileName);
+        document.setStoragePath(path);
+        document.setSha256(sha256(rendered.pdf()));
+        document.setLocale(rendered.context().language().name());
+        document.setTemplateVersion("template-" + template.getId() + "-v" + version.getVersionNumber());
+        document.setTemplateVersionEntity(version);
+        document.setRenderSnapshot(rendered.snapshot());
+        document.setIssuedAt(new Date());
+        document.setIssuedBy(user.getId());
+        return toDto(repository.save(document));
+    }
+
+    @Transactional
+    public GeneratedDocumentDTO issueRequestReportFromTemplate(Long requestId, Long templateId, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user) || !request.canBeEditedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST");
+        DocumentTemplateVersion version = requirePublishedVersion(template);
+        RenderedTemplate rendered = renderTemplate(template, version, request, user);
+
+        String fileName = "Request-" + request.getId() + "-" + UUID.randomUUID() + ".pdf";
+        String path = storageServiceFactory.getStorageService().upload(rendered.pdf(), fileName,
+                "issued-documents/" + user.getCompany().getId() + "/requests");
+        GeneratedDocument document = new GeneratedDocument();
+        document.setDocumentType("MAINTENANCE_REQUEST_REPORT");
+        document.setCompany(user.getCompany());
+        document.setSourceType("REQUEST");
+        document.setSourceId(requestId);
+        document.setSite(request.getSite());
+        document.setFileName(fileName);
+        document.setStoragePath(path);
+        document.setSha256(sha256(rendered.pdf()));
+        document.setLocale(rendered.context().language().name());
+        document.setTemplateVersion("template-" + template.getId() + "-v" + version.getVersionNumber());
+        document.setTemplateVersionEntity(version);
+        document.setRenderSnapshot(rendered.snapshot());
+        document.setIssuedAt(new Date());
+        document.setIssuedBy(user.getId());
+        return toDto(repository.save(document));
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewWorkOrderReportFromTemplate(Long workOrderId, Long templateId, User user) {
+        WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user);
+        return renderTemplate(template, requirePublishedVersion(template), workOrder, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewRequestReportFromTemplate(Long requestId, Long templateId, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST");
+        return renderTemplate(template, requirePublishedVersion(template), request, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewRequestDocumentTemplate(Long templateId, Long requestId, User user) {
+        ensureCanManageTemplates(user, false);
+        DocumentTemplate template = findCompanyTemplate(templateId, user)
+                .filter(item -> item.getStatus() != DocumentTemplateStatus.ARCHIVED)
+                .orElseThrow(() -> new CustomException("Document template not found", HttpStatus.NOT_FOUND));
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplateVersion version = template.getDraftVersion() != null
+                ? template.getDraftVersion() : requirePublishedVersion(template);
+        return renderTemplate(template, version, request, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GeneratedDocumentDTO> listRequestReports(Long requestId, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return repository.findByCompany_IdAndSourceTypeAndSourceIdOrderByIssuedAtDesc(
+                user.getCompany().getId(), "REQUEST", requestId).stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublishedReportTemplateOptionDTO> listPublishedRequestReportTemplates(Long requestId, User user) {
+        Request request = findAuthorizedCompanyRequest(requestId, user);
+        if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return listPublishedTemplatesForType(user, "REQUEST");
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewDocumentTemplate(Long templateId, Long workOrderId, User user) {
+        ensureCanManageTemplates(user, false);
+        DocumentTemplate template = findCompanyTemplate(templateId, user)
+                .filter(item -> item.getStatus() != DocumentTemplateStatus.ARCHIVED)
+                .orElseThrow(() -> new CustomException("Document template not found", HttpStatus.NOT_FOUND));
+        if (!"WORK_ORDER".equals(template.getDocumentType().getCode()))
+            throw new CustomException("Use the source-specific preview route for this template", HttpStatus.BAD_REQUEST);
+        WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplateVersion version = template.getDraftVersion() != null
+                ? template.getDraftVersion() : requirePublishedVersion(template);
+        return renderTemplate(template, version, workOrder, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublishedReportTemplateOptionDTO> listPublishedWorkOrderReportTemplates(Long workOrderId, User user) {
+        WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return listPublishedTemplatesForType(user, "WORK_ORDER");
+    }
+
+    private List<PublishedReportTemplateOptionDTO> listPublishedTemplatesForType(User user, String typeCode) {
+        return templateRepository.findByCompany_IdOrderByUpdatedAtDesc(user.getCompany().getId()).stream()
+                .filter(template -> template.getStatus() == DocumentTemplateStatus.PUBLISHED)
+                .filter(template -> typeCode.equals(template.getDocumentType().getCode()))
+                .filter(template -> template.getPublishedVersion() != null
+                        && template.getPublishedVersion().getStatus() == DocumentTemplateStatus.PUBLISHED)
+                .map(template -> new PublishedReportTemplateOptionDTO(template.getId(), template.getName(),
+                        template.getPublishedVersion().getVersionNumber(), template.isDefault()))
+                .toList();
+    }
+
+    private WorkOrder findAuthorizedCompanyWorkOrder(Long workOrderId, User user) {
+        return workOrderService.findById(workOrderId)
+                .filter(wo -> wo.getCompany() != null && user.getCompany() != null
+                        && wo.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+    }
+
+    private DocumentTemplate findPublishedTemplate(Long templateId, User user) {
+        return findPublishedTemplate(templateId, user, "WORK_ORDER");
+    }
+
+    private DocumentTemplate findPublishedTemplate(Long templateId, User user, String typeCode) {
+        return templateRepository.findByIdAndCompany_IdAndStatus(
+                        templateId, user.getCompany().getId(), DocumentTemplateStatus.PUBLISHED)
+                .filter(item -> typeCode.equals(item.getDocumentType().getCode()))
+                .orElseThrow(() -> new CustomException("Published document template not found", HttpStatus.NOT_FOUND));
+    }
+
+    private java.util.Optional<DocumentTemplate> findCompanyTemplate(Long templateId, User user) {
+        if (user.getCompany() == null) return java.util.Optional.empty();
+        return templateRepository.findByIdAndCompany_Id(templateId, user.getCompany().getId());
+    }
+
+    private void ensureCanManageTemplates(User user, boolean edit) {
+        boolean canViewSettings = user.getRole() != null
+                && user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS);
+        boolean canEditSettings = user.getRole() != null
+                && user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS);
+        boolean canViewTemplates = user.getRole() != null
+                && user.getRole().getViewPermissions().contains(PermissionEntity.DOCUMENT_TEMPLATES);
+        boolean canEditTemplates = user.getRole() != null
+                && user.getRole().getEditOtherPermissions().contains(PermissionEntity.DOCUMENT_TEMPLATES);
+        boolean canManage = canViewSettings && (!edit || canEditSettings)
+                || canViewTemplates && (!edit || canEditTemplates);
+        if (user.getCompany() == null || (!user.isOwnsCompany() && !canManage))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+    }
+
+    private DocumentTemplateVersion requirePublishedVersion(DocumentTemplate template) {
+        DocumentTemplateVersion version = template.getPublishedVersion();
+        if (version == null || version.getStatus() != DocumentTemplateStatus.PUBLISHED)
+            throw new CustomException("Published document template version not found", HttpStatus.NOT_FOUND);
+        return version;
+    }
+
+    private RenderedTemplate renderTemplate(DocumentTemplate template, DocumentTemplateVersion version,
+                                            WorkOrderBase source, User user) {
+        JsonNode configuration = templateValidator.validate(version.getConfiguration(),
+                template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
+        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(source);
+        java.util.LinkedHashSet<String> selectedFields = new java.util.LinkedHashSet<>();
+        configuration.path("visibleFields").forEach(field -> selectedFields.add(field.asText()));
+        Map<String, Object> values = providerRegistry.require(template.getDocumentType().getProviderCode())
+                .resolve(source, context, selectedFields);
+        List<ReportFieldDefinitionDTO> fieldDefinitions = "REQUEST".equals(template.getDocumentType().getProviderCode())
+                ? REQUEST_REPORT_FIELDS : WORK_ORDER_REPORT_FIELDS;
+        List<ConfigurableWorkOrderReportRenderer.ReportRow> rows = selectedFields.stream().map(field -> {
+            ReportFieldDefinitionDTO definition = fieldDefinitions.stream()
+                    .filter(candidate -> candidate.key().equals(field)).findFirst()
+                    .orElseThrow(() -> new CustomException("Unsupported report field", HttpStatus.BAD_REQUEST));
+            String label = messageSource.getMessage(definition.labelKey(), null, field,
+                    context.locale() == null ? java.util.Locale.ROOT : context.locale());
+            return new ConfigurableWorkOrderReportRenderer.ReportRow(field, label, printable(values.get(field)));
+        }).toList();
+        String logoPath = user.getCompany().getLogo() == null ? null
+                : com.grash.utils.PdfReportUtils.getImageReportStoragePath(user.getCompany().getLogo());
+        String accentColor = user.getCompany().getCompanySettings().getGeneralPreferences().getColor();
+        byte[] pdf = templateRenderer.render(configuration, rows, context, logoPath, accentColor);
+        String snapshot = createTemplateSnapshot(context, configuration, values,
+                template.getId(), version.getId(), version.getVersionNumber());
+        return new RenderedTemplate(pdf, context, snapshot);
+    }
+
+    private record RenderedTemplate(byte[] pdf, DocumentContextResolver.DocumentContext context, String snapshot) { }
+
     @Transactional(readOnly = true)
     public List<GeneratedDocumentDTO> listWorkOrderReports(Long workOrderId, User user) {
         WorkOrder workOrder = workOrderService.findById(workOrderId)
@@ -131,6 +427,11 @@ public class GeneratedDocumentService {
             WorkOrder workOrder = workOrderService.findById(document.getSourceId())
                     .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
             if (!workOrder.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        } else if ("REQUEST".equals(document.getSourceType())) {
+            Request request = findAuthorizedCompanyRequest(document.getSourceId(), user);
+            if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        } else {
+            throw new CustomException("Document source is not supported", HttpStatus.FORBIDDEN);
         }
         byte[] data = storageServiceFactory.getStorageService().download(document.getStoragePath());
         return new DownloadedDocument(document.getFileName(), data);
@@ -147,6 +448,8 @@ public class GeneratedDocumentService {
         dto.setSha256(document.getSha256());
         dto.setLocale(document.getLocale());
         dto.setTemplateVersion(document.getTemplateVersion());
+        dto.setTemplateVersionId(document.getTemplateVersionEntity() == null ? null
+                : document.getTemplateVersionEntity().getId());
         dto.setIssuedAt(document.getIssuedAt());
         dto.setIssuedBy(document.getIssuedBy());
         return dto;
@@ -181,6 +484,45 @@ public class GeneratedDocumentService {
         } catch (Exception exception) {
             throw new IllegalStateException("Could not snapshot issued document context", exception);
         }
+    }
+
+    private String createTemplateSnapshot(DocumentContextResolver.DocumentContext context, JsonNode configuration,
+                                          Map<String, Object> values, Long templateId, Long versionId,
+                                          int versionNumber) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("companyName", context.companyName());
+        snapshot.put("legalName", context.legalName());
+        snapshot.put("registeredAddress", context.registeredAddress());
+        snapshot.put("registrationNumber", context.registrationNumber());
+        snapshot.put("taxNumber", context.taxNumber());
+        snapshot.put("phone", context.phone());
+        snapshot.put("email", context.email());
+        snapshot.put("siteId", context.siteId());
+        snapshot.put("siteName", context.siteName());
+        snapshot.put("locale", context.language().name());
+        snapshot.put("timeZone", context.timeZone());
+        snapshot.put("currency", context.currency());
+        snapshot.put("templateId", templateId);
+        snapshot.put("templateVersionId", versionId);
+        snapshot.put("templateVersionNumber", versionNumber);
+        snapshot.put("configuration", configuration);
+        snapshot.put("fieldValues", values);
+        try {
+            return SNAPSHOT_MAPPER.writeValueAsString(snapshot);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Could not snapshot issued document template", exception);
+        }
+    }
+
+    private String printable(Object value) {
+        if (value == null) return "";
+        if (value instanceof Iterable<?> items) {
+            java.util.List<String> strings = new java.util.ArrayList<>();
+            items.forEach(item -> strings.add(String.valueOf(item)));
+            return String.join(", ", strings);
+        }
+        if (value instanceof Number || value instanceof Boolean || value instanceof String) return value.toString();
+        throw new CustomException("Unsupported report value type", HttpStatus.BAD_REQUEST);
     }
 
     public record DownloadedDocument(String fileName, byte[] data) { }

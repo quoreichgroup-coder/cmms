@@ -23,6 +23,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import Request from '../../../models/owns/request';
 import { useDispatch } from '../../../store';
 import { approveRequest, editRequest } from '../../../slices/request';
@@ -48,6 +49,7 @@ import RequestStatusChip from './RequestStatusChip';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../../utils/api';
 import PriorityWrapper from '../components/PriorityWrapper';
+import RequestReportModal from './RequestReportModal';
 
 interface RequestDetailsProps {
   request: Request;
@@ -87,6 +89,7 @@ export default function RequestDetails({
   const [isImageViewerOpen, setIsImageViewerOpen] = useState<boolean>(false);
   const [openCancellationModal, setOpenCancellationModal] =
     useState<boolean>(false);
+  const [requestReportOpen, setRequestReportOpen] = useState(false);
   const onApprove = () => {
     setApproving(true);
     dispatch(
@@ -219,6 +222,17 @@ export default function RequestDetails({
           spacing={0.5}
           sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' } }}
         >
+          {hasEditPermission(PermissionEntity.REQUESTS, request) && (
+            <IconButton
+              aria-label={t(
+                'maintenance_request_report',
+                'Maintenance request report'
+              )}
+              onClick={() => setRequestReportOpen(true)}
+            >
+              <PrintOutlinedIcon color="primary" />
+            </IconButton>
+          )}
           {!request.cancelled &&
             hasEditPermission(PermissionEntity.REQUESTS, request) && (
               <IconButton aria-label={t('edit')} onClick={handleOpenUpdate}>
@@ -539,6 +553,11 @@ export default function RequestDetails({
           setOpenCancellationModal(false);
           onClose();
         }}
+      />
+      <RequestReportModal
+        open={requestReportOpen}
+        onClose={() => setRequestReportOpen(false)}
+        requestId={request.id}
       />
       <Dialog
         open={openApprovalConfirmation}

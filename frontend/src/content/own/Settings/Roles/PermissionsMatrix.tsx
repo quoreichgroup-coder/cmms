@@ -55,7 +55,8 @@ function PermissionsMatrix({
       SETTINGS: t('settings'),
       REQUESTS: 'Requests',
       ANALYTICS: 'Analytics',
-      REOPEN_WORK_ORDERS: t('reopen_work_orders_permission')
+      REOPEN_WORK_ORDERS: t('reopen_work_orders_permission'),
+      DOCUMENT_TEMPLATES: t('report_management')
     };
     return labels[entity] || entity;
   };
@@ -76,7 +77,12 @@ function PermissionsMatrix({
     root: PermissionRoot,
     entity: PermissionEntity
   ): boolean => {
-    return user?.role?.[root]?.includes(entity) ?? false;
+    const permissions = user?.role?.[root] ?? [];
+    return (
+      permissions.includes(entity) ||
+      (entity === PermissionEntity.DOCUMENT_TEMPLATES &&
+        permissions.includes(PermissionEntity.SETTINGS))
+    );
   };
 
   return (

@@ -13,7 +13,8 @@ export enum PermissionEntity {
   SETTINGS = 'SETTINGS',
   REQUESTS = 'REQUESTS',
   ANALYTICS = 'ANALYTICS',
-  REOPEN_WORK_ORDERS = 'REOPEN_WORK_ORDERS'
+  REOPEN_WORK_ORDERS = 'REOPEN_WORK_ORDERS',
+  DOCUMENT_TEMPLATES = 'DOCUMENT_TEMPLATES'
 }
 export type PermissionRoot =
   | 'createPermissions'

@@ -12,7 +12,11 @@ import {
   ListItemText,
   IconButton,
   Tooltip,
-  Typography
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,6 +33,13 @@ interface GeneratedDocument {
   fileName: string;
   issuedAt: string;
   sha256: string;
+}
+
+interface PublishedReportTemplate {
+  id: number;
+  name: string;
+  versionNumber: number;
+  isDefault: boolean;
 }
 
 interface ReportConfigModalProps {
@@ -67,7 +78,12 @@ export default function ReportConfigModal({
   const [documentsLoadFailed, setDocumentsLoadFailed] = useState(false);
   const [documentError, setDocumentError] = useState('');
   const [documentSaved, setDocumentSaved] = useState(false);
+  const [publishedTemplates, setPublishedTemplates] = useState<PublishedReportTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | ''>('');
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesLoadFailed, setTemplatesLoadFailed] = useState(false);
   const documentsRequest = useRef(0);
+  const templatesRequest = useRef(0);
 
   const loadDocuments = useCallback(async () => {
     const requestId = ++documentsRequest.current;
@@ -101,9 +117,31 @@ export default function ReportConfigModal({
   useEffect(() => {
     if (open) {
       void loadDocuments();
+      const requestId = ++templatesRequest.current;
+      setTemplatesLoading(true);
+      setTemplatesLoadFailed(false);
+      api.get<PublishedReportTemplate[]>(`work-orders/${workOrderId}/report/templates`)
+        .then((templates) => {
+          if (requestId !== templatesRequest.current) return;
+          if (!Array.isArray(templates)) throw new Error('invalid_template_list');
+          setPublishedTemplates(templates);
+          setSelectedTemplateId((current) => templates.some((item) => item.id === current)
+            ? current
+            : templates.find((item) => item.isDefault)?.id ?? '');
+        })
+        .catch(() => {
+          if (requestId !== templatesRequest.current) return;
+          setTemplatesLoadFailed(true);
+          setPublishedTemplates([]);
+          setSelectedTemplateId('');
+        })
+        .finally(() => {
+          if (requestId === templatesRequest.current) setTemplatesLoading(false);
+        });
     }
     return () => {
       documentsRequest.current += 1;
+      templatesRequest.current += 1;
     };
   }, [open, loadDocuments]);
 
@@ -118,8 +156,30 @@ export default function ReportConfigModal({
     const previewWindow = window.open('about:blank', '_blank');
     if (previewWindow) previewWindow.opener = null;
     setGenerating(true);
-    dispatch(getPDFReport(workOrderId, config, previewWindow))
-      .then(() => {
+    const preview = selectedTemplateId === ''
+      ? dispatch(getPDFReport(workOrderId, config, previewWindow))
+      : api.post<Response>(
+          `work-orders/${workOrderId}/report/preview-template/${selectedTemplateId}`,
+          null,
+          { raw: true }
+        ).then(async (response) => {
+          if (!isPdfContentType(response.headers.get('content-type'))) {
+            throw new Error('invalid_document_content_type');
+          }
+          const blob = await response.blob();
+          if (blob.size === 0) throw new Error('empty_document');
+          const url = window.URL.createObjectURL(blob);
+          if (previewWindow) previewWindow.location.href = url;
+          else {
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.click();
+          }
+          window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+        });
+    preview.then(() => {
         onClose();
       })
       .catch((error) => {
@@ -161,8 +221,10 @@ export default function ReportConfigModal({
     setDocumentSaved(false);
     try {
       await api.post<GeneratedDocument>(
-        `work-orders/${workOrderId}/report/issue`,
-        config
+        selectedTemplateId === ''
+          ? `work-orders/${workOrderId}/report/issue`
+          : `work-orders/${workOrderId}/report/issue-template/${selectedTemplateId}`,
+        selectedTemplateId === '' ? config : null
       );
       setDocumentSaved(true);
       void loadDocuments();
@@ -186,7 +248,32 @@ export default function ReportConfigModal({
         </Typography>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 3 }}>
-        <ReportConfigFields config={config} onToggle={handleToggle} />
+        {publishedTemplates.length > 0 && (
+          <FormControl fullWidth size="small" sx={{ mb: 2 }} disabled={templatesLoading || generating || issuing}>
+            <InputLabel id="work-order-report-template-label">{t('report_template', 'Report template')}</InputLabel>
+            <Select
+              labelId="work-order-report-template-label"
+              label={t('report_template', 'Report template')}
+              value={selectedTemplateId}
+              onChange={(event) => setSelectedTemplateId(
+                event.target.value === '' ? '' : Number(event.target.value)
+              )}
+            >
+              <MenuItem value="">{t('legacy_report_config', 'Existing report configuration')}</MenuItem>
+              {publishedTemplates.map((template) => (
+                <MenuItem key={template.id} value={template.id}>
+                  {template.name} · v{template.versionNumber}{template.isDefault ? ` · ${t('default', 'Default')}` : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+        {templatesLoadFailed && (
+          <Alert severity="info" sx={{ mb: 2 }}>{t('report_templates_unavailable', 'Published templates are unavailable. The existing report remains available.')}</Alert>
+        )}
+        {selectedTemplateId === '' && (
+          <ReportConfigFields config={config} onToggle={handleToggle} />
+        )}
         <Divider sx={{ my: 2 }} />
         <Typography variant="h5" gutterBottom>
           {t('issued_documents')}

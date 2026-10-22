@@ -252,10 +252,10 @@ public class Helper {
                         .code(RoleCode.LIMITED_ADMIN)
                         .name("Limited Administrator")
                         .paid(true)
-                        .createPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !Arrays.asList(PermissionEntity.PEOPLE_AND_TEAMS, PermissionEntity.REQUESTS).contains(permissionEntity)).collect(Collectors.toList())))
-                        .editOtherPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !permissionEntity.equals(PermissionEntity.PEOPLE_AND_TEAMS)).collect(Collectors.toList())))
-                        .viewOtherPermissions(new HashSet<>(allEntities))
-                        .viewPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> permissionEntity != PermissionEntity.SETTINGS).collect(Collectors.toList())))
+                        .createPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !Arrays.asList(PermissionEntity.PEOPLE_AND_TEAMS, PermissionEntity.REQUESTS, PermissionEntity.DOCUMENT_TEMPLATES).contains(permissionEntity)).collect(Collectors.toList())))
+                        .editOtherPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !Arrays.asList(PermissionEntity.PEOPLE_AND_TEAMS, PermissionEntity.DOCUMENT_TEMPLATES).contains(permissionEntity)).collect(Collectors.toList())))
+                        .viewOtherPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> permissionEntity != PermissionEntity.DOCUMENT_TEMPLATES).collect(Collectors.toList())))
+                        .viewPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !Arrays.asList(PermissionEntity.SETTINGS, PermissionEntity.DOCUMENT_TEMPLATES).contains(permissionEntity)).collect(Collectors.toList())))
                         .deleteOtherPermissions(new HashSet<>())
                         .build(),
                 Role.builder()
@@ -300,7 +300,7 @@ public class Helper {
                         .editOtherPermissions(new HashSet<>())
                         .deleteOtherPermissions(new HashSet<>())
                         .viewOtherPermissions(new HashSet<>(allEntities))
-                        .viewPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> permissionEntity != PermissionEntity.SETTINGS).collect(Collectors.toList())))
+                        .viewPermissions(new HashSet<>(allEntities.stream().filter(permissionEntity -> !Arrays.asList(PermissionEntity.SETTINGS, PermissionEntity.DOCUMENT_TEMPLATES).contains(permissionEntity)).collect(Collectors.toList())))
                         .build(),
                 Role.builder()
                         .roleType(RoleType.ROLE_CLIENT)

@@ -73,7 +73,11 @@ public class RoleService {
     }
 
     private void assertCanGrant(Collection<PermissionEntity> requested, Collection<PermissionEntity> owned) {
-        if (requested != null && owned != null && !owned.containsAll(requested)) {
+        if (requested != null && owned != null) {
+            Set<PermissionEntity> grantable = new HashSet<>(owned);
+            if (owned.contains(PermissionEntity.SETTINGS))
+                grantable.add(PermissionEntity.DOCUMENT_TEMPLATES);
+            if (!grantable.containsAll(requested))
             throw new CustomException("Cannot grant permissions you don't have", HttpStatus.FORBIDDEN);
         }
     }

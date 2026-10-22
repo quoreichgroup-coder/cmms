@@ -16,5 +16,6 @@ public enum PermissionEntity {
     SETTINGS,
     REQUESTS,
     ANALYTICS,
-    REOPEN_WORK_ORDERS
+    REOPEN_WORK_ORDERS,
+    DOCUMENT_TEMPLATES
 }

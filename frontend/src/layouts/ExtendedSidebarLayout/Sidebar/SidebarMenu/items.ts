@@ -26,6 +26,7 @@ export interface MenuItem {
   badge?: string;
   badgeTooltip?: string;
   permission?: PermissionEntity;
+  permissionFallback?: PermissionEntity;
   planFeature?: PlanFeature;
   uiConfigKey?: keyof Omit<UiConfiguration, 'id'>;
 
@@ -225,6 +226,13 @@ const ownMenuItems: MenuItems[] = [
         icon: AttachFileOutlinedIcon,
         permission: PermissionEntity.FILES,
         planFeature: PlanFeature.FILE
+      },
+      {
+        name: 'report_management',
+        link: '/app/settings/documents',
+        icon: ReceiptOutlinedIcon,
+        permission: PermissionEntity.DOCUMENT_TEMPLATES,
+        permissionFallback: PermissionEntity.SETTINGS
       },
       {
         name: 'settings',

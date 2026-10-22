@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style th:inline="css">
+        @page { size: [[${pageSize}]] [[${orientation}]]; margin: [[${marginMm}]]mm; }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; color: #17233b; font-size: 10pt; line-height: 1.45; }
+        .header { width: 100%; border-bottom: 2px solid [[${accentColor}]]; padding-bottom: 12px; margin-bottom: 20px; }
+        .company { font-size: 17pt; font-weight: bold; margin: 0 0 4px; }
+        .legal { color: #475467; font-size: 8.5pt; }
+        .logo { max-height: 42px; max-width: 155px; margin-bottom: 6px; }
+        .title { font-size: 15pt; margin: 22px 0 4px; }
+        .subtitle { color: #475467; font-size: 9pt; margin-bottom: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { display: table-header-group; }
+        th { background: #f2f4f7; text-align: left; color: #344054; }
+        th, td { border: 1px solid #d0d5dd; padding: 8px 10px; vertical-align: top; }
+        tr { page-break-inside: avoid; }
+        .label { width: 27%; font-weight: 600; }
+        .footer { position: fixed; bottom: -7mm; right: 0; color: #667085; font-size: 8pt; }
+        .footer:after { content: "Page " counter(page); }
+        body.compact { font-size: 8.5pt; line-height: 1.25; }
+        body.compact th, body.compact td { padding: 5px 7px; }
+        body.compact .header { padding-bottom: 8px; margin-bottom: 12px; }
+    </style>
+</head>
+<body th:class="${styleClass}">
+<header class="header">
+    <img class="logo" th:if="${logoStoragePath != null}"
+         th:attr="data-storage-path=${logoStoragePath}" alt="Company logo"/>
+    <div class="company" th:text="${legalName != null && !legalName.isBlank() ? legalName : companyName}">Company</div>
+    <div class="legal" th:if="${registeredAddress != null}" th:text="${registeredAddress}"></div>
+    <div class="legal">
+        <span th:if="${registrationNumber != null}" th:text="'Registration: ' + ${registrationNumber}"></span>
+        <span th:if="${taxNumber != null}" th:text="' · Tax: ' + ${taxNumber}"></span>
+    </div>
+    <div class="legal">
+        <span th:if="${phone != null}" th:text="${phone}"></span>
+        <span th:if="${email != null}" th:text="' · ' + ${email}"></span>
+        <span th:if="${siteName != null}" th:text="' · ' + ${siteName}"></span>
+    </div>
+</header>
+<h1 class="title" th:text="${reportTitle}">Work Order Report</h1>
+<p class="subtitle" th:text="${reportSubtitle}">Issued from the published QPM report template.</p>
+<table>
+    <thead th:style="${repeatTableHeader ? 'display: table-header-group;' : 'display: table-row-group;'}">
+    <tr><th class="label" th:text="${fieldHeader}">Field</th><th th:text="${valueHeader}">Value</th></tr></thead>
+    <tbody>
+    <tr th:each="row : ${rows}">
+        <td class="label" th:text="${row.label}">Field</td>
+        <td th:text="${row.value}">Value</td>
+    </tr>
+    </tbody>
+</table>
+<div class="footer" th:if="${showPageNumbers}"></div>
+</body>
+</html>

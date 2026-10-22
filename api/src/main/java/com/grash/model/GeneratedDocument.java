@@ -33,6 +33,10 @@ public class GeneratedDocument extends CompanyAudit {
     @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     private Site site;
 
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "template_version_id")
+    private DocumentTemplateVersion templateVersionEntity;
+
     @Column(nullable = false, length = 255)
     private String fileName;
 

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_22_document_templates_1" author="QPM">
+        <createTable tableName="document_type">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="BIGINT"><constraints foreignKeyName="fk_document_type_company" references="company(id)"/></column>
+            <column name="code" type="VARCHAR(60)"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(120)"><constraints nullable="false"/></column>
+            <column name="category" type="VARCHAR(40)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="provider_code" type="VARCHAR(60)"><constraints nullable="false"/></column>
+            <column name="system_managed" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/><column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="document_type" indexName="uk_document_type_tenant_code" unique="true">
+            <column name="company_id"/><column name="code"/>
+        </createIndex>
+        <sql>CREATE UNIQUE INDEX uk_document_type_system_code ON document_type (code) WHERE company_id IS NULL</sql>
+
+        <createTable tableName="document_template">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_document_template_company" references="company(id)"/></column>
+            <column name="document_type_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_document_template_type" references="document_type(id)"/></column>
+            <column name="code" type="VARCHAR(60)"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(160)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="style" type="VARCHAR(40)" defaultValue="CLASSIC"><constraints nullable="false"/></column>
+            <column name="engine" type="VARCHAR(40)" defaultValue="QPM_NATIVE"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(20)" defaultValue="DRAFT"><constraints nullable="false"/></column>
+            <column name="draft_version_id" type="BIGINT"/>
+            <column name="published_version_id" type="BIGINT"/>
+            <column name="default_scope" type="VARCHAR(20)" defaultValue="COMPANY"><constraints nullable="false"/></column>
+            <column name="is_default" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="lock_version" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/><column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="document_template" indexName="uk_document_template_company_code" unique="true">
+            <column name="company_id"/><column name="code"/>
+        </createIndex>
+        <createIndex tableName="document_template" indexName="idx_document_template_type_status">
+            <column name="company_id"/><column name="document_type_id"/><column name="status"/>
+        </createIndex>
+
+        <createTable tableName="document_template_version">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="template_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_document_template_version_template" references="document_template(id)"/></column>
+            <column name="version_number" type="INT"><constraints nullable="false"/></column>
+            <column name="schema_version" type="VARCHAR(20)" defaultValue="1.0"><constraints nullable="false"/></column>
+            <column name="configuration" type="JSONB"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(20)" defaultValue="DRAFT"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="published_by" type="BIGINT"/>
+            <column name="published_at" type="TIMESTAMP"/>
+        </createTable>
+        <createIndex tableName="document_template_version" indexName="uk_document_template_version_number" unique="true">
+            <column name="template_id"/><column name="version_number"/>
+        </createIndex>
+        <sql>CREATE UNIQUE INDEX uk_document_template_single_draft ON document_template_version (template_id) WHERE status = 'DRAFT'</sql>
+        <createIndex tableName="document_template_version" indexName="idx_document_template_version_history">
+            <column name="template_id"/><column name="version_number" descending="true"/>
+        </createIndex>
+        <addForeignKeyConstraint baseTableName="document_template" baseColumnNames="draft_version_id"
+                                 referencedTableName="document_template_version" referencedColumnNames="id"
+                                 constraintName="fk_document_template_draft_version" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableName="document_template" baseColumnNames="published_version_id"
+                                 referencedTableName="document_template_version" referencedColumnNames="id"
+                                 constraintName="fk_document_template_published_version" onDelete="RESTRICT"/>
+        <addColumn tableName="generated_document">
+            <column name="template_version_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="generated_document" baseColumnNames="template_version_id"
+                                 referencedTableName="document_template_version" referencedColumnNames="id"
+                                 constraintName="fk_generated_document_template_version" onDelete="RESTRICT"/>
+        <sql>CREATE UNIQUE INDEX uk_document_template_default_company_type ON document_template (company_id, document_type_id, default_scope) WHERE is_default = TRUE AND status = 'PUBLISHED'</sql>
+        <sql splitStatements="false"><![CDATA[
+            CREATE FUNCTION qpm_prevent_published_template_version_mutation() RETURNS trigger AS $$
+            BEGIN
+                IF OLD.status = 'PUBLISHED' THEN
+                    RAISE EXCEPTION 'Published document template versions are immutable';
+                END IF;
+                IF TG_OP = 'DELETE' THEN
+                    RETURN OLD;
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        ]]></sql>
+        <sql>CREATE TRIGGER trg_document_template_version_immutable BEFORE UPDATE OR DELETE ON document_template_version FOR EACH ROW EXECUTE FUNCTION qpm_prevent_published_template_version_mutation()</sql>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="generated_document" constraintName="fk_generated_document_template_version"/>
+            <dropColumn tableName="generated_document" columnName="template_version_id"/>
+            <sql>DROP TRIGGER IF EXISTS trg_document_template_version_immutable ON document_template_version</sql>
+            <sql>DROP FUNCTION IF EXISTS qpm_prevent_published_template_version_mutation()</sql>
+            <dropTable tableName="document_template" cascadeConstraints="true"/>
+            <dropTable tableName="document_template_version" cascadeConstraints="true"/>
+            <dropTable tableName="document_type" cascadeConstraints="true"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="2026_10_22_document_templates_2_seed_work_order_type" author="QPM">
+        <sql><![CDATA[
+            INSERT INTO document_type (company_id, code, name, category, description, provider_code, system_managed, active, created_at, updated_at)
+            SELECT NULL, 'WORK_ORDER', 'Work Order Report', 'MAINTENANCE', 'Work order report templates', 'WORK_ORDER', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM document_type WHERE company_id IS NULL AND code = 'WORK_ORDER')
+        ]]></sql>
+        <rollback>
+            <sql>DELETE FROM document_type WHERE company_id IS NULL AND code = 'WORK_ORDER' AND system_managed = TRUE</sql>
+        </rollback>
+    </changeSet>
+    <changeSet id="2026_10_22_document_templates_3_sequences" author="QPM">
+        <createSequence sequenceName="document_type_seq" startValue="1" incrementBy="50"/>
+        <createSequence sequenceName="document_template_seq" startValue="1" incrementBy="50"/>
+        <createSequence sequenceName="document_template_version_seq" startValue="1" incrementBy="50"/>
+        <rollback>
+            <dropSequence sequenceName="document_template_version_seq"/>
+            <dropSequence sequenceName="document_template_seq"/>
+            <dropSequence sequenceName="document_type_seq"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="2026_10_22_document_templates_4_seed_request_type" author="QPM">
+        <sql><![CDATA[
+            INSERT INTO document_type (company_id, code, name, category, description, provider_code, system_managed, active, created_at, updated_at)
+            SELECT NULL, 'REQUEST', 'Maintenance Request Report', 'MAINTENANCE', 'Maintenance request report templates', 'REQUEST', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM document_type WHERE company_id IS NULL AND code = 'REQUEST')
+        ]]></sql>
+        <rollback>
+            <sql>DELETE FROM document_type WHERE company_id IS NULL AND code = 'REQUEST' AND system_managed = TRUE</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

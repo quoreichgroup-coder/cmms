@@ -3,6 +3,15 @@ const { codeInspectorPlugin } = require('code-inspector-plugin');
 
 module.exports = {
   webpack: function override(config, env) {
+    // Optional low-memory production builds for constrained VPS/CI workers.
+    // This changes minifier parallelism only, not the generated application code.
+    if (env === 'production' && process.env.QPM_LOW_MEMORY_BUILD === '1') {
+      config.optimization.minimizer.forEach((minimizer) => {
+        if (minimizer.constructor?.name === 'TerserPlugin') {
+          minimizer.options.parallel = false;
+        }
+      });
+    }
     if (env === 'development') {
       config.plugins.push(
         codeInspectorPlugin({

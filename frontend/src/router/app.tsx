@@ -18,6 +18,9 @@ const SettingsLayout = Loader(
 const GeneralSettings = Loader(
   lazy(() => import('../content/own/Settings/General'))
 );
+const DocumentTemplatesSettings = Loader(
+  lazy(() => import('../content/own/Settings/Documents/DocumentTemplates'))
+);
 const FeaturesSettings = Loader(
   lazy(() => import('../content/own/Settings/Features'))
 );
@@ -268,6 +271,10 @@ const appRoutes = [
       {
         path: 'checklists',
         element: <ChecklistsSettings />
+      },
+      {
+        path: 'documents',
+        element: <DocumentTemplatesSettings />
       },
       {
         path: 'integrations',

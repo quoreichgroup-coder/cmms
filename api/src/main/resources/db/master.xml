@@ -289,4 +289,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_10_21_00000000001_hierarchy_exchange_ids.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_22_00000000001_document_templates.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>
