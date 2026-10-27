@@ -92,4 +92,8 @@
             <column name="received_at"/>
         </createIndex>
     </changeSet>
+    <changeSet id="2026-10-27-procurement-id-sequences" author="qpm">
+        <sql>CREATE SEQUENCE IF NOT EXISTS integration_object_reference_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS integration_event_receipt_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
 </databaseChangeLog>

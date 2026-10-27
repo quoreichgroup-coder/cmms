@@ -9,6 +9,7 @@ import com.grash.model.PurchaseOrder;
 import com.grash.model.enums.ApprovalStatus;
 import com.grash.model.enums.webhook.PartField;
 import com.grash.model.enums.webhook.WebhookEvent;
+import com.grash.repository.PartRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ import java.util.Map;
 public class PurchaseOrderApprovalService {
     private final PurchaseOrderService purchaseOrderService;
     private final PartQuantityService partQuantityService;
-    private final PartService partService;
+    private final PartRepository partRepository;
     private final PartMapper partMapper;
     private final WebhookDispatchService webhookDispatchService;
 
@@ -50,14 +51,14 @@ public class PurchaseOrderApprovalService {
                     throw new CustomException("Purchase order contains an invalid part quantity",
                             HttpStatus.CONFLICT);
                 }
-                Part part = partService.findByIdAndCompanyForUpdate(quantity.getPart().getId(), companyId)
+                Part part = partRepository.findByIdAndCompany_IdForUpdate(quantity.getPart().getId(), companyId)
                         .orElseThrow(() -> new CustomException("Part not found", HttpStatus.NOT_FOUND));
                 if (part.isNonStock()) {
                     continue;
                 }
                 double previousQuantity = part.getQuantity();
                 part.setQuantity(previousQuantity + quantity.getQuantity());
-                partService.save(part);
+                partRepository.save(part);
                 dispatchPartQuantityChangeWebhookAfterCommit(part, previousQuantity, part.getQuantity(),
                         quantity, purchaseOrder, purchaseOrder.getCompany());
             }

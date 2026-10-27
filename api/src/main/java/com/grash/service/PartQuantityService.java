@@ -14,18 +14,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PartQuantityService {
     private final PartQuantityRepository partQuantityRepository;
-    private final CompanyService companyService;
-    private final PartService partService;
-    private final PurchaseOrderService purchaseOrderService;
-    private final WorkOrderService workOrderService;
     private final PartQuantityMapper partQuantityMapper;
-
-    public PartQuantity create(PartQuantity PartQuantity) {
-        return partQuantityRepository.save(PartQuantity);
-    }
 
     public PartQuantity update(PartQuantity savedPartQuantity, PartQuantityPatchDTO patch) {
         return partQuantityRepository.save(partQuantityMapper.updatePartQuantity(savedPartQuantity, patch));
+    }
+
+    public PartQuantity create(PartQuantity PartQuantity) {
+        return partQuantityRepository.save(PartQuantity);
     }
 
     public Collection<PartQuantity> getAll() {
