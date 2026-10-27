@@ -8,6 +8,7 @@ import com.grash.model.Company;
 import com.grash.model.TaskBase;
 import com.grash.dto.license.LicenseEntitlement;
 import com.grash.repository.CheckListRepository;
+import com.grash.repository.WorkflowActionRepository;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ public class ChecklistService {
     private final TaskBaseService taskBaseService;
     private final EntityManager em;
     private final LicenseService licenseService;
+    private final WorkflowActionRepository workflowActionRepository;
 
     @Transactional
     public Checklist createPost(ChecklistPostDTO checklistReq, Company company) {
@@ -79,7 +81,11 @@ public class ChecklistService {
         return checklistRepository.findAll();
     }
 
+    @Transactional
     public void delete(Long id) {
+        if (workflowActionRepository.existsByChecklist_Id(id)) {
+            throw new CustomException("checklist_in_use", HttpStatus.CONFLICT);
+        }
         checklistRepository.deleteById(id);
     }
 

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -56,16 +57,24 @@ function Checklists() {
   const { user } = useAuth();
   const { companySettingsId } = user;
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { checklists, loadingGet } = useSelector((state) => state.checklists);
+  const { checklists, loadingGet, loadError } = useSelector(
+    (state) => state.checklists
+  );
 
   useEffect(() => {
-    if (hasFeature(PlanFeature.CHECKLIST)) dispatch(getChecklists());
+    if (hasFeature(PlanFeature.CHECKLIST))
+      dispatch(getChecklists()).catch(() => undefined);
   }, []);
   const onDeleteSuccess = () => {
     showSnackBar(t('checklist_delete_success'), 'success');
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('checklist_delete_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message =
+      err?.responseBody?.message === 'checklist_in_use'
+        ? t('checklist_delete_in_use')
+        : getErrorMessage(err) || t('checklist_delete_failure');
+    showSnackBar(message, 'error');
+  };
   const onEditSuccess = () => {
     setOpenEditChecklist(false);
     showSnackBar(t('changes_saved_success'), 'success');
@@ -146,7 +155,7 @@ function Checklists() {
             setCurrentChecklist(params.row);
             setOpenDelete(true);
           }}
-          label="Remove Checklist"
+          label={t('delete_task_list')}
         />
       ]
     }
@@ -175,22 +184,88 @@ function Checklists() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t('task_list_library_help')}
               </Typography>
-              <CustomDataGrid
-                columns={columns}
-                rows={checklists}
-                loading={loadingGet}
-                components={{
-                  Toolbar: GridToolbar
-                }}
-                onRowClick={(params: GridRowParams<Checklist>) => {
-                  openChecklistDetails(params.row);
-                }}
-                initialState={{
-                  columns: {
-                    columnVisibilityModel: {}
+              {loadError && checklists.length > 0 && (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      disabled={loadingGet}
+                      onClick={() =>
+                        dispatch(getChecklists()).catch(() => undefined)
+                      }
+                    >
+                      {t('retry')}
+                    </Button>
                   }
-                }}
-              />
+                  sx={{ mb: 2 }}
+                >
+                  {t('task_list_library_load_error')}
+                </Alert>
+              )}
+              {checklists.length === 0 && !loadingGet && loadError ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      disabled={loadingGet}
+                      onClick={() =>
+                        dispatch(getChecklists()).catch(() => undefined)
+                      }
+                    >
+                      {t('retry')}
+                    </Button>
+                  }
+                >
+                  {t('task_list_library_load_error')}
+                </Alert>
+              ) : checklists.length === 0 && !loadingGet ? (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    justifyItems: 'center',
+                    textAlign: 'center',
+                    gap: 1,
+                    py: 6,
+                    px: 2,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1
+                  }}
+                >
+                  <Typography variant="h6">
+                    {t('task_list_empty_title')}
+                  </Typography>
+                  <Typography color="text.secondary" sx={{ maxWidth: 520 }}>
+                    {t('task_list_empty_library_help')}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setOpenCreateChecklist(true)}
+                    startIcon={<AddOutlinedIcon fontSize="small" />}
+                  >
+                    {t('create_checklist')}
+                  </Button>
+                </Box>
+              ) : (
+                <CustomDataGrid
+                  columns={columns}
+                  rows={checklists}
+                  loading={loadingGet}
+                  components={{ Toolbar: GridToolbar }}
+                  onRowClick={(params: GridRowParams<Checklist>) => {
+                    openChecklistDetails(params.row);
+                  }}
+                  initialState={{
+                    columns: {
+                      columnVisibilityModel: {}
+                    }
+                  }}
+                />
+              )}
             </Box>
           </Grid>
           <Dialog
@@ -242,19 +317,58 @@ function Checklists() {
                           alignItems="flex-start"
                           spacing={1}
                         >
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                          >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ minWidth: 42 }}
+                          <Stack spacing={0.5}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
                             >
-                              {String((index + 1) * 10).padStart(4, '0')}
-                            </Typography>
-                            <Typography>{task.label}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ minWidth: 42 }}
+                              >
+                                {String((index + 1) * 10).padStart(4, '0')}
+                              </Typography>
+                              <Typography>{task.label}</Typography>
+                            </Stack>
+                            {(task.user || task.asset || task.meter) && (
+                              <Stack
+                                direction="row"
+                                spacing={1.5}
+                                flexWrap="wrap"
+                                sx={{ pl: 6.5 }}
+                              >
+                                {task.user && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {t('assigned_to')}: {task.user.firstName}{' '}
+                                    {task.user.lastName}
+                                  </Typography>
+                                )}
+                                {task.asset && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {t('asset')}: {task.asset.name}
+                                  </Typography>
+                                )}
+                                {task.meter && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {t('meter_reading')}: {task.meter.name}
+                                    {task.meter.unit
+                                      ? ` (${task.meter.unit})`
+                                      : ''}
+                                  </Typography>
+                                )}
+                              </Stack>
+                            )}
                           </Stack>
                           <Chip
                             size="small"
@@ -381,7 +495,9 @@ function Checklists() {
             }}
             onConfirm={() => handleDelete(currentChecklist?.id)}
             confirmText={t('to_delete')}
-            question={t('confirm_delete_checklist')}
+            question={t('confirm_delete_checklist_named', {
+              name: currentChecklist?.name ?? ''
+            })}
           />
         </>
       ) : (

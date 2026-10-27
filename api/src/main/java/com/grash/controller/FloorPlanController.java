@@ -8,6 +8,7 @@ import com.grash.mapper.FloorPlanMapper;
 import com.grash.model.FloorPlan;
 import com.grash.model.Location;
 import com.grash.model.User;
+import com.grash.model.enums.PermissionEntity;
 import com.grash.service.FloorPlanService;
 import com.grash.service.LocationService;
 import com.grash.service.UserService;
@@ -68,6 +69,15 @@ public class FloorPlanController {
     FloorPlanShowDTO create(@Parameter(description = "Floor plan data to create") @Valid @RequestBody FloorPlan floorPlanReq,
                             HttpServletRequest req) {
         User user = userService.whoami(req);
+        if (!user.getRole().getCreatePermissions().contains(PermissionEntity.LOCATIONS))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (floorPlanReq.getLocation() == null || floorPlanReq.getLocation().getId() == null)
+            throw new CustomException("Location is required", HttpStatus.BAD_REQUEST);
+        Location location = locationService.findByIdAndCompany(floorPlanReq.getLocation().getId(),
+                        user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Location not found", HttpStatus.NOT_FOUND));
+        checkAccessToLocation(location, user, true);
+        floorPlanReq.setLocation(location);
         return floorPlanMapper.toShowDto(floorPlanService.create(floorPlanReq));
     }
 
@@ -93,7 +103,7 @@ public class FloorPlanController {
         Optional<FloorPlan> optionalFloorPlan = floorPlanService.findById(id);
         if (optionalFloorPlan.isPresent()) {
             FloorPlan savedFloorPlan = optionalFloorPlan.get();
-            checkAccessToFloorPlan(savedFloorPlan, user, false);
+            checkCanDeleteFloorPlan(savedFloorPlan, user);
             floorPlanService.delete(id);
             return new ResponseEntity(new SuccessResponse(true, "Deleted successfully"),
                     HttpStatus.OK);
@@ -107,6 +117,14 @@ public class FloorPlanController {
     private void checkAccessToLocation(Location location, User user, boolean view) {
         if (!location.getCompany().getId().equals(user.getCompany().getId()) || (view ?
                 !location.canBeViewedBy(user) : !location.canBeEditedBy(user))) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    private void checkCanDeleteFloorPlan(FloorPlan floorPlan, User user) {
+        Location location = floorPlan.getLocation();
+        if (!location.getCompany().getId().equals(user.getCompany().getId())
+                || !location.canBeDeletedBy(user)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
     }

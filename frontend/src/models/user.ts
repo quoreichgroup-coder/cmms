@@ -38,6 +38,9 @@ export interface OwnUser extends Audit {
   enabled: boolean;
   paddleUserId: string;
   language: SupportedLanguage;
+  allSitesAccess?: boolean;
+  siteIds?: number[];
+  sites?: { id: number; name: string; code: string }[];
 }
 export interface UserMiniDTO {
   firstName: string;
@@ -49,12 +52,14 @@ export interface UserMiniDTO {
 export interface ShiftDayConfiguration {
   dayOfWeek: string;
   availabilityMinutes: number;
+  startTime: string;
   enabled: boolean;
 }
 
 export interface ShiftException {
   exceptionDate: string;
   availabilityMinutes: number;
+  startTime: string;
   enabled: boolean;
 }
 

@@ -17,6 +17,10 @@ public class WorkloadUserDayDTO {
     private String fullName;
     @Schema(description = "Available capacity in minutes for this day")
     private int capacityMinutes;
+    @Schema(description = "Why capacity is zero, or whether capacity is available")
+    private String capacityStatus;
+    @Schema(description = "Local workday start time in the company timezone")
+    private String startTime;
     @Schema(description = "Allocated time in minutes for this day")
     private double allocatedMinutes;
     @Schema(description = "Work orders scheduled on this day for this user")

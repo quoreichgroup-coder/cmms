@@ -136,12 +136,39 @@ export const editPurchaseOrder =
       })
     );
   };
+
+export const editPurchaseOrderWithLines =
+  (id: number, values): AppThunk =>
+  async (dispatch) => {
+    const { partQuantities, ...purchaseOrder } = values;
+    const purchaseOrderResponse = await api.patch<PurchaseOrder>(
+      `${basePath}/${id}/with-lines`,
+      { purchaseOrder, partQuantities }
+    );
+    dispatch(
+      slice.actions.editPurchaseOrder({ purchaseOrder: purchaseOrderResponse })
+    );
+  };
 export const addPurchaseOrder =
   (purchaseOrder): AppThunk =>
   async (dispatch) => {
     const purchaseOrderResponse = await api.post<PurchaseOrder>(
       basePath,
       purchaseOrder
+    );
+    dispatch(
+      slice.actions.addPurchaseOrder({ purchaseOrder: purchaseOrderResponse })
+    );
+    return purchaseOrderResponse.id;
+  };
+
+export const addPurchaseOrderWithLines =
+  (values): AppThunk =>
+  async (dispatch) => {
+    const { partQuantities, approveOnSubmit, ...purchaseOrder } = values;
+    const purchaseOrderResponse = await api.post<PurchaseOrder>(
+      `${basePath}/with-lines`,
+      { purchaseOrder, partQuantities, approveOnSubmit }
     );
     dispatch(
       slice.actions.addPurchaseOrder({ purchaseOrder: purchaseOrderResponse })

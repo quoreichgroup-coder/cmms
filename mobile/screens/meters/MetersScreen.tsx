@@ -31,6 +31,7 @@ import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { IconWithLabel } from '../../components/IconWithLabel';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import { PlanFeature } from '../../models/subscriptionPlan';
 
 export default function MetersScreen({
   navigation
@@ -49,8 +50,9 @@ export default function MetersScreen({
   const [hasLoadedList, setHasLoadedList] = useState(false);
   const nextPageRequestInProgress = useRef(false);
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const { hasViewPermission } = useAuth();
-  const canView = hasViewPermission(PermissionEntity.METERS);
+  const { hasViewPermission, hasFeature } = useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
+  const canView = hasViewPermission(PermissionEntity.METERS) && hasMeterFeature;
   const defaultFilterFields: FilterField[] = [];
   const getCriteriaFromFilterFields = (filterFields: FilterField[]) => {
     const initialCriteria: SearchCriteria = {
@@ -138,6 +140,14 @@ export default function MetersScreen({
     [searchQuery],
     1000
   );
+  if (!hasMeterFeature) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('meter_feature_unavailable')}
+      />
+    );
+  }
   return (
     <View
       style={{ ...styles.container, backgroundColor: theme.colors.background }}

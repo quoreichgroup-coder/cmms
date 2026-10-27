@@ -21,7 +21,18 @@ const PartAnalytics = Loader(
 const RequestAnalytics = Loader(
   lazy(() => import('../content/own/Analytics/Request'))
 );
+const CapacityAnalytics = Loader(
+  lazy(() => import('../content/own/Analytics/Capacity'))
+);
+const PreventiveMaintenanceAnalytics = Loader(
+  lazy(() => import('../content/own/Analytics/PreventiveMaintenance'))
+);
 const analyticsRoutes = [
+  { path: 'capacity', element: <CapacityAnalytics /> },
+  {
+    path: 'preventive-maintenance',
+    element: <PreventiveMaintenanceAnalytics />
+  },
   {
     path: 'work-orders',
     children: [

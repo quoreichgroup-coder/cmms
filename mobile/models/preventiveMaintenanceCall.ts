@@ -35,6 +35,7 @@ export default interface PreventiveMaintenanceCall {
   unit?: string | null;
   readingValue?: number | null;
   triggeredCycleCodes?: string[];
+  triggeredCycleNames?: string[];
   status: PreventiveMaintenanceCallStatus;
   workOrder?: PreventiveMaintenanceCallWorkOrder | null;
   rescheduleHistory?: PreventiveMaintenanceCallReschedule[];

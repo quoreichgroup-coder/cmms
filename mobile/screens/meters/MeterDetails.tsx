@@ -31,6 +31,7 @@ import { getUserUrl } from '../../utils/urlPaths';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { deleteMeter, getMeterDetails } from '../../slices/meter';
 import { getWorkOrderMeterTriggers } from '../../slices/workOrderMeterTrigger';
+import { PlanFeature } from '../../models/subscriptionPlan';
 import {
   createReading,
   deleteReading,
@@ -95,7 +96,9 @@ export default function MeterDetails({
     addReadingLockRef.current ??
     (addReadingLockRef.current = createAsyncActionLock());
   const { t } = useTranslation();
-  const { user, hasEditPermission, hasDeletePermission } = useAuth();
+  const { user, hasEditPermission, hasDeletePermission, hasFeature } =
+    useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
   const canOpenMeterActions = Boolean(
     meter &&
       (hasEditPermission(PermissionEntity.METERS, meter) ||
@@ -285,6 +288,7 @@ export default function MeterDetails({
   };
 
   const loadMeter = useCallback(async () => {
+    if (!hasMeterFeature) return;
     setMeterLoading(true);
     setMeterLoadError(false);
     try {
@@ -294,9 +298,10 @@ export default function MeterDetails({
     } finally {
       setMeterLoading(false);
     }
-  }, [dispatch, id]);
+  }, [dispatch, hasMeterFeature, id]);
 
   const loadReadings = useCallback(async () => {
+    if (!hasMeterFeature) return;
     setReadingsLoading(true);
     setReadingsLoadError(false);
     try {
@@ -306,9 +311,10 @@ export default function MeterDetails({
     } finally {
       setReadingsLoading(false);
     }
-  }, [dispatch, id]);
+  }, [dispatch, hasMeterFeature, id]);
 
   const loadTriggers = useCallback(async () => {
+    if (!hasMeterFeature) return;
     setTriggersLoading(true);
     setTriggersLoadError(false);
     try {
@@ -318,13 +324,14 @@ export default function MeterDetails({
     } finally {
       setTriggersLoading(false);
     }
-  }, [dispatch, id]);
+  }, [dispatch, hasMeterFeature, id]);
 
   useEffect(() => {
+    if (!hasMeterFeature) return;
     if (!meterProp) void loadMeter();
     void loadTriggers();
     void loadReadings();
-  }, [loadMeter, loadReadings, loadTriggers, meterProp]);
+  }, [hasMeterFeature, loadMeter, loadReadings, loadTriggers, meterProp]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -411,6 +418,13 @@ export default function MeterDetails({
       </Portal>
     );
   };
+  if (!hasMeterFeature)
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('meter_feature_unavailable')}
+      />
+    );
   if (meter)
     return (
       <>

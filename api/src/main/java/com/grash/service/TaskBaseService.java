@@ -5,8 +5,11 @@ import com.grash.dto.TaskBasePatchDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.TaskBaseMapper;
 import com.grash.model.Company;
+import com.grash.model.Asset;
+import com.grash.model.Meter;
 import com.grash.model.TaskBase;
 import com.grash.model.TaskOption;
+import com.grash.model.User;
 import com.grash.repository.TaskBaseRepository;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -45,13 +48,19 @@ public class TaskBaseService {
                 .taskType(taskBaseDTO.getTaskType())
                 .build();
         if (taskBaseDTO.getUser() != null) {
-            userService.findById(taskBaseDTO.getUser().getId()).ifPresent(taskBase::setUser);
+            var user = userService.findByIdAndCompany(taskBaseDTO.getUser().getId(), company.getId())
+                    .orElseThrow(() -> invalidTaskReference());
+            taskBase.setUser(user);
         }
         if (taskBaseDTO.getAsset() != null) {
-            assetService.findById(taskBaseDTO.getAsset().getId()).ifPresent(taskBase::setAsset);
+            var asset = assetService.findByIdAndCompany(taskBaseDTO.getAsset().getId(), company.getId())
+                    .orElseThrow(() -> invalidTaskReference());
+            taskBase.setAsset(asset);
         }
         if (taskBaseDTO.getMeter() != null) {
-            meterService.findById(taskBaseDTO.getMeter().getId()).ifPresent(taskBase::setMeter);
+            var meter = meterService.findByIdAndCompany(taskBaseDTO.getMeter().getId(), company.getId())
+                    .orElseThrow(() -> invalidTaskReference());
+            taskBase.setMeter(meter);
         }
         TaskBase savedTaskBase = create(taskBase);
 
@@ -65,6 +74,45 @@ public class TaskBaseService {
             });
         }
         return savedTaskBase;
+    }
+
+    /** Creates an operational task definition after checking each assigned reference
+     * against the acting user's site scope. Shared checklist definitions continue to
+     * use the company-only overload above.
+     */
+    @Transactional
+    public TaskBase createFromTaskBaseDTO(TaskBaseDTO taskBaseDTO, Company company, User actor) {
+        if (actor == null || actor.getCompany() == null || company == null
+                || !actor.getCompany().getId().equals(company.getId())) {
+            throw invalidTaskReference();
+        }
+        if (taskBaseDTO.getUser() != null) {
+            User assignee = userService.findByIdAndCompany(taskBaseDTO.getUser().getId(), company.getId())
+                    .orElseThrow(this::invalidTaskReference);
+            if (!canSeeAssignedUser(actor, assignee)) throw invalidTaskReference();
+        }
+        if (taskBaseDTO.getAsset() != null) {
+            Asset asset = assetService.findByIdAndCompany(taskBaseDTO.getAsset().getId(), company.getId())
+                    .orElseThrow(this::invalidTaskReference);
+            if (!actor.canAccessSite(asset.getSite())) throw invalidTaskReference();
+        }
+        if (taskBaseDTO.getMeter() != null) {
+            Meter meter = meterService.findByIdAndCompany(taskBaseDTO.getMeter().getId(), company.getId())
+                    .orElseThrow(this::invalidTaskReference);
+            if (meter.getAsset() == null || !actor.canAccessSite(meter.getAsset().getSite()))
+                throw invalidTaskReference();
+        }
+        return createFromTaskBaseDTO(taskBaseDTO, company);
+    }
+
+    private boolean canSeeAssignedUser(User actor, User assignee) {
+        if (actor.isAllSitesAccess()) return true;
+        if (assignee.isAllSitesAccess()) return true;
+        return assignee.getSites().stream().anyMatch(actor::canAccessSite);
+    }
+
+    private CustomException invalidTaskReference() {
+        return new CustomException("task_reference_unavailable", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     public TaskBase update(Long id, TaskBasePatchDTO taskBase) {

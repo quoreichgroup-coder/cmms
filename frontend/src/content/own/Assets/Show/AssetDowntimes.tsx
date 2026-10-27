@@ -29,6 +29,7 @@ import { PermissionEntity } from '../../../../models/owns/role';
 import {
   createAssetDowntime,
   deleteAssetDowntime,
+  editAssetDowntime,
   getAssetDowntimes
 } from '../../../../slices/assetDowntime';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -128,7 +129,10 @@ const AssetDowntimes = ({ asset }: PropsType) => {
     showSnackBar(t('edit_downtime_success'), 'success');
   };
   const onEditFailure = (err) =>
-    showSnackBar(t("The Downtime couldn't be edited"), 'error');
+    showSnackBar(
+      getErrorMessage(err, t('edit_downtime_failure')),
+      'error'
+    );
 
   const handleEdit = (id: number) => {
     setCurrentDowntime(downtimes.find((downtime) => downtime.id === id));
@@ -302,10 +306,12 @@ const AssetDowntimes = ({ asset }: PropsType) => {
             }}
             onChange={({ field, e }) => {}}
             onSubmit={async (values) => {
+              if (!currentDowntime) return;
               if (verifyValues(values))
                 return dispatch(
-                  createAssetDowntime(asset.id, {
-                    ...values,
+                  editAssetDowntime(currentDowntime.id, asset.id, {
+                    ...currentDowntime,
+                    startsOn: values.startsOn,
                     duration: values.hours * 60 * 60 + values.minutes * 60
                   })
                 )

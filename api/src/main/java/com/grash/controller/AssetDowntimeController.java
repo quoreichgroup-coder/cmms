@@ -43,8 +43,7 @@ public class AssetDowntimeController {
         if (user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS)) {
             Optional<AssetDowntime> optionalAssetDowntime = assetDowntimeService.findById(id);
             if (optionalAssetDowntime.isPresent()) {
-                if (!optionalAssetDowntime.get().getAsset().canBeViewedBy(user))
-                    throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+                assetService.checkAccessToAssetId(optionalAssetDowntime.get().getAsset().getId(), user);
                 return optionalAssetDowntime.get();
             } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
         } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
@@ -55,7 +54,8 @@ public class AssetDowntimeController {
     AssetDowntime create(@Parameter(description = "Asset downtime to create") @Valid @RequestBody AssetDowntime assetDowntimeReq,
                          HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<Asset> optionalAsset = assetService.findById(assetDowntimeReq.getAsset().getId());
+        Optional<Asset> optionalAsset = assetService.findByIdAndCompany(
+                assetDowntimeReq.getAsset().getId(), user.getCompany().getId());
         if (optionalAsset.isEmpty()) {
             throw new CustomException("Asset Not found", HttpStatus.BAD_REQUEST);
         }
@@ -63,7 +63,7 @@ public class AssetDowntimeController {
             throw new CustomException("The downtime can't occur before the asset in service date",
                     HttpStatus.NOT_ACCEPTABLE);
         }
-        if (optionalAsset.get().canBeEditedBy(user)) {
+        if (optionalAsset.get().canBeEditedBy(user) && user.canAccessSite(optionalAsset.get().getSite())) {
             return assetDowntimeService.create(assetDowntimeReq, true);
         } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
     }
@@ -84,7 +84,10 @@ public class AssetDowntimeController {
         User user = userService.whoami(req);
         Optional<AssetDowntime> optionalAssetDowntime = assetDowntimeService.findById(id);
         if (optionalAssetDowntime.isPresent()) {
-            if (optionalAssetDowntime.get().getAsset().canBeEditedBy(user)) {
+            Asset asset = assetService.findByIdAndCompany(optionalAssetDowntime.get().getAsset().getId(),
+                            user.getCompany().getId())
+                    .orElseThrow(() -> new CustomException("AssetDowntime not found", HttpStatus.NOT_FOUND));
+            if (asset.canBeEditedBy(user) && user.canAccessSite(asset.getSite())) {
                 return assetDowntimeService.update(id, assetDowntime);
             } else {
                 throw new CustomException("Can't patch assetDowntime of someone else", HttpStatus.NOT_ACCEPTABLE);
@@ -101,7 +104,10 @@ public class AssetDowntimeController {
 
         Optional<AssetDowntime> optionalAssetDowntime = assetDowntimeService.findById(id);
         if (optionalAssetDowntime.isPresent()) {
-            if (optionalAssetDowntime.get().getAsset().canBeEditedBy(user)) {
+            Asset asset = assetService.findByIdAndCompany(optionalAssetDowntime.get().getAsset().getId(),
+                            user.getCompany().getId())
+                    .orElseThrow(() -> new CustomException("AssetDowntime not found", HttpStatus.NOT_FOUND));
+            if (asset.canBeEditedBy(user) && user.canAccessSite(asset.getSite())) {
                 assetDowntimeService.delete(id);
                 return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
                         HttpStatus.OK);

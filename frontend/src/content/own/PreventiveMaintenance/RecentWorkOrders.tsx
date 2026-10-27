@@ -18,17 +18,10 @@ import api from '../../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { WorkOrderMini } from '../../../models/owns/workOrder';
 import { Page } from '../../../models/owns/page';
-import MeterCallRegister from './MeterCallRegister';
 import WorkOrderStatusChip from '../WorkOrders/WorkOrderStatusChip';
 import { logSafeError } from '../../../utils/safeErrorLog';
 
-const RecentWorkOrders = ({
-  pmId,
-  showMeterCalls = false
-}: {
-  pmId: number;
-  showMeterCalls?: boolean;
-}) => {
+const RecentWorkOrders = ({ pmId }: { pmId: number }) => {
   const { t }: { t: any } = useTranslation();
   const navigate = useNavigate();
   const { getFormattedDate } = useContext(CompanySettingsContext);
@@ -133,7 +126,6 @@ const RecentWorkOrders = ({
           sx={{ alignSelf: 'center' }}
         />
       )}
-      {showMeterCalls && <MeterCallRegister pmId={pmId} />}
     </Stack>
   );
 };

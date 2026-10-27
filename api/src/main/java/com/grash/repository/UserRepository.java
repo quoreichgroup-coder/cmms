@@ -2,6 +2,8 @@ package com.grash.repository;
 
 import com.grash.model.User;
 import com.grash.model.enums.RoleCode;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -36,6 +38,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     Optional<User> findByIdAndCompany_Id(Long id, Long companyId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.id = :userId and u.company.id = :companyId")
+    Optional<User> findByIdAndCompany_IdForUpdate(@Param("userId") Long userId,
+                                                  @Param("companyId") Long companyId);
+
     @Query("select u from User u where u.company.id=:id and u.role.code not in :roleCodes")
     Collection<User> findWorkersByCompany(@Param("id") Long id, @Param("roleCodes") List<RoleCode> roleCodes);
 
@@ -51,6 +58,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     boolean hasMorePaidUsersThan(@Param("threshold") int threshold);
 
     List<User> findByIdInAndCompany_Id(Collection<Long> longs, Long id);
+
+    List<User> findByRole_Id(Long roleId);
 
     Optional<User> findBySsoProviderIdAndSsoProvider(String ldapId, String provider);
 }

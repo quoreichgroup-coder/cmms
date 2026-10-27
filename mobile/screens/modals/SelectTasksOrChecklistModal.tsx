@@ -5,6 +5,8 @@ import * as React from 'react';
 import { Card, Icon, Text, useTheme } from 'react-native-paper';
 import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
 import { qpmLayoutTokens } from '../../theme/tokens';
+import useAuth from '../../hooks/useAuth';
+import { PlanFeature } from '../../models/subscriptionPlan';
 
 export default function SelectTasksOrChecklistModal({
   navigation,
@@ -13,6 +15,8 @@ export default function SelectTasksOrChecklistModal({
   const { onChange, selected } = route.params;
   const theme = useTheme();
   const { t } = useTranslation();
+  const { hasFeature } = useAuth();
+  const hasChecklistFeature = hasFeature(PlanFeature.CHECKLIST);
   const options: {
     label: string;
     screen: 'SelectTasks' | 'SelectChecklists';
@@ -22,13 +26,15 @@ export default function SelectTasksOrChecklistModal({
       label: t('task'),
       screen: 'SelectTasks',
       icon: 'checkbox-outline'
-    },
-    {
+    }
+  ];
+  if (hasChecklistFeature) {
+    options.push({
       label: t('checklist'),
       icon: 'format-list-bulleted',
       screen: 'SelectChecklists'
-    }
-  ];
+    });
+  }
 
   return (
     <ScrollView

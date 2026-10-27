@@ -25,7 +25,7 @@ import { useDispatch, useSelector } from '../../../store';
 import {
   clearSinglePurchaseOrder,
   deletePurchaseOrder,
-  editPurchaseOrder,
+  editPurchaseOrderWithLines,
   getPurchaseOrders,
   getSinglePurchaseOrder
 } from '../../../slices/purchaseOrder';
@@ -45,10 +45,7 @@ import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import NoRowsMessageWrapper from '../components/NoRowsMessageWrapper';
-import {
-  editPOPartQuantities,
-  getPartQuantitiesByPurchaseOrder
-} from '../../../slices/partQuantity';
+import { getPartQuantitiesByPurchaseOrder } from '../../../slices/partQuantity';
 import Category from '../../../models/owns/category';
 import { SearchCriteria } from '../../../models/owns/page';
 import { onSearchQueryChange } from '../../../utils/overall';
@@ -56,10 +53,6 @@ import SearchInput from '../components/SearchInput';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
-import {
-  PurchaseOrderPartsUpdateError,
-  updatePurchaseOrderWorkflow
-} from './createPurchaseOrderWorkflow';
 
 function PurchaseOrders() {
   const { t }: { t: any } = useTranslation();
@@ -210,13 +203,7 @@ function PurchaseOrders() {
     setOpenUpdateModal(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
-  const onEditFailure = (err) =>
-    showSnackBar(
-      err instanceof PurchaseOrderPartsUpdateError
-        ? t('po_edit_partial_failure')
-        : t('po_edit_failure'),
-      'error'
-    );
+  const onEditFailure = (err) => showSnackBar(t('po_edit_failure'), 'error');
   const onDeleteSuccess = () => {
     showSnackBar(t('po_delete_success'), 'success');
   };
@@ -248,25 +235,61 @@ function PurchaseOrders() {
     },
     {
       field: 'totalCost',
-      headerName: t('total_cost'),
-      description: t('total_cost'),
+      headerName: t('estimated_total_cost'),
+      description: t('purchase_order_cost_estimate_note'),
       width: 150,
-      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) =>
-        getFormattedCurrency(
-          params.row.partQuantities.reduce((acc, partQuantity) => {
+      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) => {
+        const partQuantities = params.row.partQuantities ?? [];
+        if (
+          partQuantities.length === 0 ||
+          partQuantities.some(
+            (partQuantity) => !Number.isFinite(partQuantity.part?.cost)
+          )
+        ) {
+          return '—';
+        }
+        return getFormattedCurrency(
+          partQuantities.reduce((acc, partQuantity) => {
             return acc + partQuantity.part.cost * partQuantity.quantity;
           }, 0)
-        )
+        );
+      }
     },
     {
       field: 'totalQuantity',
-      headerName: t('total_quantity'),
-      description: t('total_quantity'),
-      width: 150,
-      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) =>
-        params.row.partQuantities.reduce((acc, partQuantity) => {
-          return acc + partQuantity.quantity;
-        }, 0)
+      headerName: t('ordered_quantity_by_unit'),
+      description: t('ordered_quantity_by_unit'),
+      width: 210,
+      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) => {
+        const totalsByUnit = new Map<
+          string,
+          { label: string; total: number }
+        >();
+        params.row.partQuantities.forEach((partQuantity) => {
+          const unit = partQuantity.part.unit?.trim() || t('unit_unspecified');
+          const unitKey = unit.toLowerCase();
+          const current = totalsByUnit.get(unitKey);
+          totalsByUnit.set(unitKey, {
+            label: current?.label ?? unit,
+            total: (current?.total ?? 0) + partQuantity.quantity
+          });
+        });
+        return Array.from(totalsByUnit.entries())
+          .map(([, { label, total }]) => `${total.toLocaleString()} ${label}`)
+          .join(' · ');
+      },
+      renderCell: (params: GridRenderCellParams<string>) => (
+        <Box
+          title={params.value}
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {params.value || '—'}
+        </Box>
+      )
     },
     {
       field: 'category',
@@ -530,18 +553,8 @@ function PurchaseOrders() {
               values.category = formatSelect(values.category);
               values = formatCustomFields(values);
               try {
-                await updatePurchaseOrderWorkflow(
-                  () =>
-                    dispatch(
-                      editPurchaseOrder(currentPurchaseOrder.id, values)
-                    ),
-                  () =>
-                    dispatch(
-                      editPOPartQuantities(
-                        currentPurchaseOrder.id,
-                        values.partQuantities
-                      )
-                    )
+                await dispatch(
+                  editPurchaseOrderWithLines(currentPurchaseOrder.id, values)
                 );
                 onEditSuccess();
               } catch (err) {

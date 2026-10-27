@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface PurchaseOrderCategoryRepository extends JpaRepository<PurchaseOrderCategory, Long> {
     Collection<PurchaseOrderCategory> findByCompanySettings_Id(Long id);
 
+    Optional<PurchaseOrderCategory> findByIdAndCompanySettings_Id(Long id, Long companySettingsId);
+
     Optional<PurchaseOrderCategory> findByNameIgnoreCaseAndCompanySettings_Id(String name, Long id);
 
     void deleteByCompanySettings_Company_IdAndIsDemoTrue(Long companyId);

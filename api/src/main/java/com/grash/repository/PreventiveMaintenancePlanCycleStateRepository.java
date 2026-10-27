@@ -11,4 +11,5 @@ public interface PreventiveMaintenancePlanCycleStateRepository
     Optional<PreventiveMaintenancePlanCycleState> findBySchedule_IdAndCycleCode(Long scheduleId, String cycleCode);
     List<PreventiveMaintenancePlanCycleState> findBySchedule_Id(Long scheduleId);
     void deleteBySchedule_Id(Long scheduleId);
+    void deleteBySchedule_IdAndCycleCode(Long scheduleId, String cycleCode);
 }

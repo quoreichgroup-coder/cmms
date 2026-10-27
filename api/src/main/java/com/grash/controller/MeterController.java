@@ -53,7 +53,7 @@ public class MeterController {
     @GetMapping("/mini")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public Collection<MeterMiniDTO> getMini(@Parameter(hidden = true) @CurrentUser User user) {
-        return meterService.findByCompany(user.getCompany().getId()).stream().map(meterMapper::toMiniDto).collect(Collectors.toList());
+        return meterService.findVisibleByCompany(user).stream().map(meterMapper::toMiniDto).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")

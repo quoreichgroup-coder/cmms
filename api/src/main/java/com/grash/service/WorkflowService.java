@@ -4,13 +4,14 @@ import com.grash.dto.WorkflowPatchDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.WorkflowMapper;
 import com.grash.model.*;
-import com.grash.model.enums.ApprovalStatus;
+import com.grash.model.abstracts.CompanyAudit;
 import com.grash.model.enums.TaskType;
 import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.repository.*;
 import com.grash.utils.AuditComparator;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WorkflowService {
     private final WorkflowRepository workflowRepository;
     private final WorkflowMapper workflowMapper;
@@ -31,6 +33,7 @@ public class WorkflowService {
     private final RequestRepository requestRepository;
     private final AssetRepository assetRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final PurchaseOrderApprovalService purchaseOrderApprovalService;
     private final TaskRepository taskRepository;
 
     public Workflow create(Workflow Workflow) {
@@ -59,6 +62,10 @@ public class WorkflowService {
         return workflowRepository.findById(id);
     }
 
+    public Optional<Workflow> findByIdAndCompany(Long id, Long companyId) {
+        return workflowRepository.findByIdAndCompany_Id(id, companyId);
+    }
+
     public Collection<Workflow> findByMainConditionAndCompany(WFMainCondition mainCondition, Long id) {
         return workflowRepository.findByMainConditionAndCompany_Id(mainCondition, id);
     }
@@ -68,6 +75,7 @@ public class WorkflowService {
     }
 
     public void runWorkOrder(Workflow workflow, WorkOrder workOrder) {
+        if (!sameCompany(workflow, workOrder)) return;
         if (workflow.getSecondaryConditions().stream().allMatch(workflowCondition -> workflowCondition.isMetForWorkOrder(workOrder))) {
             WorkflowAction action = workflow.getAction();
             switch (action.getWorkOrderAction()) {
@@ -78,7 +86,12 @@ public class WorkflowService {
                     //TODO
                     return;
                 case ASSIGN_TEAM:
-                    workOrder.setTeam(action.getTeam());
+                    if (isTeamCompatibleWithSite(action.getTeam(), workOrder.getCompany(), workOrder.getSite())) {
+                        workOrder.setTeam(action.getTeam());
+                    } else {
+                        log.warn("Workflow {} skipped team assignment for work order {} because the team is outside its company or site scope",
+                                workflow.getId(), workOrder.getId());
+                    }
                     break;
                 case ASSIGN_USER:
                     workOrder.setPrimaryUser(action.getUser());
@@ -159,6 +172,7 @@ public class WorkflowService {
     }
 
     public void runRequest(Workflow workflow, Request request) {
+        if (!sameCompany(workflow, request)) return;
         if (workflow.getSecondaryConditions().stream().allMatch(workflowCondition -> workflowCondition.isMetForRequest(request))) {
             WorkflowAction action = workflow.getAction();
             switch (action.getRequestAction()) {
@@ -169,7 +183,12 @@ public class WorkflowService {
                     //TODO
                     return;
                 case ASSIGN_TEAM:
-                    request.setTeam(action.getTeam());
+                    if (isTeamCompatibleWithSite(action.getTeam(), request.getCompany(), request.getSite())) {
+                        request.setTeam(action.getTeam());
+                    } else {
+                        log.warn("Workflow {} skipped team assignment for request {} because the team is outside its company or site scope",
+                                workflow.getId(), request.getId());
+                    }
                     break;
                 case ASSIGN_USER:
                     request.setPrimaryUser(action.getUser());
@@ -193,18 +212,52 @@ public class WorkflowService {
         }
     }
 
+    private boolean sameCompany(Workflow workflow, CompanyAudit target) {
+        return workflow != null && target != null && workflow.getCompany() != null && target.getCompany() != null
+                && workflow.getCompany().getId().equals(target.getCompany().getId());
+    }
+
+    private boolean isTeamCompatibleWithSite(Team team, Company company, Site site) {
+        if (team == null) return true;
+        if (company == null || team.getCompany() == null
+                || !company.getId().equals(team.getCompany().getId())) return false;
+        return team.getUsers() == null || team.getUsers().stream().allMatch(member ->
+                member != null && member.getCompany() != null
+                        && company.getId().equals(member.getCompany().getId())
+                        && member.canAccessSite(site));
+    }
+
     public void runPurchaseOrder(Workflow workflow, PurchaseOrder purchaseOrder) {
         if (workflow.getSecondaryConditions().stream().allMatch(workflowCondition -> workflowCondition.isMetForPurchaseOrder(purchaseOrder))) {
             WorkflowAction action = workflow.getAction();
             switch (action.getPurchaseOrderAction()) {
                 case APPROVE:
-                    purchaseOrder.setStatus(ApprovalStatus.APPROVED);
+                    purchaseOrderApprovalService.respond(
+                            purchaseOrder.getId(), purchaseOrder.getCompany().getId(), true);
                     break;
                 case REJECT:
-                    purchaseOrder.setStatus(ApprovalStatus.REJECTED);
+                    purchaseOrderApprovalService.respond(
+                            purchaseOrder.getId(), purchaseOrder.getCompany().getId(), false);
                     break;
                 case ASSIGN_VENDOR:
+                    if (!sameCompany(workflow, action.getVendor()) || !sameCompany(workflow, purchaseOrder)) {
+                        throw new CustomException("Workflow vendor must belong to the purchase order company",
+                                HttpStatus.FORBIDDEN);
+                    }
                     purchaseOrder.setVendor(action.getVendor());
+                    break;
+                case ASSIGN_CATEGORY:
+                    if (action.getPurchaseOrderCategory() == null
+                            || action.getPurchaseOrderCategory().getCompanySettings() == null
+                            || action.getPurchaseOrderCategory().getCompanySettings().getCompany() == null
+                            || !action.getPurchaseOrderCategory().getCompanySettings().getCompany().getId()
+                            .equals(purchaseOrder.getCompany().getId())
+                            || !action.getPurchaseOrderCategory().getCompanySettings().getCompany().getId()
+                            .equals(workflow.getCompany().getId())) {
+                        throw new CustomException("Workflow category must belong to the purchase order company",
+                                HttpStatus.FORBIDDEN);
+                    }
+                    purchaseOrder.setCategory(action.getPurchaseOrderCategory());
                     break;
                 case SEND_REMINDER_EMAIL:
 //                    TODO
@@ -212,7 +265,10 @@ public class WorkflowService {
                 default:
                     break;
             }
-            purchaseOrderRepository.save(purchaseOrder);
+            if (action.getPurchaseOrderAction() != com.grash.model.enums.workflow.PurchaseOrderAction.APPROVE
+                    && action.getPurchaseOrderAction() != com.grash.model.enums.workflow.PurchaseOrderAction.REJECT) {
+                purchaseOrderRepository.save(purchaseOrder);
+            }
         }
     }
 

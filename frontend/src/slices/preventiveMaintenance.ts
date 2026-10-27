@@ -162,29 +162,22 @@ export const getSinglePreventiveMaintenance =
 export const addPreventiveMaintenance =
   (preventiveMaintenance: Partial<PreventiveMaintenancePost>): AppThunk =>
   async (dispatch) => {
+    const requestPayload = {
+      ...preventiveMaintenance,
+      tasks: preventiveMaintenance.tasks?.map((task) => ({
+        ...task.taskBase,
+        options: (task.taskBase.options ?? []).map((option) => option.label)
+      }))
+    };
     const preventiveMaintenanceResponse = await api.post<PreventiveMaintenance>(
       basePath,
-      preventiveMaintenance
+      requestPayload
     );
     dispatch(
       slice.actions.addPreventiveMaintenance({
         preventiveMaintenance: preventiveMaintenanceResponse
       })
     );
-    const taskBases =
-      preventiveMaintenance.tasks?.map((task) => {
-        return {
-          ...task.taskBase,
-          options: task.taskBase.options.map((option) => option.label)
-        };
-      }) ?? [];
-    if (taskBases.length) {
-      const tasks = await api.patch<Task[]>(
-        `tasks/preventive-maintenance/${preventiveMaintenanceResponse.id}`,
-        taskBases,
-        null
-      );
-    }
     return preventiveMaintenanceResponse;
   };
 export const editPreventiveMaintenance =

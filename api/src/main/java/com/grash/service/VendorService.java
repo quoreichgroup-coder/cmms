@@ -67,6 +67,10 @@ public class VendorService {
         return vendorRepository.findById(id);
     }
 
+    public Optional<Vendor> findByIdAndCompany(Long id, Long companyId) {
+        return vendorRepository.findByIdAndCompany_Id(id, companyId);
+    }
+
     public Collection<Vendor> findByCompany(Long id) {
         return vendorRepository.findByCompany_Id(id);
     }
@@ -93,7 +97,9 @@ public class VendorService {
     }
 
     public Vendor getById(Long id, User user) {
-        Optional<Vendor> optionalVendor = vendorRepository.findById(id);
+        Optional<Vendor> optionalVendor = user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)
+                ? vendorRepository.findByIdAndCompany_Id(id, user.getCompany().getId())
+                : vendorRepository.findById(id);
         if (optionalVendor.isPresent()) {
             Vendor savedVendor = optionalVendor.get();
             if (savedVendor.canBeViewedBy(user)) {
@@ -123,7 +129,7 @@ public class VendorService {
 
     @Transactional
     public Vendor patch(Long id, VendorPatchDTO vendor, User user) {
-        Optional<Vendor> optionalVendor = vendorRepository.findById(id);
+        Optional<Vendor> optionalVendor = vendorRepository.findByIdAndCompany_Id(id, user.getCompany().getId());
         if (optionalVendor.isEmpty())
             throw new CustomException("Vendor not found", HttpStatus.NOT_FOUND);
         Vendor savedVendor = optionalVendor.get();
@@ -139,11 +145,11 @@ public class VendorService {
 
     @Transactional
     public void deleteByIdAndUser(Long id, User user) {
-        Optional<Vendor> optionalVendor = vendorRepository.findById(id);
+        Optional<Vendor> optionalVendor = vendorRepository.findByIdAndCompany_Id(id, user.getCompany().getId());
         if (optionalVendor.isPresent()) {
             Vendor savedVendor = optionalVendor.get();
             if (savedVendor.canBeDeletedBy(user)) {
-                delete(id);
+                vendorRepository.delete(savedVendor);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Vendor not found", HttpStatus.NOT_FOUND);
     }

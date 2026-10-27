@@ -11,6 +11,8 @@ import {
   IconButton,
   MenuItem,
   Paper,
+  Radio,
+  RadioGroup,
   Select,
   Stack,
   TextField,
@@ -18,7 +20,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { getMetersMini } from '../../../slices/meter';
 import { useDispatch, useSelector } from '../../../store';
 import { validatePMPlanConfiguration } from '../../../utils/pmPlanConfiguration';
@@ -51,14 +54,15 @@ type Props = {
   meterTriggerOption: { label: string; value: string };
 };
 
-const makeCode = (name: string, fallback: string) =>
-  name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 90) || fallback;
+const makePlanCode = (prefix: 'package' | 'cycle', usedCodes: Set<string>) => {
+  let code = '';
+  do {
+    const entropy = Math.random().toString(36).slice(2, 10);
+    code = `${prefix}-${Date.now().toString(36)}-${entropy}`;
+  } while (usedCodes.has(code));
+  usedCodes.add(code);
+  return code;
+};
 
 const readConfiguration = (raw?: string): PlanConfig => {
   try {
@@ -133,6 +137,20 @@ const PMPlanConfigurationEditor = ({
     [values.planConfigurationJson]
   );
   const configurationError = validatePMPlanConfiguration(configuration);
+  const [pendingMode, setPendingMode] = useState<PlanConfig['mode'] | null>(null);
+  const selectedTaskIds = useMemo(
+    () => new Set(selectedTasks.map((task: { id: number }) => task.id)),
+    [selectedTasks]
+  );
+  const activeTaskAssignments =
+    configuration.mode === 'STRATEGY'
+      ? (configuration.packages ?? []).map((item) => item.taskBaseIds)
+      : configuration.mode === 'MULTI_COUNTER'
+        ? (configuration.cycles ?? []).map((cycle) => cycle.taskBaseIds)
+        : [];
+  const hasMissingTaskAssignments = activeTaskAssignments.some((ids) =>
+    ids.some((id) => !selectedTaskIds.has(id))
+  );
 
   useEffect(() => {
     if (configuration.mode === 'MULTI_COUNTER' && !meters.length)
@@ -199,6 +217,18 @@ const PMPlanConfigurationEditor = ({
     });
   };
 
+  const requestModeChange = (mode: PlanConfig['mode']) => {
+    if (mode === configuration.mode) return;
+    if (
+      (configuration.mode === 'STRATEGY' && (configuration.packages?.length ?? 0) > 0) ||
+      (configuration.mode === 'MULTI_COUNTER' && (configuration.cycles?.length ?? 0) > 0)
+    ) {
+      setPendingMode(mode);
+      return;
+    }
+    switchMode(mode);
+  };
+
   const updatePackage = (
     index: number,
     patch: Partial<NonNullable<PlanConfig['packages']>[number]>
@@ -231,22 +261,74 @@ const PMPlanConfigurationEditor = ({
             {t('pm_plan_configuration_help')}
           </Typography>
         </Box>
-        <FormControl fullWidth size="small">
-          <FormHelperText sx={{ ml: 0, mt: 0 }}>
+        <FormControl fullWidth>
+          <FormHelperText id="pm-plan-mode-label" sx={{ ml: 0, mt: 0, mb: 1 }}>
             {t('pm_plan_mode')}
           </FormHelperText>
-          <Select
+          <RadioGroup
+            aria-labelledby="pm-plan-mode-label"
             value={configuration.mode}
             onChange={(event) =>
-              switchMode(event.target.value as PlanConfig['mode'])
+              requestModeChange(event.target.value as PlanConfig['mode'])
             }
           >
-            <MenuItem value="SINGLE">{t('pm_plan_mode_single')}</MenuItem>
-            <MenuItem value="STRATEGY">{t('pm_plan_mode_strategy')}</MenuItem>
-            <MenuItem value="MULTI_COUNTER">
-              {t('pm_plan_mode_multi_counter')}
-            </MenuItem>
-          </Select>
+            <Grid container spacing={1}>
+              {(
+                [
+                  ['SINGLE', 'pm_plan_mode_single', 'pm_plan_mode_single_help'],
+                  [
+                    'STRATEGY',
+                    'pm_plan_mode_strategy',
+                    'pm_plan_mode_strategy_help'
+                  ],
+                  [
+                    'MULTI_COUNTER',
+                    'pm_plan_mode_multi_counter',
+                    'pm_plan_mode_multi_counter_help'
+                  ]
+                ] as const
+              ).map(([mode, title, description]) => (
+                <Grid item xs={12} sm={4} key={mode}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      height: '100%',
+                      borderColor:
+                        configuration.mode === mode
+                          ? 'primary.main'
+                          : 'divider',
+                      bgcolor:
+                        configuration.mode === mode
+                          ? 'action.selected'
+                          : 'background.paper'
+                    }}
+                  >
+                    <FormControlLabel
+                      value={mode}
+                      control={<Radio size="small" />}
+                      label={
+                        <Box sx={{ py: 1, pr: 1 }}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {t(title)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {t(description)}
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{
+                        m: 0,
+                        p: 1,
+                        width: '100%',
+                        height: '100%',
+                        alignItems: 'flex-start'
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </RadioGroup>
         </FormControl>
 
         {configuration.mode === 'SINGLE' && (
@@ -256,6 +338,9 @@ const PMPlanConfigurationEditor = ({
         )}
         {!!configurationError && (
           <Alert severity="error">{t(configurationError)}</Alert>
+        )}
+        {hasMissingTaskAssignments && (
+          <Alert severity="error">{t('pm_plan_task_assignment_missing')}</Alert>
         )}
 
         {configuration.mode === 'STRATEGY' && (
@@ -299,11 +384,7 @@ const PMPlanConfigurationEditor = ({
                       value={item.name}
                       onChange={(event) =>
                         updatePackage(index, {
-                          name: event.target.value,
-                          code: makeCode(
-                            event.target.value,
-                            `package-${index + 1}`
-                          )
+                          name: event.target.value
                         })
                       }
                     />
@@ -356,7 +437,7 @@ const PMPlanConfigurationEditor = ({
                                 }
                               />
                             }
-                            label={`${task.label} (#${task.id})`}
+                            label={task.label}
                           />
                         )
                       )}
@@ -373,13 +454,19 @@ const PMPlanConfigurationEditor = ({
             <Button
               startIcon={<AddIcon />}
               onClick={() => {
-                const index = configuration.packages?.length ?? 0;
                 commit({
                   ...configuration,
                   packages: [
                     ...(configuration.packages ?? []),
                     {
-                      code: `package-${index + 1}`,
+                      code: makePlanCode(
+                        'package',
+                        new Set(
+                          (configuration.packages ?? []).map(
+                            (item) => item.code
+                          )
+                        )
+                      ),
                       name: t('pm_package_default_name'),
                       everyBaseCycles: 1,
                       taskBaseIds: []
@@ -458,11 +545,7 @@ const PMPlanConfigurationEditor = ({
                       value={cycle.name}
                       onChange={(event) =>
                         updateCycle(index, {
-                          name: event.target.value,
-                          code: makeCode(
-                            event.target.value,
-                            `cycle-${index + 1}`
-                          )
+                          name: event.target.value
                         })
                       }
                     />
@@ -626,7 +709,7 @@ const PMPlanConfigurationEditor = ({
                                 }
                               />
                             }
-                            label={`${task.label} (#${task.id})`}
+                            label={task.label}
                           />
                         )
                       )}
@@ -649,7 +732,14 @@ const PMPlanConfigurationEditor = ({
                   cycles: [
                     ...(configuration.cycles ?? []),
                     {
-                      code: `cycle-${index + 1}`,
+                      code: makePlanCode(
+                        'cycle',
+                        new Set(
+                          (configuration.cycles ?? []).map(
+                            (cycle) => cycle.code
+                          )
+                        )
+                      ),
                       name: t('pm_cycle_default_name', { number: index + 1 }),
                       dimension: 'METER',
                       interval: 100,
@@ -669,6 +759,16 @@ const PMPlanConfigurationEditor = ({
           </Stack>
         )}
       </Stack>
+      <ConfirmDialog
+        open={Boolean(pendingMode)}
+        onCancel={() => setPendingMode(null)}
+        onConfirm={() => {
+          if (pendingMode) switchMode(pendingMode);
+          setPendingMode(null);
+        }}
+        confirmText={t('discard_changes')}
+        question={t('pm_switch_mode_warning')}
+      />
     </Paper>
   );
 };

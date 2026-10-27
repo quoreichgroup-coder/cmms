@@ -1,6 +1,7 @@
 package com.grash.dto;
 
 import com.grash.dto.cutomField.CustomFieldValuePostDTO;
+import com.grash.dto.TaskBaseDTO;
 import com.grash.model.CustomFieldValue;
 import com.grash.model.PreventiveMaintenancePlanConfiguration;
 import com.grash.model.abstracts.WorkOrderBase;
@@ -12,6 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -59,6 +61,9 @@ public class PreventiveMaintenancePostDTO extends WorkOrderBase {
     private Double meterEndValue;
 
     private PreventiveMaintenancePlanConfiguration planConfiguration;
+
+    @Valid
+    private List<TaskBaseDTO> tasks = new ArrayList<>();
 
     @Schema(description = "List of custom field values")
     private List<CustomFieldValuePostDTO> customFields = new ArrayList<>();

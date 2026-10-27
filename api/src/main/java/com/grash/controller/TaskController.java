@@ -109,20 +109,38 @@ public class TaskController {
         // Process each incoming task
         for (int taskOrder = 0; taskOrder < incomingTasks.size(); taskOrder++) {
             TaskBaseDTO reqTaskBase = incomingTasks.get(taskOrder);
-            // Find matching existing task by comparing task base properties
-            Task matchedTask = savedTasks.stream()
+            // Work-order edits carry the task row ID so changing its definition does not
+            // replace the execution record (value, notes, and attached evidence).
+            // Scope lookup to this entity's already-authorized task list.
+            Task matchedTask = workOrder != null && reqTaskBase.getWorkOrderTaskId() != null
+                    ? savedTasks.stream()
+                    .filter(task -> !matchedTasks.contains(task)
+                            && task.getId().equals(reqTaskBase.getWorkOrderTaskId()))
+                    .findFirst()
+                    .orElse(null)
+                    : null;
+
+            if (matchedTask == null) {
+                // Preserve the existing behavior for PM task lists and legacy clients.
+                matchedTask = savedTasks.stream()
                     .filter(task -> !matchedTasks.contains(task) && tasksMatch(task.getTaskBase(), reqTaskBase))
                     .findFirst()
                     .orElse(null);
+            }
 
             if (matchedTask != null) {
-                // Task already exists - preserve it with all its data (notes, images, value)
+                // Keep the execution row and its value, notes, images, and audit identity.
+                // Definitions are copied to a new TaskBase, never edited in place because
+                // a base can also be referenced by a checklist or preventive maintenance.
+                if (!tasksMatch(matchedTask.getTaskBase(), reqTaskBase)) {
+                    matchedTask.setTaskBase(taskBaseService.createFromTaskBaseDTO(reqTaskBase, user.getCompany(), user));
+                }
                 matchedTasks.add(matchedTask);
                 matchedTask.setTaskOrder(taskOrder);
                 resultTasks.add(matchedTask);
             } else {
                 // New task - create it
-                TaskBase taskBase = taskBaseService.createFromTaskBaseDTO(reqTaskBase, user.getCompany());
+                TaskBase taskBase = taskBaseService.createFromTaskBaseDTO(reqTaskBase, user.getCompany(), user);
                 StringBuilder value = new StringBuilder();
                 if (taskBase.getTaskType().equals(TaskType.SUBTASK)) {
                     value.append("OPEN");
@@ -136,13 +154,37 @@ public class TaskController {
             }
         }
 
-        // Delete tasks that are no longer in the incoming request
+        // A removed work-order row may already hold completion evidence. Keep the
+        // update atomic and reject that destructive edit instead of losing it.
+        if (workOrder != null) {
+            savedTasks.stream()
+                    .filter(task -> !matchedTasks.contains(task))
+                    .filter(this::hasExecutionEvidence)
+                    .findFirst()
+                    .ifPresent(task -> {
+                        throw new CustomException(
+                                "Cannot remove a work-order task with a recorded value, notes, or attachments",
+                                HttpStatus.CONFLICT);
+                    });
+        }
+
+        // Delete tasks that are no longer in the incoming request and have no execution evidence.
         savedTasks.forEach(task -> {
             if (!matchedTasks.contains(task)) {
                 taskService.delete(task.getId());
             }
         });
         return resultTasks;
+    }
+
+    private boolean hasExecutionEvidence(Task task) {
+        boolean hasRecordedValue = task.getValue() != null
+                && !task.getValue().isBlank()
+                && !"OPEN".equals(task.getValue())
+                && !"FLAG".equals(task.getValue());
+        boolean hasNotes = task.getNotes() != null && !task.getNotes().isBlank();
+        boolean hasAttachments = task.getImages() != null && !task.getImages().isEmpty();
+        return hasRecordedValue || hasNotes || hasAttachments;
     }
 
     @PatchMapping("/work-order/{id}")

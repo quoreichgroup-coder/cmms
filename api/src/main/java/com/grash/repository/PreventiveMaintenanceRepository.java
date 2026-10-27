@@ -35,4 +35,15 @@ public interface PreventiveMaintenanceRepository extends JpaRepository<Preventiv
             "LEFT JOIN FETCH p.location LEFT JOIN FETCH p.asset " +
             "WHERE p.company.id = :companyId")
     Page<PreventiveMaintenance> findByCompanyForExport(@Param("companyId") Long companyId, Pageable pageable);
+
+    @Query(value = "SELECT p FROM PreventiveMaintenance p LEFT JOIN FETCH p.schedule " +
+            "LEFT JOIN FETCH p.team LEFT JOIN FETCH p.primaryUser LEFT JOIN FETCH p.category " +
+            "LEFT JOIN FETCH p.location LEFT JOIN FETCH p.asset " +
+            "WHERE p.company.id = :companyId AND (p.site IS NULL OR p.site.id IN :siteIds)",
+            countQuery = "SELECT COUNT(p) FROM PreventiveMaintenance p " +
+                    "WHERE p.company.id = :companyId AND (p.site IS NULL OR p.site.id IN :siteIds)")
+    Page<PreventiveMaintenance> findByCompanyForExportAndAccessibleSites(
+            @Param("companyId") Long companyId,
+            @Param("siteIds") List<Long> siteIds,
+            Pageable pageable);
 }

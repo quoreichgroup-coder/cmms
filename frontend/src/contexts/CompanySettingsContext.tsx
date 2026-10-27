@@ -55,7 +55,14 @@ export const CompanySettingsProvider: FC = ({ children }) => {
     if (!dateString) return '';
 
     const tz = generalPreferences?.timeZone || 'UTC';
-    const date = utcToZonedTime(new Date(dateString), tz);
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+    const date = dateOnlyMatch
+      ? new Date(
+          Number(dateOnlyMatch[1]),
+          Number(dateOnlyMatch[2]) - 1,
+          Number(dateOnlyMatch[3])
+        )
+      : utcToZonedTime(new Date(dateString), tz);
 
     const timeStr = hideTime ? '' : format(date, ' HH:mm');
 

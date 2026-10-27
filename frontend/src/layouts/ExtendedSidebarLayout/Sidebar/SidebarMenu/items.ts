@@ -69,6 +69,16 @@ const ownMenuItems: MenuItems[] = [
         planFeature: PlanFeature.ANALYTICS,
         items: [
           {
+            name: 'capacity_planned_vs_allocated',
+            link: '/app/analytics/capacity',
+            icon: InsertChartOutlinedIcon
+          },
+          {
+            name: 'preventive_maintenance_analytics',
+            link: '/app/analytics/preventive-maintenance',
+            icon: PendingActionsOutlinedIcon
+          },
+          {
             name: 'work_orders',
             icon: AssignmentOutlinedIcon,
             items: [

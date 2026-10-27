@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="2026_10_26_00000000001_protect_workflows_from_checklist_delete" author="qpm">
+        <dropForeignKeyConstraint baseTableName="workflow_action"
+                                  constraintName="fkbvldf2gcw2fnr9flgnfr76i7i"/>
+        <addForeignKeyConstraint baseTableName="workflow_action"
+                                 baseColumnNames="checklist_id"
+                                 constraintName="fkbvldf2gcw2fnr9flgnfr76i7i"
+                                 referencedTableName="checklist"
+                                 referencedColumnNames="id"
+                                 onDelete="NO ACTION"/>
+    </changeSet>
+</databaseChangeLog>

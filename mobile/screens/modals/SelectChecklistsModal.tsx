@@ -15,6 +15,8 @@ import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { getTaskFromTaskBase } from '../../utils/formatters';
 import { getChecklists } from '../../slices/checklist';
 import { useDispatch, useSelector } from '../../store';
+import useAuth from '../../hooks/useAuth';
+import { PlanFeature } from '../../models/subscriptionPlan';
 
 export default function SelectChecklistsModal({
   navigation,
@@ -23,6 +25,8 @@ export default function SelectChecklistsModal({
   const { onChange, selected } = route.params;
   const theme = useTheme();
   const { t }: { t: any } = useTranslation();
+  const { hasFeature } = useAuth();
+  const hasChecklistFeature = hasFeature(PlanFeature.CHECKLIST);
   const dispatch = useDispatch();
   const { checklists } = useSelector((state) => state.checklists);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,8 +50,17 @@ export default function SelectChecklistsModal({
   }, [dispatch]);
 
   useEffect(() => {
-    void loadChecklists();
-  }, [loadChecklists]);
+    if (hasChecklistFeature) void loadChecklists();
+  }, [hasChecklistFeature, loadChecklists]);
+
+  if (!hasChecklistFeature) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('checklist_feature_unavailable')}
+      />
+    );
+  }
 
   const normalizedSearch = searchQuery.toLowerCase().trim();
   const filteredChecklists = checklists.filter((checklist) =>

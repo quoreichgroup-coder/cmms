@@ -2,6 +2,8 @@ package com.grash.service;
 
 import com.grash.dto.GeneratedDocumentDTO;
 import com.grash.dto.ReportFieldDefinitionDTO;
+import com.grash.dto.ReportFieldDiagnosisDTO;
+import com.grash.dto.ReportTablePreviewDTO;
 import com.grash.dto.ReportConfig;
 import com.grash.dto.PublishedReportTemplateOptionDTO;
 import com.grash.exception.CustomException;
@@ -32,6 +34,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -48,12 +51,18 @@ public class GeneratedDocumentService {
             new ReportFieldDefinitionDTO("workOrder.dueDate", "report.field.workOrder.dueDate", "workOrder", "date", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("workOrder.completedAt", "report.field.workOrder.completedAt", "workOrder", "dateTime", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("workOrder.estimatedDuration", "report.field.workOrder.estimatedDuration", "workOrder", "duration", false, false, "estimatedTime"),
+            new ReportFieldDefinitionDTO("workOrder.actualDuration", "report.field.workOrder.actualDuration", "workOrder", "duration", true, false, "laborTime"),
             new ReportFieldDefinitionDTO("workOrder.category", "report.field.workOrder.category", "workOrder", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("asset.name", "report.field.asset.name", "asset", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("location.name", "report.field.location.name", "location", "string", false, false, "locationAddress"),
             new ReportFieldDefinitionDTO("asset.serialNumber", "report.field.asset.serialNumber", "asset", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("workOrder.team", "report.field.workOrder.team", "people", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("workOrder.completedBy", "report.field.workOrder.completedBy", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.primaryUser", "report.field.workOrder.primaryUser", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.customers", "report.field.workOrder.customers", "people", "string", true, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.createdBy", "report.field.workOrder.createdBy", "people", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.feedback", "report.field.workOrder.feedback", "execution", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("workOrder.signature", "report.field.workOrder.signature", "execution", "image", false, false, "signature"),
             new ReportFieldDefinitionDTO("workOrder.customFields", "report.field.workOrder.customFields", "workOrder", "object", true, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("site.name", "report.field.site.name", "organization", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("company.name", "report.field.company.name", "organization", "string", false, false, "workOrderInformation"),
@@ -67,12 +76,14 @@ public class GeneratedDocumentService {
             new ReportFieldDefinitionDTO("workOrder.tasks", "report.field.workOrder.tasks", "execution", "object", true, false, "tasks"),
             new ReportFieldDefinitionDTO("workOrder.comments", "report.field.workOrder.comments", "execution", "object", true, false, "comments"),
             new ReportFieldDefinitionDTO("workOrder.history", "report.field.workOrder.history", "execution", "object", true, false, "workOrderHistory"),
-            new ReportFieldDefinitionDTO("workOrder.signature", "report.field.workOrder.signature", "execution", "string", false, false, "signature"),
             new ReportFieldDefinitionDTO("workOrder.parts", "report.field.workOrder.parts", "costs", "object", true, true, "cost"),
             new ReportFieldDefinitionDTO("workOrder.labor", "report.field.workOrder.labor", "costs", "object", true, true, "cost"),
             new ReportFieldDefinitionDTO("workOrder.additionalCosts", "report.field.workOrder.additionalCosts", "costs", "object", true, true, "cost"),
             new ReportFieldDefinitionDTO("workOrder.relations", "report.field.workOrder.relations", "relatedRecords", "object", true, false, "relations"),
-            new ReportFieldDefinitionDTO("workOrder.files", "report.field.workOrder.files", "attachments", "file", true, false, "files")
+            new ReportFieldDefinitionDTO("workOrder.files", "report.field.workOrder.files", "attachments", "file", true, false, "files"),
+            new ReportFieldDefinitionDTO("workOrder.executionTasks", "report.field.workOrder.executionTasks", "execution", "table", true, false, "tasks"),
+            new ReportFieldDefinitionDTO("workOrder.laborTimeEntries", "report.field.workOrder.laborTimeEntries", "execution", "table", true, false, "laborTime"),
+            new ReportFieldDefinitionDTO("workOrder.materialsUsed", "report.field.workOrder.materialsUsed", "materials", "table", true, false, "parts")
     );
     private static final List<ReportFieldDefinitionDTO> REQUEST_REPORT_FIELDS = List.of(
             new ReportFieldDefinitionDTO("request.customId", "report.field.request.customId", "request", "string", false, false, "workOrderInformation"),
@@ -105,6 +116,8 @@ public class GeneratedDocumentService {
     private final RequestService requestService;
     private final DocumentTemplateRepository templateRepository;
     private final ReportTemplateConfigurationValidator templateValidator;
+    private final PdfmeTemplateConfigurationValidator pdfmeValidator;
+    private final PdfmeRendererClient pdfmeRendererClient;
     private final DocumentDataProviderRegistry providerRegistry;
     private final ConfigurableWorkOrderReportRenderer templateRenderer;
     private final MessageSource messageSource;
@@ -133,6 +146,33 @@ public class GeneratedDocumentService {
         DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(workOrder);
         return workOrderReportDataProvider.resolve(workOrder, context,
                 requestedFields == null ? null : new java.util.LinkedHashSet<>(requestedFields));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, ReportFieldDiagnosisDTO> diagnoseWorkOrderReportData(
+            Long workOrderId, List<String> requestedFields, User user) {
+        WorkOrder workOrder = workOrderService.findById(workOrderId)
+                .filter(wo -> wo.getCompany() != null && user.getCompany() != null
+                        && wo.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(workOrder);
+        return workOrderReportDataProvider.diagnose(workOrder, context,
+                requestedFields == null ? null : new java.util.LinkedHashSet<>(requestedFields));
+    }
+
+    @Transactional(readOnly = true)
+    public ReportTablePreviewDTO previewWorkOrderReportTable(Long workOrderId, String binding,
+                                                              List<String> columns, User user) {
+        WorkOrder workOrder = workOrderService.findById(workOrderId)
+                .filter(wo -> wo.getCompany() != null && user.getCompany() != null
+                        && wo.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.canBeViewedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(workOrder);
+        return workOrderReportDataProvider.previewTable(workOrder, context, binding, columns);
     }
 
     @Transactional(readOnly = true)
@@ -197,7 +237,7 @@ public class GeneratedDocumentService {
         WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
         if (!workOrder.canIssueReportBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        DocumentTemplate template = findPublishedTemplate(templateId, user);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "WORK_ORDER", workOrder.getSite());
         DocumentTemplateVersion version = requirePublishedVersion(template);
         RenderedTemplate rendered = renderTemplate(template, version, workOrder, user);
 
@@ -227,7 +267,7 @@ public class GeneratedDocumentService {
         Request request = findAuthorizedCompanyRequest(requestId, user);
         if (!request.canBeViewedBy(user) || !request.canBeEditedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST");
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST", request.getSite());
         DocumentTemplateVersion version = requirePublishedVersion(template);
         RenderedTemplate rendered = renderTemplate(template, version, request, user);
 
@@ -257,7 +297,7 @@ public class GeneratedDocumentService {
         WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        DocumentTemplate template = findPublishedTemplate(templateId, user);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "WORK_ORDER", workOrder.getSite());
         return renderTemplate(template, requirePublishedVersion(template), workOrder, user).pdf();
     }
 
@@ -265,7 +305,7 @@ public class GeneratedDocumentService {
     public byte[] previewRequestReportFromTemplate(Long requestId, Long templateId, User user) {
         Request request = findAuthorizedCompanyRequest(requestId, user);
         if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST");
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "REQUEST", request.getSite());
         return renderTemplate(template, requirePublishedVersion(template), request, user).pdf();
     }
 
@@ -275,8 +315,11 @@ public class GeneratedDocumentService {
         DocumentTemplate template = findCompanyTemplate(templateId, user)
                 .filter(item -> item.getStatus() != DocumentTemplateStatus.ARCHIVED)
                 .orElseThrow(() -> new CustomException("Document template not found", HttpStatus.NOT_FOUND));
+        if (!"REQUEST".equals(template.getDocumentType().getProviderCode()))
+            throw new CustomException("Use the source-specific preview route for this template", HttpStatus.BAD_REQUEST);
         Request request = findAuthorizedCompanyRequest(requestId, user);
         if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        requireTemplateSite(template, request.getSite());
         DocumentTemplateVersion version = template.getDraftVersion() != null
                 ? template.getDraftVersion() : requirePublishedVersion(template);
         return renderTemplate(template, version, request, user).pdf();
@@ -294,7 +337,7 @@ public class GeneratedDocumentService {
     public List<PublishedReportTemplateOptionDTO> listPublishedRequestReportTemplates(Long requestId, User user) {
         Request request = findAuthorizedCompanyRequest(requestId, user);
         if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        return listPublishedTemplatesForType(user, "REQUEST");
+        return listPublishedTemplatesForType(user, "REQUEST", request.getSite());
     }
 
     @Transactional(readOnly = true)
@@ -303,11 +346,12 @@ public class GeneratedDocumentService {
         DocumentTemplate template = findCompanyTemplate(templateId, user)
                 .filter(item -> item.getStatus() != DocumentTemplateStatus.ARCHIVED)
                 .orElseThrow(() -> new CustomException("Document template not found", HttpStatus.NOT_FOUND));
-        if (!"WORK_ORDER".equals(template.getDocumentType().getCode()))
+        if (!"WORK_ORDER".equals(template.getDocumentType().getProviderCode()))
             throw new CustomException("Use the source-specific preview route for this template", HttpStatus.BAD_REQUEST);
         WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        requireTemplateSite(template, workOrder.getSite());
         DocumentTemplateVersion version = template.getDraftVersion() != null
                 ? template.getDraftVersion() : requirePublishedVersion(template);
         return renderTemplate(template, version, workOrder, user).pdf();
@@ -318,18 +362,40 @@ public class GeneratedDocumentService {
         WorkOrder workOrder = findAuthorizedCompanyWorkOrder(workOrderId, user);
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        return listPublishedTemplatesForType(user, "WORK_ORDER");
+        return listPublishedTemplatesForType(user, "WORK_ORDER", workOrder.getSite());
     }
 
-    private List<PublishedReportTemplateOptionDTO> listPublishedTemplatesForType(User user, String typeCode) {
-        return templateRepository.findByCompany_IdOrderByUpdatedAtDesc(user.getCompany().getId()).stream()
+    private List<PublishedReportTemplateOptionDTO> listPublishedTemplatesForType(User user, String typeCode, com.grash.model.Site site) {
+        List<DocumentTemplate> eligible = templateRepository.findByCompany_IdOrderByUpdatedAtDesc(user.getCompany().getId()).stream()
                 .filter(template -> template.getStatus() == DocumentTemplateStatus.PUBLISHED)
-                .filter(template -> typeCode.equals(template.getDocumentType().getCode()))
+                .filter(template -> typeCode.equals(template.getDocumentType().getProviderCode()))
                 .filter(template -> template.getPublishedVersion() != null
                         && template.getPublishedVersion().getStatus() == DocumentTemplateStatus.PUBLISHED)
-                .map(template -> new PublishedReportTemplateOptionDTO(template.getId(), template.getName(),
-                        template.getPublishedVersion().getVersionNumber(), template.isDefault()))
+                .filter(template -> isAvailableForSite(template, site))
                 .toList();
+        boolean hasSiteDefault = site != null && eligible.stream().anyMatch(template -> template.isDefault()
+                && "SITE".equals(template.getDefaultScope()) && template.getSite() != null
+                && site.getId().equals(template.getSite().getId()));
+        return eligible.stream().map(template -> {
+            boolean siteDefault = "SITE".equals(template.getDefaultScope()) && template.getSite() != null
+                    && site != null && site.getId().equals(template.getSite().getId());
+            boolean effectiveDefault = template.isDefault() && (siteDefault
+                    || (!hasSiteDefault && "COMPANY".equals(template.getDefaultScope())));
+            return new PublishedReportTemplateOptionDTO(template.getId(), template.getName(),
+                    template.getPublishedVersion().getVersionNumber(), effectiveDefault,
+                    template.getDefaultScope(), template.getSite() == null ? null : template.getSite().getName());
+        }).toList();
+    }
+
+    private boolean isAvailableForSite(DocumentTemplate template, com.grash.model.Site site) {
+        if ("SITE".equals(template.getDefaultScope())) return site != null && template.getSite() != null
+                && site.getId().equals(template.getSite().getId());
+        return true;
+    }
+
+    private void requireTemplateSite(DocumentTemplate template, com.grash.model.Site site) {
+        if (!isAvailableForSite(template, site))
+            throw new CustomException("Document template is not available for this site", HttpStatus.NOT_FOUND);
     }
 
     private WorkOrder findAuthorizedCompanyWorkOrder(Long workOrderId, User user) {
@@ -340,14 +406,16 @@ public class GeneratedDocumentService {
     }
 
     private DocumentTemplate findPublishedTemplate(Long templateId, User user) {
-        return findPublishedTemplate(templateId, user, "WORK_ORDER");
+        return findPublishedTemplate(templateId, user, "WORK_ORDER", null);
     }
 
-    private DocumentTemplate findPublishedTemplate(Long templateId, User user, String typeCode) {
-        return templateRepository.findByIdAndCompany_IdAndStatus(
+    private DocumentTemplate findPublishedTemplate(Long templateId, User user, String typeCode, com.grash.model.Site site) {
+        DocumentTemplate template = templateRepository.findByIdAndCompany_IdAndStatus(
                         templateId, user.getCompany().getId(), DocumentTemplateStatus.PUBLISHED)
-                .filter(item -> typeCode.equals(item.getDocumentType().getCode()))
+                .filter(item -> typeCode.equals(item.getDocumentType().getProviderCode()))
                 .orElseThrow(() -> new CustomException("Published document template not found", HttpStatus.NOT_FOUND));
+        requireTemplateSite(template, site);
+        return template;
     }
 
     private java.util.Optional<DocumentTemplate> findCompanyTemplate(Long templateId, User user) {
@@ -379,30 +447,195 @@ public class GeneratedDocumentService {
 
     private RenderedTemplate renderTemplate(DocumentTemplate template, DocumentTemplateVersion version,
                                             WorkOrderBase source, User user) {
+        if (PdfmeTemplateConfigurationValidator.isPdfme(version.getConfiguration())) {
+            if (!(source instanceof WorkOrder) || !"WORK_ORDER".equals(template.getDocumentType().getProviderCode()))
+                throw new CustomException("PDFME is currently supported for Work Orders only", HttpStatus.BAD_REQUEST);
+            JsonNode pdfme = pdfmeValidator.validate(version.getConfiguration(),
+                    template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
+            DocumentContextResolver.DocumentContext pdfmeContext = documentContextResolver.resolve(source);
+            java.util.LinkedHashSet<String> bindings = new java.util.LinkedHashSet<>(pdfmeValidator.dataBindings(pdfme));
+            Map<String, Object> resolved = providerRegistry.require("WORK_ORDER").resolve(source, pdfmeContext, bindings);
+            byte[] pdf = pdfmeRendererClient.render(pdfme, List.of(toPdfmeInput(pdfme, resolved, pdfmeContext)));
+            String snapshot = createTemplateSnapshot(pdfmeContext, pdfme, resolved,
+                    template.getId(), version.getId(), version.getVersionNumber());
+            return new RenderedTemplate(pdf, pdfmeContext, snapshot);
+        }
         JsonNode configuration = templateValidator.validate(version.getConfiguration(),
                 template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
         DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(source);
-        java.util.LinkedHashSet<String> selectedFields = new java.util.LinkedHashSet<>();
-        configuration.path("visibleFields").forEach(field -> selectedFields.add(field.asText()));
+        java.util.LinkedHashSet<String> selectedFields = new java.util.LinkedHashSet<>(
+                templateValidator.visibleFields(configuration));
         Map<String, Object> values = providerRegistry.require(template.getDocumentType().getProviderCode())
                 .resolve(source, context, selectedFields);
         List<ReportFieldDefinitionDTO> fieldDefinitions = "REQUEST".equals(template.getDocumentType().getProviderCode())
                 ? REQUEST_REPORT_FIELDS : WORK_ORDER_REPORT_FIELDS;
-        List<ConfigurableWorkOrderReportRenderer.ReportRow> rows = selectedFields.stream().map(field -> {
-            ReportFieldDefinitionDTO definition = fieldDefinitions.stream()
-                    .filter(candidate -> candidate.key().equals(field)).findFirst()
-                    .orElseThrow(() -> new CustomException("Unsupported report field", HttpStatus.BAD_REQUEST));
-            String label = messageSource.getMessage(definition.labelKey(), null, field,
-                    context.locale() == null ? java.util.Locale.ROOT : context.locale());
-            return new ConfigurableWorkOrderReportRenderer.ReportRow(field, label, printable(values.get(field)));
-        }).toList();
+        java.util.Locale locale = context.locale() == null ? java.util.Locale.ROOT : context.locale();
+        List<ConfigurableWorkOrderReportRenderer.ReportBlock> blocks = new java.util.ArrayList<>();
+        if ("2.0".equals(configuration.path("schemaVersion").asText())) {
+            for (JsonNode section : configuration.path("layout")) {
+                String sectionTitle = section.path("title").asText();
+                int columns = section.path("columns").asInt(1);
+                for (JsonNode item : section.path("items")) {
+                    String field = item.path("fieldKey").asText();
+                    String componentId = item.path("id").asText();
+                    JsonNode style = item.path("style");
+                    Integer fontSize = style.has("fontSize") ? style.path("fontSize").asInt() : null;
+                    boolean bold = style.path("bold").asBoolean(false);
+                    String alignment = style.path("alignment").asText("LEFT");
+                    boolean accentTone = "ACCENT".equals(style.path("tone").asText());
+                    if (isTableField(field)) {
+                        ConfigurableWorkOrderReportRenderer.ReportTable table = reportTable(field, values, locale,
+                                context.timeZone(), item.path("title").asText(null), integerList(item.path("columnWidths")),
+                                stringList(item.path("tableColumns")));
+                        blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
+                                "TABLE", null, table, sectionTitle, columns, section.path("id").asText(),
+                                componentId, fontSize, bold, alignment, accentTone,
+                                section.path("pageBreakBefore").asBoolean(false), false, false,
+                                section.path("keepTogether").asBoolean(false)));
+                    } else {
+                        ReportFieldDefinitionDTO definition = fieldDefinitions.stream()
+                                .filter(candidate -> candidate.key().equals(field)).findFirst()
+                                .orElseThrow(() -> new CustomException("Unsupported report field", HttpStatus.BAD_REQUEST));
+                        String defaultLabel = messageSource.getMessage(definition.labelKey(), null, field, locale);
+                        String label = templateValidator.fieldLabel(configuration, field, defaultLabel);
+                        ConfigurableWorkOrderReportRenderer.ReportRow row = new ConfigurableWorkOrderReportRenderer.ReportRow(
+                                field, label, printable(values.get(field)));
+                        blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
+                                "workOrder.signature".equals(field) ? "SIGNATURE" : "FIELD", row, null,
+                                sectionTitle, columns, section.path("id").asText(), componentId,
+                                fontSize, bold, alignment, accentTone,
+                                section.path("pageBreakBefore").asBoolean(false),
+                                item.path("hideIfEmpty").asBoolean(false),
+                                item.path("fullWidth").asBoolean(false),
+                                section.path("keepTogether").asBoolean(false)));
+                    }
+                }
+            }
+        } else {
+            JsonNode customLabels = configuration.path("fieldLabels");
+            for (String field : selectedFields) {
+                if (isTableField(field)) {
+                    ConfigurableWorkOrderReportRenderer.ReportTable table = reportTable(
+                            field, values, locale, context.timeZone(), customLabel(customLabels, field, null));
+                    if (!table.rows().isEmpty()) blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock("TABLE", null, table));
+                } else {
+                    ReportFieldDefinitionDTO definition = fieldDefinitions.stream()
+                            .filter(candidate -> candidate.key().equals(field)).findFirst()
+                            .orElseThrow(() -> new CustomException("Unsupported report field", HttpStatus.BAD_REQUEST));
+                    String defaultLabel = messageSource.getMessage(definition.labelKey(), null, field, locale);
+                    String label = customLabel(customLabels, field, defaultLabel);
+                    ConfigurableWorkOrderReportRenderer.ReportRow row =
+                            new ConfigurableWorkOrderReportRenderer.ReportRow(field, label, printable(values.get(field)));
+                    blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
+                            "workOrder.signature".equals(field) ? "SIGNATURE" : "FIELD", row, null));
+                }
+            }
+        }
         String logoPath = user.getCompany().getLogo() == null ? null
                 : com.grash.utils.PdfReportUtils.getImageReportStoragePath(user.getCompany().getLogo());
         String accentColor = user.getCompany().getCompanySettings().getGeneralPreferences().getColor();
-        byte[] pdf = templateRenderer.render(configuration, rows, context, logoPath, accentColor);
+        byte[] pdf = templateRenderer.render(configuration, blocks, context, logoPath, accentColor);
         String snapshot = createTemplateSnapshot(context, configuration, values,
                 template.getId(), version.getId(), version.getVersionNumber());
         return new RenderedTemplate(pdf, context, snapshot);
+    }
+
+    private Map<String, Object> toPdfmeInput(JsonNode template, Map<String, Object> resolved,
+                                             DocumentContextResolver.DocumentContext context) {
+        Map<String, Object> input = new LinkedHashMap<>();
+        for (JsonNode page : template.path("schemas")) {
+            for (JsonNode schema : page) {
+                String name = schema.path("name").asText();
+                String type = schema.path("type").asText();
+                if (name.startsWith("static:")) continue;
+                Object value = resolved.get(name);
+                if ("table".equals(type)) {
+                    input.put(name, tableInput(name, value, schema, context));
+                } else if (value == null) {
+                    input.put(name, "workOrder.customFields".equals(name)
+                            ? localized("report.noCustomFields", "No custom fields recorded", context.locale())
+                            : "workOrder.files".equals(name)
+                            ? localized("report.noAttachments", "No attachments recorded", context.locale()) : "");
+                } else if (value instanceof String text) {
+                    input.put(name, Set.of("workOrder.status", "workOrder.priority").contains(name)
+                            ? localized(text, text, context.locale())
+                            : name.endsWith("Date") || name.endsWith("At")
+                            ? formatDateTime(text, context.locale(), context.timeZone()) : text);
+                } else if (value instanceof List<?> values) {
+                    String emptyMessage = switch (name) {
+                        case "workOrder.customFields" -> localized("report.noCustomFields", "No custom fields recorded", context.locale());
+                        case "workOrder.files" -> localized("report.noAttachments", "No attachments recorded", context.locale());
+                        case "workOrder.comments" -> localized("report.noComments", "No comments recorded", context.locale());
+                        case "workOrder.history" -> localized("report.noHistory", "No history available", context.locale());
+                        case "workOrder.relations" -> localized("report.noRelations", "No related work orders", context.locale());
+                        default -> "";
+                    };
+                    String separator = Set.of("workOrder.customFields", "workOrder.files", "workOrder.comments",
+                            "workOrder.history", "workOrder.relations").contains(name) ? "\n" : ", ";
+                    input.put(name, values.isEmpty() ? emptyMessage : values.stream().map(String::valueOf)
+                            .collect(java.util.stream.Collectors.joining(separator)));
+                } else {
+                    input.put(name, String.valueOf(value));
+                }
+            }
+        }
+        return input;
+    }
+
+    private String tableInput(String name, Object value, JsonNode schema,
+                              DocumentContextResolver.DocumentContext context) {
+        List<String> defaultColumns = switch (name) {
+            case "workOrder.executionTasks" -> List.of("step", "task", "result", "notes");
+            case "workOrder.laborTimeEntries" -> List.of("technician", "activity", "startedAt", "durationHours", "status");
+            case "workOrder.materialsUsed" -> List.of("part", "description", "quantity", "unit");
+            default -> throw new CustomException("Unsupported PDFME table binding", HttpStatus.BAD_REQUEST);
+        };
+        List<String> columns = new java.util.ArrayList<>();
+        JsonNode bindings = schema.path("columnBindings");
+        if (bindings.isArray() && bindings.size() > 0) bindings.forEach(binding -> columns.add(binding.asText()));
+        int headerCount = schema.path("head").size();
+        if (!bindings.isArray() || bindings.size() == 0) {
+            for (int index = 0; index < headerCount; index++) columns.add(index < defaultColumns.size() ? defaultColumns.get(index) : "");
+        }
+        if (headerCount < 1 || headerCount > 12 || columns.size() != headerCount
+                || columns.stream().anyMatch(column -> !column.isBlank() && !defaultColumns.contains(column))
+                || columns.stream().filter(column -> !column.isBlank()).distinct().count() != columns.stream().filter(column -> !column.isBlank()).count())
+            throw new CustomException("Invalid PDFME table column bindings", HttpStatus.BAD_REQUEST);
+        List<List<String>> rows = new java.util.ArrayList<>();
+        if (value instanceof List<?> list) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> row)) continue;
+                List<String> cells = new java.util.ArrayList<>();
+                for (String column : columns) {
+                    Object cell = row.get(column);
+                    if ("startedAt".equals(column)) cells.add(formatDateTime(cell, context.locale(), context.timeZone()));
+                    else if ("result".equals(column) || "status".equals(column)
+                            || "workOrder.status".equals(column) || "workOrder.priority".equals(column))
+                        cells.add(cell == null ? "" : localized(String.valueOf(cell), String.valueOf(cell), context.locale()));
+                    else cells.add(printable(cell));
+                }
+                rows.add(cells);
+            }
+        }
+        if (rows.isEmpty()) {
+            // Let the private PDFME renderer apply the table's configured empty-state
+            // message. An empty JSON array is the signal it uses for this behavior.
+            // An explicitly blank option disables the empty-state text.
+            if (schema.has("qpmEmptyMessage")) return "[]";
+            List<String> emptyRow = new java.util.ArrayList<>();
+            emptyRow.add(localized("report.table.noRecords", "No records available", context.locale()));
+            while (emptyRow.size() < headerCount) emptyRow.add("");
+            rows.add(emptyRow);
+        }
+        try {
+            return SNAPSHOT_MAPPER.writeValueAsString(rows);
+        } catch (Exception exception) {
+            throw new CustomException("PDFME table data could not be prepared", HttpStatus.BAD_GATEWAY);
+        }
+    }
+
+    private String localized(String key, String fallback, java.util.Locale locale) {
+        return messageSource.getMessage(key, null, fallback, locale == null ? java.util.Locale.ENGLISH : locale);
     }
 
     private record RenderedTemplate(byte[] pdf, DocumentContextResolver.DocumentContext context, String snapshot) { }
@@ -506,7 +739,12 @@ public class GeneratedDocumentService {
         snapshot.put("templateVersionId", versionId);
         snapshot.put("templateVersionNumber", versionNumber);
         snapshot.put("configuration", configuration);
-        snapshot.put("fieldValues", values);
+        Map<String, Object> snapshotValues = new LinkedHashMap<>(values);
+        if (snapshotValues.containsKey("workOrder.signature")) {
+            snapshotValues.put("workOrder.signature", printable(snapshotValues.get("workOrder.signature")).isBlank()
+                    ? "NOT_PROVIDED" : "EMBEDDED_IN_ARCHIVED_PDF");
+        }
+        snapshot.put("fieldValues", snapshotValues);
         try {
             return SNAPSHOT_MAPPER.writeValueAsString(snapshot);
         } catch (Exception exception) {
@@ -523,6 +761,144 @@ public class GeneratedDocumentService {
         }
         if (value instanceof Number || value instanceof Boolean || value instanceof String) return value.toString();
         throw new CustomException("Unsupported report value type", HttpStatus.BAD_REQUEST);
+    }
+
+    private boolean isTableField(String field) {
+        return "workOrder.executionTasks".equals(field)
+                || "workOrder.laborTimeEntries".equals(field)
+                || "workOrder.materialsUsed".equals(field);
+    }
+
+    private ConfigurableWorkOrderReportRenderer.ReportTable reportTable(
+            String key, Map<String, Object> values, java.util.Locale locale, String timeZone, String customTitle) {
+        return reportTable(key, values, locale, timeZone, customTitle, null, null);
+    }
+
+    private ConfigurableWorkOrderReportRenderer.ReportTable reportTable(
+            String key, Map<String, Object> values, java.util.Locale locale, String timeZone, String customTitle,
+            List<Integer> columnWidths, List<String> selectedColumns) {
+        boolean french = locale != null && "fr".equalsIgnoreCase(locale.getLanguage());
+        String title;
+        List<String> headers;
+        List<String> columns;
+        switch (key) {
+            case "workOrder.executionTasks" -> {
+                title = french ? "Opérations et tâches" : "Operations and tasks";
+                headers = french ? List.of("N°", "Opération / tâche", "Résultat", "Notes")
+                        : List.of("No.", "Operation / task", "Result", "Notes");
+                columns = List.of("step", "task", "result", "notes");
+            }
+            case "workOrder.laborTimeEntries" -> {
+                title = french ? "Temps de main-d’œuvre confirmé" : "Labor time confirmations";
+                headers = french ? List.of("Technicien", "Activité", "Début", "Temps", "État")
+                        : List.of("Technician", "Activity", "Started", "Time", "Entry status");
+                columns = List.of("technician", "activity", "startedAt", "durationSeconds", "status");
+            }
+            case "workOrder.materialsUsed" -> {
+                title = french ? "Pièces et matériels utilisés" : "Materials and parts used";
+                headers = french ? List.of("Pièce", "Description", "Quantité", "Unité")
+                        : List.of("Part", "Description", "Quantity", "Unit");
+                columns = List.of("part", "description", "quantity", "unit");
+            }
+            default -> throw new CustomException("Unsupported report table", HttpStatus.BAD_REQUEST);
+        }
+        Object value = values.get(key);
+        List<String> visibleColumns = selectedColumns == null ? columns : selectedColumns;
+        List<String> visibleHeaders = new java.util.ArrayList<>();
+        List<Integer> visibleIndexes = new java.util.ArrayList<>();
+        for (String selected : visibleColumns) {
+            int index = columns.indexOf(selected);
+            if (index < 0) throw new CustomException("Unsupported report table column", HttpStatus.BAD_REQUEST);
+            visibleIndexes.add(index);
+            visibleHeaders.add(headers.get(index));
+        }
+        List<List<String>> rows = new java.util.ArrayList<>();
+        if (value instanceof Iterable<?> iterable) {
+            for (Object item : iterable) {
+                if (!(item instanceof Map<?, ?> row)) continue;
+                List<String> allCells = new java.util.ArrayList<>();
+                for (String column : columns) {
+                    Object cell = row.get(column);
+                    if ("durationSeconds".equals(column)) allCells.add(formatDuration(cell, row.get("status"), locale));
+                    else if ("startedAt".equals(column)) allCells.add(formatDateTime(cell, locale, timeZone));
+                    else if ("status".equals(column)) allCells.add(formatLaborStatus(cell, locale));
+                    else allCells.add(printableCell(cell));
+                }
+                List<String> cells = visibleIndexes.stream().map(allCells::get).toList();
+                rows.add(cells);
+            }
+        }
+        return new ConfigurableWorkOrderReportRenderer.ReportTable(
+                key, customTitle == null ? title : customTitle, visibleHeaders, rows, columnWidths);
+    }
+
+    private List<Integer> integerList(JsonNode values) {
+        if (values == null || !values.isArray()) return null;
+        List<Integer> result = new java.util.ArrayList<>();
+        values.forEach(value -> {
+            if (value.canConvertToInt()) result.add(value.asInt());
+        });
+        return result.size() == values.size() ? result : null;
+    }
+
+    private List<String> stringList(JsonNode values) {
+        if (values == null || !values.isArray()) return null;
+        List<String> result = new java.util.ArrayList<>();
+        values.forEach(value -> {
+            if (value.isTextual()) result.add(value.asText());
+        });
+        return result.size() == values.size() ? result : null;
+    }
+
+    private String customLabel(JsonNode customLabels, String key, String fallback) {
+        JsonNode label = customLabels.get(key);
+        if (label == null || !label.isTextual() || label.asText().isBlank()) return fallback;
+        return label.asText().trim();
+    }
+
+    private String printableCell(Object value) {
+        if (value == null) return "";
+        if (value instanceof Number || value instanceof Boolean || value instanceof String) return value.toString();
+        return "";
+    }
+
+    private String formatDuration(Object value, Object status, java.util.Locale locale) {
+        if (!(value instanceof Number number) || number.longValue() <= 0) return "";
+        long seconds = number.longValue();
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+        boolean french = locale != null && "fr".equalsIgnoreCase(locale.getLanguage());
+        String duration = hours + " h " + minutes + " min";
+        return "RUNNING".equals(String.valueOf(status))
+                ? duration + (french ? " · En cours" : " · Running") : duration;
+    }
+
+    private String formatLaborStatus(Object value, java.util.Locale locale) {
+        boolean french = locale != null && "fr".equalsIgnoreCase(locale.getLanguage());
+        return switch (String.valueOf(value)) {
+            case "RUNNING" -> french ? "En cours" : "Running";
+            case "STOPPED" -> french ? "Enregistré" : "Recorded";
+            default -> "";
+        };
+    }
+
+    private String formatDateTime(Object value, java.util.Locale locale, String timeZone) {
+        if (!(value instanceof String string) || string.isBlank()) return "";
+        try {
+            java.time.ZoneId zone;
+            try {
+                zone = java.time.ZoneId.of(timeZone == null ? "UTC" : timeZone);
+            } catch (java.time.DateTimeException ignored) {
+                zone = java.time.ZoneOffset.UTC;
+            }
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern(
+                    locale != null && "fr".equalsIgnoreCase(locale.getLanguage())
+                            ? "dd/MM/yyyy HH:mm" : "MMM d, yyyy HH:mm",
+                    locale == null ? java.util.Locale.ROOT : locale);
+            return formatter.format(java.time.Instant.parse(string).atZone(zone));
+        } catch (java.time.DateTimeException ignored) {
+            return string;
+        }
     }
 
     public record DownloadedDocument(String fileName, byte[] data) { }

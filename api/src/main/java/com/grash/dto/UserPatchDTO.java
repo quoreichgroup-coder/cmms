@@ -10,6 +10,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @Schema(description = "DTO for patching user information")
@@ -22,7 +24,7 @@ public class UserPatchDTO {
     private String lastName;
 
     @Schema(description = "Hourly rate")
-    private long rate;
+    private Long rate;
 
     @Schema(description = "Phone number")
     private String phone;
@@ -42,4 +44,10 @@ public class UserPatchDTO {
 
     @Schema(description = "User language")
     private Language language;
+
+    @Schema(description = "Whether the user can access all company sites")
+    private Boolean allSitesAccess;
+
+    @Schema(description = "Site IDs assigned to a restricted user")
+    private List<Long> siteIds;
 }

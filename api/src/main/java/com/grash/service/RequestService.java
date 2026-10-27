@@ -18,6 +18,7 @@ import com.grash.model.enums.*;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.repository.RequestRepository;
+import com.grash.repository.SiteRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RequestService {
     private final RequestRepository requestRepository;
+    private final SiteRepository siteRepository;
     private final WorkOrderService workOrderService;
     private final RequestMapper requestMapper;
     private final EntityManager em;
@@ -60,6 +62,7 @@ public class RequestService {
     private final MessageSource messageSource;
     private final MailServiceFactory mailServiceFactory;
     private final AssetService assetService;
+    private final WorkOrderAssignmentScopeValidator assignmentScopeValidator;
     private final RequestPortalService requestPortalService;
     private final TenantAspect tenantAspect;
     private WorkflowService workflowService;
@@ -104,6 +107,7 @@ public class RequestService {
                 setRequestCustomFields(request, requestPostDTO.getCustomFields(), company);
             }
         }
+        if (request.getSite() != null) request.setSite(resolveSite(request.getSite(), company));
         if (request.getAudioDescription() != null && !licenseService.hasEntitlement(LicenseEntitlement.VOICE_NOTES))
             throw new CustomException("You need a license to add voice notes", HttpStatus.FORBIDDEN);
         Long nextSequence = customSequenceService.getNextRequestSequence(company);
@@ -150,12 +154,22 @@ public class RequestService {
 
     @Transactional
     public Request update(Long id, RequestPatchDTO request, Company company) {
+        return updateInternal(id, request, company, null);
+    }
+
+    @Transactional
+    public Request update(Long id, RequestPatchDTO request, User actor) {
+        return updateInternal(id, request, actor.getCompany(), actor);
+    }
+
+    private Request updateInternal(Long id, RequestPatchDTO request, Company company, User actor) {
         if (requestRepository.existsById(id)) {
             Request savedRequest = requestRepository.findById(id).get();
             if (!request.getCustomFields().isEmpty()) {
                 setRequestCustomFields(savedRequest, request.getCustomFields(), company);
             }
             Request updatedRequest = requestMapper.updateRequest(savedRequest, request);
+            if (actor != null) assignmentScopeValidator.validateAndResolve(updatedRequest, actor);
             Sanitizer.sanitizeRequest(updatedRequest);
             updatedRequest = requestRepository.saveAndFlush(updatedRequest);
             em.refresh(updatedRequest);
@@ -198,6 +212,7 @@ public class RequestService {
             workOrder.setPrimaryUser(primaryUser == null ? creator : primaryUser);
         }
         workOrder.setParentRequest(request);
+        workOrderService.validateAssignmentScope(workOrder, creator);
         WorkOrder savedWorkOrder = workOrderService.create(workOrder, creator.getCompany());
         request.setWorkOrder(savedWorkOrder);
         requestRepository.save(request);
@@ -298,6 +313,7 @@ public class RequestService {
                 }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
+        searchCriteria.filterAccessibleSites(user);
         return searchCriteria;
     }
 
@@ -305,7 +321,7 @@ public class RequestService {
         Optional<Request> optionalRequest = requestRepository.findById(id);
         if (optionalRequest.isPresent()) {
             Request savedRequest = optionalRequest.get();
-            if (savedRequest.canBeViewedBy(user)) {
+            if (savedRequest.canBeViewedBy(user) && user.canAccessSite(savedRequest.getSite())) {
                 return savedRequest;
             } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
@@ -314,6 +330,13 @@ public class RequestService {
     @Transactional
     public Request create(RequestPostDTO requestReq, User user) {
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.REQUESTS)) {
+            if (requestReq.getSite() != null) {
+                Site site = resolveSite(requestReq.getSite(), user.getCompany());
+                if (!user.canAccessSite(site))
+                    throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
+                requestReq.setSite(site);
+            }
+            assignmentScopeValidator.validateAndResolve(requestReq, user);
             Request createdRequest = create(requestReq, user.getCompany());
             onRequestCreation(createdRequest, user.getCompany(), user.getFullName());
             return createdRequest;
@@ -360,11 +383,14 @@ public class RequestService {
         Optional<Request> optionalRequest = requestRepository.findById(id);
         if (optionalRequest.isPresent()) {
             Request savedRequest = optionalRequest.get();
+            if (!user.canAccessSite(savedRequest.getSite()) || (request.getSite() != null
+                    && !user.canAccessSite(resolveSite(request.getSite(), user.getCompany()))))
+                throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
             if (savedRequest.getWorkOrder() != null) {
                 throw new CustomException("Can't patch an approved request", HttpStatus.NOT_ACCEPTABLE);
             }
             if (savedRequest.canBeEditedBy(user)) {
-                return update(id, request, user.getCompany());
+                return update(id, request, user);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Request not found", HttpStatus.NOT_FOUND);
     }
@@ -377,6 +403,8 @@ public class RequestService {
         }
         if (optionalRequest.isPresent()) {
             Request savedRequest = optionalRequest.get();
+            if (!user.canAccessSite(savedRequest.getSite()))
+                throw new CustomException("Access denied for this site", HttpStatus.FORBIDDEN);
             if (savedRequest.getWorkOrder() != null) {
                 throw new CustomException("Request is already approved", HttpStatus.NOT_ACCEPTABLE);
             }
@@ -502,10 +530,16 @@ public class RequestService {
         Optional<Request> optionalRequest = requestRepository.findById(id);
         if (optionalRequest.isPresent()) {
             Request savedRequest = optionalRequest.get();
-            if (savedRequest.canBeDeletedBy(user)) {
+            if (savedRequest.canBeDeletedBy(user) && user.canAccessSite(savedRequest.getSite())) {
                 delete(id);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Request not found", HttpStatus.NOT_FOUND);
+    }
+
+    private Site resolveSite(Site reference, Company company) {
+        return siteRepository.findById(reference.getId())
+                .filter(site -> site.getCompany().getId().equals(company.getId()))
+                .orElseThrow(() -> new CustomException("Site not found", HttpStatus.BAD_REQUEST));
     }
 
     private void onRequestCreation(Request createdRequest, Company company, String requesterName) {

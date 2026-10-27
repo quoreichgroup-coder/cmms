@@ -7,6 +7,8 @@ import com.grash.dto.shiftConfiguration.UserShiftDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.ShiftConfigurationMapper;
 import com.grash.model.ShiftConfiguration;
+import com.grash.model.ShiftDayConfiguration;
+import com.grash.model.ShiftException;
 import com.grash.model.User;
 import com.grash.repository.ShiftConfigurationRepository;
 import com.grash.repository.UserRepository;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,15 +70,64 @@ public class ShiftConfigurationService {
 
     @Transactional
     public ShiftConfiguration update(User user, ShiftConfigurationPatchDTO dto) {
-        ShiftConfiguration shiftConfiguration = Objects.requireNonNullElseGet(user.getShiftConfiguration(),
+        validateUniqueCapacityEntries(dto);
+        Long companyId = user.getCompany() == null ? null : user.getCompany().getId();
+        if (companyId == null) {
+            throw new CustomException("User company not found", HttpStatus.NOT_FOUND);
+        }
+        User lockedUser = userRepository.findByIdAndCompany_IdForUpdate(user.getId(), companyId)
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+        ShiftConfiguration shiftConfiguration = Objects.requireNonNullElseGet(lockedUser.getShiftConfiguration(),
                 () -> {
                     ShiftConfiguration newShift = shiftConfigurationRepository.save(new ShiftConfiguration());
-                    user.setShiftConfiguration(newShift);
+                    lockedUser.setShiftConfiguration(newShift);
                     return newShift;
                 });
         return shiftConfigurationRepository.save(
                 shiftConfigurationMapper.updateShiftConfiguration(shiftConfiguration, dto));
 
+    }
+
+    private void validateUniqueCapacityEntries(ShiftConfigurationPatchDTO dto) {
+        if (dto.getDays() != null) {
+            HashSet<java.time.DayOfWeek> days = new HashSet<>();
+            for (ShiftDayConfiguration day : dto.getDays()) {
+                if (day == null || day.getDayOfWeek() == null || !days.add(day.getDayOfWeek())) {
+                    throw new CustomException("Weekly availability must contain each weekday at most once.",
+                            HttpStatus.BAD_REQUEST);
+                }
+                validateCapacityWindow(day.isEnabled(), day.getStartTime(), day.getAvailabilityMinutes());
+            }
+        }
+        if (dto.getExceptions() != null) {
+            HashSet<java.time.LocalDate> dates = new HashSet<>();
+            for (ShiftException exception : dto.getExceptions()) {
+                if (exception == null || exception.getExceptionDate() == null
+                        || !dates.add(exception.getExceptionDate())) {
+                    throw new CustomException("Availability exceptions must contain each date at most once.",
+                            HttpStatus.BAD_REQUEST);
+                }
+                validateCapacityWindow(exception.isEnabled(), exception.getStartTime(),
+                        exception.getAvailabilityMinutes());
+            }
+        }
+    }
+
+    private void validateCapacityWindow(boolean enabled, String startTime, int availabilityMinutes) {
+        if (!enabled || availabilityMinutes <= 0) return;
+        if (availabilityMinutes > 24 * 60 || startTime == null) {
+            throw new CustomException("Daily availability requires a valid start time and cannot exceed 24 hours.",
+                    HttpStatus.BAD_REQUEST);
+        }
+        try {
+            java.time.LocalTime start = java.time.LocalTime.parse(startTime);
+            int startMinuteOfDay = start.getHour() * 60 + start.getMinute();
+            if (startMinuteOfDay + availabilityMinutes > 24 * 60) {
+                throw new CustomException("Daily availability must end by midnight.", HttpStatus.BAD_REQUEST);
+            }
+        } catch (java.time.format.DateTimeParseException exception) {
+            throw new CustomException("Daily availability requires a valid start time.", HttpStatus.BAD_REQUEST);
+        }
     }
 
     @Transactional

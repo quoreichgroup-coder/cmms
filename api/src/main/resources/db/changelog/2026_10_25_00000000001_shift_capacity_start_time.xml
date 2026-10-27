@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026_10_25_shift_capacity_start_time" author="QPM">
+        <addColumn tableName="shift_configuration_days">
+            <column name="start_time" type="VARCHAR(5)" defaultValue="08:00">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="shift_configuration_exceptions">
+            <column name="start_time" type="VARCHAR(5)" defaultValue="08:00">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

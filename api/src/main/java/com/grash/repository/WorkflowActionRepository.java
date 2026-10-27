@@ -7,4 +7,5 @@ import java.util.Collection;
 
 public interface WorkflowActionRepository extends JpaRepository<WorkflowAction, Long> {
     Collection<WorkflowAction> findByCompany_Id(Long id);
+    boolean existsByChecklist_Id(Long checklistId);
 }

@@ -53,6 +53,18 @@ public class User extends CompanyAudit {
     @NotNull
     private Role role;
 
+    /** Existing accounts default to company-wide site access until an administrator restricts them. */
+    @Column(nullable = false)
+    private boolean allSitesAccess = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "t_user_site_access",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "site_id"),
+            indexes = {@Index(name = "idx_user_site_access_user", columnList = "user_id"),
+                    @Index(name = "idx_user_site_access_site", columnList = "site_id")})
+    private List<Site> sites = new ArrayList<>();
+
     @Schema(description = "Job title")
     private String jobTitle;
 
@@ -185,6 +197,11 @@ public class User extends CompanyAudit {
     public boolean canBeViewedBy(User user) {
         return (user.getCompany().getId().equals(this.getCompany().getId())) && (user.getRole().getViewPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS) &&
                 (user.getRole().getViewOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS) || (getCreatedBy() != null && getCreatedBy().equals(user.getId())) || user.getId().equals(this.getId())));
+    }
+
+    public boolean canAccessSite(Site site) {
+        return allSitesAccess || site == null || sites != null && sites.stream()
+                .anyMatch(allowed -> allowed.getId().equals(site.getId()));
     }
 }
 

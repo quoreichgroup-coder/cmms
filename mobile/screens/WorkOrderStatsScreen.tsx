@@ -16,6 +16,7 @@ import AsyncStateFeedback from '../components/AsyncStateFeedback';
 import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
 import useAuth from '../hooks/useAuth';
 import { PermissionEntity } from '../models/role';
+import { PlanFeature } from '../models/subscriptionPlan';
 import { FilterField } from '../models/page';
 import {
   ExtendedWorkOrderStatus,
@@ -49,6 +50,7 @@ export default function WorkOrderStatsScreen({
     fetchUserSettings,
     hasViewPermission,
     hasViewOtherPermission,
+    hasFeature,
     user,
     companySettings
   } = useAuth();
@@ -56,6 +58,9 @@ export default function WorkOrderStatsScreen({
   const canViewOtherWorkOrders = hasViewOtherPermission(
     PermissionEntity.WORK_ORDERS
   );
+  const canViewAnalytics =
+    hasViewPermission(PermissionEntity.ANALYTICS) &&
+    hasFeature(PlanFeature.ANALYTICS);
   const { mobileOverview, mobileOverviewLoaded, loading, errors } = useSelector(
     (state) => state.woAnalytics
   );
@@ -82,7 +87,7 @@ export default function WorkOrderStatsScreen({
   }, [canViewOtherWorkOrders, loadSettings, userSettings]);
 
   const workOrderScope = getDashboardWorkOrderScope(
-    canViewWorkOrders,
+    canViewWorkOrders && canViewAnalytics,
     canViewOtherWorkOrders,
     canViewOtherWorkOrders ? userSettings?.statsForAssignedWorkOrders : true
   );
@@ -207,6 +212,15 @@ export default function WorkOrderStatsScreen({
   const distributionMax = Math.max(
     ...distribution.map((metric) => metric.value)
   );
+
+  if (!canViewAnalytics) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('no_access_analytics')}
+      />
+    );
+  }
 
   if (!canViewWorkOrders) {
     return (

@@ -1,12 +1,10 @@
 package com.grash.service;
 
 import com.grash.dto.PartQuantityPatchDTO;
-import com.grash.exception.CustomException;
 import com.grash.mapper.PartQuantityMapper;
 import com.grash.model.PartQuantity;
 import com.grash.repository.PartQuantityRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -26,19 +24,16 @@ public class PartQuantityService {
         return partQuantityRepository.save(PartQuantity);
     }
 
-    public PartQuantity update(Long id, PartQuantityPatchDTO partQuantity) {
-        if (partQuantityRepository.existsById(id)) {
-            PartQuantity savedPartQuantity = partQuantityRepository.findById(id).get();
-            return partQuantityRepository.save(partQuantityMapper.updatePartQuantity(savedPartQuantity, partQuantity));
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+    public PartQuantity update(PartQuantity savedPartQuantity, PartQuantityPatchDTO patch) {
+        return partQuantityRepository.save(partQuantityMapper.updatePartQuantity(savedPartQuantity, patch));
     }
 
     public Collection<PartQuantity> getAll() {
         return partQuantityRepository.findAll();
     }
 
-    public void delete(Long id) {
-        partQuantityRepository.deleteById(id);
+    public void delete(PartQuantity partQuantity) {
+        partQuantityRepository.delete(partQuantity);
     }
 
     public Optional<PartQuantity> findById(Long id) {

@@ -21,6 +21,8 @@ import {
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { PlanFeature } from '../../models/subscriptionPlan';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function EditMeterScreen({
   navigation,
@@ -30,7 +32,8 @@ export default function EditMeterScreen({
   const [isFormDirty, setIsFormDirty] = useState(false);
   const markFormClean = useUnsavedChanges(navigation, isFormDirty);
   const { meter } = route.params;
-  const { getFilteredFields } = useAuth();
+  const { getFilteredFields, hasFeature } = useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
   const { uploadFiles, getWOFieldsAndShapes } = useContext(
     CompanySettingsContext
   );
@@ -67,6 +70,15 @@ export default function EditMeterScreen({
     navigation.goBack();
   };
   const onEditFailure = (err) => showSnackBar(t('meter_edit_failure'), 'error');
+
+  if (!hasMeterFeature) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('meter_feature_unavailable')}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -223,10 +223,14 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   );
   const additionalCosts = costsByWorkOrder[workOrder.id] ?? [];
   const { commentsCountByWorkOrder } = useSelector((state) => state.comments);
-  const { taskLoadFailed, taskLoading } = useSelector((state) => ({
+  const { taskLoadFailed, taskLoading, tasksLoaded } = useSelector((state) => ({
     taskLoadFailed:
       state.tasks.taskLoadErrorsByWorkOrder[workOrder.id] === true,
-    taskLoading: state.tasks.loadingTasks[workOrder.id] === true
+    taskLoading: state.tasks.loadingTasks[workOrder.id] === true,
+    tasksLoaded: Object.prototype.hasOwnProperty.call(
+      state.tasks.tasksByWorkOrder,
+      workOrder.id
+    )
   }));
   const commentsCount = commentsCountByWorkOrder[workOrder.id]?.count ?? 0;
   const dispatch = useDispatch();
@@ -1082,7 +1086,12 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 {t('work_order_tasks_load_error')}
               </Alert>
             )}
-            {!!tasks.length && (
+            {taskLoading && !tasksLoaded && !taskLoadFailed && (
+              <Stack alignItems="center" py={3}>
+                <CircularProgress size={24} aria-label={t('loading')} />
+              </Stack>
+            )}
+            {tasksLoaded && (
               <Box>
                 <Divider sx={{ mt: 2 }} />
                 <Tasks

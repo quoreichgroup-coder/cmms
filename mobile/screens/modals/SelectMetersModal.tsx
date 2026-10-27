@@ -16,6 +16,8 @@ import {
 import { useAppTheme } from '../../custom-theme';
 import SelectionIndicator from '../../components/SelectionIndicator';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import useAuth from '../../hooks/useAuth';
+import { PlanFeature } from '../../models/subscriptionPlan';
 
 export default function SelectMetersModal({
   navigation,
@@ -24,6 +26,8 @@ export default function SelectMetersModal({
   const { onChange, selected, multiple } = route.params;
   const theme = useAppTheme();
   const { t }: { t: any } = useTranslation();
+  const { hasFeature } = useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
   const dispatch = useDispatch();
   const { metersMini } = useSelector((state) => state.meters);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -75,8 +79,17 @@ export default function SelectMetersModal({
   }, [selectedMeters, navigation, onChange, t]);
 
   useEffect(() => {
-    void loadMeters();
-  }, [loadMeters]);
+    if (hasMeterFeature) void loadMeters();
+  }, [hasMeterFeature, loadMeters]);
+
+  if (!hasMeterFeature) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('meter_feature_unavailable')}
+      />
+    );
+  }
 
   const toggle = (id: number) => {
     if (multiple) {

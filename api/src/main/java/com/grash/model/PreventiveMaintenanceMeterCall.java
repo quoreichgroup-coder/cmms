@@ -59,6 +59,9 @@ public class PreventiveMaintenanceMeterCall extends Audit {
     @Column(name = "triggered_cycle_codes", columnDefinition = "text")
     private String triggeredCycleCodes;
 
+    @Column(name = "triggered_cycle_names", columnDefinition = "text")
+    private String triggeredCycleNames;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "call_status", nullable = false, length = 24)
     private PreventiveMaintenanceCallStatus status = PreventiveMaintenanceCallStatus.PLANNED;

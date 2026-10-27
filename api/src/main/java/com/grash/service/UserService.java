@@ -19,6 +19,7 @@ import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.RoleCode;
 import com.grash.model.enums.RoleType;
 import com.grash.repository.UserRepository;
+import com.grash.repository.WorkOrderRepository;
 import com.grash.repository.VerificationTokenRepository;
 import com.grash.security.CustomUserDetail;
 import com.grash.security.JwtTokenProvider;
@@ -46,6 +47,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static com.grash.utils.Consts.usageBasedFreeLimits;
@@ -57,6 +60,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final WorkOrderRepository workOrderRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EntityManager em;
@@ -79,6 +83,7 @@ public class UserService {
     private final IntercomService intercomService;
     private final RefreshTokenService refreshTokenService;
     private final ApiKeyService apiKeyService;
+    private final CompanyConfigurationAuditService configurationAuditService;
 
     @Value("${api.host}")
     private String PUBLIC_API_URL;
@@ -204,6 +209,11 @@ public class UserService {
                 throw new CustomException("You should enable invitation via email to signup as superadmin",
                         HttpStatus.FORBIDDEN);
             userInvitations.sort(Comparator.comparing(UserInvitation::getCreatedAt).reversed());
+            UserInvitation acceptedInvitation = userInvitations.isEmpty() ? null : userInvitations.get(0);
+            if (acceptedInvitation != null) {
+                user.setAllSitesAccess(acceptedInvitation.isAllSitesAccess());
+                user.setSites(new ArrayList<>(acceptedInvitation.getSites()));
+            }
             user.setRole(role);
             if (role.getCompanySettings() == null) {
                 Optional<User> optionalInviter = findById(userInvitations.get(0).getCreatedBy());
@@ -450,26 +460,38 @@ public class UserService {
 
     public void invite(String email, Role role, User inviter, Boolean disableSendingMails) {
         if (!userRepository.existsByEmailIgnoreCase(email) && Helper.isValidEmailAddress(email)) {
+            boolean sendEmail = enableInvitationViaEmail && !Boolean.TRUE.equals(disableSendingMails);
+            if (sendEmail) throwIfEmailNotificationsNotEnabled();
             if (role.isPaid() || ("QUOREICH".equalsIgnoreCase(licenseProvider)
                     && licenseService.getLicensingState().isValid())) checkUsageBasedLimit(1, role);
-            userInvitationService.create(new UserInvitation(email, role));
-            if (!enableInvitationViaEmail || !enableMails) return;
+            UserInvitation invitation = userInvitationService.create(new UserInvitation(email, role, inviter));
+            if (!sendEmail) return;
             Map<String, Object> variables = new HashMap<String, Object>() {{
-                put("joinLink", frontendUrl + "/account/register?" + "email=" + email + "&role=" + role.getId());
+                put("joinLink", frontendUrl + "/account/register?email="
+                        + URLEncoder.encode(email, StandardCharsets.UTF_8) + "&role=" + role.getId());
                 put("inviter", inviter.getFirstName() + " " + inviter.getLastName());
                 put("company", inviter.getCompany().getName());
             }};
-            if (!Boolean.TRUE.equals(disableSendingMails))
-                mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(new String[]{email},
+            try {
+                mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplateSynchronously(new String[]{email},
                         messageSource.getMessage(
                                 "invitation_to_use", new String[]{brandingService.getBrandConfig().getName()},
                                 Helper.getLocale(inviter)), variables, "invite.html",
                         Helper.getLocale(inviter), null);
+            } catch (RuntimeException exception) {
+                userInvitationService.delete(invitation.getId());
+                throw exception;
+            }
         } else throw new CustomException("Email already in use", HttpStatus.NOT_ACCEPTABLE);
     }
 
     @org.springframework.transaction.annotation.Transactional
     public User update(Long id, UserPatchDTO userReq) {
+        return update(id, userReq, null);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public User update(Long id, UserPatchDTO userReq, User requester) {
         if (userRepository.existsById(id)) {
             User savedUser = userRepository.findById(id).get();
             if (userReq.getNewPassword() != null) {
@@ -480,11 +502,45 @@ public class UserService {
                 savedUser.setSessionInvalidatedAt(new Date());
                 refreshTokenService.revokeAllForUser(savedUser);
             }
+            List<String> changedFields = new ArrayList<>();
+            if (!Objects.equals(savedUser.getFirstName(), userReq.getFirstName())) changedFields.add("firstName");
+            if (!Objects.equals(savedUser.getLastName(), userReq.getLastName())) changedFields.add("lastName");
+            if (!Objects.equals(savedUser.getPhone(), userReq.getPhone())) changedFields.add("phone");
+            if (!Objects.equals(savedUser.getJobTitle(), userReq.getJobTitle())) changedFields.add("jobTitle");
+            if (userReq.getRate() != null && savedUser.getRate() != userReq.getRate()) changedFields.add("rate");
+            if (userReq.getNewPassword() != null) changedFields.add("password");
+            if (userReq.getAllSitesAccess() != null || userReq.getSiteIds() != null) changedFields.add("siteAccess");
             User updatedUser = userMapper.updateUser(savedUser, userReq);
+            if (userReq.getAllSitesAccess() != null || userReq.getSiteIds() != null) {
+                boolean allSitesAccess = Boolean.TRUE.equals(userReq.getAllSitesAccess());
+                if (requester != null && !requester.isAllSitesAccess()) {
+                    if (allSitesAccess)
+                        throw new CustomException("You cannot grant access beyond your own site scope", HttpStatus.FORBIDDEN);
+                    Set<Long> requesterSiteIds = requester.getSites().stream().map(Site::getId).collect(java.util.stream.Collectors.toSet());
+                    if (userReq.getSiteIds() == null || !requesterSiteIds.containsAll(userReq.getSiteIds()))
+                        throw new CustomException("You can assign only sites within your own access", HttpStatus.FORBIDDEN);
+                }
+                List<Site> assignedSites = new ArrayList<>();
+                if (!allSitesAccess && userReq.getSiteIds() != null) {
+                    for (Long siteId : userReq.getSiteIds().stream().distinct().toList()) {
+                        Site site = em.find(Site.class, siteId);
+                        if (site == null || !site.getCompany().getId().equals(savedUser.getCompany().getId()))
+                            throw new CustomException("Site not found", HttpStatus.NOT_FOUND);
+                        assignedSites.add(site);
+                    }
+                    if (assignedSites.isEmpty())
+                        throw new CustomException("Select at least one site or allow all sites", HttpStatus.BAD_REQUEST);
+                }
+                updatedUser.setAllSitesAccess(allSitesAccess);
+                updatedUser.setSites(assignedSites);
+            }
             Sanitizer.sanitizeUser(updatedUser);
             updatedUser = userRepository.saveAndFlush(updatedUser);
             em.refresh(updatedUser);
             cacheService.putUserInCache(updatedUser);
+            if (requester != null)
+                configurationAuditService.record(requester.getCompany(), requester, "USER", updatedUser.getId(),
+                        "UPDATE", changedFields);
             return updatedUser;
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
@@ -619,12 +675,15 @@ public class UserService {
             throw new CustomException("Company subscription users count doesn't allow this operation",
                     HttpStatus.NOT_ACCEPTABLE);
         User userToPatch = optionalUserToPatch.get();
+        assertLastAdminRemains(userToPatch, optionalRole.get(), requester);
         if (licensed) em.refresh(userToPatch);
         if ("QUOREICH".equalsIgnoreCase(licenseProvider)
                 && licenseService.getLicensingState().isValid()) {
             licenseSeatService.checkTransition(userToPatch, optionalRole.get(), userToPatch.isEnabled());
         }
         userToPatch.setRole(optionalRole.get());
+        configurationAuditService.record(requester.getCompany(), requester, "USER", userToPatch.getId(), "UPDATE",
+                List.of("role"));
         return invalidateSessions(userToPatch);
     }
 
@@ -634,9 +693,12 @@ public class UserService {
         if (optionalUserToDisable.isPresent()) {
             User userToDisable = optionalUserToDisable.get();
             if (requester.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
+                assertUserCanBeDeactivated(userToDisable, requester);
                 userToDisable.setEnabled(false);
                 userToDisable.setEnabledInSubscription(false);
                 apiKeyService.revokeAllByUser(userToDisable);
+                configurationAuditService.record(requester.getCompany(), requester, "USER", id, "DISABLE",
+                        List.of("enabled", "enabledInSubscription", "sessions", "apiKeys"));
                 return invalidateSessions(userToDisable);
             } else {
                 throw new CustomException("You don't have permission", HttpStatus.NOT_ACCEPTABLE);
@@ -651,11 +713,14 @@ public class UserService {
 
         if (optionalUserToSoftDelete.isPresent()) {
             User userToSoftDelete = optionalUserToSoftDelete.get();
-            if (requester.getId().equals(id) || requester.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
+            if (requester.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
+                assertUserCanBeDeactivated(userToSoftDelete, requester);
                 userToSoftDelete.setEnabled(false);
                 userToSoftDelete.setEnabledInSubscription(false);
                 userToSoftDelete.setEmail(userToSoftDelete.getEmail().concat("_".concat(id.toString())));
                 apiKeyService.revokeAllByUser(userToSoftDelete);
+                configurationAuditService.record(requester.getCompany(), requester, "USER", id, "DELETE",
+                        List.of("email", "enabled", "enabledInSubscription", "sessions", "apiKeys"));
                 return invalidateSessions(userToSoftDelete);
             } else {
                 throw new CustomException("You don't have permission", HttpStatus.NOT_ACCEPTABLE);
@@ -663,6 +728,36 @@ public class UserService {
         } else {
             throw new CustomException("User not found", HttpStatus.NOT_FOUND);
         }
+    }
+
+    private void assertUserCanBeDeactivated(User target, User requester) {
+        if (target.isOwnsCompany())
+            throw new CustomException("The company owner cannot be deactivated or deleted", HttpStatus.CONFLICT);
+        if (workOrderRepository.hasActiveAssignmentsForUser(target.getId(), requester.getCompany().getId(),
+                com.grash.model.enums.Status.COMPLETE))
+            throw new CustomException("Reassign or complete this user's active work orders before disabling or deleting the account",
+                    HttpStatus.CONFLICT);
+        if (!target.isEnabled()) return;
+        assertLastAdminRemains(target, null, requester);
+    }
+
+    private void assertLastAdminRemains(User target, Role replacementRole, User requester) {
+        boolean targetIsAdmin = target.getRole() != null
+                && target.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                && target.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS);
+        boolean replacementIsAdmin = replacementRole != null
+                && replacementRole.getViewPermissions().contains(PermissionEntity.SETTINGS)
+                && replacementRole.getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS);
+        if (!targetIsAdmin || replacementRole != null && replacementIsAdmin) return;
+        long remainingAdmins = userRepository.findByCompany_Id(requester.getCompany().getId()).stream()
+                .filter(User::isEnabled)
+                .filter(other -> !other.getId().equals(target.getId()))
+                .filter(other -> other.getRole() != null
+                        && other.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                        && other.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS))
+                .count();
+        if (remainingAdmins == 0)
+            throw new CustomException("The last active administrator cannot be deactivated or deleted", HttpStatus.CONFLICT);
     }
 
     private void appendUtmParameters(StringBuilder body, UserSignupRequest request) {

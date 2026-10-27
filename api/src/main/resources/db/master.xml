@@ -219,6 +219,8 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_06_11_00000000001_create_shift_configuration.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_25_00000000001_shift_capacity_start_time.xml"
+             relativeToChangelogFile="true"/>
     <include file="changelog/2026_06_24_1782321573_company_color.xml"
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_06_25_1782400207_part_transaction.xml"
@@ -290,5 +292,17 @@
     <include file="changelog/2026_10_21_00000000001_hierarchy_exchange_ids.xml"
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_10_22_00000000001_document_templates.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_23_00000000001_document_template_site_scope.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_25_00000000002_pm_call_cycle_names.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_26_00000000001_protect_workflows_from_checklist_delete.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_26_00000000002_user_site_access.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_27_00000000001_procurement_integration_object_references.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_27_00000000002_procurement_recovery_index.xml"
              relativeToChangelogFile="true"/>
 </databaseChangeLog>

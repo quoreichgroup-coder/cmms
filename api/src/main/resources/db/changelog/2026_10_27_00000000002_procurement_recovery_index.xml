@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-27-procurement-event-recovery-index" author="qpm">
+        <createIndex tableName="integration_event_receipt"
+                     indexName="idx_integration_event_receipt_recovery">
+            <column name="company_id"/>
+            <column name="provider_key"/>
+            <column name="status"/>
+            <column name="last_attempt_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

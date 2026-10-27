@@ -16,7 +16,9 @@ import {
   Menu,
   MenuItem,
   Stack,
-  Typography
+  Typography,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
@@ -28,7 +30,7 @@ import {
   deletePreventiveMaintenance,
   editPreventiveMaintenance,
   getPreventiveMaintenances,
-  getSinglePreventiveMaintenance,
+  getSinglePreventiveMaintenance
 } from '../../../slices/preventiveMaintenance';
 import { useDispatch, useSelector } from '../../../store';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -78,7 +80,6 @@ import Category from '../../../models/owns/category';
 import { LocationMiniDTO } from '../../../models/owns/location';
 import { AssetMiniDTO } from '../../../models/owns/asset';
 import { getSingleAsset } from '../../../slices/asset';
-import { patchTasksOfPreventiveMaintenance } from '../../../slices/task';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import CompanyFilter from '../WorkOrders/Filters/CompanyFilter';
@@ -101,10 +102,16 @@ import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { getErrorMessage } from '../../../utils/api';
 import { getPreventiveMaintenanceUrl } from '../../../utils/urlPaths';
 import useDateLocale from '../../../hooks/useDateLocale';
-import { getPMBaseCycleNumber, getPMSchedulePreview } from '../../../utils/pmSchedulePreview';
+import {
+  getPMBaseCycleNumber,
+  getPMSchedulePreview
+} from '../../../utils/pmSchedulePreview';
 import MeterCycleForecast from './MeterCycleForecast';
 import PMPlanConfigurationEditor from './PMPlanConfigurationEditor';
-import { parsePMPlanConfiguration, validatePMPlanConfiguration } from '../../../utils/pmPlanConfiguration';
+import {
+  parsePMPlanConfiguration,
+  validatePMPlanConfiguration
+} from '../../../utils/pmPlanConfiguration';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof PreventiveMaintenance>([
   'title',
@@ -128,9 +135,12 @@ const getInitialFilterFields = (): FilterField[] =>
 
 function PMs() {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
+  const fullScreenForm = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle } = useContext(TitleContext);
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
   const [openDiscardDialog, setOpenDiscardDialog] = useState<boolean>(false);
+  const [discardTarget, setDiscardTarget] = useState<'add' | 'update'>('add');
   const [isFormDirty, setIsFormDirty] = useState<boolean>(false);
   const [copyPmData, setCopyPmData] = useState<PreventiveMaintenance | null>(
     null
@@ -346,7 +356,9 @@ function PMs() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Preventive maintenance deletion was not confirmed'));
+        onDeleteFailure(
+          new Error('Preventive maintenance deletion was not confirmed')
+        );
       }
     } catch (error) {
       setOpenDelete(false);
@@ -355,6 +367,7 @@ function PMs() {
     }
   };
   const handleOpenUpdate = () => {
+    setIsFormDirty(false);
     setOpenUpdateModal(true);
   };
   const handleCopyPm = (preventiveMaintenance: PreventiveMaintenance) => {
@@ -363,6 +376,7 @@ function PMs() {
   };
   const onCreationSuccess = (createdPM?: PreventiveMaintenance) => {
     setOpenAddModal(false);
+    setIsFormDirty(false);
     showSnackBar(t('wo_schedule_success'), 'success');
     if (copyPmData && createdPM) {
       navigate(getPreventiveMaintenanceUrl(createdPM.id));
@@ -373,6 +387,7 @@ function PMs() {
     showSnackBar(getErrorMessage(err, t('wo_schedule_failure')), 'error');
   const onEditSuccess = () => {
     setOpenUpdateModal(false);
+    setIsFormDirty(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
   const onEditFailure = (err) =>
@@ -454,8 +469,19 @@ function PMs() {
     ...entity,
     ...getWOBaseValues(t, entity),
     startsOn: entity?.schedule?.startsOn,
-    triggerType: triggerTypes.find(({ value }) => value === (entity?.schedule?.triggerType ?? 'CALENDAR')),
-    meter: entity?.schedule?.meterId ? { label: `${entity.schedule.meterName ?? ''}${entity.schedule.meterUnit ? ` (${entity.schedule.meterUnit})` : ''}`, value: entity.schedule.meterId, unit: entity.schedule.meterUnit, assetId: entity.asset?.id } : null,
+    triggerType: triggerTypes.find(
+      ({ value }) => value === (entity?.schedule?.triggerType ?? 'CALENDAR')
+    ),
+    meter: entity?.schedule?.meterId
+      ? {
+          label: `${entity.schedule.meterName ?? ''}${
+            entity.schedule.meterUnit ? ` (${entity.schedule.meterUnit})` : ''
+          }`,
+          value: entity.schedule.meterId,
+          unit: entity.schedule.meterUnit,
+          assetId: entity.asset?.id
+        }
+      : null,
     meterCycleInterval: entity?.schedule?.meterCycleInterval,
     meterReferenceValue: entity?.schedule?.meterReferenceValue,
     meterEndValue: entity?.schedule?.meterEndValue,
@@ -476,8 +502,13 @@ function PMs() {
     })),
     frequency: Number(entity?.schedule?.frequency),
     dueDateDelay: entity?.schedule?.dueDateDelay,
-    workOrderGenerationLeadDays: entity?.schedule?.workOrderGenerationLeadDays ?? 0,
-    planConfigurationJson: JSON.stringify(entity?.schedule?.planConfiguration ?? { mode: 'SINGLE' }, null, 2),
+    workOrderGenerationLeadDays:
+      entity?.schedule?.workOrderGenerationLeadDays ?? 0,
+    planConfigurationJson: JSON.stringify(
+      entity?.schedule?.planConfiguration ?? { mode: 'SINGLE' },
+      null,
+      2
+    ),
     tasks
   });
   const formatValues = (values) => {
@@ -495,18 +526,26 @@ function PMs() {
     newValues.recurrenceType = newValues.recurrenceType?.value;
     newValues.triggerType = newValues.triggerType?.value ?? 'CALENDAR';
     try {
-      newValues.planConfiguration = JSON.parse(newValues.planConfigurationJson || '{"mode":"SINGLE"}');
+      newValues.planConfiguration = JSON.parse(
+        newValues.planConfigurationJson || '{"mode":"SINGLE"}'
+      );
     } catch {
       throw new Error(t('pm_plan_configuration_invalid_json'));
     }
     delete newValues.planConfigurationJson;
-    newValues.meterId = newValues.meter?.value ? Number(newValues.meter.value) : null;
-    if (newValues.workOrderGenerationLeadDays === ''
-      || newValues.workOrderGenerationLeadDays === null
-      || newValues.workOrderGenerationLeadDays === undefined) {
+    newValues.meterId = newValues.meter?.value
+      ? Number(newValues.meter.value)
+      : null;
+    if (
+      newValues.workOrderGenerationLeadDays === '' ||
+      newValues.workOrderGenerationLeadDays === null ||
+      newValues.workOrderGenerationLeadDays === undefined
+    ) {
       newValues.workOrderGenerationLeadDays = 0;
     } else {
-      newValues.workOrderGenerationLeadDays = Number(newValues.workOrderGenerationLeadDays);
+      newValues.workOrderGenerationLeadDays = Number(
+        newValues.workOrderGenerationLeadDays
+      );
     }
     delete newValues.meter;
     newValues.requiredSignature = Array.isArray(newValues.requiredSignature)
@@ -611,8 +650,20 @@ function PMs() {
       items: triggerTypes,
       required: true,
       relatedFields: [
-        ...['recurrenceBasedOn', 'startsOn', 'frequency', 'recurrenceType', 'daysOfWeek', 'workOrderGenerationLeadDays'].map((field) => ({ field, value: 'METER', hide: true })),
-        ...['meter', 'meterCycleInterval', 'meterReferenceValue', 'meterEndValue'].map((field) => ({ field, value: 'CALENDAR', hide: true }))
+        ...[
+          'recurrenceBasedOn',
+          'startsOn',
+          'frequency',
+          'recurrenceType',
+          'daysOfWeek',
+          'workOrderGenerationLeadDays'
+        ].map((field) => ({ field, value: 'METER', hide: true })),
+        ...[
+          'meter',
+          'meterCycleInterval',
+          'meterReferenceValue',
+          'meterEndValue'
+        ].map((field) => ({ field, value: 'CALENDAR', hide: true }))
       ]
     },
     {
@@ -630,9 +681,29 @@ function PMs() {
       required: true,
       relatedFields: [{ field: 'asset', value: undefined }]
     },
-    { name: 'meterCycleInterval', type: 'number', label: t('pm_meter_cycle_interval'), helperText: t('pm_meter_numeric_hint'), required: true, midWidth: true },
-    { name: 'meterReferenceValue', type: 'number', label: t('pm_meter_reference_value'), helperText: t('pm_meter_numeric_hint'), required: true, midWidth: true },
-    { name: 'meterEndValue', type: 'number', label: t('pm_meter_end_value'), helperText: t('pm_meter_numeric_hint'), midWidth: true },
+    {
+      name: 'meterCycleInterval',
+      type: 'number',
+      label: t('pm_meter_cycle_interval'),
+      helperText: t('pm_meter_numeric_hint'),
+      required: true,
+      midWidth: true
+    },
+    {
+      name: 'meterReferenceValue',
+      type: 'number',
+      label: t('pm_meter_reference_value'),
+      helperText: t('pm_meter_numeric_hint'),
+      required: true,
+      midWidth: true
+    },
+    {
+      name: 'meterEndValue',
+      type: 'number',
+      label: t('pm_meter_end_value'),
+      helperText: t('pm_meter_numeric_hint'),
+      midWidth: true
+    },
     {
       name: 'recurrenceBasedOn',
       type: 'select',
@@ -723,24 +794,89 @@ function PMs() {
     }
   ];
   const defaultShape = {
-    planConfigurationJson: Yup.string().required().test('valid-pm-plan-json', t('pm_plan_configuration_invalid_json'), (value) => {
-      if (!value) return false;
-      try {
-        return validatePMPlanConfiguration(parsePMPlanConfiguration(value)) === null;
-      } catch {
-        return false;
-      }
-    }),
+    planConfigurationJson: Yup.string()
+      .required()
+      .test(
+        'valid-pm-plan-json',
+        t('pm_plan_configuration_invalid_json'),
+        (value) => {
+          if (!value) return false;
+          try {
+            return (
+              validatePMPlanConfiguration(parsePMPlanConfiguration(value)) ===
+              null
+            );
+          } catch {
+            return false;
+          }
+        }
+      )
+      .test(
+        'valid-pm-plan-task-references',
+        t('pm_plan_task_assignment_missing'),
+        function (value) {
+          if (!value) return true;
+          try {
+            const configuration = parsePMPlanConfiguration(value);
+            const taskIds = new Set(
+              (this.parent.tasks ?? [])
+                .map((task: any) =>
+                  Number(task.taskBase?.id ?? task.taskBaseId)
+                )
+                .filter((id: number) => Number.isFinite(id) && id > 0)
+            );
+            const assignments =
+              configuration.mode === 'STRATEGY'
+                ? (configuration.packages ?? []).flatMap(
+                    (item) => item.taskBaseIds ?? []
+                  )
+                : configuration.mode === 'MULTI_COUNTER'
+                ? (configuration.cycles ?? []).flatMap(
+                    (cycle) => cycle.taskBaseIds ?? []
+                  )
+                : [];
+            return assignments.every((id) => taskIds.has(Number(id)));
+          } catch {
+            return true;
+          }
+        }
+      ),
     name: Yup.string().required(t('required_trigger_name')),
     title: Yup.string().required(t('required_wo_title')),
     triggerType: Yup.mixed().required(),
-    recurrenceBasedOn: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
-    recurrenceType: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
-    startsOn: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required')) }),
-    meter: Yup.mixed().when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.required(t('required')).test('meter-asset-match', t('pm_meter_must_match_asset'), function (meter) {
-      const assetId = this.parent.asset?.value;
-      return !!assetId && !!meter?.value && Number(meter.assetId) === Number(assetId);
-    }) }),
+    recurrenceBasedOn: Yup.mixed().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema.required(t('required'))
+    }),
+    recurrenceType: Yup.mixed().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema.required(t('required'))
+    }),
+    startsOn: Yup.mixed().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema.required(t('required'))
+    }),
+    meter: Yup.mixed().when('triggerType', {
+      is: (v) => v?.value === 'METER' || v === 'METER',
+      then: (schema) =>
+        schema
+          .required(t('required'))
+          .test(
+            'meter-asset-match',
+            t('pm_meter_must_match_asset'),
+            function (meter) {
+              const assetId = this.parent.asset?.value;
+              return (
+                !!assetId &&
+                !!meter?.value &&
+                Number(meter.assetId) === Number(assetId)
+              );
+            }
+          )
+    }),
     // Meter-only values are null on calendar PMs. Keep their numeric validation
     // for meter schedules, but explicitly make them optional for calendar ones.
     meterCycleInterval: numericSchema().when('triggerType', {
@@ -753,29 +889,55 @@ function PMs() {
       then: (schema) => schema.required(t('required')).min(0),
       otherwise: (schema) => schema.nullable().notRequired()
     }),
-    meterEndValue: numericSchema().nullable().test('meter-end-after-reference', t('pm_meter_end_must_exceed_reference'), function (value) {
-      if ((this.parent.triggerType?.value ?? this.parent.triggerType) !== 'METER' || value == null || Number.isNaN(value)) return true;
-      return value > Number(this.parent.meterReferenceValue);
-    }),
+    meterEndValue: numericSchema()
+      .nullable()
+      .test(
+        'meter-end-after-reference',
+        t('pm_meter_end_must_exceed_reference'),
+        function (value) {
+          if (
+            (this.parent.triggerType?.value ?? this.parent.triggerType) !==
+              'METER' ||
+            value == null ||
+            Number.isNaN(value)
+          )
+            return true;
+          return value > Number(this.parent.meterReferenceValue);
+        }
+      ),
     frequency: Yup.number()
-      .when('triggerType', { is: (v) => v?.value === 'METER' || v === 'METER', then: (schema) => schema.notRequired(), otherwise: (schema) => schema.required(t('required_frequency')) })
+      .when('triggerType', {
+        is: (v) => v?.value === 'METER' || v === 'METER',
+        then: (schema) => schema.notRequired(),
+        otherwise: (schema) => schema.required(t('required_frequency'))
+      })
       .test(
         'test-frequency', // this is used internally by yup
         t('invalid_frequency'),
         function (value) {
-          if ((this.parent.triggerType?.value ?? this.parent.triggerType) === 'METER') return true;
+          if (
+            (this.parent.triggerType?.value ?? this.parent.triggerType) ===
+            'METER'
+          )
+            return true;
           return value > 0;
         }
       ),
     workOrderGenerationLeadDays: Yup.number()
-      .transform((value, originalValue) => originalValue === '' ? 0 : value)
-      .min(0).max(365).integer(),
+      .transform((value, originalValue) => (originalValue === '' ? 0 : value))
+      .min(0)
+      .max(365)
+      .integer(),
     daysOfWeek: Yup.array().test(
       'test-days-of-week',
       t('required_days_of_week'),
       function (value) {
         const { recurrenceBasedOn, recurrenceType } = this.parent;
-        if ((this.parent.triggerType?.value ?? this.parent.triggerType) === 'METER') return true;
+        if (
+          (this.parent.triggerType?.value ?? this.parent.triggerType) ===
+          'METER'
+        )
+          return true;
         if (
           recurrenceBasedOn?.value === 'SCHEDULED_DATE' &&
           recurrenceType?.value === 'WEEKLY'
@@ -793,14 +955,23 @@ function PMs() {
   };
 
   const renderPMSchedulePreview = (values, setFieldValue) => {
-    const planEditor = <PMPlanConfigurationEditor
-      values={values}
-      setFieldValue={setFieldValue}
-      t={t}
-      meterTriggerOption={triggerTypes.find(({ value }) => value === 'METER')!}
-    />;
+    const planEditor = (
+      <PMPlanConfigurationEditor
+        values={values}
+        setFieldValue={setFieldValue}
+        t={t}
+        meterTriggerOption={
+          triggerTypes.find(({ value }) => value === 'METER')!
+        }
+      />
+    );
     if ((values.triggerType?.value ?? values.triggerType) === 'METER') {
-      return <>{planEditor}<MeterCycleForecast values={values} t={t} /></>;
+      return (
+        <>
+          {planEditor}
+          <MeterCycleForecast values={values} t={t} />
+        </>
+      );
     }
     const startsOn = values.startsOn;
     if (!startsOn) return planEditor;
@@ -810,58 +981,76 @@ function PMs() {
       Intl.DateTimeFormat().resolvedOptions().timeZone;
     const dates = getPMSchedulePreview(values, timeZone);
     let previewPlan: any = { mode: 'SINGLE' };
-    try { previewPlan = JSON.parse(values.planConfigurationJson || '{"mode":"SINGLE"}'); } catch { /* The form validation shows the JSON error. */ }
-    const packageForecast = dates.map((date) => {
-      const cycleNumber = getPMBaseCycleNumber(values, date, timeZone);
-      return {
-        date,
-        packages: (previewPlan.packages ?? []).filter((item: any) => Number(item.everyBaseCycles) > 0
-          && cycleNumber > 0 && cycleNumber % Number(item.everyBaseCycles) === 0)
-      };
-    }).filter(({ packages }) => previewPlan.mode !== 'STRATEGY' || packages.length > 0);
+    try {
+      previewPlan = JSON.parse(
+        values.planConfigurationJson || '{"mode":"SINGLE"}'
+      );
+    } catch {
+      /* The form validation shows the JSON error. */
+    }
+    const packageForecast = dates
+      .map((date) => {
+        const cycleNumber = getPMBaseCycleNumber(values, date, timeZone);
+        return {
+          date,
+          packages: (previewPlan.packages ?? []).filter(
+            (item: any) =>
+              Number(item.everyBaseCycles) > 0 &&
+              cycleNumber > 0 &&
+              cycleNumber % Number(item.everyBaseCycles) === 0
+          )
+        };
+      })
+      .filter(
+        ({ packages }) => previewPlan.mode !== 'STRATEGY' || packages.length > 0
+      );
     const isCompletionBased =
       values.recurrenceBasedOn?.value === 'COMPLETED_DATE' ||
       values.recurrenceBasedOn === 'COMPLETED_DATE';
 
     return (
       <>
-      {planEditor}
-      <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
-        <Typography variant="subtitle1" fontWeight="bold">
-          {t('pm_schedule_forecast')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {t('pm_schedule_forecast_description')}
-        </Typography>
-        {isCompletionBased && (
-          <Typography variant="body2" color="info.main" sx={{ mb: 1 }}>
-            {t('pm_schedule_forecast_completion_note')}
+        {planEditor}
+        <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {t('pm_schedule_forecast')}
           </Typography>
-        )}
-        {packageForecast.length > 0 ? (
-          <Box component="ol" sx={{ m: 0, pl: 3 }}>
-            {packageForecast.map(({ date, packages }, index) => (
-              <li key={`${date.toISOString()}-${index}`}>
-                <Typography variant="body2">
-                  {getFormattedDate(date.toISOString())}{previewPlan.mode === 'STRATEGY'
-                    ? ` · ${packages.map((item: any) => item.name || item.code).join(', ')}` : ''}
-                </Typography>
-              </li>
-            ))}
-          </Box>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            {t(
-              previewPlan.mode === 'STRATEGY'
-                ? 'pm_schedule_forecast_no_packages'
-                : values.recurrenceType?.value === 'WEEKLY' &&
-                !(values.daysOfWeek?.length ?? 0)
-                ? 'pm_schedule_forecast_select_days'
-                : 'pm_schedule_forecast_no_dates'
-            )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {t('pm_schedule_forecast_description')}
           </Typography>
-        )}
-      </Paper>
+          {isCompletionBased && (
+            <Typography variant="body2" color="info.main" sx={{ mb: 1 }}>
+              {t('pm_schedule_forecast_completion_note')}
+            </Typography>
+          )}
+          {packageForecast.length > 0 ? (
+            <Box component="ol" sx={{ m: 0, pl: 3 }}>
+              {packageForecast.map(({ date, packages }, index) => (
+                <li key={`${date.toISOString()}-${index}`}>
+                  <Typography variant="body2">
+                    {getFormattedDate(date.toISOString())}
+                    {previewPlan.mode === 'STRATEGY'
+                      ? ` · ${packages
+                          .map((item: any) => item.name || item.code)
+                          .join(', ')}`
+                      : ''}
+                  </Typography>
+                </li>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              {t(
+                previewPlan.mode === 'STRATEGY'
+                  ? 'pm_schedule_forecast_no_packages'
+                  : values.recurrenceType?.value === 'WEEKLY' &&
+                    !(values.daysOfWeek?.length ?? 0)
+                  ? 'pm_schedule_forecast_select_days'
+                  : 'pm_schedule_forecast_no_dates'
+              )}
+            </Typography>
+          )}
+        </Paper>
       </>
     );
   };
@@ -877,9 +1066,11 @@ function PMs() {
     <Dialog
       fullWidth
       maxWidth="md"
+      fullScreen={fullScreenForm}
       open={openAddModal}
       onClose={() => {
         if (isFormDirty) {
+          setDiscardTarget('add');
           setOpenDiscardDialog(true);
         } else {
           setOpenAddModal(false);
@@ -889,7 +1080,7 @@ function PMs() {
     >
       <DialogTitle
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -902,7 +1093,7 @@ function PMs() {
       <DialogContent
         dividers
         sx={{
-          p: 3
+          p: { xs: 1.5, sm: 3 }
         }}
       >
         <Box>
@@ -934,7 +1125,6 @@ function PMs() {
             onChange={() => setIsFormDirty(true)}
             renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
-              setIsFormDirty(false);
               let formattedValues = formatValues(values);
               try {
                 const uploadedFiles = await uploadFiles(
@@ -966,8 +1156,12 @@ function PMs() {
         onCancel={() => setOpenDiscardDialog(false)}
         onConfirm={() => {
           setOpenDiscardDialog(false);
-          setOpenAddModal(false);
-          setCopyPmData(null);
+          if (discardTarget === 'update') {
+            setOpenUpdateModal(false);
+          } else {
+            setOpenAddModal(false);
+            setCopyPmData(null);
+          }
           setIsFormDirty(false);
         }}
         confirmText={t('discard_changes')}
@@ -979,12 +1173,20 @@ function PMs() {
     <Dialog
       fullWidth
       maxWidth="md"
+      fullScreen={fullScreenForm}
       open={openUpdateModal}
-      onClose={() => setOpenUpdateModal(false)}
+      onClose={() => {
+        if (isFormDirty) {
+          setDiscardTarget('update');
+          setOpenDiscardDialog(true);
+        } else {
+          setOpenUpdateModal(false);
+        }
+      }}
     >
       <DialogTitle
         sx={{
-          p: 3
+          p: { xs: 2, sm: 3 }
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -997,7 +1199,7 @@ function PMs() {
       <DialogContent
         dividers
         sx={{
-          p: 3
+          p: { xs: 1.5, sm: 3 }
         }}
       >
         <Box>
@@ -1006,7 +1208,7 @@ function PMs() {
             validation={Yup.object().shape(getFieldsAndShapes()[1])}
             submitText={t('save')}
             values={getPMFormValues(currentPM)}
-            onChange={({ field, e }) => {}}
+            onChange={() => setIsFormDirty(true)}
             renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
               try {
@@ -1026,16 +1228,13 @@ function PMs() {
                   files: imageAndFiles.files
                 };
 
-                await dispatch(
-                  patchTasksOfPreventiveMaintenance(
-                    currentPM?.id,
-                    formattedValues.tasks.map((task) => ({
-                      ...task.taskBase,
-                      options: task.taskBase.options.map(
-                        (option) => option.label
-                      )
-                    }))
-                  )
+                formattedValues.tasks = (formattedValues.tasks ?? []).map(
+                  (task) => ({
+                    ...task.taskBase,
+                    options: (task.taskBase.options ?? []).map((option) =>
+                      typeof option === 'string' ? option : option.label
+                    )
+                  })
                 );
 
                 await dispatch(
@@ -1053,6 +1252,17 @@ function PMs() {
           />
         </Box>
       </DialogContent>
+      <ConfirmDialog
+        open={openDiscardDialog && discardTarget === 'update'}
+        onCancel={() => setOpenDiscardDialog(false)}
+        onConfirm={() => {
+          setOpenDiscardDialog(false);
+          setOpenUpdateModal(false);
+          setIsFormDirty(false);
+        }}
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
     </Dialog>
   );
   if (hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES))
@@ -1171,7 +1381,7 @@ function PMs() {
           open={openDrawer}
           onClose={handleCloseDetails}
           PaperProps={{
-            sx: { width: { xs: '90%', sm: '70%', md: '50%' } }
+            sx: { width: { xs: '100%', sm: '70%', md: '50%' } }
           }}
         >
           <PMDetails
@@ -1209,7 +1419,10 @@ function PMs() {
                 try {
                   await exportEntity('preventive-maintenances');
                 } catch (error) {
-                  showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
+                  showSnackBar(
+                    getErrorMessage(error, t('Export failed')),
+                    'error'
+                  );
                 }
                 handleCloseMenu();
               }}

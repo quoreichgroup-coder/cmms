@@ -28,12 +28,14 @@ export default function AudioRecorder({
   title,
   onChange,
   onRecordingChange,
-  disabled = false
+  disabled = false,
+  disabledMessage
 }: {
   title: string;
   onChange: (audio: IFile) => void;
   onRecordingChange?: (recording: boolean) => void;
   disabled?: boolean;
+  disabledMessage?: string;
 }) {
   const [recordingURI, setRecordingURI] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -214,6 +216,15 @@ export default function AudioRecorder({
       >
         {title}
       </Text>
+      {disabledMessage ? (
+        <Text
+          variant="bodySmall"
+          accessibilityRole="text"
+          style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}
+        >
+          {disabledMessage}
+        </Text>
+      ) : null}
       <TouchableOpacity
         onPress={isRecording ? stopRecording : startRecording}
         disabled={disabled || recordingActionBusy}
@@ -227,7 +238,9 @@ export default function AudioRecorder({
           disabled: disabled || recordingActionBusy
         }}
         accessibilityHint={
-          disabled ? t('form_submission_in_progress') : undefined
+          disabled
+            ? disabledMessage ?? t('form_submission_in_progress')
+            : undefined
         }
         style={[
           styles.recordButton,

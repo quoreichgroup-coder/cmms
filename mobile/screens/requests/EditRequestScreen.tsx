@@ -23,12 +23,14 @@ import { CustomFieldEntityType } from '../../models/customField';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 import { getErrorMessage } from '../../utils/api';
 import { groupRequestFormFields } from '../../utils/requestFormLayout';
+import { useLicenseEntitlement } from '../../hooks/useLicenseEntitlement';
 
 export default function EditRequestScreen({
   navigation,
   route
 }: RootStackScreenProps<'EditRequest'>) {
   const { t } = useTranslation();
+  const hasVoiceNotesEntitlement = useLicenseEntitlement('VOICE_NOTES');
   const { request } = route.params;
   const { uploadFiles, getRequestFieldsAndShapes } = useContext(
     CompanySettingsContext
@@ -69,6 +71,7 @@ export default function EditRequestScreen({
     <View style={styles.container}>
       <Form
         fields={groupRequestFormFields(fields, t)}
+        audioNotesEnabled={hasVoiceNotesEntitlement}
         validation={Yup.object().shape(validationShape)}
         navigation={navigation}
         submitText={t('save')}

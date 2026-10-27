@@ -3,6 +3,18 @@ const { codeInspectorPlugin } = require('code-inspector-plugin');
 
 module.exports = {
   webpack: function override(config, env) {
+    // pdfme's browser worker bundles clawpdf's shared code, which retains
+    // guarded Node-only imports for its Node runtime. Webpack treats `node:`
+    // as a URI scheme before aliases are considered, so ignore only these
+    // built-ins; the worker's browser code never enters those Node branches.
+    const webpack = require('webpack');
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp:
+          /^node:(?:crypto|fs(?:\/promises)?|module|path|url|zlib)$/
+      })
+    );
+
     // Optional low-memory production builds for constrained VPS/CI workers.
     // This changes minifier parallelism only, not the generated application code.
     if (env === 'production' && process.env.QPM_LOW_MEMORY_BUILD === '1') {

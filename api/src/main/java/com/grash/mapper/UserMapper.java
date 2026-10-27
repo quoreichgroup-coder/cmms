@@ -2,6 +2,7 @@ package com.grash.mapper;
 
 import com.grash.dto.*;
 import com.grash.model.User;
+import com.grash.model.Site;
 import com.grash.model.UiConfiguration;
 import com.grash.service.UiConfigurationService;
 import org.mapstruct.*;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Lazy;
 
 @Mapper(componentModel = "spring", uses = {SuperAccountRelationMapper.class, FileMapper.class})
 public abstract class UserMapper {
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     public abstract User updateUser(@MappingTarget User entity, UserPatchDTO dto);
 
     @Lazy
@@ -22,6 +24,7 @@ public abstract class UserMapper {
 
     @Mappings({@Mapping(source = "company.id", target = "companyId"),
             @Mapping(source = "company.companySettings.id", target = "companySettingsId"),
+            @Mapping(target = "sites", ignore = true),
             @Mapping(target = "shiftConfiguration", ignore = true),
             @Mapping(source = "userSettings.id", target = "userSettingsId"),
             @Mapping(source = "company.companySettings.uiConfiguration", target = "uiConfiguration"),
@@ -38,6 +41,15 @@ public abstract class UserMapper {
 
     @AfterMapping
     protected UserResponseDTO toResponseDto(User model, @MappingTarget UserResponseDTO target) {
+        target.setAllSitesAccess(model.isAllSitesAccess());
+        target.setSiteIds(model.getSites() == null ? java.util.List.of() : model.getSites().stream().map(Site::getId).toList());
+        target.setSites(model.getSites() == null ? java.util.List.of() : model.getSites().stream().map(site -> {
+            SiteDTO dto = new SiteDTO();
+            dto.setId(site.getId());
+            dto.setName(site.getName());
+            dto.setCode(site.getCode());
+            return dto;
+        }).toList());
         if (target.getUiConfiguration() == null) {
             UiConfiguration uiConfiguration = new UiConfiguration();
             uiConfiguration.setCompanySettings(model.getCompany().getCompanySettings());

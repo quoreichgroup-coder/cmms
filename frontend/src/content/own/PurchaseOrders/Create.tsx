@@ -4,10 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { IField } from '../type';
 import { useContext, useEffect } from 'react';
 import { TitleContext } from '../../../contexts/TitleContext';
-import {
-  addPurchaseOrder,
-  respondPurchaseOrder
-} from '../../../slices/purchaseOrder';
 import { useDispatch } from '../../../store';
 import Form from '../components/form';
 import * as Yup from 'yup';
@@ -20,9 +16,7 @@ import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
 import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
-import { editPOPartQuantities } from '../../../slices/partQuantity';
-import { createPurchaseOrderWorkflow } from './createPurchaseOrderWorkflow';
-import PartQuantity from '../../../models/owns/partQuantity';
+import { addPurchaseOrderWithLines } from 'src/slices/purchaseOrder';
 import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
 
 function CreatePurchaseOrder() {
@@ -266,28 +260,11 @@ function CreatePurchaseOrder() {
                       values,
                       'approveOnSubmit'
                     );
-                    let createdPurchaseOrderId: number | null = null;
                     try {
-                      await createPurchaseOrderWorkflow<PartQuantity>(
-                        values,
-                        async () => dispatch(addPurchaseOrder(values)),
-                        (id, partQuantities) =>
-                          dispatch(editPOPartQuantities(id, partQuantities)),
-                        (id) => dispatch(respondPurchaseOrder(id, true)),
-                        (id) => {
-                          createdPurchaseOrderId = id;
-                        }
-                      );
+                      await dispatch(addPurchaseOrderWithLines(values));
                       onCreationSuccess();
                     } catch (err) {
-                      if (createdPurchaseOrderId !== null) {
-                        showSnackBar(t('po_create_partial_failure'), 'error');
-                        navigate(
-                          `/app/purchase-orders/${createdPurchaseOrderId}`
-                        );
-                      } else {
-                        onCreationFailure();
-                      }
+                      onCreationFailure();
                     }
                   }}
                 />

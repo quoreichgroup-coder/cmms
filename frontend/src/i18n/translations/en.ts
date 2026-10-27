@@ -1,6 +1,7 @@
 const locale = {
   show_password: 'Show password',
   hide_password: 'Hide password',
+  generate_password: 'Generate',
   open_source_notices: 'About and open-source notices',
   open_source_modified:
     'This QPM edition is modified and maintained by QUOREICH GROUP.',
@@ -357,13 +358,19 @@ const locale = {
   close_wo: 'Close Work Order',
   close: 'Close',
   task_update_success: 'Task updated successfully',
+  task_progress: '{{done}} / {{total}} recorded',
+  no_checklist_tasks: 'No checklist tasks are configured for this item.',
+  view_image: 'View image',
   task_update_failure: "Task couldn't be updated",
   notes_save_success: 'Notes saved successfully',
+  notes_save_failure: 'Notes could not be saved',
   images_add_task_success: 'The images have been added to the task',
   images_add_task_failure: 'Something went wrong',
   images: 'Images',
   required_images: 'Please upload at least an image',
   add_images: 'Add Images',
+  attach_images: 'Attach images',
+  upgrade_to_attach_images: 'Upgrade your plan to attach images',
   tasks: 'Tasks',
   wo_archive_success: 'The Work Order has been archived',
   wo_archive_failure: "The Work Order couldn't be archived",
@@ -614,6 +621,7 @@ const locale = {
   create_downtime_success: 'The Downtime has been added successfully',
   create_downtime_failure: "The Downtime couldn't be added",
   edit_downtime_success: 'The Downtime has been edited successfully',
+  edit_downtime_failure: "The Downtime couldn't be edited",
   downtime_delete_success: 'The Downtime has been removed successfully',
   downtime_delete_failure: "The Downtime couldn't be removed",
   started_on: 'Started On',
@@ -780,6 +788,11 @@ const locale = {
   po_delete_failure: "The Purchase Request couldn't be deleted",
   number_of_items: 'Number of items',
   total_quantity: 'Total Quantity',
+  ordered_quantity_by_unit: 'Ordered quantity by unit',
+  unit_unspecified: 'unit unspecified',
+  estimated_total_cost: 'Estimated total cost',
+  purchase_order_cost_estimate_note:
+    'Estimate from current part costs; supplier prices may differ.',
   shipping_to: 'Shipping to',
   shipping_address: 'Shipping Address',
   po_details: 'Purchase Request Details',
@@ -796,6 +809,7 @@ const locale = {
   po_date: 'Purchase Request Date',
   notes: 'Notes',
   add_notes: 'Add Notes',
+  hide_notes: 'Hide Notes and Attachments',
   requisitioner: 'Requisitioner',
   terms: 'Terms',
   shipping_method: 'Shipping Method',
@@ -817,7 +831,7 @@ const locale = {
   approve_while_submitting: 'Approve while submitting',
   purchase_order_approval_confirmation_title: 'Confirm purchase order approval',
   purchase_order_approval_confirmation_body:
-    'Approving this purchase order immediately adds the quantities on all its lines to inventory.',
+    'Approving this purchase order immediately adds stockable part lines to inventory. Non-stock parts do not change inventory.',
   purchase_order_approval_effect_hint:
     'In the current workflow, approval posts the full listed quantities to stock immediately. Partial receipt is not supported here.',
   invalid_fax: 'The fax number is invalid',
@@ -1038,6 +1052,28 @@ const locale = {
   document_templates_empty_hint:
     'Create a report template to make it available when issuing a document.',
   document_template_type: 'Document type',
+  document_type_create: 'New report type',
+  document_type_manage: 'Manage report types',
+  document_type_create_title: 'Create a company report type',
+  document_type_edit_title: 'Edit company report type',
+  document_type_manage_empty: 'No custom report types yet.',
+  document_type_name: 'Type name',
+  document_type_name_hint:
+    'The name appears in report templates and generated reports.',
+  document_type_source: 'Data source',
+  document_type_source_hint:
+    'Fields and records come from this existing source. You can customize the report template afterward.',
+  document_type_created: 'Report type created.',
+  document_type_updated: 'Report type updated.',
+  document_type_create_error: 'The report type could not be created.',
+  document_type_update_error: 'The report type could not be updated.',
+  document_type_deactivate: 'Deactivate report type',
+  document_type_reactivate: 'Reactivate report type',
+  document_type_deactivated: 'Report type deactivated.',
+  document_type_reactivated: 'Report type reactivated.',
+  document_type_deactivate_error:
+    'This type cannot be deactivated while a report template uses it. Delete or move those templates first.',
+  maintenance_request: 'Maintenance request',
   document_template_create: 'Create template',
   document_template_edit: 'Edit template',
   document_template_copy_name: '{{name}} copy',
@@ -1062,9 +1098,14 @@ const locale = {
   document_template_code_hint:
     '2–60 letters, numbers, underscores or hyphens. Cannot be changed later.',
   document_template_layout: 'Page and layout',
+  document_template_editor_sections: 'Template editor sections',
+  document_template_section_general: 'General',
+  document_template_section_page: 'Page',
+  document_template_section_fields: 'Fields and order',
   document_template_style: 'Density',
   document_template_classic: 'Classic',
   document_template_compact: 'Compact',
+  document_template_modern: 'Modern',
   document_template_margin: 'Margin',
   document_template_margin_hint: '5–30 mm',
   document_template_margin_error: 'Enter a whole number from 5 to 30 mm.',
@@ -1073,6 +1114,18 @@ const locale = {
   document_template_fields: 'Fields in the report',
   document_template_fields_hint:
     'Choose at least one supported field. Sensitive or unsupported values are not available here.',
+  document_template_field_order: 'PDF block order',
+  document_template_field_order_hint:
+    'Drag selected fields and tables to arrange their order in the document.',
+  document_template_canvas_company_header:
+    'Company legal identity and contact details configured for this tenant',
+  document_template_canvas_work_order_title: 'Work Order report',
+  document_template_canvas_request_title: 'Maintenance Request report',
+  document_template_canvas_field_block: 'Field',
+  document_template_canvas_table_block: 'Table',
+  document_template_canvas_custom_label: 'Custom label (optional)',
+  document_template_canvas_move_up: 'Move up',
+  document_template_canvas_move_down: 'Move down',
   document_field_workOrder_customId: 'Work Order ID',
   document_field_workOrder_title: 'Work Order title',
   document_field_workOrder_description: 'Description',
@@ -1080,11 +1133,17 @@ const locale = {
   document_field_workOrder_priority: 'Priority',
   document_field_workOrder_dueDate: 'Due date',
   document_field_workOrder_completedAt: 'Completed at',
+  document_field_workOrder_feedback: 'Completion notes',
+  document_field_workOrder_signature: 'Technician signature',
   document_field_workOrder_estimatedDuration: 'Estimated duration',
+  document_field_workOrder_actualDuration: 'Actual recorded duration (h)',
   document_field_workOrder_category: 'Category',
   document_field_workOrder_team: 'Assigned team',
   document_field_workOrder_completedBy: 'Completed by',
   document_field_workOrder_assignedTo: 'Assigned to',
+  document_field_workOrder_executionTasks: 'Operations and tasks',
+  document_field_workOrder_laborTimeEntries: 'Actual labor time',
+  document_field_workOrder_materialsUsed: 'Materials and parts used',
   document_field_request_customId: 'Request ID',
   document_field_request_title: 'Request title',
   document_field_request_description: 'Description',
@@ -1105,7 +1164,7 @@ const locale = {
   document_field_company_taxNumber: 'Tax number',
   document_field_company_phone: 'Phone',
   document_field_company_email: 'Email',
-  document_template_fields_error: 'Select between 1 and 23 fields.',
+  document_template_fields_error: 'Select between 1 and 32 fields.',
   document_template_form_error: 'Enter a name and a valid template code.',
   document_template_permission_error:
     'You do not have permission to change this report template.',
@@ -1122,6 +1181,12 @@ const locale = {
   document_template_archive_title: 'Archive this template?',
   document_template_archive_message:
     '“{{name}}” will no longer be available for new reports. Existing issued documents are preserved.',
+  document_template_deleted: 'Template and all of its versions deleted.',
+  document_template_delete_error:
+    'The template could not be deleted because one of its versions is used by an issued document. Archive it to keep the history.',
+  document_template_delete_title: 'Delete this template permanently?',
+  document_template_delete_message:
+    '“{{name}}”, including its published versions and draft history, will be permanently deleted if no issued document uses it. This cannot be undone.',
   document_template_default: 'Default',
   document_template_publish_default: 'Publish as default',
   document_template_status_draft: 'Draft',
@@ -1129,6 +1194,148 @@ const locale = {
   document_template_status_archived: 'Archived',
   document_template_version_draft: 'Draft',
   document_template_version_published: 'Published',
+  document_designer_open: 'Design',
+  document_designer_start_title: 'Start a document template',
+  document_designer_start_hint:
+    'Start with a blank layout or use an existing template as a base. Either option creates a new editable draft.',
+  document_designer_start_blank: 'Start from scratch',
+  document_designer_start_blank_hint:
+    'Open a blank canvas, then add the fields, tables and sections you need.',
+  document_designer_create_blank: 'Create blank canvas',
+  document_designer_blank_name: 'Work Order job card',
+  document_designer_blank_created: 'Blank draft created.',
+  document_designer_work_order_section: 'Work Order',
+  document_designer_start_existing: 'Start from an existing template',
+  document_designer_start_existing_hint:
+    'The selected template is copied into a new draft. Its source version stays unchanged.',
+  document_designer_use_template: 'Use as a starting point',
+  document_designer_no_start_templates:
+    'No Work Order templates are available as a starting point.',
+  document_designer_basic_create: 'Create a template with the standard editor',
+  document_designer_search_fields: 'Search fields and tables',
+  document_designer_no_fields_found: 'No fields match this search.',
+  document_designer_remove_component: 'Remove this block from the document',
+  document_designer_blank_canvas_hint:
+    'Blank canvas: search for a field on the left and select it to add it. Select a block to edit its label and style.',
+  document_designer_return_to_editor: 'Return to layout editor',
+  document_designer_pdf_read_only:
+    'The PDF is a server-generated output and cannot be edited directly. Return to the layout editor to change the template.',
+  document_designer_pdf_ready: 'PDF preview generated',
+  document_designer_pdf_open_hint:
+    'The browser may block PDFs embedded in the editor. Open the document in a separate tab or download it.',
+  document_designer_open_pdf: 'Open PDF',
+  document_designer_load_error: 'The document designer could not be loaded.',
+  document_designer_saved: 'Design draft saved.',
+  document_designer_saved_state: 'Saved',
+  document_designer_unsaved: 'Unsaved changes',
+  document_designer_leave_title: 'Leave the document designer?',
+  document_designer_leave_body:
+    'You have changes that have not been saved. Save them before leaving, or discard them.',
+  document_designer_save_leave: 'Save and leave',
+  document_designer_discard_leave: 'Discard and leave',
+  document_designer_changed_during_save:
+    'The layout changed while saving. Save the latest changes before leaving or publishing.',
+  document_designer_library: 'Components and fields',
+  document_designer_fields: 'Drag a field into a section or select it to add.',
+  document_designer_structure: 'Document structure',
+  document_designer_add_section: 'Add section',
+  document_designer_new_section: 'New section',
+  document_designer_canvas: 'A4 composition canvas',
+  document_designer_canvas_hint:
+    'Editable canvas: field labels, values, table rows and the footer are shown separately. Values are examples.',
+  document_designer_layout_view: 'Layout editor',
+  document_designer_pdf_view: 'Generated PDF',
+  document_designer_generate_preview: 'Generate PDF preview',
+  document_designer_pdf_output: 'Server-generated PDF output',
+  document_designer_pdf_output_hint:
+    'This document reflects the saved draft at the time it was generated.',
+  document_designer_sample_data: 'Sample data',
+  document_designer_pdf_outdated:
+    'The draft changed after this PDF was generated. Regenerate the preview to see the latest changes.',
+  document_designer_company_header: 'Company header and branding',
+  document_designer_company_identity_bound: 'Company identity from settings',
+  document_designer_legal_fields_bound: 'Address · registration · tax details',
+  document_designer_values_loaded_in_pdf:
+    'Real Work Order values load in PDF preview',
+  document_designer_columns: 'Columns',
+  document_designer_page_break_before: 'Start this section on a new page',
+  document_designer_keep_section_together:
+    'Keep this section together when possible',
+  document_designer_keep_section_help:
+    'Avoid splitting this section across pages. Very long content may still continue on the next page.',
+  document_designer_keep_section_table_help:
+    'Sections with tables can span pages so table rows and repeated headers remain readable.',
+  document_designer_hide_if_empty: 'Hide this field when its value is empty',
+  document_designer_full_width: 'Use the full section width',
+  document_designer_drop_hint: 'Drop fields or tables here',
+  document_designer_signature_areas: 'Technician and supervisor sign-off areas',
+  document_designer_footer: 'QPM document footer',
+  document_designer_footer_copy:
+    'Generated by QPM · Printed values come from the maintenance record.',
+  document_designer_page_number_sample: 'Page 1 of 2',
+  document_designer_sample_value: 'Sample value',
+  document_designer_sample_operation: 'Operation',
+  document_designer_sample_status: 'Status',
+  document_designer_sample_assignee: 'Assignee',
+  document_designer_sample_technician: 'Technician',
+  document_designer_sample_planned: 'Planned',
+  document_designer_sample_actual: 'Actual',
+  document_designer_sample_reference: 'Reference',
+  document_designer_sample_description: 'Description',
+  document_designer_sample_quantity: 'Quantity',
+  document_designer_properties: 'Properties',
+  document_designer_use_custom_accent: 'Use a custom document accent',
+  document_designer_accent_color: 'Document accent color',
+  document_designer_accent_contrast_hint:
+    'Choose a color with at least 4.5:1 contrast on white. Otherwise the server rejects the draft.',
+  document_designer_font_size: 'Font size (pt)',
+  document_designer_alignment: 'Alignment',
+  document_designer_align_left: 'Left',
+  document_designer_align_center: 'Center',
+  document_designer_align_right: 'Right',
+  document_designer_bold: 'Bold',
+  document_designer_tone: 'Text color',
+  document_designer_tone_default: 'Default',
+  document_designer_tone_accent: 'Company accent',
+  document_designer_technician_signature: 'Technician signature',
+  document_designer_supervisor_signature: 'Supervisor signature',
+  document_designer_table_title: 'Table title',
+  document_designer_column_widths: 'Column widths',
+  document_designer_columns_to_print: 'Columns to print',
+  document_designer_move_column_up: 'Move {{column}} up',
+  document_designer_move_column_down: 'Move {{column}} down',
+  document_designer_column_width_percent: '{{column}} width percentage',
+  document_designer_column_widths_help:
+    'Widths stay between 10% and 70%; one visible column uses 100%. Changing one column redistributes the remaining space.',
+  document_designer_column_number: 'No.',
+  document_designer_column_result: 'Result',
+  document_designer_column_notes: 'Notes',
+  document_designer_column_activity: 'Activity',
+  document_designer_column_started: 'Started',
+  document_designer_column_time: 'Time',
+  document_designer_column_entry_status: 'Entry status',
+  document_designer_column_part: 'Part',
+  document_designer_column_unit: 'Unit',
+  document_designer_field_label: 'Printed label',
+  document_designer_section_title: 'Section title',
+  document_designer_style: 'Document style',
+  document_designer_page_size: 'Page size',
+  document_designer_orientation: 'Orientation',
+  document_designer_margin: 'Margin (mm)',
+  document_designer_undo: 'Undo',
+  document_designer_redo: 'Redo',
+  document_designer_move_up: 'Move up',
+  document_designer_move_down: 'Move down',
+  document_designer_move_section_up: 'Move section up',
+  document_designer_move_section_down: 'Move section down',
+  document_designer_preview: 'Preview real Work Order PDF',
+  document_designer_return_to_canvas: 'Return to layout canvas',
+  document_designer_work_order_id: 'Authorized Work Order ID',
+  document_designer_preview_hint:
+    'The server checks that you can view this Work Order.',
+  document_designer_publish_title: 'Publish this document version?',
+  document_designer_publish_body:
+    'The published version becomes immutable. Future edits create a new draft version.',
   request_form_configuration: 'Request form configuration',
   roles: 'Roles',
   checklists: 'Checklists',
@@ -1215,16 +1422,34 @@ const locale = {
     'List “{{name}}” was saved with {{taskCount}} task(s). They are in the PM form; save the PM to keep the assignment.',
   checklist_delete_success: 'The Checklist has been deleted successfully',
   checklist_delete_failure: "The Checklist couldn't be deleted",
+  checklist_delete_in_use:
+    'This task list is used by an automation workflow. Remove or replace it in that workflow before deleting the list.',
+  delete_task_list: 'Delete task list',
   create_checklist: 'Create Checklist',
   view_task_list_library: 'Browse task lists',
   task_list_library_help:
     'Reusable task list library. Select a row to review its operations; use Edit to change a list.',
+  task_list_library_load_error:
+    'Task lists could not be loaded. Check your connection and try again.',
+  task_list_library_loading: 'Loading saved task lists…',
+  task_reference_unavailable:
+    'One of the selected people, assets, or meters is no longer available. Review the task assignments and try again.',
   view_task_list: 'View task list',
   edit_task_list: 'Edit task list',
   task_count: '{{count}} task(s)',
   task_list_empty: 'This task list has no operations.',
+  task_list_empty_title: 'No reusable task lists yet',
+  task_list_none_available: 'No reusable task lists are available.',
+  task_list_empty_library_help:
+    'Create a reusable list of operations to add the same inspection steps to work orders or preventive maintenance plans.',
+  confirm_delete_checklist_named:
+    'Delete “{{name}}”? This removes the reusable list. Work orders already created keep their recorded task data. A list used by an automation workflow cannot be deleted until it is removed or replaced there.',
   task_list_header_help:
     'List header: name, description, and category. The tasks below are its operations; they are numbered in steps of 10 and can be reordered.',
+  work_order_task_evidence_edit_help:
+    'Recorded task results, notes, and photos are kept when you edit a step. A step with saved execution data cannot be removed.',
+  work_order_task_evidence_conflict:
+    'This step has saved execution data and was kept in the work order. None of your changes were saved.',
   add_task_list_operation: 'Add operation',
   task_list_requires_operation:
     'Add at least one operation to this list before saving.',
@@ -1261,6 +1486,16 @@ const locale = {
   pm_plan_mode_single: 'Standard plan',
   pm_plan_mode_strategy: 'Strategy with task packages',
   pm_plan_mode_multi_counter: 'Multi-counter plan',
+  pm_plan_mode_single_help:
+    'Use one recurring schedule and its standard task list.',
+  pm_plan_mode_strategy_help:
+    'Create task packages that run on different multiples of the base schedule.',
+  pm_plan_mode_multi_counter_help:
+    'Combine multiple meter cycles using an OR or AND rule.',
+  pm_switch_mode_warning:
+    'Changing the plan type will remove the configured packages or meter cycles. Continue only if you want to discard this setup.',
+  pm_plan_task_assignment_missing:
+    'A package or meter cycle refers to a task template that is no longer in this plan. Add the task template back or remove its assignment before saving.',
   pm_plan_single_help:
     'The plan creates work orders using the recurrence and task list configured above.',
   pm_strategy_editor_help:
@@ -1597,6 +1832,8 @@ const locale = {
   day: 'Day',
   agenda: 'Agenda',
   previous: 'Previous',
+  previous_week: 'Previous week',
+  next_week: 'Next week',
   today: 'Today',
   to_filter: 'Filter',
   'noRows.asset.message':
@@ -1720,6 +1957,10 @@ const locale = {
   REQUEST_REJECTED: 'A request is rejected',
   PURCHASE_ORDER_CREATED: 'A purchase request is created',
   PURCHASE_ORDER_UPDATED: 'A purchase request is updated',
+  workflow_purchase_orders_disabled:
+    'This workflow uses purchase orders. Enable the Purchase Orders module to edit it.',
+  workflow_purchase_order_action_unavailable:
+    'This purchase order workflow action is not available yet. This workflow can be deleted.',
   TASK_UPDATED: 'A task is updated',
   PART_UPDATED: 'A part is updated',
   add_condition: 'Add condition',
@@ -1815,6 +2056,11 @@ const locale = {
   confirm_disable_user: 'Are you sure you want to disable {{user}}?',
   confirm_enable_user: 'Are you sure you want to enable {{user}}?',
   user_disabled_success: 'User disabled successfully',
+  user_enabled_success: 'User enabled successfully',
+  user_action_failed: 'The user action could not be completed',
+  user_deleted_success: 'User deleted successfully',
+  confirm_delete_user:
+    'Delete {{user}}? This will deactivate and remove the account from the active user list.',
   disable: 'Disable',
   enable: 'Enable',
   manufacturer: 'Manufacturer',
@@ -1951,6 +2197,7 @@ const locale = {
   pm_call_history: 'Maintenance call history',
   pm_call_register: 'Preventive maintenance call register',
   pm_call_due_date: 'Scheduled occurrence',
+  pm_call_original_due_date: '(originally {{date}})',
   pm_call_rescheduled: 'Rescheduled',
   pm_call_reschedule: 'Reschedule',
   pm_call_reschedule_title: 'Reschedule preventive maintenance call',
@@ -2380,6 +2627,7 @@ const locale = {
     'This will revoke the current key and generate a new one. The old key will stop working immediately.',
   api_key_rotated_success: 'API Key rotated successfully',
   active: 'Active',
+  inactive: 'Inactive',
   expired: 'Expired',
   revoked: 'Revoked',
   upgrade_api: 'Upgrade to get access to the API, connectors, and webhooks',
@@ -2506,9 +2754,20 @@ const locale = {
   reset: 'Reset',
   confirm_delete_row: 'Are you sure you want to delete this row?',
   scheduled: 'Scheduled',
-  customize_shift: 'Customize Shift',
+  customize_shift: 'Individual capacity',
+  capacity_enabled_state: 'Capacity enabled',
+  capacity_enabled: 'Enable capacity schedule',
+  capacity_schedule_disabled_help:
+    'This capacity schedule is disabled. No availability will be counted until it is enabled.',
+  capacity_not_configured_help:
+    'No weekly availability is configured. This person currently contributes 0 minutes to workload capacity; set available days and save to include them.',
+  capacity_available: 'available',
+  work_start_time: 'Work starts',
+  clear_capacity_override: 'Use default',
+  saving: 'Saving…',
+  shift_capacity_save_error: 'Could not save individual capacity.',
   shift_capacity_not_roster:
-    'This is an individual availability and workload-capacity setting. It is not a published team roster or confirmed shift assignment.',
+    'This is an individual availability and workload-capacity setting, not a published team roster or confirmed shift assignment. Each day is treated as one continuous block from its start time for the configured duration; breaks and split shifts are not modeled.',
   default_schedule: 'Default Schedule',
   custom_capacity_by_week: 'Custom Capacity by Week',
   total_weekly_capacity: 'Total weekly capacity {{hours}}h {{minutes}}m',
@@ -2528,6 +2787,19 @@ const locale = {
   total_resource_capacity: 'Total Resource Capacity',
   capacity_utilization_unavailable:
     'Utilization unavailable because capacity is zero',
+  capacity_zero_day: 'No capacity set',
+  capacity_not_configured_short: 'Not configured',
+  capacity_disabled_short: 'Capacity disabled',
+  capacity_day_not_scheduled: 'Non-working day',
+  capacity_day_not_scheduled_help:
+    'No working hours are configured for this date.',
+  capacity_day_not_configured_short: 'Day not configured',
+  capacity_day_not_configured_help:
+    'No weekly availability is configured for this weekday.',
+  workday_start_caption: 'Starts {{time}}',
+  workday_window_caption: '{{start}}–{{end}}{{nextDay}}',
+  workday_next_day_suffix: ' (+1 day)',
+  capacity_end_by_midnight: 'Daily availability cannot extend past midnight.',
   unscheduled_work_orders: 'Unscheduled Work Orders',
   user_capacity: 'User Capacity',
   overdue: 'Overdue',
@@ -2535,7 +2807,7 @@ const locale = {
   all_users: 'All Users',
   all_companies: 'All Companies',
   team_member: 'Team Member',
-  workload_edit_shift_aria: 'Edit shift configuration for {{user}}',
+  workload_edit_shift_aria: 'Edit individual capacity for {{user}}',
   workload_open_order_aria: 'Open {{customId}}: {{title}}',
   no_data: 'No data',
   hours_left: 'left',
@@ -2632,6 +2904,9 @@ const locale = {
   sites_delete_error: 'Could not delete the site.',
   site_delete_confirm: 'Delete site {{name}}?',
   site: 'Site',
+  all_sites_access: 'Access all sites',
+  assigned_sites: 'Assigned sites',
+  select_sites: 'Select one or more sites',
   select_site: 'Select a site',
   company_license: 'Licence',
   subscription_plan: 'Subscription plan',
@@ -2704,7 +2979,54 @@ const locale = {
   maintenance_dashboard_subtitle:
     'Operational performance from the work-order analytics currently available.',
   current_iso_week: 'Current ISO week',
+  current_month: 'Month to date',
   last_30_days: 'Last 30 days',
+  analytics_period: 'Period',
+  analytics_last_days: '{{count}} days',
+  analytics_grouping: 'Group results by',
+  analytics_group_day: 'Day',
+  analytics_group_week: 'Week',
+  analytics_group_month: 'Month',
+  capacity_planned_vs_allocated: 'Available capacity vs allocated work',
+  capacity_chart_period_subtitle:
+    'Daily team capacity and scheduled work in the selected period, in hours',
+  capacity_chart_week_subtitle:
+    'Daily capacity and scheduled work for this week, in hours.',
+  capacity_chart_month_subtitle:
+    'Weekly totals from the start of this month through today, in hours. The current week may be partial.',
+  capacity_analytics_subtitle:
+    'Compare available team hours with work currently allocated on the schedule over the last 30 days.',
+  capacity_analytics_access_required:
+    'Resource Planning entitlement and the required work-order and people-team permissions are needed to view capacity statistics.',
+  capacity_analytics_data_note:
+    'Capacity and scheduled duration come from the Resource Planning API and reflect current shift configurations and assignments. This is a current plan view, not a historical snapshot.',
+  capacity_chart_accessible_summary:
+    '{{periods}} periods shown. {{capacity}} available capacity hours, {{allocated}} allocated work hours, and {{peak}}% peak utilization.',
+  available_capacity_hours: 'Available capacity (hours)',
+  allocated_work_hours: 'Allocated work (hours)',
+  capacity_utilization_percent: 'Allocated capacity (%)',
+  open_capacity_analytics: 'Open capacity statistics',
+  preventive_maintenance_analytics: 'Preventive maintenance',
+  preventive_maintenance_analytics_subtitle:
+    'Review due and completed maintenance calls over the last 30 days.',
+  preventive_maintenance_analytics_access_required:
+    'Preventive Maintenance entitlement and permission are required to view these statistics.',
+  preventive_maintenance_calls_by_status:
+    'Preventive maintenance calls by status',
+  preventive_maintenance_calls_period_subtitle:
+    'Calendar and meter calls, grouped by current status for the selected period.',
+  preventive_maintenance_calls_accessible_summary:
+    '{{total}} preventive maintenance calls are represented. By status: {{statuses}}.',
+  preventive_maintenance_analytics_data_note:
+    'Each occurrence is counted once by its effective due date. Rescheduled occurrences use their rescheduled date. Meter calls are included only when the Meter feature is enabled.',
+  calendar_trigger: 'Calendar',
+  meter_trigger: 'Meter',
+  PLANNED: 'Planned',
+  DUE: 'Due',
+  RESCHEDULED: 'Rescheduled',
+  GENERATED: 'Generated',
+  COMPLETED: 'Completed',
+  IGNORED: 'Ignored',
   dashboard_data_scoped_to_permissions:
     'Results follow your account permissions and selected company.',
   work_orders_in_period: 'Work orders in period',
@@ -2743,7 +3065,295 @@ const locale = {
   critical: 'over 30 days',
   attention: '8–30 days',
   within_target: '0–7 days',
-  open_work_order_analytics: 'Open work-order analytics'
+  open_work_order_analytics: 'Open work-order analytics',
+  document_designer_pdfme_subtitle: 'Visual Work Order document designer',
+  document_designer_pdfme_notice:
+    'Use the left panel to add components, edit the A4 canvas directly, and adjust the selected component in the properties panel. The canvas sample values are examples; PDF preview uses authorized Work Order data.',
+  document_designer_preview_pdf: 'Preview authorized Work Order PDF',
+  document_designer_preview_panel_title: 'Preview with a Work Order',
+  document_designer_preview_id_help:
+    'Enter the numeric ID or visible number (for example, WO000021) of a Work Order you can view. Previewing saves your edits as a draft first.',
+  document_designer_preview_id_invalid:
+    'The Work Order reference must be no longer than 100 characters.',
+  document_designer_preview_order_not_found:
+    'No single accessible Work Order matches that number. Check the visible number or numeric ID.',
+  document_page_orientation: 'Page orientation',
+  document_page_orientation_portrait: 'Portrait',
+  document_page_orientation_landscape: 'Landscape',
+  document_page_orientation_help:
+    'Changing orientation scales the existing layout to fit the new page shape.',
+  document_designer_preview_generate: 'Generate preview PDF',
+  document_designer_preview_authorized_help:
+    'Enter an authorized Work Order ID. The preview is generated by QPM from the selected order and the current saved template.',
+  document_designer_field_reference: 'Available data fields',
+  document_designer_field_reference_hint:
+    'Optional reference for templates that need a specific field name.',
+  document_template_unsaved_changes: 'Unsaved changes',
+  document_template_all_changes_saved: 'All changes saved',
+  document_template_save_draft: 'Save draft',
+  pdfme_work_orders_only:
+    'The PDFME designer is currently available for Work Order templates only.',
+  document_designer_binding_help:
+    'For live QPM data, use these exact field names: workOrder.customId, workOrder.title, workOrder.description, workOrder.status, workOrder.priority, workOrder.dueDate, workOrder.estimatedDuration, workOrder.assignedTo, workOrder.team, workOrder.completedBy, workOrder.feedback, workOrder.signature, workOrder.customFields, workOrder.files, workOrder.comments, workOrder.history, workOrder.relations, company.logo, company.name, company.legalName, company.registeredAddress, company.registrationNumber, company.taxNumber, company.phone, company.email, asset.name, asset.serialNumber, location.name, site.name. Table bindings: workOrder.executionTasks, workOrder.laborTimeEntries, workOrder.materialsUsed. Static names are template-only content.',
+  document_designer_upload_font: 'Upload fallback font',
+  document_designer_font_help:
+    'Optional TTF or OTF, up to 512 KB. The font is stored in this template.',
+  document_designer_font_installed:
+    'Custom fallback font is stored with this draft.',
+  document_designer_font_added: 'Custom fallback font added to the draft.',
+  document_designer_font_invalid:
+    'Choose a valid TTF or OTF font smaller than 512 KB.',
+  document_designer_remove_font: 'Remove custom font',
+  document_designer_components: 'Add a component',
+  document_designer_template_options: 'Template settings',
+  document_workspace_panels: 'Designer workspace panels',
+  document_inspector_title: 'Properties',
+  document_inspector_empty:
+    'Select a component or field on the canvas or in the outline to edit its settings here.',
+  document_inspector_clear_selection: 'Clear selection',
+  document_component_search: 'Search components or data fields',
+  document_component_search_empty:
+    'No component or data field matches this search.',
+  document_component_remove_button: 'Remove component',
+  document_component_duplicate_button: 'Duplicate text block',
+  document_component_duplicated:
+    'Text block duplicated below the existing content.',
+  document_component_duplicate_no_space:
+    'There is not enough room on this page to duplicate this block.',
+  document_component_remove_title: 'Remove this component?',
+  document_component_remove_help:
+    'This removes all fields and tables in the component from the current draft. The change is saved only when you save the draft.',
+  document_component_remove_confirm: 'Remove component',
+  document_component_removed: 'Component removed from the draft.',
+  document_component_group_work_order: 'Work order and people',
+  document_component_group_execution: 'Execution and closeout',
+  document_component_group_context: 'History and supporting information',
+  document_component_group_custom: 'Custom content',
+  document_component_group_repeated: 'Repeated page areas',
+  document_component_page_header: 'Page header',
+  document_component_page_footer: 'Page footer',
+  document_component_summary: 'Work order summary',
+  document_component_tasks: 'Execution tasks table',
+  document_component_labor: 'Labor entries table',
+  document_component_materials: 'Materials table',
+  document_component_people: 'People and customers',
+  document_component_comments: 'Work order comments',
+  document_component_history: 'Work order history',
+  document_component_relations: 'Related work orders',
+  document_component_drag_help:
+    'Drag a block onto the canvas, or click to insert it and then move the selected block.',
+  document_component_custom_fields: 'Custom fields',
+  document_component_text_block: 'Free text',
+  document_component_text_block_default: 'Add your text here',
+  document_component_text_block_added:
+    'Free text added. Replace the placeholder directly on the canvas.',
+  document_component_attachments: 'Attachments',
+  document_component_signoff: 'Technician sign-off',
+  document_pdfme_job_card_title: 'MAINTENANCE\nJOB CARD',
+  document_pdfme_registered_address: 'REGISTERED ADDRESS',
+  document_pdfme_registration_number: 'REGISTRATION NO.',
+  document_pdfme_tax_number: 'TAX ID',
+  document_pdfme_work_order: 'WORK ORDER',
+  document_pdfme_status: 'STATUS',
+  document_pdfme_priority: 'PRIORITY',
+  document_pdfme_equipment: 'EQUIPMENT',
+  document_pdfme_serial_number: 'SERIAL NO.',
+  document_pdfme_location: 'FUNCTIONAL LOCATION',
+  document_pdfme_site: 'SITE',
+  document_pdfme_scheduled_due: 'SCHEDULED / DUE',
+  document_pdfme_estimated_hours: 'ESTIMATED HOURS',
+  document_pdfme_assigned_team: 'ASSIGNED TECHNICIANS / TEAM',
+  document_pdfme_maintenance_description: 'MAINTENANCE DESCRIPTION',
+  document_pdfme_execution_tasks: 'OPERATIONS / EXECUTION TASKS',
+  document_pdfme_labor_title: 'PLANNED AND ACTUAL LABOR',
+  document_pdfme_labor_entries: 'RECORDED LABOR ENTRIES',
+  document_pdfme_materials_title: 'MATERIALS AND SPARE PARTS',
+  document_pdfme_materials_used: 'MATERIALS USED ON THIS WORK ORDER',
+  document_pdfme_closeout_title: 'SAFETY, EXECUTION NOTES AND APPROVAL',
+  document_pdfme_safety_instructions: 'SITE-APPROVED SAFETY INSTRUCTIONS',
+  document_pdfme_execution_notes: 'EXECUTION NOTES / FEEDBACK',
+  document_pdfme_completed_by: 'COMPLETED BY',
+  document_pdfme_technician_signature: 'TECHNICIAN SIGNATURE',
+  document_pdfme_supervisor_approval: 'SUPERVISOR APPROVAL / SIGNATURE',
+  document_pdfme_page: 'Page',
+  document_pdfme_primary_user: 'Primary responsible',
+  document_pdfme_customers: 'Associated customers',
+  document_pdfme_created_by: 'Created by',
+  document_data_provenance_title: 'Data source and relationship',
+  document_data_provenance_binding: 'Binding',
+  document_data_source_static: 'Static content (no data binding)',
+  document_data_source_company: 'Company that owns the selected Work Order',
+  document_data_source_asset: 'Asset linked to the selected Work Order',
+  document_data_source_location: 'Location linked to the selected Work Order',
+  document_data_source_site: 'Site context for the selected Work Order',
+  document_data_source_relations:
+    'Work Orders linked to the selected Work Order',
+  document_data_source_workOrder: 'Selected Work Order and its related records',
+  document_data_relation_static:
+    'This content is stored in the template and does not read Work Order data.',
+  document_data_relation_company:
+    'Company values are resolved from the Work Order company; cross-company records are excluded.',
+  document_data_relation_asset:
+    'Follows the Work Order asset link. The asset is included only when it belongs to the same company.',
+  document_data_relation_location:
+    'Follows the Work Order location link. The location is included only when it belongs to the same company.',
+  document_data_relation_site:
+    'Resolved from the authorized site context for this report.',
+  document_data_relation_relations:
+    'Only links that include this Work Order and another Work Order from the same company are shown. Work Order linking must be enabled.',
+  document_data_relation_workOrder:
+    'Related rows must belong to this Work Order and the same company. Some collections also require the matching feature entitlement.',
+  document_data_diagnosis_button: 'Check data availability',
+  document_data_diagnosis_privacy:
+    'Open Preview PDF above and enter an authorized Work Order ID. Availability only is returned; field values are not shown.',
+  document_data_diagnosis_available: 'A value is available for this binding.',
+  document_data_diagnosis_unavailable:
+    'This data is unavailable because the required feature is not enabled for this company.',
+  document_data_diagnosis_unlinked:
+    'This field has no linked or assigned record for this Work Order.',
+  document_data_diagnosis_empty:
+    'No value was returned. The linked record may have a blank value, or company and permission checks may have excluded it.',
+  document_data_diagnosis_emptyLabor: 'No labor entries were returned.',
+  document_data_diagnosis_emptyRelations:
+    'No linked Work Orders were returned.',
+  document_data_diagnosis_count:
+    '{{count}} related record(s) returned. Field values are hidden.',
+  document_data_diagnosis_error:
+    'Could not check data availability for this binding.',
+  document_component_added:
+    'Component added with all of its elements selected. Drag to move the block, or edit individual elements.',
+  document_component_page_limit:
+    'This template already has the maximum number of pages.',
+  document_header_footer_button: 'Add editable header and footer',
+  document_header_footer_configured: 'Header and footer configured',
+  document_header_footer_added:
+    'Editable header and footer added to every page.',
+  document_print_behavior_title: 'Selected component print behavior',
+  document_print_zone_label: 'Print zone',
+  document_print_zone_page_only: 'This page only',
+  document_print_zone_header: 'Page header (repeat on every page)',
+  document_print_zone_footer: 'Page footer (repeat on every page)',
+  document_print_zone_report_header: 'Report header (first page only)',
+  document_print_zone_report_footer: 'Report footer (last page only)',
+  document_print_zone_mixed: 'Mixed zones',
+  document_print_zone_help:
+    'Move and style this component on the canvas. Page zones repeat on every page; report zones print on the first or last page.',
+  document_component_print_zone_help:
+    'Applies the print zone to every item in this component. Report header prints on the first page; report footer prints on the last page.',
+  document_hide_if_empty_help:
+    'Blank or missing values hide this text component in the generated PDF.',
+  document_outline_title: 'Report outline',
+  document_outline_help:
+    'Choose a page, then select an item to locate it on the canvas.',
+  document_outline_search: 'Find a component or field',
+  document_outline_search_empty: 'No components or fields match this search.',
+  document_outline_page: 'Report page',
+  document_outline_page_option: 'Page {{number}} · {{count}} items',
+  document_outline_empty: 'This page has no components yet.',
+  document_component_group_other: 'Other items',
+  document_component_visibility_title: '{{name}} visibility',
+  document_component_visibility_help:
+    'Hide the whole component, including its heading and empty tables, when all its data values are blank.',
+  document_component_move_previous_page: 'Move to previous page',
+  document_component_move_next_page: 'Move to next page',
+  document_component_move_new_page: 'Move to a new page',
+  document_component_moved_new_page: 'The component was moved to a new page.',
+  document_component_moved_page:
+    'Component moved below the existing content on that page.',
+  document_component_move_page_full:
+    'There is not enough space on that page for this component.',
+  document_component_align_zone: 'Align component within zone',
+  document_component_aligned_zone: 'Component aligned within its print zone.',
+  document_component_zone_too_tall:
+    'This component is too tall to fit within the page margins.',
+  document_zone_header: 'Page Header · repeated on each page',
+  document_zone_body: 'Page body · page-specific content',
+  document_zone_footer: 'Page Footer · repeated on each page',
+  document_zone_reportHeader: 'Report Header · first page only',
+  document_zone_reportFooter: 'Report Footer · last page only',
+  document_zone_outline_note:
+    'Report zones print once; page header and footer repeat on every physical page, including pages added by long tables.',
+  document_zone_height_label: 'Height (mm)',
+  document_zone_height_invalid:
+    'Choose a height from 8 mm up to half the page, while keeping at least 30 mm for the body.',
+  document_zone_height_component_overflow:
+    'This zone cannot be shortened because one or more components would fall outside it.',
+  document_zone_hide_if_empty:
+    'Hide this zone when all linked fields are blank',
+  document_zone_clear_action: 'Clear all components from {{zone}}',
+  document_zone_clear_title: 'Clear {{zone}}?',
+  document_zone_clear_help:
+    'This removes every component assigned to this print zone from the draft. The zone and its height setting remain available.',
+  document_zone_clear_confirm: 'Clear zone',
+  document_zone_cleared: 'Print zone cleared.',
+  document_zone_empty_hint:
+    'No components are assigned to this zone on the selected page.',
+  document_zone_add_component: 'Browse components',
+  document_zone_insert_title: 'Adding to {{zone}}',
+  document_zone_insert_help:
+    'Choose a component to place it in this print zone. You can add several components before returning to the outline.',
+  document_zone_insert_cancel: 'Done',
+  document_zone_component_unsupported:
+    'Tables and signatures cannot be placed in print zones.',
+  document_zone_component_duplicate:
+    'This component uses a field name that already exists. Rename or remove the existing field before adding it to a print zone.',
+  document_zone_no_space:
+    'There is not enough room in this zone on any page. Move or resize existing content first.',
+  document_component_added_to_zone: 'Component added to {{zone}}.',
+  document_page: 'Page',
+  document_table_data_mapping: 'Connect table columns to report data',
+  document_table_data_mapping_help:
+    'Each column is bound to a field from this work order’s related records. Reorder or remove columns here, set widths as percentages, or drag column dividers on the canvas.',
+  document_table_column: 'Column',
+  document_table_source_field: 'Related data field',
+  document_table_printed_heading: 'Printed column heading',
+  document_table_column_width: 'Width %',
+  document_table_dataset_label: 'Dataset',
+  document_table_dataset_tasks: 'Work Order → execution tasks',
+  document_table_dataset_labor: 'Work Order → time entries',
+  document_table_dataset_materials: 'Work Order → used parts',
+  document_table_order_tasks:
+    'Rows follow the saved task order, then creation time and record ID.',
+  document_table_order_labor: 'Rows are ordered by start time, then record ID.',
+  document_table_order_materials:
+    'Rows are ordered by creation time, then record ID.',
+  document_table_entitlement_labor:
+    'Time Tracking must be enabled to return labor rows. The diagnostic identifies when it is unavailable.',
+  document_table_diagnosis_button: 'Check rows for Work Order',
+  document_table_preview_button: 'Preview sample rows',
+  document_table_preview_privacy:
+    'Shows up to five rows from this Work Order, limited to the columns selected below.',
+  document_table_preview_aria: 'Representative Work Order table rows',
+  document_table_add_column: 'Add a column',
+  document_table_remove_column: 'Remove column',
+  document_table_move_column_up: 'Move column left',
+  document_table_move_column_down: 'Move column right',
+  document_table_show_header: 'Show header',
+  document_table_repeat_header: 'Repeat header on new pages',
+  document_table_empty_message: 'Message shown when there are no records',
+  document_table_empty_message_default: 'No records',
+  document_table_column_step: 'Step number',
+  document_table_column_task: 'Task / operation',
+  document_table_column_result: 'Result',
+  document_table_column_notes: 'Notes',
+  document_table_column_technician: 'Technician',
+  document_table_column_activity: 'Activity',
+  document_table_column_startedAt: 'Start time',
+  document_table_column_durationHours: 'Hours',
+  document_table_column_status: 'Entry status',
+  document_table_column_part: 'Part',
+  document_table_column_description: 'Description',
+  document_table_column_quantity: 'Quantity',
+  document_table_column_unit: 'Unit',
+  document_template_scope: 'Template availability',
+  document_template_scope_company: 'All sites in this company',
+  document_template_scope_site: 'One site only',
+  document_template_scope_help:
+    'Site-specific templates are only available for reports from that site.',
+  document_template_site_required:
+    'Select a site for a site-specific template.',
+  document_template_no_sites: 'Create a site before assigning this template.',
+  document_template_site_missing: 'Site not assigned'
 };
 
 export default locale;

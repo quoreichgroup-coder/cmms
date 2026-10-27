@@ -18,6 +18,7 @@ public class PreventiveMaintenanceCallDTO {
     private String unit;
     private Double readingValue;
     private List<String> triggeredCycleCodes;
+    private List<String> triggeredCycleNames;
     private Date createdAt;
     private PreventiveMaintenanceCallStatus status;
     private WorkOrderMiniDTO workOrder;

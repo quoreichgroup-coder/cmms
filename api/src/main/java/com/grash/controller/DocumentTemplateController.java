@@ -2,6 +2,7 @@ package com.grash.controller;
 
 import com.grash.dto.DocumentTemplateDTO;
 import com.grash.dto.DocumentTemplateRequest;
+import com.grash.dto.DocumentTypeRequest;
 import com.grash.dto.DocumentTypeDTO;
 import com.grash.dto.DocumentTemplateVersionDTO;
 import com.grash.model.User;
@@ -32,6 +33,18 @@ public class DocumentTemplateController {
     @GetMapping("/types")
     public List<DocumentTypeDTO> listTypes(HttpServletRequest request) {
         return service.listTypes(userService.whoami(request));
+    }
+
+    @PostMapping("/types")
+    public DocumentTypeDTO createType(@Valid @RequestBody DocumentTypeRequest type,
+                                      HttpServletRequest request) {
+        return service.createType(type, userService.whoami(request));
+    }
+
+    @PutMapping("/types/{id}")
+    public DocumentTypeDTO updateType(@PathVariable Long id, @Valid @RequestBody DocumentTypeRequest type,
+                                      HttpServletRequest request) {
+        return service.updateType(id, type, userService.whoami(request));
     }
 
     @GetMapping
@@ -90,5 +103,11 @@ public class DocumentTemplateController {
     @PostMapping("/{id}/archive")
     public DocumentTemplateDTO archive(@PathVariable Long id, HttpServletRequest request) {
         return service.archive(id, userService.whoami(request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        service.delete(id, userService.whoami(request));
+        return ResponseEntity.noContent().build();
     }
 }

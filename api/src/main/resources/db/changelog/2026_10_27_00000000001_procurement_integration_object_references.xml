@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-27-procurement-integration-object-references" author="qpm">
+        <createTable tableName="integration_object_reference">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"
+                             primaryKeyName="pk_integration_object_reference"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_integration_object_reference_company"
+                             references="company(id)"/>
+            </column>
+            <column name="provider_key" type="VARCHAR(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="object_type" type="VARCHAR(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="external_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="local_object_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="integration_object_reference"
+                             columnNames="company_id, provider_key, object_type, external_id"
+                             constraintName="uk_integration_object_reference_external"/>
+        <createIndex tableName="integration_object_reference"
+                     indexName="idx_integration_object_reference_local">
+            <column name="company_id"/>
+            <column name="provider_key"/>
+            <column name="object_type"/>
+            <column name="local_object_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="2026-10-27-procurement-integration-event-receipts" author="qpm">
+        <createTable tableName="integration_event_receipt">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"
+                             primaryKeyName="pk_integration_event_receipt"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_integration_event_receipt_company"
+                             references="company(id)"/>
+            </column>
+            <column name="provider_key" type="VARCHAR(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idempotency_key" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_sha256" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(24)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempt_count" type="INT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="received_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_attempt_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_at" type="TIMESTAMP"/>
+            <column name="last_error_code" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="integration_event_receipt"
+                             columnNames="company_id, provider_key, idempotency_key"
+                             constraintName="uk_integration_event_receipt_idempotency"/>
+        <createIndex tableName="integration_event_receipt"
+                     indexName="idx_integration_event_receipt_state">
+            <column name="company_id"/>
+            <column name="provider_key"/>
+            <column name="status"/>
+            <column name="received_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

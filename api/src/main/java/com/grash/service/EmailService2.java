@@ -111,6 +111,19 @@ public class EmailService2 implements MailService {
     public void sendMessageUsingThymeleafTemplate(
             String[] to, String subject, Map<String, Object> templateModel, String template, Locale locale,
             List<EmailAttachmentDTO> attachmentDTOS) {
+        sendTemplatedMessage(to, subject, templateModel, template, locale, attachmentDTOS);
+    }
+
+    @Override
+    public void sendMessageUsingThymeleafTemplateSynchronously(
+            String[] to, String subject, Map<String, Object> templateModel, String template, Locale locale,
+            List<EmailAttachmentDTO> attachmentDTOS) {
+        sendTemplatedMessage(to, subject, templateModel, template, locale, attachmentDTOS);
+    }
+
+    private void sendTemplatedMessage(String[] to, String subject, Map<String, Object> templateModel,
+                                      String template, Locale locale,
+                                      List<EmailAttachmentDTO> attachmentDTOS) {
         if (shouldSkipSendingMail())
             return;
         Context thymeleafContext = new Context();

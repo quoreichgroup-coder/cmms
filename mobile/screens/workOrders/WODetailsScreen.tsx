@@ -152,6 +152,8 @@ export default function WODetailsScreen({
     user?.companyId ?? 'none'
   }`;
   const hasTimeTrackingEntitlement = useLicenseEntitlement('TIME_TRACKING');
+  const hasSignatureCaptureEntitlement =
+    useLicenseEntitlement('SIGNATURE_CAPTURE');
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { uploadFiles } = useContext(CompanySettingsContext);
   const { workOrderConfiguration, generalPreferences } = companySettings;
@@ -168,6 +170,7 @@ export default function WODetailsScreen({
   const [issuedReports, setIssuedReports] = useState<GeneratedDocument[]>([]);
   const [reportHistoryLoading, setReportHistoryLoading] = useState(false);
   const [reportError, setReportError] = useState('');
+  const [hasPreviewedReport, setHasPreviewedReport] = useState(false);
   const [reportAction, setReportAction] = useState<
     'preview' | 'issue' | 'download' | null
   >(null);
@@ -562,6 +565,7 @@ export default function WODetailsScreen({
 
   const onGenerateReport = () => {
     setReportError('');
+    setHasPreviewedReport(false);
     setOpenReportDialog(true);
     void loadIssuedReports();
   };
@@ -577,6 +581,9 @@ export default function WODetailsScreen({
       const response: Response = await dispatch(getPDFReport(id));
       if (ownerKey !== reportOwnerKeyRef.current) return;
       await actualDownload(response);
+      if (ownerKey === reportOwnerKeyRef.current) {
+        setHasPreviewedReport(true);
+      }
       showSnackBar(t('wo_report_download_success'), 'success');
     } catch (err) {
       if (ownerKey === reportOwnerKeyRef.current) {
@@ -808,7 +815,8 @@ export default function WODetailsScreen({
       const completionStep = getWorkOrderCompletionNextStep({
         feedbackRequired: generalPreferences.askFeedBackOnWOClosed,
         signatureRequired: Boolean(workOrder?.requiredSignature),
-        signatureFeatureEnabled: hasFeature(PlanFeature.SIGNATURE)
+        signatureFeatureEnabled:
+          hasFeature(PlanFeature.SIGNATURE) && hasSignatureCaptureEntitlement
       });
       if (completionStep === 'blocked') {
         showSnackBar(t('signature_required_feature_unavailable'), 'error');
@@ -948,13 +956,22 @@ export default function WODetailsScreen({
               mode="contained"
               icon="archive-arrow-down-outline"
               loading={reportAction === 'issue'}
-              disabled={reportAction !== null || reportHistoryLoading}
+              disabled={
+                reportAction !== null ||
+                reportHistoryLoading ||
+                !hasPreviewedReport
+              }
               style={{ flexGrow: 1 }}
               onPress={confirmIssueReport}
             >
               {t('issue_archive_document')}
             </Button>
           </View>
+          {!hasPreviewedReport ? (
+            <Text variant="bodySmall" style={{ marginTop: 8, opacity: 0.72 }}>
+              {t('work_order_report_preview_before_issue')}
+            </Text>
+          ) : null}
           <Divider style={{ marginVertical: 16 }} />
           <Text variant="titleMedium" style={{ marginBottom: 8 }}>
             {t('issued_documents')}

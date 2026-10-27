@@ -16,6 +16,7 @@ import {
   Typography
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import useAuth from 'src/hooks/useAuth';
 import useRefMounted from 'src/hooks/useRefMounted';
 import { useTranslation } from 'react-i18next';
@@ -218,6 +219,25 @@ function RegisterJWT({
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
+                  {invitationMode && (
+                    <Button
+                      size="small"
+                      startIcon={<AutoFixHighIcon />}
+                      onClick={() => {
+                        const alphabet =
+                          'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+                        const randomValues = new Uint32Array(20);
+                        window.crypto.getRandomValues(randomValues);
+                        const generatedPassword = Array.from(randomValues)
+                          .map((value) => alphabet[value % alphabet.length])
+                          .join('');
+                        setFieldValue('password', generatedPassword);
+                        setShowPassword(true);
+                      }}
+                    >
+                      {t('generate_password')}
+                    </Button>
+                  )}
                   <IconButton onClick={() => setShowPassword(!showPassword)}>
                     <VisibilityIcon />
                   </IconButton>

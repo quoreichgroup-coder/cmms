@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface GeneratedDocumentRepository extends JpaRepository<GeneratedDocument, Long> {
     boolean existsBySite_Id(Long siteId);
+    boolean existsByTemplateVersionEntity_Id(Long templateVersionId);
     List<GeneratedDocument> findByCompany_IdAndSourceTypeAndSourceIdOrderByIssuedAtDesc(
             Long companyId, String sourceType, Long sourceId);
 }

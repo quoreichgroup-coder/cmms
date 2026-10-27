@@ -3,6 +3,8 @@ const frJSON = {
   my_shift_availability_description:
     'Consultez les disponibilités hebdomadaires enregistrées pour votre compte.',
   shift_weekly_availability: 'Disponibilités hebdomadaires',
+  shift_weekly_default_capacity:
+    'Capacité hebdomadaire par défaut : {{hours}} h {{minutes}} min',
   shift_availability_enabled: 'Disponibilités activées',
   shift_availability_disabled: 'Disponibilités actuellement désactivées',
   shift_availability_not_configured: 'Aucune disponibilité configurée',
@@ -11,7 +13,16 @@ const frJSON = {
   shift_availability_disclaimer:
     'Cette configuration indique vos disponibilités. Elle ne constitue pas un planning d’équipe publié ni une affectation de quart confirmée.',
   shift_availability_load_error: 'Impossible de charger vos disponibilités.',
+  resource_planning_unavailable:
+    'La planification des ressources n’est pas activée par le forfait et la licence de cette entreprise.',
+  pm_mobile_feature_unavailable:
+    'La maintenance préventive n’est pas incluse dans le forfait de cette entreprise.',
+  meter_feature_unavailable:
+    'Les compteurs ne sont pas inclus dans le forfait de cette entreprise.',
+  checklist_feature_unavailable:
+    'Les listes de contrôle ne sont pas incluses dans le forfait de cette entreprise.',
   shift_date_exceptions: 'Exceptions à venir',
+  shift_available_from_time: '{{duration}} · débute à {{time}}',
   shift_day_off: 'Indisponible',
   shift_day_monday: 'Lundi',
   shift_day_tuesday: 'Mardi',
@@ -363,6 +374,7 @@ const frJSON = {
   pm_meter_based: 'Basé sur un compteur',
   pm_call_register: 'Registre des appels de maintenance',
   pm_call_due_date: 'Occurrence prévue',
+  pm_call_rescheduled_date: 'Nouvelle date après report',
   pm_call_status_planned: 'À venir',
   pm_call_status_due: 'À traiter',
   pm_call_status_rescheduled: 'Reporté',
@@ -686,6 +698,8 @@ const frJSON = {
     'Le rapport du bon de travail est prêt à être consulté',
   work_order_report_mobile_description:
     'Prévisualisez le rapport actuel ou émettez une copie officielle archivée. Les copies émises restent dans l’historique du bon de travail.',
+  work_order_report_preview_before_issue:
+    'Ouvrez d’abord l’aperçu PDF pour vérifier le rapport avant son archivage officiel.',
   preview_print: 'Prévisualiser le PDF',
   issue_archive_document: 'Émettre une copie officielle',
   issued_documents: 'Documents émis',
@@ -813,10 +827,16 @@ const frJSON = {
   locations: 'Emplacements',
   parts_and_inventory: 'Pièces/Inventaire',
   purchase_orders: 'Bons de commande',
+  purchase_order_details: 'Détail du bon de commande',
   purchase_orders_load_error: 'Impossible de charger les bons de commande.',
   purchase_orders_empty: 'Aucun bon de commande trouvé.',
   purchase_orders_read_only_note:
     'Consultation uniquement : les quantités reçues et les mises à jour de stock ne sont pas suivies ici.',
+  purchase_order_summary: 'Résumé de la commande',
+  ordered_quantity_by_unit: 'Quantité commandée par unité',
+  unit_unspecified: 'unité non précisée',
+  purchase_order_cost_estimate_note:
+    'Estimation basée sur les coûts actuels des pièces ; le prix fournisseur peut différer.',
   purchase_order_due_date: 'Livraison prévue',
   purchase_order_items_count: '{{count}} article(s)',
   purchase_order_quantity: 'Quantité commandée',
@@ -1118,6 +1138,7 @@ const frJSON = {
   requisitioner: 'Demandeur',
   terms: 'Termes',
   shipping_method: 'Mode de livraison',
+  shipping_order_category: 'Catégorie de commande de livraison',
   required_name: 'Le nom est obligatoire',
   edit_po: 'Modifier le bon de commande',
   edit_po_description:
@@ -2079,6 +2100,8 @@ const frJSON = {
   stop_audio: 'Arrêter la description audio',
   audio_playback_error: 'La lecture audio a échoué. Veuillez réessayer.',
   audio_recording_error: "L'enregistrement audio a échoué. Veuillez réessayer.",
+  voice_notes_unavailable:
+    'Les notes vocales ne sont pas activées pour la licence de cette entreprise.',
   microphone: 'Microphone',
   start_recording: "Démarrer l'enregistrement",
   stop_recording: "Arrêter l'enregistrement",

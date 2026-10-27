@@ -11,6 +11,7 @@ import com.grash.model.User;
 import com.grash.model.WorkOrder;
 import com.grash.model.enums.Status;
 import com.grash.repository.WorkOrderRepository;
+import com.grash.repository.UserRepository;
 import com.grash.utils.Helper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,27 +29,38 @@ import java.util.stream.Collectors;
 public class WorkloadService {
 
     private final WorkOrderRepository workOrderRepository;
-    private final UserService userService;
+    private final UserRepository userRepository;
     private final WorkOrderMapper workOrderMapper;
     private final WorkOrderService workOrderService;
 
     public WorkloadOverviewDTO getOverview(LocalDate startDate, LocalDate endDate, List<Long> userIds, Long companyId) {
-        List<User> users = userIds.stream()
-                .map(id -> userService.findByIdAndCompany(id, companyId).orElse(null))
+        Map<Long, User> usersById = userRepository.findByIdInAndCompany_Id(
+                        userIds.stream().distinct().toList(), companyId).stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+        List<User> users = userIds.stream().distinct()
+                .map(usersById::get)
                 .filter(Objects::nonNull)
                 .toList();
 
-        Date start = Helper.localDateToDate(startDate);
-        Date end = Helper.localDateToDate(endDate.plusDays(1));
+        ZoneId companyZone = users.isEmpty() ? ZoneId.systemDefault() : getCompanyZone(users.get(0));
+        Date start = Date.from(startDate.atStartOfDay(companyZone).toInstant());
+        Date end = Date.from(endDate.plusDays(1).atStartOfDay(companyZone).toInstant().minusMillis(1));
 
         Map<Long, Map<LocalDate, List<WorkOrder>>> userWorkOrdersByDate = new HashMap<>();
         for (User user : users) {
-            Collection<WorkOrder> userWOs = workOrderRepository
-                    .findByUserAndEstimatedStartDateBetween(user.getId(), start, end, companyId);
-            Map<LocalDate, List<WorkOrder>> byDate = userWOs.stream()
-                    .filter(wo -> wo.getEstimatedStartDate() != null)
-                    .collect(Collectors.groupingBy(wo -> Helper.dateToLocalDate(wo.getEstimatedStartDate())));
-            userWorkOrdersByDate.put(user.getId(), byDate);
+            userWorkOrdersByDate.put(user.getId(), new HashMap<>());
+        }
+        List<Object[]> userWorkOrders = users.isEmpty() ? List.of()
+                : workOrderRepository.findByUsersAndEstimatedStartDateBetween(
+                        users.stream().map(User::getId).toList(), start, end, companyId);
+        for (Object[] row : userWorkOrders) {
+            Long userId = (Long) row[0];
+            WorkOrder workOrder = (WorkOrder) row[1];
+            LocalDate localDate = workOrder.getEstimatedStartDate().toInstant()
+                    .atZone(companyZone).toLocalDate();
+            userWorkOrdersByDate.get(userId)
+                    .computeIfAbsent(localDate, ignored -> new ArrayList<>())
+                    .add(workOrder);
         }
 
         List<WorkloadDayDTO> days = new ArrayList<>();
@@ -64,7 +78,8 @@ public class WorkloadService {
             List<WorkloadUserDayDTO> userDays = new ArrayList<>();
 
             for (User user : users) {
-                int capacityMinutes = getUserCapacityForDay(user, current);
+                DailyCapacity dailyCapacity = resolveUserCapacityForDay(user, current);
+                int capacityMinutes = dailyCapacity.minutes();
                 List<WorkOrder> userWOs = userWorkOrdersByDate
                         .getOrDefault(user.getId(), Collections.emptyMap())
                         .getOrDefault(current, Collections.emptyList());
@@ -77,6 +92,8 @@ public class WorkloadService {
                 userDay.setUserId(user.getId());
                 userDay.setFullName(user.getFullName());
                 userDay.setCapacityMinutes(capacityMinutes);
+                userDay.setCapacityStatus(dailyCapacity.status());
+                userDay.setStartTime(dailyCapacity.startTime());
                 userDay.setAllocatedMinutes(allocatedMinutes);
                 userDay.setWorkOrders(userWOs.stream().map(workOrderMapper::toWorkloadDto).toList());
 
@@ -166,7 +183,8 @@ public class WorkloadService {
 
         User assignedUser = null;
         if (dto.getPrimaryUserId() != null) {
-            assignedUser = userService.findByIdAndCompany(dto.getPrimaryUserId(), user.getCompany().getId())
+            assignedUser = userRepository.findByIdAndCompany_IdForUpdate(
+                            dto.getPrimaryUserId(), user.getCompany().getId())
                     .orElseThrow(() -> new CustomException("Assigned user not found", HttpStatus.NOT_FOUND));
         }
         workOrder.setPrimaryUser(assignedUser);
@@ -176,10 +194,12 @@ public class WorkloadService {
 
         if (assigningUser) {
             LocalDate date = dto.getLocalDate();
-            int capacityMinutes = getUserCapacityForDay(assignedUser, date);
+            DailyCapacity dailyCapacity = resolveUserCapacityForDay(assignedUser, date);
+            int capacityMinutes = dailyCapacity.minutes();
 
-            Date dayStart = Helper.localDateToDate(date);
-            Date dayEnd = Helper.localDateToDate(date.plusDays(1));
+            ZoneId companyZone = getCompanyZone(user);
+            Date dayStart = Date.from(date.atStartOfDay(companyZone).toInstant());
+            Date dayEnd = Date.from(date.plusDays(1).atStartOfDay(companyZone).toInstant().minusMillis(1));
 
             Collection<WorkOrder> existingWOs = workOrderRepository
                     .findByUserAndEstimatedStartDateBetween(assignedUser.getId(), dayStart, dayEnd,
@@ -200,15 +220,14 @@ public class WorkloadService {
 
             long requiredMillis = (long) (workOrder.getEstimatedDuration() * 3600 * 1000L);
 
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(dayStart);
-            cal.set(Calendar.HOUR_OF_DAY, 8);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            cal.setTimeZone(TimeZone.getTimeZone(user.getCompany().getCompanySettings().getGeneralPreferences().getTimeZone()));
-
-            long shiftStartMillis = cal.getTimeInMillis();
+            LocalTime workdayStart;
+            try {
+                workdayStart = LocalTime.parse(dailyCapacity.startTime());
+            } catch (RuntimeException exception) {
+                workdayStart = LocalTime.of(8, 0);
+            }
+            long shiftStartMillis = Date.from(date.atTime(workdayStart)
+                    .atZone(companyZone).toInstant()).getTime();
 
             long shiftEndMillis = shiftStartMillis + (long) capacityMinutes * 60 * 1000L;
 
@@ -218,10 +237,15 @@ public class WorkloadService {
                     .toList();
 
             long cursor = shiftStartMillis;
+            if (date.equals(LocalDate.now(companyZone))) {
+                cursor = Math.max(cursor, System.currentTimeMillis());
+            }
             Date foundStart = null;
 
             if (otherWOs.isEmpty()) {
-                foundStart = new Date(cursor);
+                if (cursor + requiredMillis <= shiftEndMillis) {
+                    foundStart = new Date(cursor);
+                }
             } else {
                 for (WorkOrder wo : otherWOs) {
                     long woStart = wo.getEstimatedStartDate().getTime();
@@ -229,7 +253,8 @@ public class WorkloadService {
 
                     if (woEnd <= cursor) continue;
 
-                    if (cursor + requiredMillis <= woStart) {
+                    if (cursor + requiredMillis <= woStart
+                            && cursor + requiredMillis <= shiftEndMillis) {
                         foundStart = new Date(cursor);
                         break;
                     }
@@ -256,23 +281,51 @@ public class WorkloadService {
     }
 
     public int getUserCapacityForDay(User user, LocalDate date) {
+        return resolveUserCapacityForDay(user, date).minutes();
+    }
+
+    private DailyCapacity resolveUserCapacityForDay(User user, LocalDate date) {
         ShiftConfiguration config = user.getShiftConfiguration();
-        if (config == null || !config.isEnabled()) return 0;
+        if (config == null) return new DailyCapacity(0, "NOT_CONFIGURED", "08:00");
+        if (!config.isEnabled()) return new DailyCapacity(0, "SCHEDULE_DISABLED", "08:00");
 
         for (ShiftException exception : config.getExceptions()) {
             if (exception.getExceptionDate().equals(date)) {
-                if (exception.isEnabled()) {
-                    return exception.getAvailabilityMinutes();
-                } else return 0;
+                if (exception.isEnabled() && exception.getAvailabilityMinutes() > 0) {
+                    return new DailyCapacity(exception.getAvailabilityMinutes(), "AVAILABLE",
+                            safeStartTime(exception.getStartTime()));
+                }
+                return new DailyCapacity(0, "NON_WORKING_DAY", safeStartTime(exception.getStartTime()));
             }
         }
 
         for (ShiftDayConfiguration dayConfig : config.getDays()) {
-            if (dayConfig.getDayOfWeek().equals(date.getDayOfWeek()) && dayConfig.isEnabled()) {
-                return dayConfig.getAvailabilityMinutes();
+            if (dayConfig.getDayOfWeek().equals(date.getDayOfWeek())) {
+                if (dayConfig.isEnabled() && dayConfig.getAvailabilityMinutes() > 0) {
+                    return new DailyCapacity(dayConfig.getAvailabilityMinutes(), "AVAILABLE",
+                            safeStartTime(dayConfig.getStartTime()));
+                }
+                return new DailyCapacity(0, "NON_WORKING_DAY", safeStartTime(dayConfig.getStartTime()));
             }
         }
 
-        return 0;
+        return new DailyCapacity(0, "DAY_NOT_CONFIGURED", "08:00");
+    }
+
+    private String safeStartTime(String startTime) {
+        return startTime == null ? "08:00" : startTime;
+    }
+
+    private record DailyCapacity(int minutes, String status, String startTime) {}
+
+    private ZoneId getCompanyZone(User user) {
+        String timeZone = user.getCompany() == null || user.getCompany().getCompanySettings() == null
+                || user.getCompany().getCompanySettings().getGeneralPreferences() == null
+                ? null : user.getCompany().getCompanySettings().getGeneralPreferences().getTimeZone();
+        try {
+            return ZoneId.of(timeZone);
+        } catch (RuntimeException exception) {
+            return ZoneId.systemDefault();
+        }
     }
 }

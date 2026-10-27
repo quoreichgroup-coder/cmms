@@ -3,6 +3,7 @@ package com.grash.controller;
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.PreventiveMaintenancePatchDTO;
 import com.grash.dto.PreventiveMaintenanceCallDTO;
+import com.grash.dto.PreventiveMaintenanceCallAnalyticsDTO;
 import com.grash.dto.PreventiveMaintenanceCallRescheduleRequest;
 import com.grash.dto.PreventiveMaintenancePostDTO;
 import com.grash.dto.PreventiveMaintenanceShowDTO;
@@ -25,6 +26,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 @RestController
@@ -82,6 +84,14 @@ public class PreventiveMaintenanceController {
                                                               @RequestParam(defaultValue = "10") int size,
                                                               @Parameter(hidden = true) @CurrentUser User user) {
         return preventiveMaintenanceService.getMeterCallHistory(id, user, page, size);
+    }
+
+    @GetMapping("/analytics/calls")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public List<PreventiveMaintenanceCallAnalyticsDTO> getCallAnalytics(
+            @RequestParam LocalDate startDate, @RequestParam LocalDate endDate,
+            @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceService.getCallAnalytics(startDate, endDate, user);
     }
 
     @PostMapping("/{id}/call-history/{callId}/reschedule")

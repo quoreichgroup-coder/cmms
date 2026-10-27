@@ -31,6 +31,7 @@ class DocumentTemplateServiceTest {
     @Mock private DocumentTemplateVersionRepository versionRepository;
     @Mock private DocumentTypeRepository typeRepository;
     @Mock private ReportTemplateConfigurationValidator validator;
+    @Mock private PdfmeTemplateConfigurationValidator pdfmeValidator;
     @InjectMocks private DocumentTemplateService service;
 
     @Test
@@ -80,7 +81,7 @@ class DocumentTemplateServiceTest {
         type.setProviderCode("WORK_ORDER");
         when(typeRepository.findByCodeAndCompanyIsNull("WORK_ORDER"))
                 .thenReturn(Optional.of(type));
-        when(validator.validate(any(), eq("WORK_ORDER"), eq("WORK_ORDER")))
+        when(validator.validateDraft(any(), eq("WORK_ORDER"), eq("WORK_ORDER")))
                 .thenThrow(new IllegalStateException("configuration validation reached"));
         DocumentTemplateRequest request = new DocumentTemplateRequest();
         request.setDocumentTypeCode("WORK_ORDER");
@@ -93,7 +94,7 @@ class DocumentTemplateServiceTest {
 
         assertEquals("configuration validation reached", exception.getMessage());
         verify(typeRepository).findByCodeAndCompanyIsNull("WORK_ORDER");
-        verify(validator).validate(any(), eq("WORK_ORDER"), eq("WORK_ORDER"));
+        verify(validator).validateDraft(any(), eq("WORK_ORDER"), eq("WORK_ORDER"));
     }
 
     @Test

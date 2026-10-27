@@ -23,7 +23,9 @@ public class Checklist extends DateAudit {
     @Schema(description = "Unique identifier", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    @OneToMany(orphanRemoval = true)
+    // TaskBase rows can still be referenced by historical Task execution rows.
+    // Removing a reusable checklist association must not cascade into that history.
+    @OneToMany
     @OrderColumn(name = "operation_order")
     private List<TaskBase> taskBases = new ArrayList<>();
 

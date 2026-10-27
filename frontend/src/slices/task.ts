@@ -181,6 +181,7 @@ export const patchTasksOfPreventiveMaintenance =
         tasks
       })
     );
+    return tasks;
   };
 export const deleteTask =
   (workOrderId: number, id: number): AppThunk =>

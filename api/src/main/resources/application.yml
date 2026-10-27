@@ -123,6 +123,10 @@ security:
         period-minutes: ${BRUTE_FORCE_LOGIN_PERIOD_MINUTES:15}
         long-term-max-attempts: ${BRUTE_FORCE_LOGIN_LONG_TERM_ATTEMPTS:20}
         long-term-period-hours: ${BRUTE_FORCE_LOGIN_LONG_TERM_PERIOD_HOURS:24}
+        ip-max-attempts: ${BRUTE_FORCE_LOGIN_IP_MAX_ATTEMPTS:30}
+        ip-period-minutes: ${BRUTE_FORCE_LOGIN_IP_PERIOD_MINUTES:15}
+        ip-long-term-max-attempts: ${BRUTE_FORCE_LOGIN_IP_LONG_TERM_ATTEMPTS:200}
+        ip-long-term-period-hours: ${BRUTE_FORCE_LOGIN_IP_LONG_TERM_PERIOD_HOURS:24}
       reset-password:
         max-attempts: ${BRUTE_FORCE_RESET_MAX_ATTEMPTS:3}
         period-minutes: ${BRUTE_FORCE_RESET_PERIOD_MINUTES:10}

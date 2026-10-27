@@ -21,6 +21,7 @@ export default interface PurchaseOrder extends Audit {
   shippingZipCode: string;
   shippingPhone: string;
   shippingFax: string;
+  additionalInfoDate?: string;
   additionalInfoRequisitionedName: string;
   additionalInfoShippingMethod: string;
   additionalInfoShippingOrderCategory: string;

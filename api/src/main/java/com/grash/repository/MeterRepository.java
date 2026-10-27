@@ -26,6 +26,18 @@ public interface MeterRepository extends JpaRepository<Meter, Long>, JpaSpecific
             "WHERE m.company.id = :companyId")
     Page<Meter> findByCompanyForExport(@Param("companyId") Long companyId, Pageable pageable);
 
+    @Query("SELECT m FROM Meter m " +
+            "LEFT JOIN FETCH m.meterCategory LEFT JOIN FETCH m.image LEFT JOIN FETCH m.location LEFT JOIN FETCH m.asset " +
+            "WHERE m.company.id = :companyId AND (m.asset.site.id IN :siteIds OR m.asset.site IS NULL)")
+    Page<Meter> findByCompanyForExportAndAccessibleSites(@Param("companyId") Long companyId,
+                                                         @Param("siteIds") Collection<Long> siteIds,
+                                                         Pageable pageable);
+
+    @Query("SELECT m FROM Meter m " +
+            "LEFT JOIN FETCH m.meterCategory LEFT JOIN FETCH m.image LEFT JOIN FETCH m.location LEFT JOIN FETCH m.asset " +
+            "WHERE m.company.id = :companyId AND m.asset.site IS NULL")
+    Page<Meter> findByCompanyForExportWithoutSites(@Param("companyId") Long companyId, Pageable pageable);
+
     Optional<Meter> findByIdAndCompany_Id(Long id, Long companyId);
 
     List<Meter> findByIdInAndCompany_Id(List<Long> ids, Long companyId);

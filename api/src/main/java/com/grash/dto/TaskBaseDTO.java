@@ -16,6 +16,12 @@ import java.util.List;
 @NoArgsConstructor
 @Schema(description = "Base DTO for task definitions")
 public class TaskBaseDTO {
+    @Schema(description = "Client task-template identifier used to preserve package assignment links")
+    private Long id;
+
+    @Schema(description = "Existing work-order task identifier used only when editing that work order")
+    private Long workOrderTaskId;
+
     @Schema(description = "Task label or title")
     @NotNull
     private String label;

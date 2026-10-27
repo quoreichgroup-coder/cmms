@@ -23,6 +23,7 @@ services:
     depends_on:
       - postgres
       - minio
+      - pdfme-renderer
     volumes:
       - ./logo:/app/static/images
       - ./config:/app/static/config
@@ -85,6 +86,8 @@ services:
       RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}
       SINGLE_INGRESS: ${SINGLE_INGRESS:-true}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      PDFME_RENDERER_URL: http://pdfme-renderer:8090
+      PDFME_RENDERER_TOKEN: ${PDFME_RENDERER_TOKEN:-}
 
       LDAP_ENABLED: ${LDAP_ENABLED:-false}
       LDAP_ORG_ADMIN: ${LDAP_ORG_ADMIN:-}
@@ -107,6 +110,17 @@ services:
       LDAP_SYNC_CRON: ${LDAP_SYNC_CRON:-}
     expose:
       - "8080"
+
+  pdfme-renderer:
+    build:
+      context: ./pdfme-renderer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8090
+      PDFME_RENDERER_TOKEN: ${PDFME_RENDERER_TOKEN:-}
+    expose:
+      - "8090"
 
   frontend:
     image: ${QPM_WEB_IMAGE:-atlas-cmms-frontend:local}

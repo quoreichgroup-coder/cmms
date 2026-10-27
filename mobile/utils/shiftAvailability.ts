@@ -20,8 +20,9 @@ export const getEffectiveShiftDay = (
 ): ShiftDayConfiguration =>
   (configuration.days ?? []).find((entry) => entry.dayOfWeek === day) ?? {
     dayOfWeek: day,
-    availabilityMinutes: 8 * 60,
-    enabled: true
+    availabilityMinutes: 0,
+    startTime: '08:00',
+    enabled: false
   };
 
 export const isValidIsoCalendarDate = (value: unknown): value is string => {

@@ -20,6 +20,11 @@ public interface MailService {
     void sendMessageUsingThymeleafTemplate(String[] to, String subject, Map<String, Object> templateModel,
                                            String template, Locale locale, List<EmailAttachmentDTO> attachmentDTOS);
 
+    void sendMessageUsingThymeleafTemplateSynchronously(String[] to, String subject,
+                                                        Map<String, Object> templateModel, String template,
+                                                        Locale locale,
+                                                        List<EmailAttachmentDTO> attachmentDTOS);
+
     default void sendMessageUsingThymeleafTemplate(String[] to, String subject, Map<String, Object> templateModel,
                                                    String template, Locale locale) {
         sendMessageUsingThymeleafTemplate(to, subject, templateModel, template, locale, null);

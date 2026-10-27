@@ -1426,10 +1426,12 @@ Agents must:
 4. avoid page-specific hardcoded styling when a design token/component is appropriate;
 5. keep accessibility intact;
 6. add or update tests where behavior changes;
-7. verify responsive layouts;
+7. treat responsive design as a requirement for every UI change, including small fixes and new or modified components;
 8. verify loading/error/empty states;
 9. avoid broad unrelated refactors;
 10. document significant design decisions.
+
+For every UI change, consider mobile, tablet, and desktop layouts while designing the interaction. Check the affected viewport sizes and adapt layout, controls, and information hierarchy as needed; do not simply shrink the desktop layout. Record any viewport that cannot be checked and why. This rule applies to web interfaces; check native mobile behavior separately when the change affects the mobile app. Backend-only changes with no user-facing interface are outside this requirement.
 
 Before deleting existing functionality, prove it is obsolete or receive explicit approval.
 

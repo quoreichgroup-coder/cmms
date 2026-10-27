@@ -72,31 +72,26 @@ public class ReadingService {
     public Reading create(Reading readingReq, User user) {
         if (!user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.METER))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        Optional<Meter> optionalMeter = meterService.findById(readingReq.getMeter().getId());
-        if (optionalMeter.isPresent()) {
-            Meter meter = optionalMeter.get();
-            if (!meter.canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            Optional<Reading> optionalLastReading = findLastByMeter(readingReq.getMeter().getId());
-            if (optionalLastReading.isPresent()) {
-                Reading lastReading = optionalLastReading.get();
-                String timeZone = meter.getCompany()
-                        .getCompanySettings()
-                        .getGeneralPreferences()
-                        .getTimeZone();
-                LocalDate nextReading =
-                        lastReading.getCreatedAt().toInstant().atZone(ZoneId.of(timeZone)).toLocalDate()
-                                .plusDays(meter.getUpdateFrequency());
-                if (LocalDate.now(ZoneId.of(timeZone)).isBefore(nextReading)) {
-                    throw new CustomException("The update frequency has not been respected", HttpStatus.NOT_ACCEPTABLE);
-                }
+        Meter meter = meterService.getById(readingReq.getMeter().getId(), user);
+        Optional<Reading> optionalLastReading = findLastByMeter(readingReq.getMeter().getId());
+        if (optionalLastReading.isPresent()) {
+            Reading lastReading = optionalLastReading.get();
+            String timeZone = meter.getCompany()
+                    .getCompanySettings()
+                    .getGeneralPreferences()
+                    .getTimeZone();
+            LocalDate nextReading =
+                    lastReading.getCreatedAt().toInstant().atZone(ZoneId.of(timeZone)).toLocalDate()
+                            .plusDays(meter.getUpdateFrequency());
+            if (LocalDate.now(ZoneId.of(timeZone)).isBefore(nextReading)) {
+                throw new CustomException("The update frequency has not been respected", HttpStatus.NOT_ACCEPTABLE);
             }
-            readingReq.setMeter(meter);
-            Reading savedReading = readingRepository.save(readingReq);
-            processMeterTriggers(meter, savedReading, user);
-            preventiveMaintenanceService.processMeterCycleReading(meter, savedReading);
-            return savedReading;
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        }
+        readingReq.setMeter(meter);
+        Reading savedReading = readingRepository.save(readingReq);
+        processMeterTriggers(meter, savedReading, user);
+        preventiveMaintenanceService.processMeterCycleReading(meter, savedReading);
+        return savedReading;
     }
 
     public Collection<Reading> getAll() {
@@ -104,21 +99,12 @@ public class ReadingService {
     }
 
     public Collection<Reading> getByMeter(Long id, User user) {
-        Optional<Meter> optionalMeter = meterService.findById(id);
-        if (optionalMeter.isPresent()) {
-            if (!optionalMeter.get().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return readingRepository.findByMeter_Id(id);
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
+        meterService.getById(id, user);
+        return readingRepository.findByMeter_Id(id);
     }
 
     public List<ReadingHistogramDTO> getHistogram(Long id, DateRange dateRange, User user) {
-        Optional<Meter> optionalMeter = meterService.findById(id);
-        if (optionalMeter.isEmpty()) {
-            throw new CustomException("Meter not found", HttpStatus.NOT_FOUND);
-        }
-        if (!optionalMeter.get().canBeViewedBy(user))
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        meterService.getById(id, user);
         if (dateRange.getStart() == null || dateRange.getEnd() == null) {
             throw new CustomException("Start and end dates are required", HttpStatus.BAD_REQUEST);
         }
@@ -137,8 +123,7 @@ public class ReadingService {
 
         if (optionalReading.isPresent()) {
             Reading savedReading = optionalReading.get();
-            if (!savedReading.getMeter().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+            meterService.getById(savedReading.getMeter().getId(), user);
             Reading updated = readingRepository.save(readingMapper.updateReading(savedReading, reading));
             processMeterTriggers(savedReading.getMeter(), updated, user);
             preventiveMaintenanceService.processMeterCycleReading(savedReading.getMeter(), updated);
@@ -151,8 +136,7 @@ public class ReadingService {
         Optional<Reading> optionalReading = readingRepository.findById(id);
 
         if (optionalReading.isPresent()) {
-            if (!optionalReading.get().getMeter().canBeViewedBy(user))
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+            meterService.getById(optionalReading.get().getMeter().getId(), user);
             readingRepository.deleteById(id);
         } else throw new CustomException("Reading not found", HttpStatus.NOT_FOUND);
     }

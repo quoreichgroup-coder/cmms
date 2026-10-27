@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface VendorRepository extends JpaRepository<Vendor, Long>, JpaSpecificationExecutor<Vendor> {
     Collection<Vendor> findByCompany_Id(Long id);
 
+    Optional<Vendor> findByIdAndCompany_Id(Long id, Long companyId);
+
     @Query("""
                 SELECT v 
                 FROM Vendor v

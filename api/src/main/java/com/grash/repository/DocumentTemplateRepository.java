@@ -14,9 +14,18 @@ public interface DocumentTemplateRepository extends JpaRepository<DocumentTempla
     List<DocumentTemplate> findByCompany_IdOrderByUpdatedAtDesc(Long companyId);
     Optional<DocumentTemplate> findByIdAndCompany_Id(Long id, Long companyId);
     Optional<DocumentTemplate> findByIdAndCompany_IdAndStatus(Long id, Long companyId, DocumentTemplateStatus status);
+    boolean existsByCompany_IdAndDocumentType_Id(Long companyId, Long documentTypeId);
 
     @Modifying
     @Query("update DocumentTemplate t set t.isDefault = false where t.company.id = :companyId " +
-            "and t.documentType.id = :typeId and t.defaultScope = 'COMPANY' and t.isDefault = true")
+            "and t.documentType.id = :typeId and t.defaultScope = :scope " +
+            "and ((:siteId is null and t.site is null) or t.site.id = :siteId) and t.isDefault = true")
+    int clearDefaultForScope(@Param("companyId") Long companyId, @Param("typeId") Long typeId,
+                             @Param("scope") String scope, @Param("siteId") Long siteId);
+
+    /** Retained for callers compiled against the original company-scope API. */
+    @Modifying
+    @Query("update DocumentTemplate t set t.isDefault = false where t.company.id = :companyId " +
+            "and t.documentType.id = :typeId and t.isDefault = true")
     int clearDefaultForType(@Param("companyId") Long companyId, @Param("typeId") Long typeId);
 }

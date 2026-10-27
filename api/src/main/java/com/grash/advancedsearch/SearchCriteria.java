@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort.Direction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Data
@@ -44,6 +45,40 @@ public class SearchCriteria implements Cloneable {
                 .value(user.getId())
                 .operation("eq")
                 .values(new ArrayList<>()).build());
+    }
+
+    public void filterCreatedByOrAssignedTo(User user) {
+        this.filterFields.add(FilterField.builder()
+                .field("createdBy")
+                .value(user.getId())
+                .operation("eq")
+                .values(new ArrayList<>())
+                .alternatives(List.of(
+                        FilterField.builder().field("assignedTo.id").value(user.getId()).operation("eq").build(),
+                        FilterField.builder().field("teams.users.id").value(user.getId()).operation("eq").build()
+                ))
+                .build());
+    }
+
+    public void filterIds(List<Long> ids) {
+        filterFields.add(FilterField.builder().field("id").operation("in")
+                .values(ids == null ? new ArrayList<>() : new ArrayList<>(ids)).build());
+    }
+
+    /** Restricts site-bearing operational records while retaining legacy records with no site assigned. */
+    public void filterAccessibleSites(User user) {
+        filterAccessibleSites(user, "site");
+    }
+
+    /** Restricts records through a related entity's site field, retaining legacy rows with no site. */
+    public void filterAccessibleSites(User user, String field) {
+        if (user == null || user.isAllSitesAccess()) return;
+        List<Long> siteIds = user.getSites().stream().map(site -> site.getId()).collect(Collectors.toList());
+        FilterField siteFilter = siteIds.isEmpty()
+                ? FilterField.builder().field(field).operation("nu").build()
+                : FilterField.builder().field(field).operation("in").values(new ArrayList<>(siteIds))
+                    .alternatives(List.of(FilterField.builder().field(field).operation("nu").build())).build();
+        filterFields.add(siteFilter);
     }
 
     @Override

@@ -14,6 +14,7 @@ import { Page } from '../../models/page';
 import PreventiveMaintenance from '../../models/preventiveMaintenance';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
+import { PlanFeature } from '../../models/subscriptionPlan';
 import { RootStackScreenProps } from '../../types';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
@@ -28,8 +29,12 @@ export default function PreventiveMaintenancesScreen({
   const { t } = useTranslation();
   const theme = useAppTheme();
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const { hasViewPermission } = useAuth();
-  const canView = hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES);
+  const { hasViewPermission, hasFeature } = useAuth();
+  const hasPmPermission = hasViewPermission(
+    PermissionEntity.PREVENTIVE_MAINTENANCES
+  );
+  const hasPmFeature = hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE);
+  const canView = hasPmPermission && hasPmFeature;
   const [items, setItems] = useState<PreventiveMaintenance[]>([]);
   const [page, setPage] = useState(0);
   const [lastPage, setLastPage] = useState(true);
@@ -214,7 +219,11 @@ export default function PreventiveMaintenancesScreen({
   if (!canView) {
     return (
       <View style={styles.message}>
-        <Text>{t('no_access_preventive_maintenance')}</Text>
+        <Text>
+          {hasPmPermission
+            ? t('pm_mobile_feature_unavailable')
+            : t('no_access_preventive_maintenance')}
+        </Text>
       </View>
     );
   }

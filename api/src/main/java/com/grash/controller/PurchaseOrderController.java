@@ -2,23 +2,24 @@ package com.grash.controller;
 
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.dto.PurchaseOrderPatchDTO;
+import com.grash.dto.PurchaseOrderCreateRequest;
+import com.grash.dto.PurchaseOrderUpdateRequest;
+import com.grash.dto.PartQuantityCompletePatchDTO;
 import com.grash.dto.PurchaseOrderShowDTO;
 import com.grash.dto.SuccessResponse;
 import com.grash.exception.CustomException;
-import com.grash.mapper.PartMapper;
 import com.grash.mapper.PartQuantityMapper;
 import com.grash.mapper.PurchaseOrderMapper;
 import com.grash.factory.MailServiceFactory;
 import com.grash.model.*;
 import com.grash.model.enums.*;
-import com.grash.model.enums.webhook.PartField;
-import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.service.*;
 import com.grash.utils.Helper;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
@@ -34,8 +35,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -44,20 +46,23 @@ import java.util.stream.Collectors;
 @RequestMapping("/purchase-orders")
 @Tag(name = "Purchase Orders", description = "Operations on purchase orders")
 @RequiredArgsConstructor
+@Slf4j
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
+    private final PurchaseOrderApprovalService purchaseOrderApprovalService;
     private final UserService userService;
     private final PartQuantityService partQuantityService;
     private final MessageSource messageSource;
     private final PartQuantityMapper partQuantityMapper;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final MailServiceFactory mailServiceFactory;
-    private final PartService partService;
     private final NotificationService notificationService;
     private final WorkflowService workflowService;
-    private final WebhookDispatchService webhookDispatchService;
-    private final PartMapper partMapper;
+    private final VendorService vendorService;
+    private final PurchaseOrderCategoryService purchaseOrderCategoryService;
+    private final PurchaseOrderPolicyService purchaseOrderPolicyService;
+    private final PartService partService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -85,7 +90,8 @@ public class PurchaseOrderController {
     @PreAuthorize("permitAll()")
     public PurchaseOrderShowDTO getById(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findById(id);
+        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdAndCompany_Id(
+                id, user.getCompany().getId());
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
             if (savedPurchaseOrder.canBeViewedBy(user)) {
@@ -99,13 +105,13 @@ public class PurchaseOrderController {
     PurchaseOrderShowDTO create(@Parameter(description = "Purchase order data to create") @Valid @RequestBody PurchaseOrder purchaseOrderReq,
                                 HttpServletRequest req) {
         User user = userService.whoami(req);
-        if (user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)
-                && user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.PURCHASE_ORDER)) {
+        if (user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+            purchaseOrderPolicyService.requireModuleEnabled(user);
+            purchaseOrderReq.setVendor(resolveVendor(purchaseOrderReq.getVendor(), user));
+            purchaseOrderReq.setCategory(resolveCategory(purchaseOrderReq.getCategory(), user));
             PurchaseOrder savedPurchaseOrder = purchaseOrderService.create(purchaseOrderReq);
-            Collection<Workflow> workflows =
-                    workflowService.findByMainConditionAndCompany(WFMainCondition.PURCHASE_ORDER_CREATED,
-                            user.getCompany().getId());
-            workflows.forEach(workflow -> workflowService.runPurchaseOrder(workflow, savedPurchaseOrder));
+            runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, savedPurchaseOrder,
+                    user.getCompany().getId());
             PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(savedPurchaseOrder));
             double cost =
                     result.getPartQuantities().stream().mapToDouble(partQuantityShowDTO -> partQuantityShowDTO.getQuantity() * partQuantityShowDTO.getPart().getCost()).sum();
@@ -119,8 +125,10 @@ public class PurchaseOrderController {
                 put("message", message);
             }};
             Collection<User> usersToNotify = userService.findByCompany(user.getCompany().getId()).stream()
-                    .filter(user1 -> user1.isEnabled() && user1.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) ||
-                            user1.getRole().getCode().equals(RoleCode.LIMITED_ADMIN)).collect(Collectors.toList());
+                    .filter(user1 -> user1.isEnabled() &&
+                            (user1.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) ||
+                                    user1.getRole().getCode().equals(RoleCode.LIMITED_ADMIN)))
+                    .collect(Collectors.toList());
             notificationService.createMultiple(usersToNotify.stream().map(user1 -> new Notification(message, user1,
                     NotificationType.PURCHASE_ORDER, result.getId())).collect(Collectors.toList()), true, title);
             Collection<User> usersToMail =
@@ -133,25 +141,205 @@ public class PurchaseOrderController {
 
     }
 
+    @PostMapping("/with-lines")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
+    public PurchaseOrderShowDTO createWithLines(@Valid @RequestBody PurchaseOrderCreateRequest request,
+                                                HttpServletRequest req) {
+        User user = userService.whoami(req);
+        if (!user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        if (request.getPartQuantities() == null || request.getPartQuantities().isEmpty()) {
+            throw new CustomException("At least one purchase order line is required", HttpStatus.BAD_REQUEST);
+        }
+
+        PurchaseOrder purchaseOrder = request.getPurchaseOrder();
+        purchaseOrder.setVendor(resolveVendor(purchaseOrder.getVendor(), user));
+        purchaseOrder.setCategory(resolveCategory(purchaseOrder.getCategory(), user));
+        PurchaseOrder saved = purchaseOrderService.create(purchaseOrder);
+
+        var lines = request.getPartQuantities();
+        if (lines.stream().anyMatch(line -> line.getPart() == null || line.getPart().getId() == null)) {
+            throw new CustomException("Part IDs are required", HttpStatus.BAD_REQUEST);
+        }
+        if (lines.stream().map(line -> line.getPart().getId()).distinct().count() != lines.size()) {
+            throw new CustomException("A part can only be associated once", HttpStatus.BAD_REQUEST);
+        }
+        for (var line : lines) {
+            double quantity = line.getQuantity();
+            if (!Double.isFinite(quantity) || quantity <= 0) {
+                throw new CustomException("Purchase order quantity must be greater than zero", HttpStatus.BAD_REQUEST);
+            }
+            Part part = partService.findByIdAndCompany(line.getPart().getId(), user.getCompany().getId())
+                    .orElseThrow(() -> new CustomException("Part not found", HttpStatus.NOT_FOUND));
+            if (part.getUnit() == null && quantity != Math.rint(quantity)) {
+                throw new CustomException("A whole quantity is required when the part has no unit",
+                        HttpStatus.BAD_REQUEST);
+            }
+            partQuantityService.create(new PartQuantity(part, null, saved, quantity));
+        }
+
+        runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, saved, user.getCompany().getId());
+        if (request.isApproveOnSubmit() && saved.getStatus() == ApprovalStatus.PENDING) {
+            if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+                throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+            }
+            purchaseOrderApprovalService.respond(saved.getId(), user.getCompany().getId(), true);
+        }
+
+        PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(saved));
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        notifyPurchaseOrderCreated(result, user);
+                    } catch (RuntimeException exception) {
+                        log.error("Purchase order {} was created, but its notification could not be sent",
+                                result.getId(), exception);
+                    }
+                }
+            });
+        }
+        return result;
+    }
+
+    private void notifyPurchaseOrderCreated(PurchaseOrderShowDTO result, User user) {
+        double cost = result.getPartQuantities().stream()
+                .mapToDouble(line -> line.getQuantity() * line.getPart().getCost()).sum();
+        String title = messageSource.getMessage("new_po", null, Helper.getLocale(user));
+        String message = messageSource.getMessage("notification_new_po_request", new Object[]{result.getName(),
+                        cost, user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
+                Helper.getLocale(user));
+        Map<String, Object> mailVariables = new HashMap<>();
+        mailVariables.put("purchaseOrderLink", frontendUrl + "/app/purchase-orders/" + result.getId());
+        mailVariables.put("message", message);
+        Collection<User> usersToNotify = userService.findByCompany(user.getCompany().getId()).stream()
+                .filter(candidate -> candidate.isEnabled()
+                        && (candidate.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                        || candidate.getRole().getCode().equals(RoleCode.LIMITED_ADMIN)))
+                .collect(Collectors.toList());
+        notificationService.createMultiple(usersToNotify.stream()
+                .map(candidate -> new Notification(message, candidate, NotificationType.PURCHASE_ORDER, result.getId()))
+                .collect(Collectors.toList()), true, title);
+        Collection<User> usersToMail = usersToNotify.stream()
+                .filter(candidate -> candidate.getUserSettings().shouldEmailUpdatesForPurchaseOrders())
+                .collect(Collectors.toList());
+        mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(
+                usersToMail.stream().map(User::getEmail).toArray(String[]::new), title, mailVariables,
+                "new-purchase-order.html", Helper.getLocale(user), null);
+    }
+
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
     public PurchaseOrderShowDTO patch(@Parameter(description = "Purchase order fields to update") @Valid @RequestBody PurchaseOrderPatchDTO purchaseOrder,
                                       @PathVariable("id") Long id,
                                       HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findById(id);
+        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdForUpdateAndCompany(
+                id, user.getCompany().getId());
 
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
-            if (savedPurchaseOrder.canBeEditedBy(user)) {
-                PurchaseOrder patchedPurchaseOrder = purchaseOrderService.update(id, purchaseOrder);
-                Collection<Workflow> workflows =
-                        workflowService.findByMainConditionAndCompany(WFMainCondition.PURCHASE_ORDER_UPDATED,
-                                user.getCompany().getId());
-                workflows.forEach(workflow -> workflowService.runPurchaseOrder(workflow, patchedPurchaseOrder));
-                return setPartQuantities(purchaseOrderMapper.toShowDto(patchedPurchaseOrder));
-            } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+            if (!savedPurchaseOrder.canBeEditedBy(user)) {
+                throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+            }
+            purchaseOrderPolicyService.requireModuleEnabled(user);
+            if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
+                throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
+            }
+            purchaseOrder.setVendor(resolveVendor(purchaseOrder.getVendor(), user));
+            purchaseOrder.setCategory(resolveCategory(purchaseOrder.getCategory(), user));
+            PurchaseOrder patchedPurchaseOrder = purchaseOrderService.update(id,
+                    user.getCompany().getId(), purchaseOrder);
+            runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_UPDATED, patchedPurchaseOrder,
+                    user.getCompany().getId());
+            return setPartQuantities(purchaseOrderMapper.toShowDto(patchedPurchaseOrder));
         } else throw new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND);
+    }
+
+    @PatchMapping("/{id}/with-lines")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
+    public PurchaseOrderShowDTO patchWithLines(@PathVariable("id") Long id,
+                                               @Valid @RequestBody PurchaseOrderUpdateRequest request,
+                                               HttpServletRequest req) {
+        User user = userService.whoami(req);
+        PurchaseOrder saved = purchaseOrderService.findByIdForUpdateAndCompany(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
+        if (!saved.canBeEditedBy(user)) throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        if (saved.getStatus() == ApprovalStatus.APPROVED) {
+            throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
+        }
+
+        List<PartQuantityCompletePatchDTO> requestedLines = request.getPartQuantities();
+        if (requestedLines == null || requestedLines.isEmpty()) {
+            throw new CustomException("At least one purchase order line is required", HttpStatus.BAD_REQUEST);
+        }
+        if (requestedLines.stream().anyMatch(line -> line.getPart() == null || line.getPart().getId() == null)) {
+            throw new CustomException("Part IDs are required", HttpStatus.BAD_REQUEST);
+        }
+        if (requestedLines.stream().map(line -> line.getPart().getId()).distinct().count() != requestedLines.size()) {
+            throw new CustomException("A part can only be associated once", HttpStatus.BAD_REQUEST);
+        }
+        Map<Long, Part> requestedParts = new HashMap<>();
+        for (var line : requestedLines) {
+            double quantity = line.getQuantity();
+            if (!Double.isFinite(quantity) || quantity <= 0) {
+                throw new CustomException("Purchase order quantity must be greater than zero", HttpStatus.BAD_REQUEST);
+            }
+            Long partId = line.getPart().getId();
+            Part part = partService.findByIdAndCompany(partId, user.getCompany().getId())
+                    .orElseThrow(() -> new CustomException("Part not found", HttpStatus.NOT_FOUND));
+            if (part.getUnit() == null && quantity != Math.rint(quantity)) {
+                throw new CustomException("A whole quantity is required when the part has no unit",
+                        HttpStatus.BAD_REQUEST);
+            }
+            requestedParts.put(partId, part);
+        }
+
+        PurchaseOrderPatchDTO purchaseOrderPatch = request.getPurchaseOrder();
+        purchaseOrderPatch.setVendor(resolveVendor(purchaseOrderPatch.getVendor(), user));
+        purchaseOrderPatch.setCategory(resolveCategory(purchaseOrderPatch.getCategory(), user));
+        PurchaseOrder updated = purchaseOrderService.update(id, user.getCompany().getId(), purchaseOrderPatch);
+        replacePurchaseOrderLines(updated, requestedLines, requestedParts);
+
+        runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_UPDATED, updated, user.getCompany().getId());
+        return setPartQuantities(purchaseOrderMapper.toShowDto(updated));
+    }
+
+    private void replacePurchaseOrderLines(PurchaseOrder purchaseOrder,
+                                           List<PartQuantityCompletePatchDTO> requestedLines,
+                                           Map<Long, Part> requestedParts) {
+        Collection<PartQuantity> existingLines = partQuantityService.findByPurchaseOrder(purchaseOrder.getId());
+        Map<Long, PartQuantity> existingByPartId = existingLines.stream().collect(Collectors.toMap(
+                line -> line.getPart().getId(), line -> line));
+        HashSet<Long> requestedPartIds = new HashSet<>();
+        for (var requested : requestedLines) {
+            Long partId = requested.getPart().getId();
+            requestedPartIds.add(partId);
+            PartQuantity existing = existingByPartId.get(partId);
+            if (existing != null) {
+                existing.setQuantity(requested.getQuantity());
+                partQuantityService.save(existing);
+            } else {
+                partQuantityService.create(new PartQuantity(requestedParts.get(partId), null, purchaseOrder,
+                        requested.getQuantity()));
+            }
+        }
+        existingByPartId.forEach((partId, existing) -> {
+            if (!requestedPartIds.contains(partId)) partQuantityService.delete(existing);
+        });
+    }
+
+    private void runPurchaseOrderWorkflows(WFMainCondition condition, PurchaseOrder purchaseOrder, Long companyId) {
+        workflowService.findByMainConditionAndCompany(condition, companyId).stream()
+                .filter(Workflow::isEnabled)
+                .forEach(workflow -> workflowService.runPurchaseOrder(workflow, purchaseOrder));
     }
 
     @PatchMapping("/{id}/respond")
@@ -160,33 +348,13 @@ public class PurchaseOrderController {
     public PurchaseOrderShowDTO respond(@Parameter(description = "Whether the purchase order is approved") @RequestParam("approved") boolean approved, @PathVariable("id") Long id,
                                         HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdForUpdate(id);
-
-        if (optionalPurchaseOrder.isPresent()) {
-            PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
-            if (user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
-                if (!savedPurchaseOrder.getStatus().equals(ApprovalStatus.APPROVED)) {
-                    if (approved) {
-                        Collection<PartQuantity> partQuantities =
-                                partQuantityService.findByPurchaseOrder(savedPurchaseOrder.getId());
-                        partQuantities.forEach(partQuantity -> {
-                            Part part = partQuantity.getPart();
-                            double previousQuantity = part.getQuantity();
-                            part.setQuantity(part.getQuantity() + partQuantity.getQuantity());
-                            partService.save(part);
-
-                            // Notify external consumers only if the stock and PO status commit successfully.
-                            dispatchPartQuantityChangeWebhookAfterCommit(part, previousQuantity,
-                                    part.getQuantity(), partQuantity, savedPurchaseOrder, user.getCompany());
-                        });
-                    }
-                    savedPurchaseOrder.setStatus(approved ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED);
-                    return setPartQuantities(purchaseOrderMapper.toShowDto(purchaseOrderService.save(savedPurchaseOrder)));
-                } else
-                    throw new CustomException("The purchase order has already been approved",
-                            HttpStatus.NOT_ACCEPTABLE);
-            } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
-        } else throw new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND);
+        if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+            throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+        }
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        PurchaseOrder respondedPurchaseOrder = purchaseOrderApprovalService.respond(
+                id, user.getCompany().getId(), approved);
+        return setPartQuantities(purchaseOrderMapper.toShowDto(respondedPurchaseOrder));
     }
 
     @DeleteMapping("/{id}")
@@ -194,11 +362,13 @@ public class PurchaseOrderController {
     public ResponseEntity delete(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
 
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findById(id);
+        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdAndCompany_Id(
+                id, user.getCompany().getId());
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
             if (savedPurchaseOrder.canBeDeletedBy(user)) {
-                purchaseOrderService.delete(id);
+                purchaseOrderPolicyService.requireModuleEnabled(user);
+                purchaseOrderService.delete(id, user.getCompany().getId());
                 return new ResponseEntity(new SuccessResponse(true, "Deleted successfully"),
                         HttpStatus.OK);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
@@ -211,41 +381,21 @@ public class PurchaseOrderController {
         return purchaseOrderShowDTO;
     }
 
-    private void dispatchPartQuantityChangeWebhook(Part part, double previousQuantity, double newQuantity,
-                                                   PartQuantity partQuantity, PurchaseOrder purchaseOrder,
-                                                   Company company) {
-        Map<String, Object> webhookPayload = new HashMap<>();
-        webhookPayload.put("partId", part.getId());
-        webhookPayload.put("partName", part.getName());
-        webhookPayload.put("previousQuantity", previousQuantity);
-        webhookPayload.put("newQuantity", newQuantity);
-        webhookPayload.put("changedAmount", partQuantity.getQuantity());
-        webhookPayload.put("purchaseOrderId", purchaseOrder.getId());
-        webhookPayload.put("purchaseOrderName", purchaseOrder.getName());
-        webhookPayload.put("partQuantityId", partQuantity.getId());
-        Collection<PartField> changedFields = Collections.singletonList(PartField.QUANTITY);
-        Object serializedPart = partMapper.toShowDto(part);
-        webhookDispatchService.dispatchWebhook(company, WebhookEvent.PART_QUANTITY_CHANGED, webhookPayload,
-                "changedPart", serializedPart, null, null, null, null, changedFields);
+    private Vendor resolveVendor(Vendor vendor, User user) {
+        if (vendor == null) return null;
+        if (vendor.getId() == null) throw new CustomException("Vendor not found", HttpStatus.BAD_REQUEST);
+        return vendorService.findByIdAndCompany(vendor.getId(), user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Vendor not found", HttpStatus.BAD_REQUEST));
     }
 
-    private void dispatchPartQuantityChangeWebhookAfterCommit(Part part, double previousQuantity,
-                                                              double newQuantity, PartQuantity partQuantity,
-                                                              PurchaseOrder purchaseOrder, Company company) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            dispatchPartQuantityChangeWebhook(part, previousQuantity, newQuantity, partQuantity,
-                    purchaseOrder, company);
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                dispatchPartQuantityChangeWebhook(part, previousQuantity, newQuantity, partQuantity,
-                        purchaseOrder, company);
-            }
-        });
+    private PurchaseOrderCategory resolveCategory(PurchaseOrderCategory category, User user) {
+        if (category == null) return null;
+        if (category.getId() == null) throw new CustomException("Purchase order category not found", HttpStatus.BAD_REQUEST);
+        return purchaseOrderCategoryService.findByIdAndCompanySettings(
+                        category.getId(), user.getCompany().getCompanySettings().getId())
+                .orElseThrow(() -> new CustomException("Purchase order category not found", HttpStatus.BAD_REQUEST));
     }
+
 }
 
 

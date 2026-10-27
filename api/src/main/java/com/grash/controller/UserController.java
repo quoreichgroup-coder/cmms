@@ -24,7 +24,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,15 @@ public class UserController {
             if (user.getRole().getViewPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
                 searchCriteria.filterCompany(user);
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        }
+        if (!user.isAllSitesAccess()) {
+            List<Object> siteIds = user.getSites().stream().map(site -> (Object) site.getId()).toList();
+            List<FilterField> alternatives = new ArrayList<>();
+            alternatives.add(FilterField.builder().field("id").value(user.getId()).operation("eq").build());
+            if (!siteIds.isEmpty()) alternatives.add(FilterField.builder().field("sites").operation("inm")
+                    .values(siteIds).build());
+            searchCriteria.getFilterFields().add(FilterField.builder().field("allSitesAccess").value(true)
+                    .operation("eq").alternatives(alternatives).build());
         }
         if (enabledOnly) searchCriteria.getFilterFields().add(FilterField.builder()
                 .field("enabled").value(true).operation("eq").build());
@@ -76,8 +87,16 @@ public class UserController {
                                            @Parameter(description = "Include requesters in the response") @RequestParam(required = false) Boolean withRequesters) {
         return Boolean.TRUE.equals(withRequesters) ?
                 userService.findByCompany(user.getCompany().getId()).stream()
+                        .filter(candidate -> user.isAllSitesAccess() || candidate.isAllSitesAccess()
+                                || candidate.getSites().stream().anyMatch(site -> user.getSites().stream()
+                                .anyMatch(allowed -> allowed.getId().equals(site.getId())))
+                                || user.getId().equals(candidate.getId()))
                         .filter(User::isEnabled).map(userMapper::toMiniDto).collect(Collectors.toList()) :
                 userService.findWorkersByCompany(user.getCompany().getId()).stream()
+                        .filter(candidate -> user.isAllSitesAccess() || candidate.isAllSitesAccess()
+                                || candidate.getSites().stream().anyMatch(site -> user.getSites().stream()
+                                .anyMatch(allowed -> allowed.getId().equals(site.getId())))
+                                || user.getId().equals(candidate.getId()))
                         .filter(User::isEnabledInSubscription)
                         .filter(User::isEnabled)
                         .map(userMapper::toMiniDto).collect(Collectors.toList());
@@ -99,8 +118,13 @@ public class UserController {
 
         if (optionalUser.isPresent()) {
             User savedUser = optionalUser.get();
+            ensureVisibleWithinSiteScope(savedUser, requester);
+            boolean changingSiteScope = userReq.getAllSitesAccess() != null || userReq.getSiteIds() != null;
+            if (changingSiteScope && (requester.getId().equals(savedUser.getId()) || savedUser.isOwnsCompany()
+                    || !requester.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)))
+                throw new CustomException("You don't have permission to change this user's site access", HttpStatus.FORBIDDEN);
             if (savedUser.canBeEditedBy(requester)) {
-                return userMapper.toResponseDto(userService.update(id, userReq));
+                return userMapper.toResponseDto(userService.update(id, userReq, requester));
             } else {
                 throw new CustomException("You don't have permission", HttpStatus.NOT_ACCEPTABLE);
             }
@@ -116,6 +140,7 @@ public class UserController {
         Optional<User> optionalUser = userService.findByIdAndCompany(id, user.getCompany().getId());
         if (optionalUser.isPresent()) {
             User savedUser = optionalUser.get();
+            ensureVisibleWithinSiteScope(savedUser, user);
             if (savedUser.canBeViewedBy(user)) {
                 return userMapper.toResponseDtoWithShift(savedUser);
             } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -127,6 +152,9 @@ public class UserController {
     public UserResponseDTO patchRole(@Parameter(description = "User ID") @PathVariable("id") Long id,
                                      @Parameter(description = "Role ID to assign") @RequestParam("role") Long roleId,
                                      @Parameter(hidden = true) @CurrentUser User requester) {
+        User target = userService.findByIdAndCompany(id, requester.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        ensureVisibleWithinSiteScope(target, requester);
         return userMapper.toResponseDto(userService.patchUserRole(id, roleId, requester));
     }
 
@@ -134,6 +162,9 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public UserResponseDTO disable(@PathVariable("id") Long id,
                                    @Parameter(hidden = true) @CurrentUser User requester) {
+        User target = userService.findByIdAndCompany(id, requester.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        ensureVisibleWithinSiteScope(target, requester);
         return userMapper.toResponseDto(userService.disableUser(id, requester));
     }
 
@@ -143,15 +174,28 @@ public class UserController {
                                   @Parameter(hidden = true) @CurrentUser User requester) {
         if (!requester.getRole().getEditOtherPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS))
             throw new CustomException("You don't have permission", HttpStatus.NOT_ACCEPTABLE);
-        return userMapper.toResponseDto(userService.enableUser(userService.findByIdAndCompany(id,
-                requester.getCompany().getId()).get()));
+        User target = userService.findByIdAndCompany(id, requester.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        ensureVisibleWithinSiteScope(target, requester);
+        return userMapper.toResponseDto(userService.enableUser(target));
     }
 
     @PatchMapping("/soft-delete/{id}")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public UserResponseDTO softDelete(@PathVariable("id") Long id,
                                       @Parameter(hidden = true) @CurrentUser User requester) {
+        User target = userService.findByIdAndCompany(id, requester.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        ensureVisibleWithinSiteScope(target, requester);
         return userMapper.toResponseDto(userService.softDeleteUser(id, requester));
+    }
+
+    private void ensureVisibleWithinSiteScope(User target, User requester) {
+        if (requester.isAllSitesAccess() || requester.getId().equals(target.getId())
+                || target.isAllSitesAccess()) return;
+        boolean overlaps = target.getSites().stream().anyMatch(targetSite -> requester.getSites().stream()
+                .anyMatch(requesterSite -> requesterSite.getId().equals(targetSite.getId())));
+        if (!overlaps) throw new CustomException("User is outside your site scope", HttpStatus.FORBIDDEN);
     }
 }
 

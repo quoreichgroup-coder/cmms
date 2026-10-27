@@ -28,6 +28,8 @@ import { getTaskFromTaskBase } from '../../utils/formatters';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { getTaskTypes } from '../../utils/displayers';
 import { MeterMiniDTO } from '../../models/meter';
+import useAuth from '../../hooks/useAuth';
+import { PlanFeature } from '../../models/subscriptionPlan';
 
 interface TaskOption {
   id: number;
@@ -52,6 +54,8 @@ export default function SelectTasksModal({
   const [meter, setMeter] = useState<MeterMiniDTO>();
   const { t }: { t: any } = useTranslation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
+  const { hasFeature } = useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
 
   const onTaskTypeChange = (value: string) => {
     const nextType = value as TaskType;
@@ -133,16 +137,18 @@ export default function SelectTasksModal({
           {t('select_task_type')}
         </Text>
         <RadioButton.Group value={type} onValueChange={onTaskTypeChange}>
-          {getTaskTypes(t).map((taskType) => (
-            <RadioButton.Item
-              key={taskType.value}
-              value={taskType.value}
-              label={t(taskType.label)}
-              position="leading"
-              mode="android"
-              style={{ paddingHorizontal: 15 }}
-            />
-          ))}
+          {getTaskTypes(t)
+            .filter((taskType) => taskType.value !== 'METER' || hasMeterFeature)
+            .map((taskType) => (
+              <RadioButton.Item
+                key={taskType.value}
+                value={taskType.value}
+                label={t(taskType.label)}
+                position="leading"
+                mode="android"
+                style={{ paddingHorizontal: 15 }}
+              />
+            ))}
         </RadioButton.Group>
         <Text
           style={{

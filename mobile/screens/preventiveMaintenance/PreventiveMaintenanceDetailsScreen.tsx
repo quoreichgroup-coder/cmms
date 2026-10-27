@@ -27,6 +27,7 @@ import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
+import { PlanFeature } from '../../models/subscriptionPlan';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 const PAGE_SIZE = 10;
@@ -48,8 +49,12 @@ export default function PreventiveMaintenanceDetailsScreen({
   const { t } = useTranslation();
   const theme = useAppTheme();
   const { getFormattedDate } = useContext(CompanySettingsContext);
-  const { hasViewPermission } = useAuth();
-  const canView = hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES);
+  const { hasViewPermission, hasFeature } = useAuth();
+  const hasPmPermission = hasViewPermission(
+    PermissionEntity.PREVENTIVE_MAINTENANCES
+  );
+  const hasPmFeature = hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE);
+  const canView = hasPmPermission && hasPmFeature;
   const { id } = route.params;
   const [pm, setPm] = useState<PreventiveMaintenance | null>(
     route.params.pmProp ?? null
@@ -192,7 +197,11 @@ export default function PreventiveMaintenanceDetailsScreen({
   if (!canView)
     return (
       <View style={styles.message}>
-        <Text>{t('no_access_preventive_maintenance')}</Text>
+        <Text>
+          {hasPmPermission
+            ? t('pm_mobile_feature_unavailable')
+            : t('no_access_preventive_maintenance')}
+        </Text>
       </View>
     );
 
@@ -238,15 +247,36 @@ export default function PreventiveMaintenanceDetailsScreen({
             ]}
           >
             <Card.Content>
-              <Text variant="titleSmall">
-                {call.dueDate
-                  ? `${t('pm_call_due_date')}: ${getFormattedDate(
-                      call.rescheduledFor || call.dueDate
-                    )}`
-                  : `${t('pm_next_threshold')}: ${call.dueValue ?? '—'} ${
-                      call.unit ?? ''
-                    }`.trim()}
-              </Text>
+              {call.dueDate ? (
+                <View style={styles.callDates}>
+                  <Text variant="titleSmall">
+                    {`${t('pm_call_due_date')}: ${getFormattedDate(
+                      call.originalDueDate || call.dueDate
+                    )}`}
+                  </Text>
+                  {call.rescheduledFor &&
+                    call.rescheduledFor !==
+                      (call.originalDueDate || call.dueDate) && (
+                      <Text
+                        variant="bodySmall"
+                        style={[
+                          styles.muted,
+                          { color: theme.colors.onSurfaceVariant }
+                        ]}
+                      >
+                        {`${t('pm_call_rescheduled_date')}: ${getFormattedDate(
+                          call.rescheduledFor
+                        )}`}
+                      </Text>
+                    )}
+                </View>
+              ) : (
+                <Text variant="titleSmall">
+                  {`${t('pm_next_threshold')}: ${call.dueValue ?? '—'} ${
+                    call.unit ?? ''
+                  }`.trim()}
+                </Text>
+              )}
               <Chip
                 compact
                 style={[
@@ -278,10 +308,16 @@ export default function PreventiveMaintenanceDetailsScreen({
                   {t('reading')}: {call.readingValue} {call.unit ?? ''}
                 </Text>
               )}
-              {!!call.triggeredCycleCodes?.length && (
+              {!!(
+                call.triggeredCycleNames?.length ||
+                call.triggeredCycleCodes?.length
+              ) && (
                 <Text variant="bodySmall">
                   {t('pm_triggered_cycles')}:{' '}
-                  {call.triggeredCycleCodes.join(', ')}
+                  {(call.triggeredCycleNames?.length
+                    ? call.triggeredCycleNames
+                    : call.triggeredCycleCodes
+                  )?.join(', ')}
                 </Text>
               )}
               {call.rescheduleHistory?.map((event) => (
@@ -742,6 +778,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: qpmLayoutTokens.radius.cardLarge,
     elevation: 1
+  },
+  callDates: {
+    gap: qpmLayoutTokens.space.xs
   },
   muted: {},
   pmName: { fontWeight: '700' },

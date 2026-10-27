@@ -2,7 +2,7 @@
 
 **Backlog UI/UX complémentaire :** la navigation flottante Scan, la séparation Home/Stats et l’audit des cartes sont cadrés dans [`FINAL-UIUX-MAINTENANCE-BACKLOG.md`](FINAL-UIUX-MAINTENANCE-BACKLOG.md). Ils ne sont pas déclarés implémentés par les correctifs d’accessibilité recensés ci-dessous.
 
-**Révision :** 20 octobre 2026
+**Révision :** 27 octobre 2026
 **Cible :** pilote mobile de maintenance minière sur convoyeur
 **Règle :** poursuivre les backlogs Mobile et Web en parallèle; la recette du pilote Mobile reste un critère de validation terrain et ne bloque pas les améliorations Web. Le Web existant reste la surface de planification et d’administration qui n’est pas disponible dans l’app mobile.
 
@@ -51,7 +51,7 @@ Références officielles : [SAP — Completion Confirmation](https://help.sap.co
 2. **Passer les parcours WO sur appareil.** Création/affectation, états, tâches, temps, pièces/fichiers, commentaire, clôture sans puis avec exigences de feedback/signature. Relever les doubles actions, retours d’erreur et données réellement créées.
 3. **Passer Asset 360 et PM sur appareil.** Relations, appels, dates, unités, ordres générés, pagination, absence de données et erreurs réseau.
 4. **Valider confirmation et reprise.** Vérifier que chaque action finale/destructive indique clairement l’objet touché, le résultat et la récupération si l’API échoue. Ajouter une confirmation seulement si le test montre un risque et après accord sur le parcours, sans altérer les règles métier.
-5. **Compléter aperçu/émission de PDF.** Faire afficher le PDF résultant des options choisies avant impression/émission officielle. Garder la génération d’aperçu non archivée distincte de l’émission immuable; reprendre l’API `report/stream` et l’endpoint `report/issue` existants.
+5. **Recetter aperçu/émission PDF sur appareil.** Le mobile ouvre le PDF non archivé dans le lecteur PDF du téléphone, puis autorise l’émission officielle après aperçu réussi et confirmation. L’émission reste distincte, immuable et historisée. Vérifier le rendu réel, l’ouverture du lecteur, l’échec réseau et l’archivage sur Android/iOS; le mobile utilise la configuration par défaut du serveur, tandis que le choix de templates/options reste Web.
 6. **QA visuelle Android/iOS.** Installer APK/IPA de test, thèmes, tailles, clavier, navigation retour, lecteurs d’écran et captures. Toute vérification iOS reste ouverte jusqu’à installation d’un IPA/TestFlight sur iPhone.
 7. **Décider le gel mobile.** Aucun P0/P1 bloquant ouvert, parcours WO complet réussi, pas de mutation dupliquée, captures acceptées et journal des écarts signé. Ensuite seulement, cadrer le premier lot de refonte Web sur les mêmes règles UX.
 
@@ -62,7 +62,7 @@ Références officielles : [SAP — Completion Confirmation](https://help.sap.co
 - Un appel PM calendaire et un appel compteur sont présentés sans ambiguïté; la navigation vers le WO est validée.
 - Les états chargement, vide, erreur, accès refusé et succès ont été vus au moins une fois.
 - L’APK installé correspond au commit et aux sources du test; le rapport du test note les écarts iOS non encore levés.
-- Le PDF est aperçu avant émission officielle, ou le risque est explicitement accepté comme hors MVP pilote.
+- Le PDF est ouvert avec succès avant l’émission officielle; l’émission est confirmée puis visible dans l’historique et téléchargeable.
 
 La disponibilité d’écrans Web existants n’est pas un obstacle. Le jalon « passage au Web » signifie commencer leur harmonisation après cette acceptation mobile, en réutilisant les mêmes libellés, statuts, confirmations et composants sémantiques tout en conservant les API et permissions Web existantes.
 

@@ -4,6 +4,7 @@ import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
 import com.grash.model.enums.ScheduleTriggerType;
 import com.grash.model.PreventiveMaintenancePlanConfiguration;
+import com.grash.dto.TaskBaseDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import jakarta.validation.Valid;
 
 @Data
 @NoArgsConstructor
@@ -33,4 +35,8 @@ public class PreventiveMaintenancePatchDTO extends WorkOrderBasePatchDTO {
     private Double meterReferenceValue;
     private Double meterEndValue;
     private PreventiveMaintenancePlanConfiguration planConfiguration;
+
+    /** Optional task replacement included in the same transaction as the plan edit. */
+    @Valid
+    private List<TaskBaseDTO> tasks;
 }

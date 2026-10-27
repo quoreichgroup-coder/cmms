@@ -183,15 +183,30 @@ const slice = createSlice({
       if (!state.overview) return;
       for (const day of state.overview.days) {
         for (const userDay of day.users) {
-          const idx = userDay.workOrders.findIndex((w) => w.id === workOrderId);
-          if (idx !== -1) {
-            const removed = userDay.workOrders.splice(idx, 1)[0];
-            userDay.allocatedMinutes -= removed.estimatedDuration * 60;
-            day.teamAllocatedMinutes -= removed.estimatedDuration * 60;
-            state.overview.teamAllocatedMinutes -=
-              removed.estimatedDuration * 60;
-            return;
-          }
+          const removed = userDay.workOrders.filter(
+            (workOrder) => workOrder.id === workOrderId
+          );
+          if (removed.length === 0) continue;
+
+          const removedMinutes = removed.reduce(
+            (sum, workOrder) => sum + workOrder.estimatedDuration * 60,
+            0
+          );
+          userDay.workOrders = userDay.workOrders.filter(
+            (workOrder) => workOrder.id !== workOrderId
+          );
+          userDay.allocatedMinutes = Math.max(
+            0,
+            userDay.allocatedMinutes - removedMinutes
+          );
+          day.teamAllocatedMinutes = Math.max(
+            0,
+            day.teamAllocatedMinutes - removedMinutes
+          );
+          state.overview.teamAllocatedMinutes = Math.max(
+            0,
+            state.overview.teamAllocatedMinutes - removedMinutes
+          );
         }
       }
     }

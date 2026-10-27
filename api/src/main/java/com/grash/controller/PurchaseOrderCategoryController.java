@@ -8,6 +8,7 @@ import com.grash.model.User;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.RoleType;
 import com.grash.service.PurchaseOrderCategoryService;
+import com.grash.service.PurchaseOrderPolicyService;
 import com.grash.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,7 @@ import java.util.Optional;
 public class PurchaseOrderCategoryController {
 
     private final PurchaseOrderCategoryService purchaseOrderCategoryService;
+    private final PurchaseOrderPolicyService purchaseOrderPolicyService;
     private final UserService userService;
 
     @GetMapping("")
@@ -48,11 +50,12 @@ public class PurchaseOrderCategoryController {
     @PreAuthorize("permitAll()")
     public PurchaseOrderCategory getById(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService.findById(id);
+        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService
+                .findByIdAndCompanySettings(id, user.getCompany().getCompanySettings().getId());
         if (optionalPurchaseOrderCategory.isPresent()) {
             if (!optionalPurchaseOrderCategory.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return purchaseOrderCategoryService.findById(id).get();
+            return optionalPurchaseOrderCategory.get();
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -61,6 +64,7 @@ public class PurchaseOrderCategoryController {
     public PurchaseOrderCategory create(@Parameter(description = "PurchaseOrder category to create") @Valid @RequestBody PurchaseOrderCategory purchaseOrderCategoryReq,
                                         HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return purchaseOrderCategoryService.create(purchaseOrderCategoryReq, user);
         } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -72,11 +76,14 @@ public class PurchaseOrderCategoryController {
                                        @PathVariable("id") Long id,
                                        HttpServletRequest req) {
         User user = userService.whoami(req);
-        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService.findById(id);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService
+                .findByIdAndCompanySettings(id, user.getCompany().getCompanySettings().getId());
         if (optionalPurchaseOrderCategory.isPresent()) {
             if (!optionalPurchaseOrderCategory.get().canBeEditedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return purchaseOrderCategoryService.update(id, purchaseOrderCategory);
+            return purchaseOrderCategoryService.update(id,
+                    user.getCompany().getCompanySettings().getId(), purchaseOrderCategory);
         } else {
             throw new CustomException("Category not found", HttpStatus.NOT_FOUND);
         }
@@ -86,11 +93,13 @@ public class PurchaseOrderCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public ResponseEntity<SuccessResponse> delete(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
 
-        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService.findById(id);
+        Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService
+                .findByIdAndCompanySettings(id, user.getCompany().getCompanySettings().getId());
         if (optionalPurchaseOrderCategory.isPresent()) {
             if (optionalPurchaseOrderCategory.get().canBeDeletedBy(user)) {
-                purchaseOrderCategoryService.delete(id);
+                purchaseOrderCategoryService.delete(id, user.getCompany().getCompanySettings().getId());
                 return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
                         HttpStatus.OK);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);

@@ -6,8 +6,32 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import com.grash.model.enums.PreventiveMaintenanceCallStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PreventiveMaintenanceMeterCallRepository extends JpaRepository<PreventiveMaintenanceMeterCall, Long> {
+    @Query("select c.status as status, c.callType as callType, count(c) as count " +
+            "from PreventiveMaintenanceMeterCall c " +
+            "where c.schedule.preventiveMaintenance.company.id = :companyId " +
+            "and coalesce(c.rescheduledFor, c.dueDate) >= :start " +
+            "and coalesce(c.rescheduledFor, c.dueDate) < :endExclusive " +
+            "group by c.status, c.callType")
+    java.util.List<PreventiveMaintenanceCallAnalyticsRow> aggregateCallsByStatusAndType(
+            @Param("companyId") Long companyId, @Param("start") java.util.Date start,
+            @Param("endExclusive") java.util.Date endExclusive);
+
+    @Query("select c.status as status, c.callType as callType, count(c) as count " +
+            "from PreventiveMaintenanceMeterCall c " +
+            "where c.schedule.preventiveMaintenance.company.id = :companyId " +
+            "and (c.schedule.preventiveMaintenance.site is null " +
+            "or c.schedule.preventiveMaintenance.site.id in :siteIds) " +
+            "and coalesce(c.rescheduledFor, c.dueDate) >= :start " +
+            "and coalesce(c.rescheduledFor, c.dueDate) < :endExclusive " +
+            "group by c.status, c.callType")
+    java.util.List<PreventiveMaintenanceCallAnalyticsRow> aggregateCallsByStatusAndTypeForSites(
+            @Param("companyId") Long companyId, @Param("siteIds") java.util.List<Long> siteIds,
+            @Param("start") java.util.Date start, @Param("endExclusive") java.util.Date endExclusive);
+
     boolean existsBySchedule_IdAndReading_Id(Long scheduleId, Long readingId);
 
     Page<PreventiveMaintenanceMeterCall> findBySchedule_PreventiveMaintenance_Id(Long pmId, Pageable pageable);

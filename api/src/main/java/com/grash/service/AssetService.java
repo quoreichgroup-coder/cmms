@@ -91,6 +91,8 @@ public class AssetService {
             }
         }
         if (asset.getSite() != null) asset.setSite(resolveSite(asset.getSite(), company));
+        if (!user.canAccessSite(asset.getSite()))
+            throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
         if (asset.getParentAsset() != null && !licenseService.hasEntitlement(LicenseEntitlement.ASSET_HIERARCHY))
             throw new CustomException("You need a license to add a child asset to another asset.",
                     HttpStatus.FORBIDDEN);
@@ -333,6 +335,7 @@ public class AssetService {
                 }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
+        searchCriteria.filterAccessibleSites(user);
         return searchCriteria;
     }
 
@@ -341,7 +344,7 @@ public class AssetService {
             throw new CustomException("You need a license to scan an asset", HttpStatus.FORBIDDEN);
         Asset asset = findByNfcIdAndCompany(nfcId, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("Asset not found", HttpStatus.NOT_FOUND));
-        if (!asset.canBeViewedBy(user))
+        if (!asset.canBeViewedBy(user) || !user.canAccessSite(asset.getSite()))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return asset;
     }
@@ -351,7 +354,7 @@ public class AssetService {
             throw new CustomException("You need a license to scan an asset", HttpStatus.FORBIDDEN);
         Asset asset = findByBarcodeAndCompany(data, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("Asset not found", HttpStatus.NOT_FOUND));
-        if (!asset.canBeViewedBy(user))
+        if (!asset.canBeViewedBy(user) || !user.canAccessSite(asset.getSite()))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return asset;
     }
@@ -361,7 +364,7 @@ public class AssetService {
         // company-wide asset visibility must never resolve another tenant's ID.
         Asset asset = findByIdAndCompany(assetId, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
-        if (!asset.canBeViewedBy(user))
+        if (!asset.canBeViewedBy(user) || !user.canAccessSite(asset.getSite()))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return asset;
     }
@@ -371,7 +374,7 @@ public class AssetService {
         if (optionalLocation.isPresent()) {
             if (!optionalLocation.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return findByLocation(locationId);
+            return findByLocation(locationId).stream().filter(asset -> user.canAccessSite(asset.getSite())).toList();
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -380,7 +383,7 @@ public class AssetService {
         if (optionalPart.isPresent()) {
             if (!optionalPart.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return optionalPart.get().getAssets();
+            return optionalPart.get().getAssets().stream().filter(asset -> user.canAccessSite(asset.getSite())).toList();
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -437,6 +440,9 @@ public class AssetService {
 
         if (optionalAsset.isPresent()) {
             Asset savedAsset = optionalAsset.get();
+            if (!user.canAccessSite(savedAsset.getSite())
+                    || (asset.getSite() != null && !user.canAccessSite(resolveSite(asset.getSite(), user.getCompany()))))
+                throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
             em.detach(savedAsset);
             if (savedAsset.canBeEditedBy(user)) {
                 if (asset.getStatus() == null) {

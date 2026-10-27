@@ -33,7 +33,9 @@ public class SiteService {
 
     @Transactional(readOnly = true)
     public List<SiteDTO> list(User user) {
-        return siteRepository.findByCompany_IdOrderByNameAsc(user.getCompany().getId()).stream().map(this::toDto).toList();
+        return siteRepository.findByCompany_IdOrderByNameAsc(user.getCompany().getId()).stream()
+                .filter(site -> user.canAccessSite(site))
+                .map(this::toDto).toList();
     }
 
     @Transactional

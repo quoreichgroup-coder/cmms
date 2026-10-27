@@ -14,7 +14,11 @@ import java.util.Optional;
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, JpaSpecificationExecutor<PurchaseOrder> {
     Collection<PurchaseOrder> findByCompany_Id(@Param("x") Long id);
 
+    Optional<PurchaseOrder> findByIdAndCompany_Id(Long id, Long companyId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select purchaseOrder from PurchaseOrder purchaseOrder where purchaseOrder.id = :id")
-    Optional<PurchaseOrder> findByIdForUpdate(@Param("id") Long id);
+    @Query("select purchaseOrder from PurchaseOrder purchaseOrder " +
+            "where purchaseOrder.id = :id and purchaseOrder.company.id = :companyId")
+    Optional<PurchaseOrder> findByIdForUpdateAndCompany(@Param("id") Long id,
+                                                        @Param("companyId") Long companyId);
 }

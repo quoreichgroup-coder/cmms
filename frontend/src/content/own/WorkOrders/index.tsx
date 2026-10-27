@@ -60,7 +60,6 @@ import { getUsersMini } from '../../../slices/user';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { useDispatch, useSelector } from '../../../store';
 import PriorityWrapper from '../components/PriorityWrapper';
-import { patchTasksOfWorkOrder } from '../../../slices/task';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
 import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
@@ -267,6 +266,14 @@ function WorkOrders() {
     );
   const assetParamObject = assetInfos[assetParam]?.asset;
   const tasks = tasksByWorkOrder[currentWorkOrder?.id] ?? [];
+  const hasTaskExecutionEvidence = tasks.some((task) => {
+    const value = task.value == null ? '' : String(task.value).trim();
+    return (
+      (!!value && value !== 'OPEN' && value !== 'FLAG') ||
+      !!task.notes?.trim() ||
+      (task.images?.length ?? 0) > 0
+    );
+  });
   const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
   const [openDrawerForSingleWO, setOpenDrawerForSingleWO] =
     useState<boolean>(false);
@@ -515,6 +522,7 @@ function WorkOrders() {
   const onCreationSuccess = (newWorkOrder: WorkOrder) => {
     setOpenAddModal(false);
     setIsFormDirty(false);
+    if (workOrders.totalElements === 0) fireGa4Event('first_wo_creation');
     if (copyWorkOrderData) handleOpenDetails(newWorkOrder.id);
     setCopyWorkOrderData(null);
     setCalendarRefreshTrigger((trigger) => trigger + 1);
@@ -528,7 +536,18 @@ function WorkOrders() {
     setCalendarRefreshTrigger((trigger) => trigger + 1);
     showSnackBar(t('changes_saved_success'), 'success');
   };
-  const onEditFailure = (err) => showSnackBar(t('wo_update_failure'), 'error');
+  const onEditFailure = (err) => {
+    const errorMessage = String(err?.responseBody?.message ?? '');
+    const blockedTaskRemoval =
+      err?.status === 409 &&
+      errorMessage.includes('recorded value, notes, or attachments');
+    showSnackBar(
+      blockedTaskRemoval
+        ? t('work_order_task_evidence_conflict')
+        : t('wo_update_failure'),
+      'error'
+    );
+  };
   const onDeleteSuccess = () => {
     showSnackBar(t('wo_delete_success'), 'success');
   };
@@ -899,8 +918,6 @@ function WorkOrders() {
                   }
             }
             onSubmit={async (values) => {
-              if (workOrders.totalElements === 0)
-                fireGa4Event('first_wo_creation');
               let formattedValues = formatValues(values);
               try {
                 const uploadedFiles = await uploadFiles(
@@ -975,6 +992,11 @@ function WorkOrders() {
           p: { xs: 2, sm: 3 }
         }}
       >
+        {hasTaskExecutionEvidence && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {t('work_order_task_evidence_edit_help')}
+          </Alert>
+        )}
         <Box>
           <Form
             stickyActions
@@ -1005,19 +1027,14 @@ function WorkOrders() {
                   files: imageAndFiles.files
                 };
 
-                await dispatch(
-                  //TODO editTask
-                  patchTasksOfWorkOrder(
-                    currentWorkOrder?.id,
-                    formattedValues.tasks.map((task) => {
-                      return {
-                        ...task.taskBase,
-                        options: task.taskBase.options.map(
-                          (option) => option.label
-                        )
-                      };
-                    })
-                  )
+                formattedValues.tasks = (formattedValues.tasks ?? []).map(
+                  (task) => ({
+                    ...task.taskBase,
+                    workOrderTaskId: task.id,
+                    options: (task.taskBase.options ?? []).map((option) =>
+                      typeof option === 'string' ? option : option.label
+                    )
+                  })
                 );
 
                 await dispatch(

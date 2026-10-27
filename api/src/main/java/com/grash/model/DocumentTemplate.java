@@ -55,6 +55,12 @@ public class DocumentTemplate extends CompanyAudit {
     @Column(name = "default_scope", nullable = false, length = 20)
     private String defaultScope = "COMPANY";
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "site_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Site site;
+
     @Column(name = "is_default", nullable = false)
     private boolean isDefault;
 

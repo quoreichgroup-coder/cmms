@@ -69,6 +69,7 @@ interface OwnProps {
   submitText?: string;
   validation?: ObjectSchema<any>;
   isLoading?: boolean;
+  audioNotesEnabled?: boolean;
   isButtonEnabled?: (values: IHash<any>, ...props: any[]) => boolean;
   navigation: any;
 }
@@ -812,7 +813,17 @@ export default function Form(props: OwnProps) {
                     ) : field.type === 'audio' ? (
                       <AudioRecorder
                         title={getFieldLabel(field)}
-                        disabled={formik.isSubmitting}
+                        disabled={
+                          formik.isSubmitting ||
+                          (props.audioNotesEnabled === false &&
+                            field.name === 'audioDescription')
+                        }
+                        disabledMessage={
+                          props.audioNotesEnabled === false &&
+                          field.name === 'audioDescription'
+                            ? t('voice_notes_unavailable')
+                            : undefined
+                        }
                         onRecordingChange={(recording) =>
                           onAudioRecordingChange(field.name, recording)
                         }

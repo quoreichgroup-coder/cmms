@@ -73,7 +73,8 @@ import WorkloadOrderCard from './WorkloadOrderCard';
 import { getWorkloadUserDisplayName } from './userDisplayName';
 import {
   getCapacityBalance,
-  getCapacityUtilizationPercent
+  getCapacityUtilizationPercent,
+  getWorkdayWindow
 } from './capacityUtilization';
 import { isDueDateBeforeDay, isDueDateWithinNextDays } from '../dueDate';
 
@@ -317,9 +318,16 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       !isUnscheduled(source.droppableId) &&
       isUnscheduled(destination.droppableId)
     ) {
-      dispatch(unscheduleWorkOrder(wo.id, wo)).catch((err) =>
-        showSnackBar(getErrorMessage(err), 'error')
-      );
+      dispatch(unscheduleWorkOrder(wo.id, wo))
+        .then(() => {
+          loadOverview();
+          dispatch(getUnscheduled());
+        })
+        .catch((err) => {
+          loadOverview();
+          dispatch(getUnscheduled());
+          showSnackBar(getErrorMessage(err), 'error');
+        });
       return;
     }
 
@@ -336,9 +344,16 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       return;
     }
 
-    doSchedule(wo.id, userId, dateStr).catch((err) =>
-      showSnackBar(getErrorMessage(err), 'error')
-    );
+    doSchedule(wo.id, userId, dateStr)
+      .then(() => {
+        loadOverview();
+        dispatch(getUnscheduled());
+      })
+      .catch((err) => {
+        loadOverview();
+        dispatch(getUnscheduled());
+        showSnackBar(getErrorMessage(err), 'error');
+      });
   };
 
   const handleDurationSubmit = async () => {
@@ -353,9 +368,13 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
         pendingWorkOrder.dateStr,
         totalHours
       );
+      loadOverview();
+      dispatch(getUnscheduled());
       setDurationModalOpen(false);
       setPendingWorkOrder(null);
     } catch (err) {
+      loadOverview();
+      dispatch(getUnscheduled());
       showSnackBar(getErrorMessage(err), 'error');
     } finally {
       setIsSchedulingDuration(false);
@@ -531,7 +550,19 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                 <CircularProgress size={24} />
               </Box>
             ) : overviewError ? null : (
-              <Box sx={{ overflowX: 'auto' }}>
+              <Box
+                role="region"
+                aria-label={t('total_resource_capacity')}
+                tabIndex={0}
+                sx={{
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  '&:focus-visible': {
+                    outline: '2px solid',
+                    outlineColor: 'primary.main'
+                  }
+                }}
+              >
                 <Box
                   sx={{
                     display: 'grid',
@@ -700,7 +731,19 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                 <CircularProgress size={24} />
               </Box>
             ) : overviewError ? null : (
-              <Box sx={{ overflowX: 'auto' }}>
+              <Box
+                role="region"
+                aria-label={t('user_capacity')}
+                tabIndex={0}
+                sx={{
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  '&:focus-visible': {
+                    outline: '2px solid',
+                    outlineColor: 'primary.main'
+                  }
+                }}
+              >
                 <Box
                   sx={{
                     display: 'grid',
@@ -788,6 +831,9 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                           <Droppable
                             key={droppableId}
                             droppableId={droppableId}
+                            isDropDisabled={
+                              (userDayData?.capacityMinutes ?? 0) <= 0
+                            }
                           >
                             {(provided, snapshot) => (
                               <Box
@@ -799,6 +845,10 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                   borderColor: 'divider',
                                   p: 0.5,
                                   minHeight: 60,
+                                  opacity:
+                                    (userDayData?.capacityMinutes ?? 0) <= 0
+                                      ? 0.72
+                                      : 1,
                                   bgcolor: snapshot.isDraggingOver
                                     ? 'action.selected'
                                     : undefined
@@ -810,6 +860,67 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
                                       userDayData.allocatedMinutes,
                                       userDayData.capacityMinutes
                                     )}
+                                    {userDayData.capacityMinutes <= 0 && (
+                                      <Tooltip
+                                        title={t(
+                                          userDayData.capacityStatus ===
+                                            'NOT_CONFIGURED'
+                                            ? 'capacity_not_configured_help'
+                                            : userDayData.capacityStatus ===
+                                              'SCHEDULE_DISABLED'
+                                            ? 'capacity_schedule_disabled_help'
+                                            : userDayData.capacityStatus ===
+                                              'DAY_NOT_CONFIGURED'
+                                            ? 'capacity_day_not_configured_help'
+                                            : 'capacity_day_not_scheduled_help'
+                                        )}
+                                      >
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{
+                                            display: 'block',
+                                            cursor: 'help'
+                                          }}
+                                        >
+                                          {t(
+                                            userDayData.capacityStatus ===
+                                              'NOT_CONFIGURED'
+                                              ? 'capacity_not_configured_short'
+                                              : userDayData.capacityStatus ===
+                                                'SCHEDULE_DISABLED'
+                                              ? 'capacity_disabled_short'
+                                              : userDayData.capacityStatus ===
+                                                'DAY_NOT_CONFIGURED'
+                                              ? 'capacity_day_not_configured_short'
+                                              : 'capacity_day_not_scheduled'
+                                          )}
+                                        </Typography>
+                                      </Tooltip>
+                                    )}
+                                    {userDayData.capacityMinutes > 0 &&
+                                      userDayData.startTime &&
+                                      (() => {
+                                        const window = getWorkdayWindow(
+                                          userDayData.startTime,
+                                          userDayData.capacityMinutes
+                                        );
+                                        return window ? (
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                            sx={{ display: 'block' }}
+                                          >
+                                            {t('workday_window_caption', {
+                                              start: window.start,
+                                              end: window.end,
+                                              nextDay: window.endsNextDay
+                                                ? t('workday_next_day_suffix')
+                                                : ''
+                                            })}
+                                          </Typography>
+                                        ) : null;
+                                      })()}
                                     {(() => {
                                       const balance = getCapacityBalance(
                                         userDayData.allocatedMinutes,
@@ -924,27 +1035,37 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
       >
         <DialogTitle>{t('set_estimated_duration')}</DialogTitle>
         <DialogContent>
-          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{ mt: 1 }}
+          >
             <TextField
               label={t('hours')}
               type="number"
               value={durationHours}
-              onChange={(e) =>
-                setDurationHours(Math.max(0, Number(e.target.value)))
-              }
-              inputProps={{ min: 0 }}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                setDurationHours(
+                  Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+                );
+              }}
+              inputProps={{ min: 0, step: 1, inputMode: 'numeric' }}
               fullWidth
             />
             <TextField
               label={t('minutes')}
               type="number"
               value={durationMinutes}
-              onChange={(e) =>
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
                 setDurationMinutes(
-                  Math.max(0, Math.min(59, Number(e.target.value)))
-                )
-              }
-              inputProps={{ min: 0, max: 59 }}
+                  Number.isFinite(parsed)
+                    ? Math.max(0, Math.min(59, parsed))
+                    : 0
+                );
+              }}
+              inputProps={{ min: 0, max: 59, step: 1, inputMode: 'numeric' }}
               fullWidth
             />
           </Stack>

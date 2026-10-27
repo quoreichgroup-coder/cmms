@@ -23,6 +23,7 @@ public class RateLimiterService {
     private final ConcurrentMap<String, Bucket> fileUploadAuthenticatedCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Bucket> fileUploadBypassCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Bucket> loginAttemptCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Bucket> loginIpAttemptCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Bucket> resetPasswordAttemptCache = new ConcurrentHashMap<>();
 
     /**
@@ -96,6 +97,18 @@ public class RateLimiterService {
 
     @Value("${security.rate-limit.brute-force.login.long-term-period-hours:24}")
     private int loginLongTermPeriodHours;
+
+    @Value("${security.rate-limit.brute-force.login.ip-max-attempts:30}")
+    private int loginIpMaxAttempts;
+
+    @Value("${security.rate-limit.brute-force.login.ip-period-minutes:15}")
+    private int loginIpPeriodMinutes;
+
+    @Value("${security.rate-limit.brute-force.login.ip-long-term-max-attempts:200}")
+    private int loginIpLongTermMaxAttempts;
+
+    @Value("${security.rate-limit.brute-force.login.ip-long-term-period-hours:24}")
+    private int loginIpLongTermPeriodHours;
 
     @Value("${security.rate-limit.brute-force.reset-password.max-attempts:3}")
     private int resetPasswordMaxAttempts;
@@ -265,6 +278,11 @@ public class RateLimiterService {
         return loginAttemptCache.computeIfAbsent(key, this::newLoginAttemptBucket).tryConsume(1);
     }
 
+    /** Apply a separate login budget by client IP so unrelated public API calls do not block sign-in. */
+    public boolean tryConsumeLoginIpAttempt(String clientIp) {
+        return loginIpAttemptCache.computeIfAbsent(clientIp, this::newLoginIpAttemptBucket).tryConsume(1);
+    }
+
     /**
      * Reset the failed/login attempts counter for a given identifier after a successful login.
      */
@@ -303,6 +321,22 @@ public class RateLimiterService {
         Bandwidth longTerm = Bandwidth.classic(
                 loginLongTermMaxAttempts,
                 Refill.greedy(loginLongTermMaxAttempts, Duration.ofHours(loginLongTermPeriodHours))
+        );
+
+        return Bucket.builder()
+                .addLimit(shortTerm)
+                .addLimit(longTerm)
+                .build();
+    }
+
+    private Bucket newLoginIpAttemptBucket(String key) {
+        Bandwidth shortTerm = Bandwidth.classic(
+                loginIpMaxAttempts,
+                Refill.greedy(loginIpMaxAttempts, Duration.ofMinutes(loginIpPeriodMinutes))
+        );
+        Bandwidth longTerm = Bandwidth.classic(
+                loginIpLongTermMaxAttempts,
+                Refill.greedy(loginIpLongTermMaxAttempts, Duration.ofHours(loginIpLongTermPeriodHours))
         );
 
         return Bucket.builder()

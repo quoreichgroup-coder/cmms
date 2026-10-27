@@ -2,57 +2,161 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <style th:inline="css">
+    <style>
         @page { size: [[${pageSize}]] [[${orientation}]]; margin: [[${marginMm}]]mm; }
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; color: #17233b; font-size: 10pt; line-height: 1.45; }
-        .header { width: 100%; border-bottom: 2px solid [[${accentColor}]]; padding-bottom: 12px; margin-bottom: 20px; }
-        .company { font-size: 17pt; font-weight: bold; margin: 0 0 4px; }
-        .legal { color: #475467; font-size: 8.5pt; }
-        .logo { max-height: 42px; max-width: 155px; margin-bottom: 6px; }
-        .title { font-size: 15pt; margin: 22px 0 4px; }
-        .subtitle { color: #475467; font-size: 9pt; margin-bottom: 18px; }
-        table { width: 100%; border-collapse: collapse; }
-        thead { display: table-header-group; }
-        th { background: #f2f4f7; text-align: left; color: #344054; }
-        th, td { border: 1px solid #d0d5dd; padding: 8px 10px; vertical-align: top; }
-        tr { page-break-inside: avoid; }
-        .label { width: 27%; font-weight: 600; }
-        .footer { position: fixed; bottom: -7mm; right: 0; color: #667085; font-size: 8pt; }
-        .footer:after { content: "Page " counter(page); }
-        body.compact { font-size: 8.5pt; line-height: 1.25; }
-        body.compact th, body.compact td { padding: 5px 7px; }
-        body.compact .header { padding-bottom: 8px; margin-bottom: 12px; }
+        body { font-family: Inter, Arial, sans-serif; color: #17233b; font-size: 9pt; line-height: 1.35; }
+        .company-header { width: 100%; border-collapse: collapse; border-bottom: 2px solid; margin-bottom: 12px; }
+        .company-header td { border: 0; padding: 0 0 8px; vertical-align: top; }
+        .company-header .brand-cell { width: 68%; }
+        .company-header .document-cell { text-align: right; width: 32%; }
+        .logo { max-width: 150px; max-height: 42px; margin-bottom: 4px; }
+        .company-name { color: #101828; font-size: 14pt; font-weight: 700; margin-bottom: 2px; }
+        .legal { color: #475467; font-size: 7.5pt; line-height: 1.3; }
+        .document-kicker { color: #475467; font-size: 7pt; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .document-title { color: #101828; font-size: 18pt; line-height: 1.1; margin: 2px 0 3px; }
+        .document-subtitle { color: #475467; font-size: 8pt; margin: 0; }
+        .section { margin: 11px 0 0; font-size: 0; }
+        .section-title { border-bottom: 1px solid #d0d5dd; color: #17233b; font-size: 9.5pt; font-weight: 700; margin: 0 0 6px; padding: 0 0 4px; page-break-after: avoid; }
+        .field-card { display: inline-block; vertical-align: top; width: 49%; max-width: 100%; min-width: 0; margin: 0 0 5px; padding: 5px 7px; border: 1px solid #e4e7ec; page-break-inside: avoid; font-size: 9pt; overflow-wrap: anywhere; word-wrap: break-word; word-break: break-word; }
+        .field-card.wide { width: 99% !important; }
+        .field-label { color: #475467; display: block; font-size: 7pt; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; }
+        .field-value { color: #101828; display: block; width: 100%; max-width: 100%; font-size: 9pt; overflow-wrap: anywhere; word-wrap: break-word; word-break: break-word; white-space: pre-wrap; }
+        .field-card.narrative { min-height: 28px; }
+        .report-table { border-collapse: collapse; margin: 0 0 3px; table-layout: fixed; width: 100%; }
+        .report-table thead { display: table-header-group; }
+        .report-table th { background: #f2f4f7; color: #344054; font-size: 7.5pt; font-weight: 700; text-align: left; }
+        .report-table th, .report-table td { border: 1px solid #d0d5dd; padding: 5px 6px; vertical-align: top; overflow-wrap: anywhere; word-wrap: break-word; word-break: break-word; }
+        .report-table td { color: #101828; font-size: 8pt; }
+        .report-table tr { page-break-inside: avoid; }
+        .empty-table { color: #475467; font-size: 8pt; font-style: italic; margin: 0 0 4px; }
+        .signature-section { margin-top: 14px; page-break-inside: avoid; }
+        .signature-grid { border-collapse: separate; border-spacing: 8px 0; margin-left: -8px; table-layout: fixed; width: calc(100% + 16px); }
+        .signature-grid td { border: 1px solid #d0d5dd; height: 92px; padding: 6px 8px; vertical-align: bottom; width: 50%; }
+        .signature-image-wrap { height: 58px; margin-bottom: 3px; text-align: center; }
+        .signature-image { max-height: 56px; max-width: 100%; }
+        .signature-line { border-top: 1px solid #667085; color: #475467; font-size: 7pt; padding-top: 4px; }
+        .signature-name { color: #101828; font-size: 8pt; font-weight: 600; }
+        .footer { border-top: 1px solid #d0d5dd; color: #667085; font-size: 7pt; margin-top: 12px; padding-top: 5px; }
+        body.modern .company-header { border-bottom-width: 3px; }
+        body.modern .section-title { border-bottom: 0; border-left: 3px solid; padding: 2px 0 2px 7px; }
+        body.modern .field-card { background: #f8faff; border-color: #e1e8ff; border-radius: 3px; }
+        body.modern .document-title { letter-spacing: -0.3px; }
+        body.compact { font-size: 8pt; line-height: 1.2; }
+        body.compact .section { margin-top: 7px; }
+        body.compact .field-card { margin-bottom: 3px; padding: 3px 5px; }
+        body.compact .report-table th, body.compact .report-table td { padding: 3px 5px; }
+        @media print {
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .field-card, .signature-section, .signature-grid tr { page-break-inside: avoid; }
+        }
     </style>
 </head>
 <body th:class="${styleClass}">
-<header class="header">
-    <img class="logo" th:if="${logoStoragePath != null}"
-         th:attr="data-storage-path=${logoStoragePath}" alt="Company logo"/>
-    <div class="company" th:text="${legalName != null && !legalName.isBlank() ? legalName : companyName}">Company</div>
-    <div class="legal" th:if="${registeredAddress != null}" th:text="${registeredAddress}"></div>
-    <div class="legal">
-        <span th:if="${registrationNumber != null}" th:text="'Registration: ' + ${registrationNumber}"></span>
-        <span th:if="${taxNumber != null}" th:text="' · Tax: ' + ${taxNumber}"></span>
-    </div>
-    <div class="legal">
-        <span th:if="${phone != null}" th:text="${phone}"></span>
-        <span th:if="${email != null}" th:text="' · ' + ${email}"></span>
-        <span th:if="${siteName != null}" th:text="' · ' + ${siteName}"></span>
-    </div>
-</header>
-<h1 class="title" th:text="${reportTitle}">Work Order Report</h1>
-<p class="subtitle" th:text="${reportSubtitle}">Issued from the published QPM report template.</p>
-<table>
-    <thead th:style="${repeatTableHeader ? 'display: table-header-group;' : 'display: table-row-group;'}">
-    <tr><th class="label" th:text="${fieldHeader}">Field</th><th th:text="${valueHeader}">Value</th></tr></thead>
-    <tbody>
-    <tr th:each="row : ${rows}">
-        <td class="label" th:text="${row.label}">Field</td>
-        <td th:text="${row.value}">Value</td>
-    </tr>
-    </tbody>
+<table class="company-header" th:style="'border-bottom-color:' + ${accentColor}">
+    <tbody><tr>
+        <td class="brand-cell">
+            <img class="logo" th:if="${logoStoragePath != null}"
+                 th:attr="data-storage-path=${logoStoragePath}" alt="Company logo"/>
+            <div class="company-name" th:text="${legalName != null && !legalName.isBlank() ? legalName : companyName}">Company</div>
+            <div class="legal" th:if="${registeredAddress != null}" th:text="${registeredAddress}"></div>
+            <div class="legal">
+                <span th:if="${registrationNumber != null}" th:text="'Registration: ' + ${registrationNumber}"></span>
+                <span th:if="${taxNumber != null}" th:text="' · Tax: ' + ${taxNumber}"></span>
+            </div>
+            <div class="legal">
+                <span th:if="${phone != null}" th:text="${phone}"></span>
+                <span th:if="${email != null}" th:text="' · ' + ${email}"></span>
+                <span th:if="${siteName != null}" th:text="' · ' + ${siteName}"></span>
+            </div>
+        </td>
+        <td class="document-cell">
+            <div class="document-kicker" th:text="${reportKicker}">MAINTENANCE WORK ORDER</div>
+            <h1 class="document-title" th:style="'color:' + ${accentColor}" th:text="${reportTitle}">Work Order Job Card</h1>
+            <p class="document-subtitle" th:text="${reportSubtitle}">Maintenance work and execution record</p>
+        </td>
+    </tr></tbody>
 </table>
-<div class="footer" th:if="${showPageNumbers}"></div>
+
+<th:block th:each="section : ${sections}">
+    <section class="section" th:style="${(section.pageBreakBefore ? 'break-before: page; page-break-before: always;' : '') + (section.keepTogether ? 'break-inside: avoid; page-break-inside: avoid;' : '')}">
+        <h2 class="section-title" th:style="'border-left-color:' + ${accentColor}" th:text="${section.title}">Work Order identification</h2>
+        <th:block th:each="block : ${section.blocks}">
+            <div th:if="${block.type == 'FIELD'}"
+                 class="field-card"
+                 th:style="${(block.sectionTitle != null ? 'width:' + (100 / block.columns) + '%;' : '')
+                   + (block.fontSize != null ? 'font-size:' + block.fontSize + 'pt;' : '')
+                   + 'font-weight:' + (block.bold ? '700;' : '400;')
+                   + 'text-align:' + (block.alignment != null ? block.alignment.toLowerCase() : 'left') + ';'
+                   + (block.accentTone ? 'color:' + accentColor + ';' : '')
+                   + (block.fullWidth ? 'width:99%;' : '')}"
+                 th:classappend="${block.row.key == 'workOrder.description' || block.row.key == 'workOrder.feedback' || block.row.key == 'request.description' ? 'wide narrative' : ''}">
+                <span class="field-label" th:text="${block.row.label}">Field</span>
+                <span class="field-value"
+                      th:style="${(block.fontSize != null ? 'font-size:' + block.fontSize + 'pt;' : '')
+                        + (block.bold ? 'font-weight:700;' : '')
+                        + (block.accentTone ? 'color:' + accentColor + ';' : '')}"
+                      th:text="${block.row.value}">Value</span>
+            </div>
+            <div th:if="${block.type == 'SIGNATURE'}" class="signature-block">
+                <table class="signature-grid"><tbody><tr>
+                    <td>
+                        <div class="signature-image-wrap">
+                            <img class="signature-image" th:if="${signatureDataUri != null}" th:src="${signatureDataUri}" alt="Technician signature"/>
+                        </div>
+                        <div class="signature-name" th:if="${completedByName != null}" th:text="${completedByName}"></div>
+                        <div class="signature-line" th:text="${block.row.label}">Technician signature</div>
+                    </td>
+                    <td>
+                        <div class="signature-image-wrap"></div>
+                        <div class="signature-line" th:text="${french ? 'Signature du superviseur' : 'Supervisor signature'}">Supervisor signature</div>
+                    </td>
+                </tr></tbody></table>
+            </div>
+            <div th:if="${block.type == 'TABLE'}" style="width:100%;">
+                <h3 class="section-title" th:style="'border-left-color:' + ${accentColor}" th:text="${block.table.title}">Operations</h3>
+                <table class="report-table">
+                    <colgroup>
+                        <col th:each="width : ${block.table.columnWidths}" th:style="'width:' + ${width} + '%;'"/>
+                    </colgroup>
+                    <thead th:style="${repeatTableHeader ? 'display: table-header-group;' : 'display: table-row-group;'}">
+                    <tr><th th:each="header : ${block.table.headers}" th:text="${header}">Column</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${block.table.rows}">
+                        <td th:each="cell : ${row}" th:text="${cell}">Value</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="empty-table" th:if="${#lists.isEmpty(block.table.rows)}"
+                   th:text="${requestReport ? 'No rows recorded.' : 'No execution records recorded.'}">No execution records recorded.</p>
+            </div>
+        </th:block>
+    </section>
+</th:block>
+
+<section class="signature-section" th:if="${showWorkOrderSignatures}">
+    <h2 class="section-title" th:style="'border-left-color:' + ${accentColor}"
+        th:text="${french ? 'Confirmation et signatures' : 'Completion and sign-off'}">Completion and sign-off</h2>
+    <table class="signature-grid"><tbody><tr>
+        <td>
+            <div class="signature-image-wrap">
+                <img class="signature-image" th:if="${signatureDataUri != null}" th:src="${signatureDataUri}" alt="Technician signature"/>
+            </div>
+            <div class="signature-name" th:if="${completedByName != null}" th:text="${completedByName}"></div>
+            <div class="signature-line" th:text="${signatureLabel}">Technician signature</div>
+        </td>
+        <td>
+            <div class="signature-image-wrap"></div>
+            <div class="signature-line" th:text="${french ? 'Visa du superviseur · signature et date sur site' : 'Supervisor verification · signature and date on site'}">
+                Supervisor verification · signature and date on site
+            </div>
+        </td>
+    </tr></tbody></table>
+</section>
+
+<div class="footer" th:text="${french ? 'Document généré par QPM · Les valeurs affichées proviennent du dossier de maintenance.' : 'Generated by QPM · Values shown are taken from the maintenance record.'}">
+    Generated by QPM · Values shown are taken from the maintenance record.
+</div>
 </body>
 </html>

@@ -5,12 +5,14 @@ import com.grash.advancedsearch.SearchCriteria;
 import com.grash.advancedsearch.SpecificationBuilder;
 import com.grash.dto.CalendarEvent;
 import com.grash.dto.PreventiveMaintenanceCallDTO;
+import com.grash.dto.PreventiveMaintenanceCallAnalyticsDTO;
 import com.grash.dto.PreventiveMaintenanceCallRescheduleDTO;
 import com.grash.dto.PreventiveMaintenanceCallRescheduleRequest;
 import com.grash.model.PreventiveMaintenanceCallReschedule;
 import com.grash.dto.PreventiveMaintenancePatchDTO;
 import com.grash.dto.PreventiveMaintenancePostDTO;
 import com.grash.dto.PreventiveMaintenanceShowDTO;
+import com.grash.dto.TaskBaseDTO;
 import com.grash.dto.cutomField.CustomFieldValuePostDTO;
 import com.grash.dto.imports.PreventiveMaintenanceImportDTO;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
@@ -22,6 +24,7 @@ import com.grash.model.enums.*;
 import com.grash.dto.workOrder.WorkOrderMiniDTO;
 
 import com.grash.repository.PreventiveMaintenanceRepository;
+import com.grash.repository.PreventiveMaintenanceCallAnalyticsRow;
 import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
 import com.grash.repository.PreventiveMaintenanceCallRescheduleRepository;
 import com.grash.repository.PreventiveMaintenancePlanCycleStateRepository;
@@ -30,6 +33,9 @@ import com.grash.repository.ScheduleRepository;
 import com.grash.repository.SiteRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.Scheduler;
@@ -51,6 +57,7 @@ import jakarta.persistence.criteria.JoinType;
 import java.util.concurrent.TimeUnit;
 
 import java.time.ZoneId;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -68,6 +75,7 @@ public class PreventiveMaintenanceService {
     private final ReadingRepository readingRepository;
     private final ScheduleRepository scheduleRepository;
     private final EntityManager em;
+    private final ObjectMapper objectMapper;
     private final CustomSequenceService customSequenceService;
     private final Scheduler scheduler;
     private final PreventiveMaintenanceMapper preventiveMaintenanceMapper;
@@ -81,6 +89,7 @@ public class PreventiveMaintenanceService {
     private final CustomFieldValueService customFieldValueService;
     private final WorkOrderService workOrderService;
     private final TaskService taskService;
+    private final TaskBaseService taskBaseService;
     private final MeterService meterService;
     private final SiteRepository siteRepository;
 
@@ -93,13 +102,16 @@ public class PreventiveMaintenanceService {
         PreventiveMaintenance preventiveMaintenance = preventiveMaintenanceMapper.toModel(preventiveMaintenancePost);
         if (preventiveMaintenance.getSite() != null)
             preventiveMaintenance.setSite(resolveSite(preventiveMaintenance.getSite(), user.getCompany()));
+        if (!user.canAccessSite(preventiveMaintenance.getSite()))
+            throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
         if (!user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.PREVENTIVE_MAINTENANCE)) {
             throw new CustomException("Preventive maintenance feature is not enabled for this subscription plan.",
                     HttpStatus.FORBIDDEN);
         }
-        validatePlanConfiguration(preventiveMaintenancePost.getPlanConfiguration(), user.getCompany(),
-                preventiveMaintenancePost.getTriggerType() == null ? ScheduleTriggerType.CALENDAR : preventiveMaintenancePost.getTriggerType(),
-                preventiveMaintenancePost.getAsset() == null ? null : preventiveMaintenancePost.getAsset().getId());
+        PreventiveMaintenancePlanPolicy.validate(preventiveMaintenancePost.getPlanConfiguration())
+                .ifPresent(message -> {
+                    throw new CustomException(message, HttpStatus.BAD_REQUEST);
+                });
         checkUsageBasedLimit(user.getCompany());
         Company company = user.getCompany();
         Long nextSequence = customSequenceService.getNextPreventiveMaintenanceSequence(company);
@@ -111,6 +123,13 @@ public class PreventiveMaintenanceService {
         Sanitizer.sanitizePreventiveMaintenance(preventiveMaintenance);
         PreventiveMaintenance savedPM = preventiveMaintenanceRepository.saveAndFlush(preventiveMaintenance);
         em.refresh(savedPM);
+
+        PreventiveMaintenancePlanConfiguration planConfiguration =
+                createTasksAndRemapPlanTaskIds(savedPM, preventiveMaintenancePost.getTasks(),
+                        preventiveMaintenancePost.getPlanConfiguration(), user.getCompany(), user);
+        validatePlanConfiguration(planConfiguration, user.getCompany(),
+                preventiveMaintenancePost.getTriggerType() == null ? ScheduleTriggerType.CALENDAR : preventiveMaintenancePost.getTriggerType(),
+                preventiveMaintenancePost.getAsset() == null ? null : preventiveMaintenancePost.getAsset().getId());
 
         Schedule schedule = savedPM.getSchedule();
         ScheduleTriggerType triggerType = preventiveMaintenancePost.getTriggerType() == null
@@ -129,7 +148,7 @@ public class PreventiveMaintenanceService {
         schedule.setDueDateDelay(preventiveMaintenancePost.getDueDateDelay());
         schedule.setWorkOrderGenerationLeadDays(preventiveMaintenancePost.getWorkOrderGenerationLeadDays() == null
                 ? 0 : preventiveMaintenancePost.getWorkOrderGenerationLeadDays());
-        schedule.setPlanConfiguration(preventiveMaintenancePost.getPlanConfiguration());
+        schedule.setPlanConfiguration(planConfiguration);
         configureSchedule(schedule, triggerType, preventiveMaintenancePost.getMeterId(),
                 preventiveMaintenancePost.getMeterCycleInterval(), preventiveMaintenancePost.getMeterReferenceValue(),
                 preventiveMaintenancePost.getMeterEndValue(), user.getCompany(), user, false);
@@ -146,11 +165,26 @@ public class PreventiveMaintenanceService {
         Optional<PreventiveMaintenance> optionalPreventiveMaintenance = preventiveMaintenanceRepository.findById(id);
         if (optionalPreventiveMaintenance.isPresent()) {
             PreventiveMaintenance savedPreventiveMaintenance = optionalPreventiveMaintenance.get();
+            if (!user.canAccessSite(savedPreventiveMaintenance.getSite())
+                    || (preventiveMaintenance.getSite() != null
+                    && !user.canAccessSite(resolveSite(preventiveMaintenance.getSite(), user.getCompany()))))
+                throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
             if (savedPreventiveMaintenance.canBeEditedBy(user)) {
                 if (!user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.PREVENTIVE_MAINTENANCE)) {
                     throw new CustomException("Preventive maintenance feature is not enabled for this subscription " +
                             "plan.",
                             HttpStatus.FORBIDDEN);
+                }
+                if (preventiveMaintenance.getTasks() != null) {
+                    List<TaskBaseDTO> requestedTasks = preventiveMaintenance.getTasks();
+                    List<Task> persistedTasks = taskService.updateEntityTasks(
+                            requestedTasks,
+                            taskService.findByPreventiveMaintenance(savedPreventiveMaintenance.getId()),
+                            user,
+                            savedPreventiveMaintenance,
+                            null);
+                    remapPlanTaskReferences(preventiveMaintenance.getPlanConfiguration(),
+                            requestedTasks, persistedTasks);
                 }
                 if (preventiveMaintenance.getPlanConfiguration() != null) {
                     validatePlanConfiguration(preventiveMaintenance.getPlanConfiguration(), user.getCompany(),
@@ -159,7 +193,14 @@ public class PreventiveMaintenanceService {
                             preventiveMaintenance.getAsset() == null
                                     ? savedPreventiveMaintenance.getAsset() == null ? null : savedPreventiveMaintenance.getAsset().getId()
                                     : preventiveMaintenance.getAsset().getId());
-                    planCycleStateRepository.deleteBySchedule_Id(savedPreventiveMaintenance.getSchedule().getId());
+                    validatePlanTaskReferences(
+                            preventiveMaintenance.getPlanConfiguration(),
+                            taskService.findByPreventiveMaintenance(savedPreventiveMaintenance.getId())
+                    );
+                    syncPlanCycleStatesForConfigurationChange(
+                            savedPreventiveMaintenance.getSchedule(),
+                            preventiveMaintenance.getPlanConfiguration()
+                    );
                 }
                 PreventiveMaintenance pmToSave =
                         preventiveMaintenanceMapper.updatePreventiveMaintenance(savedPreventiveMaintenance,
@@ -206,6 +247,30 @@ public class PreventiveMaintenanceService {
         } else throw new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND);
     }
 
+    private void remapPlanTaskReferences(PreventiveMaintenancePlanConfiguration configuration,
+                                         List<TaskBaseDTO> requestedTasks,
+                                         List<Task> persistedTasks) {
+        if (configuration == null || requestedTasks.size() != persistedTasks.size()) return;
+        Map<Long, Long> clientToPersistedIds = new HashMap<>();
+        for (int i = 0; i < requestedTasks.size(); i++) {
+            Long clientId = requestedTasks.get(i).getId();
+            Long persistedId = persistedTasks.get(i).getTaskBase().getId();
+            if (clientId != null && persistedId != null) clientToPersistedIds.put(clientId, persistedId);
+        }
+        if (configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY) {
+            configuration.getPackages().forEach(item -> remapTaskIds(item.getTaskBaseIds(), clientToPersistedIds));
+        } else if (configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER) {
+            configuration.getCycles().forEach(cycle -> remapTaskIds(cycle.getTaskBaseIds(), clientToPersistedIds));
+        }
+    }
+
+    private void remapTaskIds(List<Long> taskBaseIds, Map<Long, Long> clientToPersistedIds) {
+        for (int i = 0; i < taskBaseIds.size(); i++) {
+            Long persistedId = clientToPersistedIds.get(taskBaseIds.get(i));
+            if (persistedId != null) taskBaseIds.set(i, persistedId);
+        }
+    }
+
     private void validatePlanConfiguration(PreventiveMaintenancePlanConfiguration configuration, Company company,
                                            ScheduleTriggerType triggerType, Long assetId) {
         PreventiveMaintenancePlanPolicy.validate(configuration).ifPresent(message -> {
@@ -246,6 +311,120 @@ public class PreventiveMaintenanceService {
                 throw new CustomException("Every cycle meter must belong to the plan asset and company.",
                         HttpStatus.BAD_REQUEST);
             }
+        }
+    }
+
+    private void syncPlanCycleStatesForConfigurationChange(
+            Schedule schedule,
+            PreventiveMaintenancePlanConfiguration nextConfiguration) {
+        PreventiveMaintenancePlanConfiguration currentConfiguration = schedule.getPlanConfiguration();
+        if (currentConfiguration == null
+                || currentConfiguration.getMode() != PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER
+                || nextConfiguration.getMode() != PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER) {
+            planCycleStateRepository.deleteBySchedule_Id(schedule.getId());
+            return;
+        }
+
+        Map<String, PreventiveMaintenancePlanConfiguration.Cycle> nextCycles = nextConfiguration.getCycles().stream()
+                .collect(Collectors.toMap(PreventiveMaintenancePlanConfiguration.Cycle::getCode, cycle -> cycle));
+        for (PreventiveMaintenancePlanConfiguration.Cycle currentCycle : currentConfiguration.getCycles()) {
+            PreventiveMaintenancePlanConfiguration.Cycle nextCycle = nextCycles.get(currentCycle.getCode());
+            if (nextCycle == null || !hasSameMeterCycleIdentity(currentCycle, nextCycle)) {
+                planCycleStateRepository.deleteBySchedule_IdAndCycleCode(schedule.getId(), currentCycle.getCode());
+            }
+        }
+
+        if (currentConfiguration.getCombination() != nextConfiguration.getCombination()) {
+            List<PreventiveMaintenancePlanCycleState> states = planCycleStateRepository.findBySchedule_Id(schedule.getId());
+            states.forEach(state -> state.setPendingDue(false));
+            planCycleStateRepository.saveAll(states);
+        }
+    }
+
+    private boolean hasSameMeterCycleIdentity(
+            PreventiveMaintenancePlanConfiguration.Cycle currentCycle,
+            PreventiveMaintenancePlanConfiguration.Cycle nextCycle) {
+        return currentCycle.getDimension() == nextCycle.getDimension()
+                && Objects.equals(currentCycle.getMeterId(), nextCycle.getMeterId())
+                && Double.compare(currentCycle.getInterval(), nextCycle.getInterval()) == 0
+                && Objects.equals(currentCycle.getReferenceValue(), nextCycle.getReferenceValue())
+                && Objects.equals(currentCycle.getEndValue(), nextCycle.getEndValue());
+    }
+
+    private PreventiveMaintenancePlanConfiguration createTasksAndRemapPlanTaskIds(
+            PreventiveMaintenance preventiveMaintenance, List<TaskBaseDTO> taskBaseDTOs,
+            PreventiveMaintenancePlanConfiguration configuration, Company company, User actor) {
+        Map<Long, Long> clientToPersistedTaskBaseIds = new HashMap<>();
+        List<TaskBaseDTO> requestedTasks = taskBaseDTOs == null ? List.of() : taskBaseDTOs;
+
+        for (int taskOrder = 0; taskOrder < requestedTasks.size(); taskOrder++) {
+            TaskBaseDTO taskBaseDTO = requestedTasks.get(taskOrder);
+            if (taskBaseDTO == null) {
+                throw new CustomException("Preventive maintenance tasks cannot contain null entries.",
+                        HttpStatus.BAD_REQUEST);
+            }
+            if (taskBaseDTO.getId() != null && clientToPersistedTaskBaseIds.containsKey(taskBaseDTO.getId())) {
+                throw new CustomException("Preventive maintenance task identifiers must be unique.",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            TaskBase taskBase = taskBaseService.createFromTaskBaseDTO(taskBaseDTO, company, actor);
+            String initialValue = taskBase.getTaskType() == TaskType.SUBTASK ? "OPEN"
+                    : taskBase.getTaskType() == TaskType.INSPECTION ? "FLAG" : "";
+            Task task = new Task(taskBase, null, preventiveMaintenance, initialValue);
+            task.setTaskOrder(taskOrder);
+            task.setCompany(company);
+            taskService.create(task);
+
+            if (taskBaseDTO.getId() != null) {
+                clientToPersistedTaskBaseIds.put(taskBaseDTO.getId(), taskBase.getId());
+            }
+        }
+
+        if (configuration == null || configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.SINGLE) {
+            return configuration;
+        }
+
+        List<List<Long>> assignmentLists = configuration.getMode()
+                == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY
+                ? configuration.getPackages().stream()
+                        .map(PreventiveMaintenancePlanConfiguration.Package::getTaskBaseIds).toList()
+                : configuration.getCycles().stream()
+                        .map(PreventiveMaintenancePlanConfiguration.Cycle::getTaskBaseIds).toList();
+        for (List<Long> assignedIds : assignmentLists) {
+            for (int i = 0; i < assignedIds.size(); i++) {
+                Long persistedId = clientToPersistedTaskBaseIds.get(assignedIds.get(i));
+                if (persistedId == null) {
+                    throw new CustomException(
+                            "Every package or cycle task must be selected in this preventive maintenance.",
+                            HttpStatus.BAD_REQUEST);
+                }
+                assignedIds.set(i, persistedId);
+            }
+        }
+        return configuration;
+    }
+
+    private void validatePlanTaskReferences(PreventiveMaintenancePlanConfiguration configuration,
+                                            Collection<Task> preventiveMaintenanceTasks) {
+        if (configuration == null || configuration.getMode() == null
+                || configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.SINGLE) return;
+
+        Set<Long> attachedTaskBaseIds = preventiveMaintenanceTasks.stream()
+                .map(Task::getTaskBase)
+                .filter(Objects::nonNull)
+                .map(TaskBase::getId)
+                .collect(Collectors.toSet());
+        List<Long> assignedTaskBaseIds = configuration.getMode()
+                == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY
+                ? configuration.getPackages().stream()
+                        .flatMap(item -> item.getTaskBaseIds().stream()).distinct().toList()
+                : configuration.getCycles().stream()
+                        .flatMap(cycle -> cycle.getTaskBaseIds().stream()).distinct().toList();
+        if (!attachedTaskBaseIds.containsAll(assignedTaskBaseIds)) {
+            throw new CustomException(
+                    "Every package or cycle task must be attached to this preventive maintenance.",
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -369,6 +548,7 @@ public class PreventiveMaintenanceService {
                     skipped.setStatus(PreventiveMaintenanceCallStatus.IGNORED);
                     meterCallRepository.saveAndFlush(skipped);
                     advanceMeterThreshold(schedule, dueValue);
+                    syncMeterCallRegister(schedule);
                     continue;
                 }
             }
@@ -453,8 +633,17 @@ public class PreventiveMaintenanceService {
         // Multi-counter calls are identified by their source reading and do not
         // occupy a single counter's threshold value.
         call.setDueValue(null);
-        call.setTriggeredCycleCodes(triggered.stream().map(PreventiveMaintenancePlanConfiguration.Cycle::getCode)
-                .sorted().collect(Collectors.joining(",")));
+        List<PreventiveMaintenancePlanConfiguration.Cycle> snapshotCycles = triggered.stream()
+                .sorted(Comparator.comparing(PreventiveMaintenancePlanConfiguration.Cycle::getCode))
+                .toList();
+        call.setTriggeredCycleCodes(snapshotCycles.stream()
+                .map(PreventiveMaintenancePlanConfiguration.Cycle::getCode).collect(Collectors.joining(",")));
+        try {
+            call.setTriggeredCycleNames(objectMapper.writeValueAsString(snapshotCycles.stream()
+                    .map(PreventiveMaintenancePlanConfiguration.Cycle::getName).toList()));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to snapshot preventive maintenance cycle names", exception);
+        }
         call.setStatus(PreventiveMaintenanceCallStatus.GENERATED);
         meterCallRepository.saveAndFlush(call);
         if (plan.getCombination() == PreventiveMaintenancePlanConfiguration.Combination.AND) {
@@ -529,6 +718,39 @@ public class PreventiveMaintenanceService {
         return calls.map(call -> toMeterCallDTO(call, historyByCall.getOrDefault(call.getId(), Collections.emptyList())));
     }
 
+    @Transactional(readOnly = true)
+    public List<PreventiveMaintenanceCallAnalyticsDTO> getCallAnalytics(LocalDate startDate, LocalDate endDate, User user) {
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)
+                || ChronoUnit.DAYS.between(startDate, endDate) > 366) {
+            throw new CustomException("Invalid analytics date range", HttpStatus.BAD_REQUEST);
+        }
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.PREVENTIVE_MAINTENANCES)) {
+            throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        }
+        Company company = user.getCompany();
+        if (!company.getSubscription().getSubscriptionPlan().getFeatures()
+                .contains(PlanFeatures.PREVENTIVE_MAINTENANCE)) {
+            throw new CustomException("Preventive maintenance feature is not enabled", HttpStatus.FORBIDDEN);
+        }
+        ZoneId zone = ZoneId.of(company.getCompanySettings().getGeneralPreferences().getTimeZone());
+        Date start = Date.from(startDate.atStartOfDay(zone).toInstant());
+        Date endExclusive = Date.from(endDate.plusDays(1).atStartOfDay(zone).toInstant());
+        boolean meterEnabled = company.getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.METER);
+        List<PreventiveMaintenanceCallAnalyticsRow> analyticsRows;
+        if (user.isAllSitesAccess()) {
+            analyticsRows = meterCallRepository.aggregateCallsByStatusAndType(company.getId(), start, endExclusive);
+        } else {
+            List<Long> siteIds = user.getSites().stream().map(Site::getId).toList();
+            if (siteIds.isEmpty()) siteIds = List.of(-1L);
+            analyticsRows = meterCallRepository.aggregateCallsByStatusAndTypeForSites(
+                    company.getId(), siteIds, start, endExclusive);
+        }
+        return analyticsRows.stream()
+                .filter(row -> meterEnabled || row.getCallType() != ScheduleTriggerType.METER)
+                .map(row -> new PreventiveMaintenanceCallAnalyticsDTO(row.getStatus(), row.getCallType(), row.getCount()))
+                .toList();
+    }
+
     private PreventiveMaintenanceCallDTO toMeterCallDTO(PreventiveMaintenanceMeterCall call,
                                                          List<PreventiveMaintenanceCallReschedule> history) {
         PreventiveMaintenanceCallDTO dto = new PreventiveMaintenanceCallDTO();
@@ -542,6 +764,7 @@ public class PreventiveMaintenanceService {
         dto.setReadingValue(call.getReadingValue());
         dto.setTriggeredCycleCodes(call.getTriggeredCycleCodes() == null || call.getTriggeredCycleCodes().isBlank()
                 ? List.of() : Arrays.asList(call.getTriggeredCycleCodes().split(",")));
+        dto.setTriggeredCycleNames(readTriggeredCycleNames(call.getTriggeredCycleNames()));
         dto.setCreatedAt(call.getCreatedAt());
         PreventiveMaintenanceCallStatus status = call.getStatus();
         WorkOrder workOrder = call.getWorkOrder();
@@ -572,6 +795,16 @@ public class PreventiveMaintenanceService {
             dto.setWorkOrder(mini);
         }
         return dto;
+    }
+
+    private List<String> readTriggeredCycleNames(String snapshot) {
+        if (snapshot == null || snapshot.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(snapshot, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException exception) {
+            log.warn("Unable to read preventive maintenance cycle name snapshot for an existing call");
+            return List.of();
+        }
     }
 
     @Transactional
@@ -674,7 +907,7 @@ public class PreventiveMaintenanceService {
         if (!pm.getId().equals(pmId)) {
             throw new CustomException("Preventive maintenance call not found", HttpStatus.NOT_FOUND);
         }
-        if (!pm.canBeEditedBy(user)) {
+        if (!pm.canBeEditedBy(user) || !user.canAccessSite(pm.getSite())) {
             throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
         if (call.getCallType() != ScheduleTriggerType.CALENDAR || call.getWorkOrder() != null
@@ -714,14 +947,16 @@ public class PreventiveMaintenanceService {
         if (!(user.getRole().getCreatePermissions().contains(PermissionEntity.WORK_ORDERS))) {
             throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
-        PreventiveMaintenance preventiveMaintenance = findById(id)
+        PreventiveMaintenance preventiveMaintenance = findByIdAndCompany(id, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND));
         checkAccessToPreventiveMaintenance(user, preventiveMaintenance);
         return createWorkOrderFromPreventiveMaintenance(preventiveMaintenance);
     }
 
     public List<WorkOrder> getRecentWorkOrders(Long id, User user) {
-        checkAccessToPreventiveMaintenance(user, findByIdAndCompany(id, user.getCompany().getId()).get());
+        PreventiveMaintenance pm = findByIdAndCompany(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND));
+        checkAccessToPreventiveMaintenance(user, pm);
         return workOrderService.findLastByPM(id, 10).stream().collect(Collectors.toList());
     }
 
@@ -735,7 +970,7 @@ public class PreventiveMaintenanceService {
     }
 
     private void checkAccessToPreventiveMaintenance(User user, PreventiveMaintenance preventiveMaintenance) {
-        if (!preventiveMaintenance.canBeViewedBy(user)) {
+        if (!preventiveMaintenance.canBeViewedBy(user) || !user.canAccessSite(preventiveMaintenance.getSite())) {
             throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
     }
@@ -759,10 +994,12 @@ public class PreventiveMaintenanceService {
 
     @Transactional
     public void deleteByIdAndUser(Long id, User user) {
-        Optional<PreventiveMaintenance> optionalPreventiveMaintenance = preventiveMaintenanceRepository.findById(id);
+        Optional<PreventiveMaintenance> optionalPreventiveMaintenance =
+                preventiveMaintenanceRepository.findByIdAndCompany_Id(id, user.getCompany().getId());
         if (optionalPreventiveMaintenance.isPresent()) {
             PreventiveMaintenance savedPreventiveMaintenance = optionalPreventiveMaintenance.get();
-            if (savedPreventiveMaintenance.canBeDeletedBy(user)) {
+            if (savedPreventiveMaintenance.canBeDeletedBy(user)
+                    && user.canAccessSite(savedPreventiveMaintenance.getSite())) {
                 scheduleService.stopScheduleJobs(savedPreventiveMaintenance.getSchedule().getId());
                 preventiveMaintenanceRepository.deleteById(id);
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
@@ -774,7 +1011,8 @@ public class PreventiveMaintenanceService {
     }
 
     public PreventiveMaintenance getById(Long id, User user) {
-        Optional<PreventiveMaintenance> optionalPreventiveMaintenance = preventiveMaintenanceRepository.findById(id);
+        Optional<PreventiveMaintenance> optionalPreventiveMaintenance = findByIdAndCompany(
+                id, user.getCompany().getId());
         if (optionalPreventiveMaintenance.isPresent()) {
             PreventiveMaintenance savedPreventiveMaintenance = optionalPreventiveMaintenance.get();
             checkAccessToPreventiveMaintenance(user, savedPreventiveMaintenance);
@@ -788,6 +1026,18 @@ public class PreventiveMaintenanceService {
 
     public Page<PreventiveMaintenance> findByCompanyForExport(Long companyId, Pageable pageable) {
         return preventiveMaintenanceRepository.findByCompanyForExport(companyId, pageable);
+    }
+
+    public Page<PreventiveMaintenance> findByCompanyForExport(User user, Pageable pageable) {
+        if (user.isAllSitesAccess()) {
+            return findByCompanyForExport(user.getCompany().getId(), pageable);
+        }
+        List<Long> siteIds = user.getSites().stream()
+                .map(Site::getId)
+                .toList();
+        if (siteIds.isEmpty()) siteIds = List.of(-1L);
+        return preventiveMaintenanceRepository.findByCompanyForExportAndAccessibleSites(
+                user.getCompany().getId(), siteIds, pageable);
     }
 
     private void checkUsageBasedLimit(Company company) {
@@ -841,6 +1091,7 @@ public class PreventiveMaintenanceService {
                 }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
+        searchCriteria.filterAccessibleSites(user);
         return searchCriteria;
     }
 

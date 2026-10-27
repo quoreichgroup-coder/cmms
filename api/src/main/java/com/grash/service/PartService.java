@@ -106,8 +106,9 @@ public class PartService {
 
     @Transactional
     public Part update(Long id, PartPatchDTO part, Company company) {
-        if (partRepository.existsById(id)) {
-            Part savedPart = partRepository.findById(id).get();
+        Optional<Part> optionalPart = partRepository.findByIdAndCompany_Id(id, company.getId());
+        if (optionalPart.isPresent()) {
+            Part savedPart = optionalPart.get();
             if (part.getCustomFields() != null && !part.getCustomFields().isEmpty()) {
                 setPartCustomFields(savedPart, part.getCustomFields(), company);
             }
@@ -145,7 +146,8 @@ public class PartService {
 
     @Transactional
     public void consumePart(Long id, double quantity, WorkOrder workOrder, Locale locale, boolean deleteConsumption) {
-        Part part = findById(id).get();
+        Part part = findByIdAndCompanyForUpdate(id, workOrder.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Part not found", HttpStatus.NOT_FOUND));
         if (part.isNonStock()) return;
         double previousQuantity = part.getQuantity();
         part.setQuantity(part.getQuantity() - quantity);
@@ -203,8 +205,7 @@ public class PartService {
     }
 
     @Transactional
-    public void restockPart(Long id, double quantity, String description) {
-        Part part = findById(id).get();
+    private void restockPart(Part part, double quantity, String description) {
         if (part.isNonStock()) return;
         double previousQuantity = part.getQuantity();
         part.setQuantity(part.getQuantity() + quantity);
@@ -268,6 +269,10 @@ public class PartService {
     public Page<Part> findBySearchCriteria(SearchCriteria searchCriteria) {
         SpecificationBuilder<Part> builder = new SpecificationBuilder<>();
         searchCriteria.getFilterFields().forEach(builder::with);
+        builder.with((root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            return criteriaBuilder.conjunction();
+        });
         Pageable page = PageRequest.of(searchCriteria.getPageNum(), searchCriteria.getPageSize(),
                 searchCriteria.getDirection(), searchCriteria.getSortField());
         return partRepository.findAll(builder.build(), page);
@@ -340,6 +345,10 @@ public class PartService {
         return partRepository.findByIdAndCompany_Id(id, companyId);
     }
 
+    public Optional<Part> findByIdAndCompanyForUpdate(Long id, Long companyId) {
+        return partRepository.findByIdAndCompany_IdForUpdate(id, companyId);
+    }
+
     public List<Part> findByIdsAndCompany(List<Long> ids, Long companyId) {
         return partRepository.findByIdInAndCompany_Id(ids, companyId);
     }
@@ -359,7 +368,7 @@ public class PartService {
                 boolean canViewOthers =
                         user.getRole().getViewOtherPermissions().contains(PermissionEntity.PARTS_AND_MULTIPARTS);
                 if (!canViewOthers) {
-                    searchCriteria.filterCreatedBy(user);
+                    searchCriteria.filterCreatedByOrAssignedTo(user);
                 }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
@@ -379,6 +388,7 @@ public class PartService {
     @Transactional
     public Part create(PartPostDTO partReq, User user) {
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.PARTS_AND_MULTIPARTS)) {
+            resolveScopedAssignments(partReq, user);
             if (partReq.getBarcode() != null) {
                 Optional<Part> optionalPartWithSameBarCode = findByBarcodeAndCompany(partReq.getBarcode(),
                         user.getCompany().getId());
@@ -394,21 +404,22 @@ public class PartService {
 
     @Transactional
     public void restock(Long id, PartRestockDTO partRestockDTO, User user) {
-        Optional<Part> optionalPart = findById(id);
+        Optional<Part> optionalPart = findByIdAndCompanyForUpdate(id, user.getCompany().getId());
         if (optionalPart.isPresent()) {
             if (optionalPart.get().canBeEditedBy(user)) {
-                restockPart(id, partRestockDTO.getQuantity(), partRestockDTO.getDescription());
+                restockPart(optionalPart.get(), partRestockDTO.getQuantity(), partRestockDTO.getDescription());
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Part not found", HttpStatus.NOT_FOUND);
     }
 
     @Transactional
     public Part patch(Long id, PartPatchDTO part, User user) {
-        Optional<Part> optionalPart = findById(id);
+        Optional<Part> optionalPart = findByIdAndCompanyForUpdate(id, user.getCompany().getId());
         if (optionalPart.isPresent()) {
             Part savedPart = optionalPart.get();
             em.detach(savedPart);
             if (savedPart.canBeEditedBy(user)) {
+                resolveScopedAssignments(part, user);
                 if (part.getBarcode() != null) {
                     Optional<Part> optionalPartWithSameBarCode =
                             findByBarcodeAndCompany(part.getBarcode(), user.getCompany().getId());
@@ -428,7 +439,60 @@ public class PartService {
     }
 
     public Collection<Part> getMini(User user) {
-        return findByCompany(user.getCompany().getId());
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.PARTS_AND_MULTIPARTS)) {
+            throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        }
+        return findByCompany(user.getCompany().getId()).stream()
+                .filter(part -> part.canBeViewedBy(user))
+                .toList();
+    }
+
+    private void resolveScopedAssignments(Part part, User actor) {
+        if (part.getAssignedTo() != null) {
+            part.setAssignedTo(resolveScopedUsers(part.getAssignedTo(), actor));
+        }
+        if (part.getTeams() != null) {
+            part.setTeams(resolveScopedTeams(part.getTeams(), actor));
+        }
+    }
+
+    private void resolveScopedAssignments(PartPatchDTO patch, User actor) {
+        if (patch.getAssignedTo() != null) {
+            patch.setAssignedTo(resolveScopedUsers(patch.getAssignedTo(), actor));
+        }
+        if (patch.getTeams() != null) {
+            patch.setTeams(resolveScopedTeams(patch.getTeams(), actor));
+        }
+    }
+
+    private List<User> resolveScopedUsers(Collection<User> requested, User actor) {
+        Long companyId = actor.getCompany().getId();
+        List<Long> requestedIds = requested.stream().map(User::getId).filter(Objects::nonNull).distinct().toList();
+        List<User> resolved = requestedIds.stream().map(id -> userService.findById(id)
+                .filter(candidate -> candidate.getCompany().getId().equals(companyId)
+                        && canShareAssignmentScope(candidate, actor))
+                .orElseThrow(() -> new CustomException(
+                        "Assigned users must belong to your company and accessible sites", HttpStatus.FORBIDDEN)))
+                .toList();
+        return new ArrayList<>(resolved);
+    }
+
+    private List<Team> resolveScopedTeams(Collection<Team> requested, User actor) {
+        Map<Long, Team> visibleTeams = teamService.findVisibleByCompany(actor).stream()
+                .collect(Collectors.toMap(Team::getId, Function.identity()));
+        List<Long> requestedIds = requested.stream().map(Team::getId).filter(Objects::nonNull).distinct().toList();
+        List<Team> resolved = requestedIds.stream().map(visibleTeams::get).filter(Objects::nonNull).toList();
+        if (resolved.size() != requestedIds.size()) {
+            throw new CustomException("Assigned teams must belong to your company and accessible sites",
+                    HttpStatus.FORBIDDEN);
+        }
+        return new ArrayList<>(resolved);
+    }
+
+    private boolean canShareAssignmentScope(User candidate, User actor) {
+        if (actor.isAllSitesAccess() || candidate.isAllSitesAccess()) return true;
+        Set<Long> actorSiteIds = actor.getSites().stream().map(Site::getId).collect(Collectors.toSet());
+        return candidate.getSites().stream().allMatch(site -> actorSiteIds.contains(site.getId()));
     }
 
     public void deleteByIdAndUser(Long id, User user) {

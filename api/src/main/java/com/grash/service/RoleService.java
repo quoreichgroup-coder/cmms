@@ -12,6 +12,7 @@ import com.grash.model.enums.PlanFeatures;
 import com.grash.model.enums.RoleCode;
 import com.grash.model.enums.RoleType;
 import com.grash.repository.RoleRepository;
+import com.grash.repository.UserRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,8 @@ public class RoleService {
     private final RoleMapper roleMapper;
     private final CompanySettingsService companySettingsService;
     private final LicenseService licenseService;
+    private final UserRepository userRepository;
+    private final CompanyConfigurationAuditService configurationAuditService;
 
     public Role create(Role role) {
         if (role.getCode().equals(RoleCode.USER_CREATED) && !licenseService.hasEntitlement(LicenseEntitlement.CUSTOM_ROLES))
@@ -40,7 +43,7 @@ public class RoleService {
 
     @Transactional
     public Role create(Role roleReq, User user) {
-        if (user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+        if (user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)
                 && user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.ROLE)) {
             assertCanGrant(roleReq.getCreatePermissions(), user.getRole().getCreatePermissions());
             assertCanGrant(roleReq.getViewPermissions(), user.getRole().getViewPermissions());
@@ -51,12 +54,17 @@ public class RoleService {
             roleReq.setCode(RoleCode.USER_CREATED);
             roleReq.setRoleType(RoleType.ROLE_CLIENT);
             roleReq.setCompanySettings(user.getCompany().getCompanySettings());
-            return create(roleReq);
+            Role created = create(roleReq);
+            configurationAuditService.record(user.getCompany(), user, "ROLE", created.getId(), "CREATE",
+                    List.of("name", "permissions"));
+            return created;
         } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
     }
 
     @Transactional
     public Role patch(Long id, RolePatchDTO role, User user) {
+        if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         Optional<Role> optionalRole = findById(id);
         if (optionalRole.isPresent()) {
             Role savedRole = optionalRole.get();
@@ -68,7 +76,10 @@ public class RoleService {
             assertCanGrant(role.getViewOtherPermissions(), user.getRole().getViewOtherPermissions());
             assertCanGrant(role.getEditOtherPermissions(), user.getRole().getEditOtherPermissions());
             assertCanGrant(role.getDeleteOtherPermissions(), user.getRole().getDeleteOtherPermissions());
-            return update(id, role);
+            Role updated = update(id, role);
+            configurationAuditService.record(user.getCompany(), user, "ROLE", id, "UPDATE",
+                    List.of("name", "description", "permissions"));
+            return updated;
         } else throw new CustomException("Role not found", HttpStatus.NOT_FOUND);
     }
 
@@ -109,7 +120,7 @@ public class RoleService {
 
     @Transactional
     public void deleteByIdAndUser(Long id, User user) {
-        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)) {
+        if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)) {
             throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         }
         Optional<Role> optionalRole = findById(id);
@@ -118,7 +129,10 @@ public class RoleService {
             if (!savedRole.belongsOnlyToCompany(user.getCompany())) {
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             }
+            if (!userRepository.findByRole_Id(id).isEmpty())
+                throw new CustomException("Role is assigned to users and cannot be deleted", HttpStatus.CONFLICT);
             delete(id);
+            configurationAuditService.record(user.getCompany(), user, "ROLE", id, "DELETE", List.of("deleted"));
         } else throw new CustomException("Role not found", HttpStatus.NOT_FOUND);
     }
 

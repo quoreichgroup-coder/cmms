@@ -26,11 +26,12 @@ describe('personal shift availability helpers', () => {
     ]);
   });
 
-  it('applies the existing web editor default to a day absent from a saved configuration', () => {
+  it('does not invent availability for a day absent from a saved configuration', () => {
     expect(getEffectiveShiftDay(config, 'TUESDAY')).toEqual({
       dayOfWeek: 'TUESDAY',
-      availabilityMinutes: 480,
-      enabled: true
+      availabilityMinutes: 0,
+      startTime: '08:00',
+      enabled: false
     });
   });
 
@@ -58,8 +59,9 @@ describe('personal shift availability helpers', () => {
       )
     ).toEqual({
       dayOfWeek: 'TUESDAY',
-      availabilityMinutes: 480,
-      enabled: true
+      availabilityMinutes: 0,
+      startTime: '08:00',
+      enabled: false
     });
   });
 });

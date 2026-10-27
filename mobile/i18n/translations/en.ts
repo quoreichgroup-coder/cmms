@@ -3,6 +3,8 @@ const locale = {
   my_shift_availability_description:
     'Review the weekly availability saved for your account.',
   shift_weekly_availability: 'Weekly availability',
+  shift_weekly_default_capacity:
+    'Default weekly capacity: {{hours}} h {{minutes}} min',
   shift_availability_enabled: 'Availability is enabled',
   shift_availability_disabled: 'Availability is currently disabled',
   shift_availability_not_configured: 'No availability has been configured',
@@ -11,7 +13,15 @@ const locale = {
   shift_availability_disclaimer:
     'This is your availability configuration. It is not a published team roster or a confirmed shift assignment.',
   shift_availability_load_error: 'Could not load your availability.',
+  resource_planning_unavailable:
+    'Resource planning is not enabled for this company plan and license.',
+  pm_mobile_feature_unavailable:
+    'Preventive maintenance is not included in this company plan.',
+  meter_feature_unavailable: 'Meters are not included in this company plan.',
+  checklist_feature_unavailable:
+    'Checklists are not included in this company plan.',
   shift_date_exceptions: 'Upcoming date exceptions',
+  shift_available_from_time: '{{duration}} · starts {{time}}',
   shift_day_off: 'Not available',
   shift_day_monday: 'Monday',
   shift_day_tuesday: 'Tuesday',
@@ -238,6 +248,7 @@ const locale = {
   pm_meter_based: 'Meter-based',
   pm_call_register: 'Maintenance call register',
   pm_call_due_date: 'Scheduled occurrence',
+  pm_call_rescheduled_date: 'Rescheduled to',
   pm_call_status_planned: 'Upcoming',
   pm_call_status_due: 'Due',
   pm_call_status_rescheduled: 'Rescheduled',
@@ -551,6 +562,8 @@ const locale = {
   wo_report_download_success: 'The work order report is ready to view',
   work_order_report_mobile_description:
     'Preview a current report or issue an official archived copy. Issued copies remain in the work order history.',
+  work_order_report_preview_before_issue:
+    'Open the PDF preview first to review the report before issuing an official copy.',
   preview_print: 'Preview PDF',
   issue_archive_document: 'Issue official copy',
   issued_documents: 'Issued documents',
@@ -675,10 +688,16 @@ const locale = {
   locations: 'Locations',
   parts_and_inventory: 'Parts/Inventory',
   purchase_orders: 'Purchase Orders',
+  purchase_order_details: 'Purchase Order Details',
   purchase_orders_load_error: 'Could not load purchase orders.',
   purchase_orders_empty: 'No purchase orders found.',
   purchase_orders_read_only_note:
     'This is a read-only view. Receipt quantities and stock updates are not tracked here.',
+  purchase_order_summary: 'Order summary',
+  ordered_quantity_by_unit: 'Ordered quantity by unit',
+  unit_unspecified: 'unit unspecified',
+  purchase_order_cost_estimate_note:
+    'Estimate from current part costs; supplier prices may differ.',
   purchase_order_due_date: 'Expected delivery',
   purchase_order_items_count: '{{count}} item(s)',
   purchase_order_quantity: 'Ordered quantity',
@@ -967,6 +986,7 @@ const locale = {
   requisitioner: 'Requisitioner',
   terms: 'Terms',
   shipping_method: 'Shipping Method',
+  shipping_order_category: 'Shipping Order Category',
   required_name: 'The name is required',
   edit_po: 'Edit Purchase Order',
   edit_po_description: 'Fill in the fields below to update the Purchase Order',
@@ -1892,6 +1912,8 @@ const locale = {
   audio_playback_error: 'Audio could not be played. Please try again.',
   audio_recording_error:
     'Audio recording could not be completed. Please try again.',
+  voice_notes_unavailable:
+    'Voice notes are not enabled for this company license.',
   microphone: 'Microphone',
   start_recording: 'Start recording',
   stop_recording: 'Stop recording',

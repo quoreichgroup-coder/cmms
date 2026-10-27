@@ -3,6 +3,8 @@ package com.grash.controller;
 import com.grash.dto.GeneratedDocumentDTO;
 import com.grash.dto.ReportFieldDefinitionDTO;
 import com.grash.dto.ReportPreviewRequest;
+import com.grash.dto.ReportTablePreviewRequest;
+import com.grash.dto.ReportTablePreviewDTO;
 import com.grash.dto.ReportConfig;
 import com.grash.dto.PublishedReportTemplateOptionDTO;
 import com.grash.model.User;
@@ -42,6 +44,25 @@ public class GeneratedDocumentController {
         User user = userService.whoami(request);
         return generatedDocumentService.previewWorkOrderReportData(
                 workOrderId, List.copyOf(requestBody.fields()), user);
+    }
+
+    @PostMapping("/work-orders/{workOrderId}/report/diagnose-data")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public Map<String, com.grash.dto.ReportFieldDiagnosisDTO> diagnoseWorkOrderReportData(
+            @PathVariable Long workOrderId, @Valid @RequestBody ReportPreviewRequest requestBody,
+            HttpServletRequest request) {
+        User user = userService.whoami(request);
+        return generatedDocumentService.diagnoseWorkOrderReportData(
+                workOrderId, List.copyOf(requestBody.fields()), user);
+    }
+
+    @PostMapping("/work-orders/{workOrderId}/report/table-preview")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public ReportTablePreviewDTO previewWorkOrderReportTable(@PathVariable Long workOrderId,
+            @Valid @RequestBody ReportTablePreviewRequest requestBody, HttpServletRequest request) {
+        User user = userService.whoami(request);
+        return generatedDocumentService.previewWorkOrderReportTable(workOrderId,
+                requestBody.binding(), List.copyOf(requestBody.columns()), user);
     }
 
     @GetMapping("/requests/{requestId}/report/fields")

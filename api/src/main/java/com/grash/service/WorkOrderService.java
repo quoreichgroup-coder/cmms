@@ -115,6 +115,7 @@ public class WorkOrderService {
     private PreventiveMaintenanceService preventiveMaintenanceService;
     private PreventiveMaintenanceMapper preventiveMaintenanceMapper;
     private final FileRepository fileRepository;
+    private final WorkOrderAssignmentScopeValidator assignmentScopeValidator;
 
     @Transactional
     public WorkOrder create(WorkOrder workOrder, Company company) {
@@ -218,6 +219,7 @@ public class WorkOrderService {
             WorkOrder newWorkOrder = workOrderMapper.updateWorkOrder(savedWorkOrder, workOrder);
             newWorkOrder.setSite(workOrder.getSite() == null ? savedWorkOrder.getSite() :
                     resolveSite(workOrder.getSite(), user.getCompany()));
+            assignmentScopeValidator.validateAndResolve(newWorkOrder, user);
             Sanitizer.sanitizeWorkOrder(newWorkOrder);
             if (!workOrder.getCustomFields().isEmpty()) {
                 setWOCustomFields(newWorkOrder, workOrder.getCustomFields(), user.getCompany());
@@ -257,7 +259,18 @@ public class WorkOrderService {
         Optional<WorkOrder> optionalWorkOrder = findById(id);
         if (optionalWorkOrder.isPresent()) {
             WorkOrder savedWorkOrder = optionalWorkOrder.get();
+            if (!user.canAccessSite(savedWorkOrder.getSite())
+                    || (workOrder.getSite() != null && !user.canAccessSite(resolveSite(workOrder.getSite(), user.getCompany()))))
+                throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
             if (savedWorkOrder.canBeEditedBy(user)) {
+                if (workOrder.getTasks() != null) {
+                    taskService.updateEntityTasks(
+                            workOrder.getTasks(),
+                            taskService.findByWorkOrder(savedWorkOrder.getId()),
+                            user,
+                            null,
+                            savedWorkOrder);
+                }
                 em.detach(savedWorkOrder);
                 Status previousStatus = savedWorkOrder.getStatus();
                 WorkOrder patchedWorkOrder = update(id, workOrder, user);
@@ -362,7 +375,7 @@ public class WorkOrderService {
             throw new CustomException("Work Order not found", HttpStatus.NOT_FOUND);
         WorkOrder workOrder = findByIdAndCompany(workOrderId, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("Work Order not found", HttpStatus.NOT_FOUND));
-        if (!workOrder.canBeViewedBy(user))
+        if (!workOrder.canBeViewedBy(user) || !user.canAccessSite(workOrder.getSite()))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return workOrder;
     }
@@ -738,6 +751,7 @@ public class WorkOrderService {
                     removeIf(filterField -> filterField.getField().equals("assignedToUser"));
 //            else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN); //Work order is viewed by everyone
         }
+        searchCriteria.filterAccessibleSites(user);
         return searchCriteria;
     }
 
@@ -1247,10 +1261,13 @@ public class WorkOrderService {
                 && (workOrderReq.getSignature() == null ||
                 user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.SIGNATURE))))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (workOrderReq.getSite() != null && !user.canAccessSite(resolveSite(workOrderReq.getSite(), user.getCompany())))
+            throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
         if (user.getCompany().getCompanySettings().getGeneralPreferences().isAutoAssignWorkOrders()) {
             User primaryUser = workOrderReq.getPrimaryUser();
             workOrderReq.setPrimaryUser(primaryUser == null ? user : primaryUser);
         }
+        assignmentScopeValidator.validateAndResolve(workOrderReq, user);
         WorkOrder createdWorkOrder = create(workOrderReq, user.getCompany());
 
         if (!user.getCompany().isFirstWorkOrderCreated()) {
@@ -1268,6 +1285,10 @@ public class WorkOrderService {
         }
 
         return createdWorkOrder;
+    }
+
+    public void validateAssignmentScope(WorkOrderBase workOrder, User actor) {
+        assignmentScopeValidator.validateAndResolve(workOrder, actor);
     }
 
     public List<WorkOrder> getWorkOrdersByPart(Long partId) {
@@ -1396,6 +1417,7 @@ public class WorkOrderService {
                                 .filter(f -> pmFields.contains(f.getField()))
                                 .forEach(pmSearchCriteria.getFilterFields()::add);
                     }
+                    if (compId.equals(user.getCompany().getId())) pmSearchCriteria.filterAccessibleSites(user);
                     result.addAll(preventiveMaintenanceService.getEventsByCriteria(pmSearchCriteria).stream()
                             .filter(calendarEvent -> calendarEvent.getDate().after(new Date()))
                             .filter(calendarEvent -> canViewWorkOrderBase(user, calendarEvent.getEvent()))
@@ -1452,6 +1474,8 @@ public class WorkOrderService {
         Optional<WorkOrder> optionalWorkOrder = findById(workOrderId);
         if (optionalWorkOrder.isPresent()) {
             WorkOrder savedWorkOrder = optionalWorkOrder.get();
+            if (!user.canAccessSite(savedWorkOrder.getSite()))
+                throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
             if (!savedWorkOrder.canBeEditedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             List<File> existingFiles = fileRepository.findByIdIn(files.stream().map(File::getId).toList());

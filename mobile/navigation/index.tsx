@@ -74,6 +74,7 @@ import SelectChecklistsModal from '../screens/modals/SelectChecklistsModal';
 import SelectTasksOrChecklistModal from '../screens/modals/SelectTasksOrChecklistModal';
 import PartsScreen from '../screens/parts/PartsScreen';
 import PurchaseOrdersScreen from '../screens/purchaseOrders/PurchaseOrdersScreen';
+import PurchaseOrderDetailsScreen from '../screens/purchaseOrders/PurchaseOrderDetailsScreen';
 import VendorsAndCustomersScreen from '../screens/vendorsCustomers';
 import PeopleAndTeamsScreen from '../screens/peopleTeams';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -371,11 +372,18 @@ function RootNavigator() {
         options={{ title: t('parts') }}
       />
       {canViewPurchaseOrders && (
-        <Stack.Screen
-          name="PurchaseOrders"
-          component={PurchaseOrdersScreen}
-          options={{ title: t('purchase_orders') }}
-        />
+        <>
+          <Stack.Screen
+            name="PurchaseOrders"
+            component={PurchaseOrdersScreen}
+            options={{ title: t('purchase_orders') }}
+          />
+          <Stack.Screen
+            name="PurchaseOrderDetails"
+            component={PurchaseOrderDetailsScreen}
+            options={{ title: t('purchase_order_details') }}
+          />
+        </>
       )}
       <Stack.Screen
         name="PartDetails"
@@ -924,23 +932,24 @@ function BottomTabNavigator({ navigation }: RootTabScreenProps<'Home'>) {
           }}
         />
       )}
-      {hasViewPermission(PermissionEntity.ANALYTICS) && (
-        <BottomTab.Screen
-          name="Stats"
-          component={WorkOrderStatsScreen as React.ComponentType<any>}
-          options={{
-            title: t('stats'),
-            tabBarAccessibilityLabel: t('stats'),
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'stats-chart' : 'stats-chart-outline'}
-                size={23}
-                color={color}
-              />
-            )
-          }}
-        />
-      )}
+      {hasViewPermission(PermissionEntity.ANALYTICS) &&
+        hasFeature(PlanFeature.ANALYTICS) && (
+          <BottomTab.Screen
+            name="Stats"
+            component={WorkOrderStatsScreen as React.ComponentType<any>}
+            options={{
+              title: t('stats'),
+              tabBarAccessibilityLabel: t('stats'),
+              tabBarIcon: ({ color, focused }) => (
+                <Ionicons
+                  name={focused ? 'stats-chart' : 'stats-chart-outline'}
+                  size={23}
+                  color={color}
+                />
+              )
+            }}
+          />
+        )}
       {(canViewMoreEntities || canViewRequests) && (
         <BottomTab.Screen
           name="MoreEntities"

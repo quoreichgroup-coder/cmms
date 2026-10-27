@@ -44,6 +44,24 @@ public interface PartTransactionRepository extends JpaRepository<PartTransaction
     Page<PartTransaction> findByCompanyForExport(@Param("companyId") Long companyId, Pageable pageable);
 
     @Query(value = """
+            SELECT pt FROM PartTransaction pt
+            LEFT JOIN FETCH pt.part
+            LEFT JOIN FETCH pt.workOrder wo
+            WHERE pt.company.id = :companyId
+              AND (wo.id IS NULL OR wo.site IS NULL OR wo.site.id IN :siteIds)
+            """,
+            countQuery = """
+            SELECT COUNT(pt) FROM PartTransaction pt
+            LEFT JOIN pt.workOrder wo
+            WHERE pt.company.id = :companyId
+              AND (wo.id IS NULL OR wo.site IS NULL OR wo.site.id IN :siteIds)
+            """)
+    Page<PartTransaction> findByCompanyForExportAndAccessibleSites(
+            @Param("companyId") Long companyId,
+            @Param("siteIds") List<Long> siteIds,
+            Pageable pageable);
+
+    @Query(value = """
             SELECT a.id, a.name, COALESCE(SUM(p.cost * pt.quantity), 0) AS total_cost
             FROM part_transaction pt
             JOIN work_order wo ON pt.work_order_id = wo.id

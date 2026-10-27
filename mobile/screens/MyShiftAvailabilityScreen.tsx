@@ -1,5 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -23,6 +29,9 @@ import {
 import { logSafeError } from '../utils/safeErrorLog';
 import { qpmLayoutTokens } from '../theme/tokens';
 import { beginRequest, isCurrentRequest } from '../utils/requestSequence';
+import useAuth from '../hooks/useAuth';
+import { PlanFeature } from '../models/subscriptionPlan';
+import { useLicenseEntitlement } from '../hooks/useLicenseEntitlement';
 
 const dayTranslationKeys: Record<string, string> = {
   MONDAY: 'shift_day_monday',
@@ -38,6 +47,11 @@ export default function MyShiftAvailabilityScreen(
   _props: RootStackScreenProps<'MyShiftAvailability'>
 ) {
   const theme = useTheme();
+  const { hasFeature } = useAuth();
+  const hasResourcePlanningLicense = useLicenseEntitlement('RESOURCE_PLANNING');
+  const canUseResourcePlanning =
+    hasFeature(PlanFeature.RESOURCE_PLANNING) && hasResourcePlanningLicense;
+  const compactLayout = useWindowDimensions().width < 380;
   const { t, i18n } = useTranslation();
   const [configuration, setConfiguration] = useState<ShiftConfiguration | null>(
     null
@@ -67,13 +81,13 @@ export default function MyShiftAvailabilityScreen(
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      if (canUseResourcePlanning) void load();
       return () => {
         // Ignore a response from a screen that has lost focus; the next focus
         // or pull-to-refresh starts a newer request and owns the visible state.
         beginRequest(loadRequestSequence);
       };
-    }, [load])
+    }, [canUseResourcePlanning, load])
   );
 
   const renderState = () => {
@@ -132,6 +146,14 @@ export default function MyShiftAvailabilityScreen(
       .filter((exception) => exception.exceptionDate >= todayIso)
       .sort((a, b) => a.exceptionDate.localeCompare(b.exceptionDate))
       .slice(0, 6);
+    const weeklyCapacityMinutes = configuration.enabled
+      ? shiftDayOrder.reduce((total, day) => {
+          const entry = getEffectiveShiftDay(configuration, day);
+          return total + (entry.enabled ? entry.availabilityMinutes : 0);
+        }, 0)
+      : 0;
+    const weeklyCapacityHours = Math.floor(weeklyCapacityMinutes / 60);
+    const weeklyCapacityRemainder = weeklyCapacityMinutes % 60;
 
     return (
       <>
@@ -171,6 +193,33 @@ export default function MyShiftAvailabilityScreen(
                 </Text>
               </View>
             </View>
+            <Text
+              variant="bodyMedium"
+              style={[
+                styles.weeklyCapacity,
+                { color: theme.colors.onSurfaceVariant }
+              ]}
+            >
+              {t('shift_weekly_default_capacity', {
+                hours: weeklyCapacityHours,
+                minutes: weeklyCapacityRemainder
+              })}
+            </Text>
+            {configuration.enabled &&
+              !shiftDayOrder.some((day) => {
+                const entry = getEffectiveShiftDay(configuration, day);
+                return entry.enabled && entry.availabilityMinutes > 0;
+              }) && (
+                <Text
+                  variant="bodySmall"
+                  style={{
+                    color: theme.colors.onSurfaceVariant,
+                    marginBottom: 8
+                  }}
+                >
+                  {t('shift_availability_not_configured_help')}
+                </Text>
+              )}
             {shiftDayOrder.map((day) => {
               const entry = getEffectiveShiftDay(configuration, day);
               const active =
@@ -182,22 +231,37 @@ export default function MyShiftAvailabilityScreen(
                   key={day}
                   style={[
                     styles.dayRow,
+                    compactLayout && styles.compactDayRow,
                     { borderBottomColor: theme.colors.outlineVariant }
                   ]}
                 >
-                  <Text variant="bodyLarge" style={styles.dayName}>
+                  <Text
+                    variant="bodyLarge"
+                    style={[
+                      styles.dayName,
+                      compactLayout && styles.compactDayName
+                    ]}
+                  >
                     {t(dayTranslationKeys[day])}
                   </Text>
                   <Text
                     variant="bodyMedium"
-                    style={{
-                      color: active
-                        ? theme.colors.onSurface
-                        : theme.colors.onSurfaceVariant
-                    }}
+                    style={[
+                      {
+                        color: active
+                          ? theme.colors.onSurface
+                          : theme.colors.onSurfaceVariant
+                      },
+                      compactLayout && styles.compactAvailability
+                    ]}
                   >
                     {active
-                      ? formatAvailabilityDuration(entry.availabilityMinutes)
+                      ? t('shift_available_from_time', {
+                          duration: formatAvailabilityDuration(
+                            entry.availabilityMinutes
+                          ),
+                          time: entry.startTime ?? '08:00'
+                        })
                       : t('shift_day_off')}
                   </Text>
                 </View>
@@ -232,25 +296,43 @@ export default function MyShiftAvailabilityScreen(
                   configuration.enabled &&
                   exception.enabled &&
                   exception.availabilityMinutes > 0;
+                const dayOfWeek =
+                  shiftDayOrder[(date.getDay() + 6) % shiftDayOrder.length];
+                const defaultStartTime =
+                  getEffectiveShiftDay(configuration, dayOfWeek).startTime ??
+                  '08:00';
                 return (
                   <View
                     key={exception.exceptionDate}
                     style={[
                       styles.dayRow,
+                      compactLayout && styles.compactDayRow,
                       { borderBottomColor: theme.colors.outlineVariant }
                     ]}
                   >
-                    <Text variant="bodyLarge" style={styles.dayName}>
+                    <Text
+                      variant="bodyLarge"
+                      style={[
+                        styles.dayName,
+                        compactLayout && styles.compactDayName
+                      ]}
+                    >
                       {label}
                     </Text>
                     <Text
                       variant="bodyMedium"
-                      style={{ color: theme.colors.onSurfaceVariant }}
+                      style={[
+                        { color: theme.colors.onSurfaceVariant },
+                        compactLayout && styles.compactAvailability
+                      ]}
                     >
                       {active
-                        ? formatAvailabilityDuration(
-                            exception.availabilityMinutes
-                          )
+                        ? t('shift_available_from_time', {
+                            duration: formatAvailabilityDuration(
+                              exception.availabilityMinutes
+                            ),
+                            time: exception.startTime ?? defaultStartTime
+                          })
                         : t('shift_day_off')}
                     </Text>
                   </View>
@@ -291,7 +373,19 @@ export default function MyShiftAvailabilityScreen(
           {t('my_shift_availability_description')}
         </Text>
       </View>
-      {renderState()}
+      {canUseResourcePlanning ? (
+        renderState()
+      ) : (
+        <View style={styles.state}>
+          <List.Icon
+            icon="lock-outline"
+            color={theme.colors.onSurfaceVariant}
+          />
+          <Text variant="bodyMedium" style={styles.centerText}>
+            {t('resource_planning_unavailable')}
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -318,8 +412,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8
   },
+  compactDayRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 10
+  },
   dayName: { flex: 1 },
+  compactDayName: { flex: 0 },
+  compactAvailability: { textAlign: 'left' },
   exceptionsTitle: { marginBottom: 4 },
+  weeklyCapacity: { marginBottom: 12, marginLeft: 48 },
   state: {
     minHeight: 220,
     alignItems: 'center',

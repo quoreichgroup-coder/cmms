@@ -83,6 +83,7 @@ public class MeterService {
         if (user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
             if (user.getRole().getViewPermissions().contains(PermissionEntity.METERS)) {
                 searchCriteria.filterCompany(user);
+                searchCriteria.filterAccessibleSites(user, "asset.site");
                 boolean canViewOthers = user.getRole().getViewOtherPermissions().contains(PermissionEntity.METERS);
                 if (!canViewOthers) {
                     searchCriteria.getFilterFields().add(FilterField.builder()
@@ -107,10 +108,16 @@ public class MeterService {
         Optional<Meter> optionalMeter = meterRepository.findById(id);
         if (optionalMeter.isPresent()) {
             Meter savedMeter = optionalMeter.get();
-            if (savedMeter.canBeViewedBy(user)) {
+            if (belongsToCompany(savedMeter, user) && user.canAccessSite(savedMeter.getAsset().getSite())
+                    && savedMeter.canBeViewedBy(user)) {
                 return savedMeter;
             } else throw new CustomException("Access denied", org.springframework.http.HttpStatus.FORBIDDEN);
         } else throw new CustomException("Not found", org.springframework.http.HttpStatus.NOT_FOUND);
+    }
+
+    public void assertSiteScope(Meter meter, User user) {
+        if (!belongsToCompany(meter, user) || !user.canAccessSite(meter.getAsset().getSite()))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
     }
 
     @Transactional
@@ -120,6 +127,11 @@ public class MeterService {
             Company company = user.getCompany();
             checkUsageBasedLimit(company);
             Meter meter = meterMapper.fromPostDto(meterReq);
+            meter.setAsset(requireAccessibleAsset(meter.getAsset() == null ? null : meter.getAsset().getId(), user));
+            if (meter.getLocation() != null) {
+                meter.setLocation(locationService.findByIdAndCompany(meter.getLocation().getId(), company.getId())
+                        .orElseThrow(() -> new CustomException("Location not found", HttpStatus.NOT_FOUND)));
+            }
             if (meterReq.getCustomFields() != null && !meterReq.getCustomFields().isEmpty()) {
                 setMeterCustomFields(meter, meterReq.getCustomFields(), company);
             }
@@ -137,7 +149,13 @@ public class MeterService {
         if (optionalMeter.isPresent()) {
             Meter savedMeter = optionalMeter.get();
             em.detach(savedMeter);
-            if (savedMeter.canBeEditedBy(user)) {
+            if (belongsToCompany(savedMeter, user) && user.canAccessSite(savedMeter.getAsset().getSite())
+                    && savedMeter.canBeEditedBy(user)) {
+                if (meter.getLocation() != null) {
+                    meter.setLocation(locationService.findByIdAndCompany(meter.getLocation().getId(),
+                                    user.getCompany().getId())
+                            .orElseThrow(() -> new CustomException("Location not found", HttpStatus.NOT_FOUND)));
+                }
                 if (meter.getCustomFields() != null && !meter.getCustomFields().isEmpty()) {
                     setMeterCustomFields(savedMeter, meter.getCustomFields(), user.getCompany());
                 }
@@ -154,7 +172,8 @@ public class MeterService {
         Optional<Meter> optionalMeter = meterRepository.findById(id);
         if (optionalMeter.isPresent()) {
             Meter savedMeter = optionalMeter.get();
-            if (savedMeter.canBeDeletedBy(user)) {
+            if (belongsToCompany(savedMeter, user) && user.canAccessSite(savedMeter.getAsset().getSite())
+                    && savedMeter.canBeDeletedBy(user)) {
                 delete(id);
             } else throw new CustomException("Forbidden", org.springframework.http.HttpStatus.FORBIDDEN);
         } else throw new CustomException("Meter not found", org.springframework.http.HttpStatus.NOT_FOUND);
@@ -168,8 +187,41 @@ public class MeterService {
         return meterRepository.findByCompany_Id(id);
     }
 
+    public Collection<Meter> findVisibleByCompany(User user) {
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.METERS))
+            throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        return meterRepository.findByCompany_Id(user.getCompany().getId()).stream()
+                .filter(meter -> user.canAccessSite(meter.getAsset().getSite()) && meter.canBeViewedBy(user))
+                .toList();
+    }
+
+    private boolean belongsToCompany(Meter meter, User user) {
+        return meter.getCompany() != null && user.getCompany() != null
+                && meter.getCompany().getId().equals(user.getCompany().getId());
+    }
+
+    private Asset requireAccessibleAsset(Long assetId, User user) {
+        if (assetId == null)
+            throw new CustomException("An asset is required for a meter", HttpStatus.NOT_ACCEPTABLE);
+        Asset asset = assetService.findByIdAndCompany(assetId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Asset not found", HttpStatus.NOT_FOUND));
+        if (!user.canAccessSite(asset.getSite()))
+            throw new CustomException("Access denied for the selected site", HttpStatus.FORBIDDEN);
+        return asset;
+    }
+
     public Page<Meter> findByCompanyForExport(Long companyId, Pageable pageable) {
         return meterRepository.findByCompanyForExport(companyId, pageable);
+    }
+
+    public Page<Meter> findByCompanyForExport(User user, Pageable pageable) {
+        if (user.isAllSitesAccess())
+            return meterRepository.findByCompanyForExport(user.getCompany().getId(), pageable);
+        List<Long> siteIds = user.getSites().stream().map(Site::getId).toList();
+        return siteIds.isEmpty()
+                ? meterRepository.findByCompanyForExportWithoutSites(user.getCompany().getId(), pageable)
+                : meterRepository.findByCompanyForExportAndAccessibleSites(user.getCompany().getId(), siteIds,
+                        pageable);
     }
 
     public void notify(Meter meter, Locale locale) {

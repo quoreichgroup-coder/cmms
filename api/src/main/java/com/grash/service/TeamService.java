@@ -13,6 +13,7 @@ import com.grash.model.enums.NotificationType;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.RoleType;
 import com.grash.repository.TeamRepository;
+import com.grash.repository.UserRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,8 @@ public class TeamService {
     private final NotificationService notificationService;
     private final EntityManager em;
     private final MessageSource messageSource;
+    private final UserRepository userRepository;
+    private final CompanyConfigurationAuditService configurationAuditService;
 
     @Transactional
     public Team update(Long id, TeamPatchDTO team) {
@@ -59,6 +62,12 @@ public class TeamService {
         if (user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
             if (user.getRole().getViewPermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
                 searchCriteria.filterCompany(user);
+                if (!user.isAllSitesAccess()) {
+                    List<Long> visibleTeamIds = teamRepository.findByCompany_Id(user.getCompany().getId()).stream()
+                            .filter(team -> canSeeTeamMembers(team, user))
+                            .map(Team::getId).toList();
+                    searchCriteria.filterIds(visibleTeamIds);
+                }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
         return searchCriteria;
@@ -67,9 +76,13 @@ public class TeamService {
     @Transactional
     public Team create(Team teamReq, User user) {
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.PEOPLE_AND_TEAMS)) {
+            teamReq.setCompany(user.getCompany());
+            teamReq.setUsers(resolveScopedMembers(teamReq.getUsers(), user));
             Sanitizer.sanitizeTeam(teamReq);
             Team savedTeam = teamRepository.saveAndFlush(teamReq);
             em.refresh(savedTeam);
+            configurationAuditService.record(user.getCompany(), user, "TEAM", savedTeam.getId(), "CREATE",
+                    List.of("name", "description", "users"));
             notify(savedTeam, Helper.getLocale(user));
             return savedTeam;
         } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -79,7 +92,9 @@ public class TeamService {
         Optional<Team> optionalTeam = findById(id);
         if (optionalTeam.isPresent()) {
             Team savedTeam = optionalTeam.get();
-            if (!savedTeam.canBeViewedBy(user))
+            if (!savedTeam.getCompany().getId().equals(user.getCompany().getId())
+                    || !savedTeam.canBeViewedBy(user)
+                    || !user.isAllSitesAccess() && !canSeeTeamMembers(savedTeam, user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             return savedTeam;
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
@@ -90,11 +105,15 @@ public class TeamService {
         Optional<Team> optionalTeam = findById(id);
         if (optionalTeam.isPresent()) {
             Team savedTeam = optionalTeam.get();
-            if (!savedTeam.canBeEditedBy(user)) {
+            if (!savedTeam.getCompany().getId().equals(user.getCompany().getId()) || !savedTeam.canBeEditedBy(user)
+                    || !user.isAllSitesAccess() && !canSeeTeamMembers(savedTeam, user)) {
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             }
+            if (team.getUsers() != null) team.setUsers(resolveScopedMembers(team.getUsers(), user));
             em.detach(savedTeam);
             Team patchTeam = update(id, team);
+            configurationAuditService.record(user.getCompany(), user, "TEAM", patchTeam.getId(), "UPDATE",
+                    team.getUsers() == null ? List.of("name", "description") : List.of("name", "description", "users"));
             patchNotify(savedTeam, patchTeam, Helper.getLocale(user));
             return patchTeam;
         } else throw new CustomException("Team not found", HttpStatus.NOT_FOUND);
@@ -105,8 +124,10 @@ public class TeamService {
         Optional<Team> optionalTeam = findById(id);
         if (optionalTeam.isPresent()) {
             Team savedTeam = optionalTeam.get();
-            if (savedTeam.canBeDeletedBy(user)) {
+            if (savedTeam.getCompany().getId().equals(user.getCompany().getId()) && savedTeam.canBeDeletedBy(user)
+                    && (user.isAllSitesAccess() || canSeeTeamMembers(savedTeam, user))) {
                 teamRepository.deleteById(id);
+                configurationAuditService.record(user.getCompany(), user, "TEAM", id, "DELETE", List.of("deleted"));
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Team not found", HttpStatus.NOT_FOUND);
     }
@@ -118,6 +139,35 @@ public class TeamService {
 
     public Collection<Team> findByCompany(Long id) {
         return teamRepository.findByCompany_Id(id);
+    }
+
+    public Collection<Team> findVisibleByCompany(User user) {
+        return teamRepository.findByCompany_Id(user.getCompany().getId()).stream()
+                .filter(team -> user.isAllSitesAccess() || canSeeTeamMembers(team, user))
+                .toList();
+    }
+
+    private List<User> resolveScopedMembers(Collection<User> requestedUsers, User requester) {
+        if (requestedUsers == null || requestedUsers.isEmpty()) return List.of();
+        List<Long> ids = requestedUsers.stream().map(User::getId).filter(java.util.Objects::nonNull).distinct().toList();
+        List<User> members = userRepository.findByIdInAndCompany_Id(ids, requester.getCompany().getId());
+        if (members.size() != ids.size() || !canSeeTeamMembers(members, requester))
+            throw new CustomException("Team members must belong to your company and accessible sites", HttpStatus.FORBIDDEN);
+        return members;
+    }
+
+    private boolean canSeeTeamMembers(Team team, User requester) {
+        return canSeeTeamMembers(team.getUsers(), requester);
+    }
+
+    private boolean canSeeTeamMembers(Collection<User> members, User requester) {
+        if (members == null || members.isEmpty()) return true;
+        if (requester.isAllSitesAccess()) return members.stream()
+                .allMatch(member -> member.getCompany().getId().equals(requester.getCompany().getId()));
+        List<Long> accessibleSiteIds = requester.getSites().stream().map(site -> site.getId()).toList();
+        return members.stream().allMatch(member -> member.getCompany().getId().equals(requester.getCompany().getId())
+                && (member.isAllSitesAccess() || member.getSites().stream()
+                .allMatch(site -> accessibleSiteIds.contains(site.getId()))));
     }
 
     public void notify(Team team, Locale locale) {

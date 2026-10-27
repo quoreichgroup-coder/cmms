@@ -1,6 +1,7 @@
 package com.grash.service;
 
 import com.grash.model.PartTransaction;
+import com.grash.model.User;
 import com.grash.repository.PartTransactionRepository;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +58,17 @@ public class PartTransactionService {
 
     public Page<PartTransaction> findByCompanyForExport(Long companyId, Pageable pageable) {
         return partTransactionRepository.findByCompanyForExport(companyId, pageable);
+    }
+
+    public Page<PartTransaction> findByCompanyForExport(User user, Pageable pageable) {
+        if (user.isAllSitesAccess()) {
+            return findByCompanyForExport(user.getCompany().getId(), pageable);
+        }
+        List<Long> siteIds = user.getSites().stream()
+                .map(site -> site.getId())
+                .toList();
+        if (siteIds.isEmpty()) siteIds = List.of(-1L);
+        return partTransactionRepository.findByCompanyForExportAndAccessibleSites(
+                user.getCompany().getId(), siteIds, pageable);
     }
 }

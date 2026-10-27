@@ -40,7 +40,9 @@ async function performRefresh(): Promise<boolean> {
       clearTokens();
     } else {
       lastRefreshFailureRetryable =
-        response.status === 408 || response.status === 429 || response.status >= 500;
+        response.status === 408 ||
+        response.status === 429 ||
+        response.status >= 500;
     }
     return false;
   }
@@ -112,6 +114,24 @@ async function doFetch<T>(
       }
     }
     if (response.status === 409) {
+      let conflictBody: any;
+      try {
+        conflictBody = await response.clone().json();
+      } catch {
+        conflictBody = undefined;
+      }
+      if (
+        typeof conflictBody?.message === 'string' &&
+        (conflictBody.message.includes(
+          'recorded value, notes, or attachments'
+        ) ||
+          conflictBody.message === 'checklist_in_use')
+      ) {
+        const err = new Error(`Request failed (${response.status})`);
+        (err as any).status = response.status;
+        (err as any).responseBody = conflictBody;
+        throw err;
+      }
       if (onConflictError) onConflictError();
       throw new Error('conflict_error');
     }
@@ -135,6 +155,9 @@ async function doFetch<T>(
     throw err;
   }
   if (options?.raw) return response as unknown as Promise<T>;
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
   const body = await response.json();
   return normalizeStorageUrls(body) as T;
 }

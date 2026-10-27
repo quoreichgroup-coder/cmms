@@ -16,6 +16,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -33,9 +35,12 @@ public class AssetDowntime extends CompanyAudit {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Asset asset;
 
+    @Min(0)
+    @Max(Integer.MAX_VALUE)
     @Schema(description = "Duration of the downtime in seconds")
     private long duration = 0;
 
+    @NotNull
     @Schema(description = "Start date and time of the downtime")
     private Date startsOn;
 

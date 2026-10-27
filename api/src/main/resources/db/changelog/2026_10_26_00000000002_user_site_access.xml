@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_26_user_site_access" author="QPM">
+        <addColumn tableName="own_user">
+            <column name="all_sites_access" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createTable tableName="t_user_site_access">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_site_access"
+                             foreignKeyName="fk_user_site_access_user" references="own_user(id)" deleteCascade="true"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_site_access"
+                             foreignKeyName="fk_user_site_access_site" references="site(id)" deleteCascade="true"/>
+            </column>
+        </createTable>
+        <createIndex tableName="t_user_site_access" indexName="idx_user_site_access_site">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="2026_10_26_invitation_site_access" author="QPM">
+        <addColumn tableName="user_invitation">
+            <column name="all_sites_access" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createTable tableName="t_user_invitation_site_access">
+            <column name="invitation_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_invitation_site_access"
+                             foreignKeyName="fk_invitation_site_access_invitation" references="user_invitation(id)" deleteCascade="true"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_invitation_site_access"
+                             foreignKeyName="fk_invitation_site_access_site" references="site(id)" deleteCascade="true"/>
+            </column>
+        </createTable>
+        <createIndex tableName="t_user_invitation_site_access" indexName="idx_invitation_site_access_site">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

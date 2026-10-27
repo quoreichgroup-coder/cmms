@@ -87,4 +87,10 @@ public class UserResponseDTO {
     private ShiftConfigurationShowDTO shiftConfiguration;
 
     private Language language;
+
+    private boolean allSitesAccess;
+
+    private List<Long> siteIds = new ArrayList<>();
+
+    private List<SiteDTO> sites = new ArrayList<>();
 }

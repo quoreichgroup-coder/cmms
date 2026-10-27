@@ -7,6 +7,7 @@ import com.grash.dto.PurchaseOrderShowDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.PurchaseOrderMapper;
 import com.grash.model.PurchaseOrder;
+import com.grash.model.enums.ApprovalStatus;
 import com.grash.repository.PurchaseOrderRepository;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 
-import java.util.Collection;
 import java.util.Optional;
 
 @Service
@@ -32,6 +32,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrder create(PurchaseOrder purchaseOrder) {
+        // The request body cannot bypass the approval and inventory transaction.
+        purchaseOrder.setStatus(ApprovalStatus.PENDING);
         Sanitizer.sanitizePurchaseOrder(purchaseOrder);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
         em.refresh(savedPurchaseOrder);
@@ -39,37 +41,37 @@ public class PurchaseOrderService {
     }
 
     @Transactional
-    public PurchaseOrder update(Long id, PurchaseOrderPatchDTO purchaseOrder) {
-        if (purchaseOrderRepository.existsById(id)) {
-            PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.findById(id).get();
-            PurchaseOrder updatedPurchaseOrder = purchaseOrderMapper.updatePurchaseOrder(savedPurchaseOrder,
-                    purchaseOrder);
-            Sanitizer.sanitizePurchaseOrder(updatedPurchaseOrder);
-            updatedPurchaseOrder = purchaseOrderRepository.saveAndFlush(updatedPurchaseOrder);
-            em.refresh(updatedPurchaseOrder);
-            return updatedPurchaseOrder;
-        } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
-    }
-
-    public Collection<PurchaseOrder> getAll() {
-        return purchaseOrderRepository.findAll();
-    }
-
-    public void delete(Long id) {
-        purchaseOrderRepository.deleteById(id);
-    }
-
-    public Optional<PurchaseOrder> findById(Long id) {
-        return purchaseOrderRepository.findById(id);
+    public PurchaseOrder update(Long id, Long companyId, PurchaseOrderPatchDTO purchaseOrder) {
+        PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.findByIdForUpdateAndCompany(id, companyId)
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
+            throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
+        }
+        PurchaseOrder updatedPurchaseOrder = purchaseOrderMapper.updatePurchaseOrder(savedPurchaseOrder,
+                purchaseOrder);
+        Sanitizer.sanitizePurchaseOrder(updatedPurchaseOrder);
+        updatedPurchaseOrder = purchaseOrderRepository.saveAndFlush(updatedPurchaseOrder);
+        em.refresh(updatedPurchaseOrder);
+        return updatedPurchaseOrder;
     }
 
     @Transactional
-    public Optional<PurchaseOrder> findByIdForUpdate(Long id) {
-        return purchaseOrderRepository.findByIdForUpdate(id);
+    public void delete(Long id, Long companyId) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdateAndCompany(id, companyId)
+                .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        if (purchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
+            throw new CustomException("Approved purchase orders cannot be deleted", HttpStatus.CONFLICT);
+        }
+        purchaseOrderRepository.delete(purchaseOrder);
     }
 
-    public Collection<PurchaseOrder> findByCompany(Long id) {
-        return purchaseOrderRepository.findByCompany_Id(id);
+    public Optional<PurchaseOrder> findByIdAndCompany_Id(Long id, Long companyId) {
+        return purchaseOrderRepository.findByIdAndCompany_Id(id, companyId);
+    }
+
+    @Transactional
+    public Optional<PurchaseOrder> findByIdForUpdateAndCompany(Long id, Long companyId) {
+        return purchaseOrderRepository.findByIdForUpdateAndCompany(id, companyId);
     }
 
     public PurchaseOrder save(PurchaseOrder purchaseOrder) {

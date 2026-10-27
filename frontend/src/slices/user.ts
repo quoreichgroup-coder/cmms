@@ -235,12 +235,9 @@ export const addUser =
 export const deleteUser =
   (id: number): AppThunk =>
   async (dispatch) => {
-    const userResponse = await api.deletes<{ success: boolean }>(`users/${id}`);
-    const { success } = userResponse;
-    if (success) {
-      dispatch(slice.actions.deleteUser({ id }));
-    }
-    return success;
+    await api.patch<UserResponseDTO>(`users/soft-delete/${id}`, {});
+    dispatch(slice.actions.deleteUser({ id }));
+    return true;
   };
 
 export const inviteUsers =

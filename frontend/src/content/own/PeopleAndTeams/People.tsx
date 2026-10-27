@@ -25,6 +25,7 @@ import { useDispatch, useSelector } from '../../../store';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import {
   clearSingleUser,
+  deleteUser,
   disableUser,
   editUser,
   editUserRole,
@@ -49,6 +50,7 @@ import { onSearchQueryChange } from '../../../utils/overall';
 import SearchInput from '../components/SearchInput';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import ConfirmDialog from '../components/ConfirmDialog';
 import InviteUserDialog from './components/InviteUserDialog';
 import ShiftConfigurationModal from './components/ShiftConfigurationModal';
@@ -81,7 +83,7 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   const [shiftModalUser, setShiftModalUser] = useState<UserResponseDTO>();
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const { peopleId } = useParams();
-  const { hasEditPermission, user } = useAuth();
+  const { hasEditPermission, user: loggedInUser } = useAuth();
   const [enabledOnly, setEnabledOnly] = useState<boolean>(true);
   const { users, loadingGet, singleUser, lastWeekInvitations } = useSelector(
     (state) => state.users
@@ -127,6 +129,7 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
   const [openDisableModal, setOpenDisableModal] = useState<boolean>(false);
   const [openEnableModal, setOpenEnableModal] = useState<boolean>(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
 
   const onQueryChange = (event) => {
     onSearchQueryChange<User>(event, criteria, setCriteria, [
@@ -188,14 +191,40 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
     setDetailDrawerOpen(false);
   };
 
-  const onResendInvites = () => {
-    lastWeekInvitations.forEach((invitation) => {
-      dispatch(inviteUsers(invitation.roleId, [invitation.email], false, true));
-    });
-    showSnackBar(t('users_invite_success'), 'success');
+  const onResendInvites = async () => {
+    try {
+      await Promise.all(
+        lastWeekInvitations.map((invitation) =>
+          dispatch(inviteUsers(invitation.roleId, [invitation.email], false, true))
+        )
+      );
+      showSnackBar(t('users_invite_success'), 'success');
+    } catch {
+      showSnackBar(t('user_action_failed'), 'error');
+    }
   };
 
   const defautfields: Array<IField> = [
+    {
+      name: 'firstName',
+      type: 'text',
+      label: t('first_name')
+    },
+    {
+      name: 'lastName',
+      type: 'text',
+      label: t('last_name')
+    },
+    {
+      name: 'phone',
+      type: 'text',
+      label: t('phone')
+    },
+    {
+      name: 'jobTitle',
+      type: 'text',
+      label: t('job_title')
+    },
     {
       name: 'rate',
       type: 'number',
@@ -219,9 +248,32 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   ];
   const getFields = () => {
     let fields = [...defautfields];
-    if (currentUser?.ownsCompany || currentUser?.id === user?.id) {
+    if (currentUser?.ownsCompany || currentUser?.id === loggedInUser?.id) {
       fields = fields.filter(
         (field) => !['role', 'password'].includes(field.name)
+      );
+    }
+    if (
+      currentUser &&
+      currentUser.id !== loggedInUser?.id &&
+      !currentUser.ownsCompany &&
+      hasEditPermission(PermissionEntity.PEOPLE_AND_TEAMS, currentUser)
+    ) {
+      fields.push(
+        {
+          name: 'allSitesAccess',
+          type: 'switch',
+          label: t('all_sites_access')
+        },
+        {
+          name: 'sites',
+          type: 'select',
+          type2: 'site',
+          multiple: true,
+          label: t('assigned_sites'),
+          placeholder: t('select_sites'),
+          relatedFields: [{ field: 'allSitesAccess', value: true, hide: true }]
+        }
       );
     }
     return fields;
@@ -255,10 +307,16 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
           <Form
             fields={getFields()}
             validation={Yup.object().shape({
+              firstName: Yup.string().trim().required(t('required_field')),
+              lastName: Yup.string().trim().required(t('required_field')),
               password: Yup.string().min(12, t('invalid_password')).nullable()
             })}
             submitText={t('save')}
             values={{
+              firstName: currentUser?.firstName ?? '',
+              lastName: currentUser?.lastName ?? '',
+              phone: currentUser?.phone ?? '',
+              jobTitle: currentUser?.jobTitle ?? '',
               rate: currentUser?.rate,
               role: currentUser
                 ? {
@@ -269,15 +327,36 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
                     value: currentUser.role.id
                   }
                 : null,
+              allSitesAccess: currentUser?.allSitesAccess ?? true,
+              sites: (currentUser?.sites ?? []).map((site) => ({
+                label: `${site.name} (${site.code})`,
+                value: site.id
+              })),
               password: null
             }}
             onChange={({ field, e }) => {}}
             onSubmit={async (values) => {
+              const userPatch = {
+                firstName: values.firstName.trim(),
+                lastName: values.lastName.trim(),
+                rate: values.rate ?? currentUser.rate,
+                phone: values.phone?.trim() ?? '',
+                jobTitle: values.jobTitle?.trim() ?? '',
+                image: currentUser.image,
+                language: currentUser.language,
+                newPassword: values.password ?? null
+              };
               return dispatch(
                 editUser(currentUser.id, {
-                  ...currentUser,
-                  rate: values.rate ?? currentUser.rate,
-                  newPassword: values.password ?? null
+                  ...userPatch,
+                  ...(currentUser.id !== loggedInUser?.id && !currentUser.ownsCompany
+                    ? {
+                        allSitesAccess: Boolean(values.allSitesAccess),
+                        siteIds: values.allSitesAccess
+                          ? []
+                          : (values.sites ?? []).map((site) => Number(site.value))
+                      }
+                    : {})
                 })
               )
                 .then(
@@ -307,9 +386,9 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
   }, [criteria, enabledOnly]);
 
   useEffect(() => {
-    if (user.role.roleType === 'ROLE_CLIENT')
+    if (loggedInUser.role.roleType === 'ROLE_CLIENT')
       dispatch(getLastWeekInvitations());
-  }, [user.role.roleType]);
+  }, [loggedInUser.role.roleType]);
 
   //see changes in ui on edit
   useEffect(() => {
@@ -462,6 +541,18 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
                 }}
               />
             )}
+            {!user.ownsCompany && user.id !== loggedInUser?.id && (
+              <DeleteOutlinedIcon
+                fontSize="small"
+                color="error"
+                sx={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentUser(user);
+                  setOpenDeleteModal(true);
+                }}
+              />
+            )}
           </Stack>
         );
       },
@@ -570,10 +661,12 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
           setOpenDisableModal(false);
         }}
         onConfirm={() => {
-          dispatch(disableUser(currentUser.id)).then(() => {
-            setOpenDisableModal(false);
-            showSnackBar(t('user_disabled_success'), 'success');
-          });
+          dispatch(disableUser(currentUser.id))
+            .then(() => {
+              setOpenDisableModal(false);
+              showSnackBar(t('user_disabled_success'), 'success');
+            })
+            .catch(() => showSnackBar(t('user_action_failed'), 'error'));
         }}
         confirmText={t('disable')}
         question={t('confirm_disable_user', {
@@ -586,13 +679,31 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
           setOpenEnableModal(false);
         }}
         onConfirm={() => {
-          dispatch(enableUser(currentUser.id)).then(() => {
-            setOpenEnableModal(false);
-            showSnackBar(t('operation_success'), 'success');
-          });
+          dispatch(enableUser(currentUser.id))
+            .then(() => {
+              setOpenEnableModal(false);
+              showSnackBar(t('user_enabled_success'), 'success');
+            })
+            .catch(() => showSnackBar(t('user_action_failed'), 'error'));
         }}
         confirmText={t('enable')}
         question={t('confirm_enable_user', {
+          user: `${currentUser?.firstName} ${currentUser?.lastName}`
+        })}
+      />
+      <ConfirmDialog
+        open={openDeleteModal}
+        onCancel={() => setOpenDeleteModal(false)}
+        onConfirm={() => {
+          dispatch(deleteUser(currentUser.id))
+            .then(() => {
+              setOpenDeleteModal(false);
+              showSnackBar(t('user_deleted_success'), 'success');
+            })
+            .catch(() => showSnackBar(t('user_action_failed'), 'error'));
+        }}
+        confirmText={t('to_delete')}
+        question={t('confirm_delete_user', {
           user: `${currentUser?.firstName} ${currentUser?.lastName}`
         })}
       />

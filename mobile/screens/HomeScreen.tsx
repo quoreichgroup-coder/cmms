@@ -31,6 +31,7 @@ import { getUnreadNotificationCount } from '../slices/notification';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { CustomSnackBarContext } from '../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../models/role';
+import { PlanFeature } from '../models/subscriptionPlan';
 import { qpmLayoutTokens, useAppTheme } from '../custom-theme';
 import { useIsFocused } from '@react-navigation/native';
 import {
@@ -57,12 +58,16 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     fetchUserSettings,
     hasViewPermission,
     hasViewOtherPermission,
+    hasFeature,
     patchUserSettings,
     user,
     companySettings
   } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const canViewWorkOrders = hasViewPermission(PermissionEntity.WORK_ORDERS);
+  const canViewMobileOverview =
+    hasViewPermission(PermissionEntity.ANALYTICS) &&
+    hasFeature(PlanFeature.ANALYTICS);
   const canViewOtherWorkOrders = hasViewOtherPermission(
     PermissionEntity.WORK_ORDERS
   );
@@ -96,7 +101,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
     createAsyncActionLock()
   ).current;
   const workOrderScope = getDashboardWorkOrderScope(
-    canViewWorkOrders,
+    canViewWorkOrders && canViewMobileOverview,
     canViewOtherWorkOrders,
     userSettings?.statsForAssignedWorkOrders
   );
@@ -142,15 +147,16 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
 
   const onRefresh = () => {
     void loadUnreadNotificationCount();
-    if (settingsError || !userSettings) {
+    if (canViewMobileOverview && (settingsError || !userSettings)) {
       void loadDashboardSettings();
-    } else if (workOrderScope !== null) {
+    } else if (canViewMobileOverview && workOrderScope !== null) {
       dispatch(getMobileOverviewStats(workOrderScope));
     }
   };
 
   const updateAssignmentPreference = (value: boolean) => {
-    if (!canViewOtherWorkOrders || !userSettings) return;
+    if (!canViewMobileOverview || !canViewOtherWorkOrders || !userSettings)
+      return;
     void saveAssignmentPreference(async () => {
       setSavingAssignmentPreference(true);
       try {
@@ -288,7 +294,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
           onRetry={onRefresh}
         />
       )}
-      {canViewWorkOrders && errors.mobileOverview && (
+      {canViewMobileOverview && errors.mobileOverview && (
         <AsyncStateFeedback
           mode="banner"
           message={t('work_orders_load_error')}
@@ -336,7 +342,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
             ? `${t('good_day')}, ${user.firstName}`
             : t('good_day')}
         </Text>
-        {canViewWorkOrders && (
+        {canViewMobileOverview && (
           <>
             <Text
               variant="bodyMedium"
@@ -401,7 +407,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
             {t('to_scan')}
           </Button>
         )}
-        {canViewWorkOrders && (
+        {canViewMobileOverview && (
           <IconButton
             style={iconButtonStyle}
             icon={'poll'}
@@ -442,7 +448,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
           />
         )}
       </View>
-      {canViewWorkOrders && canViewOtherWorkOrders && (
+      {canViewMobileOverview && canViewWorkOrders && canViewOtherWorkOrders && (
         <View
           style={[
             styles.assignedCard,
@@ -481,7 +487,7 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<'Home'>) {
           </View>
         </View>
       )}
-      {canViewWorkOrders && (
+      {canViewMobileOverview && (
         <>
           <View style={styles.statsHeading}>
             <Text

@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,6 +45,8 @@ class GeneratedDocumentServiceTest {
     @Mock private StorageService storage;
     @Mock private DocumentTemplateRepository templateRepository;
     @Mock private ReportTemplateConfigurationValidator templateValidator;
+    @Mock private PdfmeTemplateConfigurationValidator pdfmeValidator;
+    @Mock private PdfmeRendererClient pdfmeRendererClient;
     @Mock private DocumentDataProviderRegistry providerRegistry;
     @Mock private ConfigurableWorkOrderReportRenderer templateRenderer;
     @Mock private MessageSource messageSource;
@@ -275,7 +278,13 @@ class GeneratedDocumentServiceTest {
         User user = new User(); user.setId(11L); user.setCompany(company); user.setRole(role);
         WorkOrder order = new WorkOrder(); order.setId(42L); order.setCompany(company); order.setCreatedBy(11L);
         var configuration = new com.fasterxml.jackson.databind.ObjectMapper().readTree("""
-                {"documentType":"WORK_ORDER","provider":"WORK_ORDER","visibleFields":["workOrder.title"]}
+                {"schemaVersion":"2.0","documentType":"WORK_ORDER","provider":"WORK_ORDER",
+                 "style":"MODERN","page":{"size":"A4","orientation":"LANDSCAPE","marginMm":10},
+                 "layout":[{"id":"summary","type":"SECTION","title":"Summary","columns":1,
+                   "items":[{"id":"title","type":"FIELD","fieldKey":"workOrder.title","label":"Inspection summary"},
+                            {"id":"operations","type":"TABLE","fieldKey":"workOrder.executionTasks",
+                             "tableColumns":["notes","task"],"columnWidths":[35,65]}]}],
+                 "options":{"showPageNumbers":true,"repeatTableHeader":true}}
                 """);
         DocumentType type = new DocumentType(); type.setCode("WORK_ORDER"); type.setProviderCode("WORK_ORDER");
         DocumentTemplateVersion version = new DocumentTemplateVersion();
@@ -290,12 +299,19 @@ class GeneratedDocumentServiceTest {
         when(templateRepository.findByIdAndCompany_IdAndStatus(9L, 7L, DocumentTemplateStatus.PUBLISHED))
                 .thenReturn(Optional.of(template));
         when(templateValidator.validate(configuration, "WORK_ORDER", "WORK_ORDER")).thenReturn(configuration);
+        when(templateValidator.visibleFields(configuration)).thenReturn(
+                List.of("workOrder.title", "workOrder.executionTasks"));
         DocumentDataProvider provider = mock(DocumentDataProvider.class);
         when(providerRegistry.require("WORK_ORDER")).thenReturn(provider);
-        when(provider.resolve(eq(order), eq(context), anySet())).thenReturn(java.util.Map.of("workOrder.title", "Pump inspection"));
+        when(provider.resolve(eq(order), eq(context), anySet())).thenReturn(java.util.Map.of(
+                "workOrder.title", "Pump inspection",
+                "workOrder.executionTasks", List.of(java.util.Map.of("step", "01", "task", "Inspect bearing",
+                        "result", "PASS", "notes", "Within limits"))));
         when(documentContextResolver.resolve(order)).thenReturn(context);
         when(messageSource.getMessage("report.field.workOrder.title", null, "workOrder.title", java.util.Locale.ENGLISH))
                 .thenReturn("Work Order");
+        when(templateValidator.fieldLabel(configuration, "workOrder.title", "Work Order"))
+                .thenReturn("Inspection summary");
         when(templateRenderer.render(eq(configuration), anyList(), eq(context), isNull(), anyString()))
                 .thenReturn(new byte[]{1, 2, 3});
         when(storageFactory.getStorageService()).thenReturn(storage);
@@ -314,8 +330,14 @@ class GeneratedDocumentServiceTest {
         verify(repository).save(saved.capture());
         assertSame(version, saved.getValue().getTemplateVersionEntity());
         assertTrue(saved.getValue().getRenderSnapshot().contains("Pump inspection"));
-        verify(templateRenderer).render(eq(configuration), argThat(rows -> rows.size() == 1
-                && rows.get(0).label().equals("Work Order") && rows.get(0).value().equals("Pump inspection")),
+        verify(templateRenderer).render(eq(configuration), argThat(blocks -> blocks.size() == 2
+                && blocks.get(0).type().equals("FIELD")
+                && blocks.get(0).row().label().equals("Inspection summary")
+                && blocks.get(0).row().value().equals("Pump inspection")
+                && blocks.get(1).type().equals("TABLE")
+                && blocks.get(1).table().headers().equals(List.of("Notes", "Operation / task"))
+                && blocks.get(1).table().rows().equals(List.of(List.of("Within limits", "Inspect bearing")))
+                && blocks.get(1).table().columnWidths().equals(List.of(35, 65))),
                 eq(context), isNull(), anyString());
     }
 
@@ -344,6 +366,7 @@ class GeneratedDocumentServiceTest {
         when(templateRepository.findByIdAndCompany_IdAndStatus(9L, 7L, DocumentTemplateStatus.PUBLISHED))
                 .thenReturn(Optional.of(template));
         when(templateValidator.validate(configuration, "REQUEST", "REQUEST")).thenReturn(configuration);
+        when(templateValidator.visibleFields(configuration)).thenReturn(List.of("request.title"));
         DocumentDataProvider provider = mock(DocumentDataProvider.class);
         when(providerRegistry.require("REQUEST")).thenReturn(provider);
         when(provider.resolve(eq(request), eq(context), anySet()))

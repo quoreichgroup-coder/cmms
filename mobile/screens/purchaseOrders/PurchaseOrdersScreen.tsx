@@ -26,7 +26,9 @@ const EMPTY_CRITERIA: SearchCriteria = {
   direction: 'DESC'
 };
 
-export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseOrders'>) {
+export default function PurchaseOrdersScreen({
+  navigation
+}: RootStackScreenProps<'PurchaseOrders'>) {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const dispatch = useDispatch();
@@ -134,6 +136,9 @@ export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseO
     return (
       <Card
         mode="outlined"
+        onPress={() =>
+          navigation.navigate('PurchaseOrderDetails', { id: item.id })
+        }
         style={[
           styles.card,
           {
@@ -142,6 +147,7 @@ export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseO
           }
         ]}
         accessibilityLabel={`${item.name}, ${t(item.status.toLowerCase())}`}
+        accessibilityRole="button"
       >
         <Card.Content style={styles.cardContent}>
           <View style={styles.heading}>
@@ -204,6 +210,7 @@ export default function PurchaseOrdersScreen({}: RootStackScreenProps<'PurchaseO
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
                     {t('purchase_order_quantity')}: {line.quantity}
+                    {line.part?.unit ? ` ${line.part.unit}` : ''}
                   </Text>
                 </View>
               ))}

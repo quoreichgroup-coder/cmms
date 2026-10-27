@@ -1,6 +1,7 @@
 const frJSON = {
   show_password: 'Afficher le mot de passe',
   hide_password: 'Masquer le mot de passe',
+  generate_password: 'Générer',
   open_source_notices: 'À propos et licences open source',
   open_source_modified:
     'Cette édition de QPM est modifiée et maintenue par QUOREICH GROUP.',
@@ -476,13 +477,20 @@ const frJSON = {
   close_wo: 'Terminer le bon de travail',
   close: 'Fermer',
   task_update_success: 'Tâche mise à jour avec succès',
+  task_progress: '{{done}} / {{total}} renseignées',
+  no_checklist_tasks: 'Aucune tâche n’est configurée dans cette liste.',
+  view_image: 'Afficher l’image',
   task_update_failure: "La tâche n'a pas pu être mise à jour",
   notes_save_success: 'Notes enregistrées avec succès',
+  notes_save_failure: 'Les notes n’ont pas pu être enregistrées',
   images_add_task_success: 'Les images ont été ajoutées à la tâche',
   images_add_task_failure: "Quelque chose s'est mal passé",
   images: 'Images',
   required_images: 'Veuillez téléverser au moins une image',
   add_images: 'Ajouter des images',
+  attach_images: 'Joindre des images',
+  upgrade_to_attach_images:
+    'Passez à une offre supérieure pour joindre des images',
   tasks: 'Tâches',
   wo_archive_success: 'Le bon de travail a été archivé',
   wo_archive_failure: "Le bon de travail n'a pas pu être archivé",
@@ -744,6 +752,7 @@ const frJSON = {
   create_downtime_success: "Le temps d'arrêt a été ajouté avec succès",
   create_downtime_failure: "Le temps d'arrêt n'a pas pu être ajouté",
   edit_downtime_success: "Le temps d'arrêt a été modifié avec succès",
+  edit_downtime_failure: "Le temps d'arrêt n'a pas pu être modifié",
   downtime_delete_success: "Le temps d'arrêt a été supprimé avec succès",
   downtime_delete_failure: "Le temps d'arrêt n'a pas pu être supprimé",
   started_on: 'A Commencé le',
@@ -923,6 +932,11 @@ const frJSON = {
   po_delete_failure: "Le bon de commande n'a pas pu être supprimé",
   number_of_items: "Nombre d'objets",
   total_quantity: 'Quantité totale',
+  ordered_quantity_by_unit: 'Quantité commandée par unité',
+  unit_unspecified: 'unité non précisée',
+  estimated_total_cost: 'Coût total estimé',
+  purchase_order_cost_estimate_note:
+    'Estimation basée sur les coûts actuels des pièces ; le prix fournisseur peut différer.',
   shipping_to: 'Expédition à',
   shipping_address: 'Adresse de livraison',
   po_details: 'Détails du bon de commande',
@@ -939,6 +953,7 @@ const frJSON = {
   po_date: 'Date du bon de commande',
   notes: 'Remarques',
   add_notes: 'Ajouter des remarques',
+  hide_notes: 'Masquer les notes et pièces jointes',
   requisitioner: 'Demandeur',
   terms: 'Termes',
   shipping_method: 'Mode de livraison',
@@ -962,7 +977,7 @@ const frJSON = {
   purchase_order_approval_confirmation_title:
     "Confirmer l'approbation du bon d'achat",
   purchase_order_approval_confirmation_body:
-    "L'approbation de ce bon d'achat ajoute immédiatement au stock les quantités de toutes ses lignes.",
+    "L'approbation de ce bon ajoute immédiatement au stock les lignes de pièces stockées. Les pièces non stockées ne modifient pas l'inventaire.",
   purchase_order_approval_effect_hint:
     "Dans le fonctionnement actuel, l'approbation ajoute immédiatement au stock toutes les quantités indiquées. La réception partielle n'est pas prise en charge ici.",
   invalid_fax: "Le numéro de fax n'est pas valide",
@@ -1199,6 +1214,29 @@ const frJSON = {
   document_templates_empty_hint:
     'Créez un modèle de rapport pour le proposer lors de l’émission d’un document.',
   document_template_type: 'Type de document',
+  document_type_create: 'Nouveau type de rapport',
+  document_type_manage: 'Gérer les types de rapport',
+  document_type_create_title: 'Créer un type de rapport d’entreprise',
+  document_type_edit_title: 'Modifier le type de rapport',
+  document_type_manage_empty:
+    'Aucun type de rapport personnalisé pour le moment.',
+  document_type_name: 'Nom du type',
+  document_type_name_hint:
+    'Ce nom apparaîtra dans les modèles et les rapports générés.',
+  document_type_source: 'Source des données',
+  document_type_source_hint:
+    'Les champs et les enregistrements viennent de cette source existante. Vous pourrez ensuite personnaliser le modèle.',
+  document_type_created: 'Type de rapport créé.',
+  document_type_updated: 'Type de rapport modifié.',
+  document_type_create_error: 'La création du type de rapport a échoué.',
+  document_type_update_error: 'La modification du type de rapport a échoué.',
+  document_type_deactivate: 'Désactiver le type de rapport',
+  document_type_reactivate: 'Réactiver le type de rapport',
+  document_type_deactivated: 'Type de rapport désactivé.',
+  document_type_reactivated: 'Type de rapport réactivé.',
+  document_type_deactivate_error:
+    'Ce type est utilisé par un modèle. Supprimez ou changez ces modèles avant de le désactiver.',
+  maintenance_request: 'Demande de maintenance',
   document_template_create: 'Créer un modèle',
   document_template_edit: 'Modifier le modèle',
   document_template_copy_name: 'Copie de {{name}}',
@@ -1225,9 +1263,14 @@ const frJSON = {
   document_template_code_hint:
     '2 à 60 lettres, chiffres, tirets ou tirets bas. Ce code ne pourra plus être modifié.',
   document_template_layout: 'Page et mise en page',
+  document_template_editor_sections: 'Sections de l’éditeur de modèle',
+  document_template_section_general: 'Général',
+  document_template_section_page: 'Page',
+  document_template_section_fields: 'Champs et ordre',
   document_template_style: 'Densité',
   document_template_classic: 'Classique',
   document_template_compact: 'Compacte',
+  document_template_modern: 'Moderne',
   document_template_margin: 'Marge',
   document_template_margin_hint: '5–30 mm',
   document_template_margin_error:
@@ -1238,6 +1281,18 @@ const frJSON = {
   document_template_fields: 'Champs du rapport',
   document_template_fields_hint:
     'Sélectionnez au moins un champ pris en charge. Les données sensibles ou non prises en charge ne sont pas proposées.',
+  document_template_field_order: 'Ordre des blocs dans le PDF',
+  document_template_field_order_hint:
+    'Faites glisser les champs et tableaux sélectionnés pour organiser leur ordre dans le document.',
+  document_template_canvas_company_header:
+    'En-tête légal et coordonnées configurés pour l’entreprise',
+  document_template_canvas_work_order_title: 'Rapport d’ordre de travail',
+  document_template_canvas_request_title: 'Rapport de demande de maintenance',
+  document_template_canvas_field_block: 'Champ',
+  document_template_canvas_table_block: 'Tableau',
+  document_template_canvas_custom_label: 'Libellé personnalisé (facultatif)',
+  document_template_canvas_move_up: 'Monter',
+  document_template_canvas_move_down: 'Descendre',
   document_field_workOrder_customId: 'Identifiant de l’ordre de travail',
   document_field_workOrder_title: 'Intitulé de l’ordre de travail',
   document_field_workOrder_description: 'Description',
@@ -1245,11 +1300,17 @@ const frJSON = {
   document_field_workOrder_priority: 'Priorité',
   document_field_workOrder_dueDate: 'Échéance',
   document_field_workOrder_completedAt: 'Terminé le',
+  document_field_workOrder_feedback: 'Notes de fin d’intervention',
+  document_field_workOrder_signature: 'Signature du technicien',
   document_field_workOrder_estimatedDuration: 'Durée estimée',
+  document_field_workOrder_actualDuration: 'Durée réelle enregistrée (h)',
   document_field_workOrder_category: 'Catégorie',
   document_field_workOrder_team: 'Équipe affectée',
   document_field_workOrder_completedBy: 'Terminé par',
   document_field_workOrder_assignedTo: 'Affecté à',
+  document_field_workOrder_executionTasks: 'Opérations et tâches',
+  document_field_workOrder_laborTimeEntries: 'Temps réel / main-d’œuvre',
+  document_field_workOrder_materialsUsed: 'Pièces et matériels utilisés',
   document_field_request_customId: 'Identifiant de la demande',
   document_field_request_title: 'Intitulé de la demande',
   document_field_request_description: 'Description',
@@ -1270,7 +1331,7 @@ const frJSON = {
   document_field_company_taxNumber: 'Numéro fiscal',
   document_field_company_phone: 'Téléphone',
   document_field_company_email: 'E-mail',
-  document_template_fields_error: 'Sélectionnez entre 1 et 23 champs.',
+  document_template_fields_error: 'Sélectionnez entre 1 et 32 champs.',
   document_template_form_error: 'Saisissez un nom et un code de modèle valide.',
   document_template_permission_error:
     'Vous n’avez pas le droit de modifier ce modèle de rapport.',
@@ -1287,6 +1348,13 @@ const frJSON = {
   document_template_archive_title: 'Archiver ce modèle ?',
   document_template_archive_message:
     '« {{name}} » ne sera plus proposé pour les nouveaux rapports. Les documents déjà émis sont conservés.',
+  document_template_deleted:
+    'Le modèle et toutes ses versions ont été supprimés.',
+  document_template_delete_error:
+    'Le modèle ne peut pas être supprimé, car une de ses versions est utilisée par un document émis. Archivez-le pour conserver cet historique.',
+  document_template_delete_title: 'Supprimer définitivement ce modèle ?',
+  document_template_delete_message:
+    '« {{name}} », ses versions publiées et ses brouillons seront supprimés définitivement si aucun document émis ne les utilise. Cette action est irréversible.',
   document_template_default: 'Par défaut',
   document_template_publish_default: 'Publier par défaut',
   document_template_status_draft: 'Brouillon',
@@ -1294,6 +1362,155 @@ const frJSON = {
   document_template_status_archived: 'Archivé',
   document_template_version_draft: 'Brouillon',
   document_template_version_published: 'Publié',
+  document_designer_open: 'Designer',
+  document_designer_start_title: 'Commencer un modèle de document',
+  document_designer_start_hint:
+    'Créez une mise en page vide ou partez d’un modèle existant. Dans les deux cas, vous obtiendrez un nouveau brouillon modifiable.',
+  document_designer_start_blank: 'Partir de zéro',
+  document_designer_start_blank_hint:
+    'Ouvrez un canevas vide, puis ajoutez les champs, tableaux et sections dont vous avez besoin.',
+  document_designer_create_blank: 'Créer le canevas vierge',
+  document_designer_blank_name: 'Fiche de travail',
+  document_designer_blank_created: 'Brouillon vierge créé.',
+  document_designer_work_order_section: 'Ordre de travail',
+  document_designer_start_existing: 'Partir d’un modèle existant',
+  document_designer_start_existing_hint:
+    'Le modèle sélectionné sera copié dans un nouveau brouillon. La version source reste intacte.',
+  document_designer_use_template: 'Utiliser comme base',
+  document_designer_no_start_templates:
+    'Aucun modèle d’ordre de travail disponible comme point de départ.',
+  document_designer_basic_create: 'Créer un modèle avec l’éditeur standard',
+  document_designer_search_fields: 'Rechercher un champ ou un tableau',
+  document_designer_no_fields_found:
+    'Aucun champ ne correspond à cette recherche.',
+  document_designer_remove_component: 'Retirer ce bloc du document',
+  document_designer_blank_canvas_hint:
+    'Canevas vierge : recherchez un champ à gauche et sélectionnez-le pour l’ajouter. Sélectionnez ensuite un bloc pour modifier son libellé et son style.',
+  document_designer_return_to_editor: 'Revenir à la mise en page',
+  document_designer_pdf_read_only:
+    'Le PDF est le rendu généré par le serveur et ne se modifie pas directement. Revenez à la mise en page pour éditer le modèle.',
+  document_designer_pdf_ready: 'Aperçu PDF généré',
+  document_designer_pdf_open_hint:
+    'Le navigateur bloque parfois les PDF intégrés dans l’éditeur. Ouvrez le document dans un onglet séparé ou téléchargez-le.',
+  document_designer_open_pdf: 'Ouvrir le PDF',
+  document_designer_load_error:
+    'Le designer de document n’a pas pu être chargé.',
+  document_designer_saved: 'Brouillon du document enregistré.',
+  document_designer_saved_state: 'Enregistré',
+  document_designer_unsaved: 'Modifications non enregistrées',
+  document_designer_leave_title: 'Quitter le concepteur de document ?',
+  document_designer_leave_body:
+    'Vos modifications ne sont pas enregistrées. Vous pouvez les enregistrer, les abandonner ou continuer à modifier le rapport.',
+  document_designer_save_leave: 'Enregistrer et quitter',
+  document_designer_discard_leave: 'Abandonner et quitter',
+  document_designer_changed_during_save:
+    'La mise en page a changé pendant l’enregistrement. Enregistrez les dernières modifications avant de quitter ou de publier.',
+  document_designer_library: 'Composants et champs',
+  document_designer_fields:
+    'Glissez un champ dans une section ou sélectionnez-le pour l’ajouter.',
+  document_designer_structure: 'Structure du document',
+  document_designer_add_section: 'Ajouter une section',
+  document_designer_new_section: 'Nouvelle section',
+  document_designer_canvas: 'Composition A4',
+  document_designer_canvas_hint:
+    'Canevas éditable : les libellés, valeurs, lignes de tableau et pied de page sont représentés séparément. Les valeurs sont des exemples.',
+  document_designer_layout_view: 'Éditeur de mise en page',
+  document_designer_pdf_view: 'PDF généré',
+  document_designer_generate_preview: 'Générer l’aperçu PDF',
+  document_designer_pdf_output: 'Sortie PDF générée par le serveur',
+  document_designer_pdf_output_hint:
+    'Ce document reflète le dernier brouillon enregistré au moment de sa génération.',
+  document_designer_sample_data: 'Données d’exemple',
+  document_designer_pdf_outdated:
+    'Le brouillon a changé depuis la génération de ce PDF. Régénérez l’aperçu pour voir les dernières modifications.',
+  document_designer_company_header: 'En-tête et identité de l’entreprise',
+  document_designer_company_identity_bound:
+    'Identité de l’entreprise configurée',
+  document_designer_legal_fields_bound:
+    'Adresse · immatriculation · informations fiscales',
+  document_designer_values_loaded_in_pdf:
+    'Les vraies données WO sont chargées dans l’aperçu PDF',
+  document_designer_columns: 'Colonnes',
+  document_designer_page_break_before:
+    'Commencer cette section sur une nouvelle page',
+  document_designer_keep_section_together:
+    'Garder cette section ensemble si possible',
+  document_designer_keep_section_help:
+    'Évite de couper cette section entre deux pages. Un contenu très long peut continuer sur la page suivante.',
+  document_designer_keep_section_table_help:
+    'Les sections avec tableaux peuvent continuer sur plusieurs pages pour conserver des lignes et des en-têtes lisibles.',
+  document_designer_hide_if_empty: 'Masquer ce champ si sa valeur est vide',
+  document_designer_full_width: 'Utiliser toute la largeur de la section',
+  document_designer_drop_hint: 'Déposez les champs ou tableaux ici',
+  document_designer_signature_areas:
+    'Zones de signature technicien et superviseur',
+  document_designer_footer: 'Pied de page QPM',
+  document_designer_footer_copy:
+    'Document généré par QPM · Les valeurs imprimées proviennent du dossier de maintenance.',
+  document_designer_page_number_sample: 'Page 1 sur 2',
+  document_designer_sample_value: 'Valeur d’exemple',
+  document_designer_sample_operation: 'Opération',
+  document_designer_sample_status: 'Statut',
+  document_designer_sample_assignee: 'Exécutant',
+  document_designer_sample_technician: 'Technicien',
+  document_designer_sample_planned: 'Prévu',
+  document_designer_sample_actual: 'Réel',
+  document_designer_sample_reference: 'Référence',
+  document_designer_sample_description: 'Désignation',
+  document_designer_sample_quantity: 'Quantité',
+  document_designer_properties: 'Propriétés',
+  document_designer_use_custom_accent: 'Personnaliser la couleur du document',
+  document_designer_accent_color: 'Couleur d’accent du document',
+  document_designer_accent_contrast_hint:
+    'Le contraste sur blanc doit atteindre 4,5:1 ; sinon le serveur refuse le brouillon.',
+  document_designer_font_size: 'Taille de police (pt)',
+  document_designer_alignment: 'Alignement',
+  document_designer_align_left: 'À gauche',
+  document_designer_align_center: 'Centré',
+  document_designer_align_right: 'À droite',
+  document_designer_bold: 'Gras',
+  document_designer_tone: 'Couleur du texte',
+  document_designer_tone_default: 'Par défaut',
+  document_designer_tone_accent: 'Accent de l’entreprise',
+  document_designer_technician_signature: 'Signature du technicien',
+  document_designer_supervisor_signature: 'Signature du superviseur',
+  document_designer_table_title: 'Titre du tableau',
+  document_designer_column_widths: 'Largeur des colonnes',
+  document_designer_columns_to_print: 'Colonnes à imprimer',
+  document_designer_move_column_up: 'Monter {{column}}',
+  document_designer_move_column_down: 'Descendre {{column}}',
+  document_designer_column_width_percent: 'Largeur en pourcentage : {{column}}',
+  document_designer_column_widths_help:
+    'Chaque colonne reste entre 10 % et 70 % ; une seule colonne utilise 100 %. Modifier une largeur redistribue l’espace restant.',
+  document_designer_column_number: 'N°',
+  document_designer_column_result: 'Résultat',
+  document_designer_column_notes: 'Notes',
+  document_designer_column_activity: 'Activité',
+  document_designer_column_started: 'Début',
+  document_designer_column_time: 'Temps',
+  document_designer_column_entry_status: 'État de saisie',
+  document_designer_column_part: 'Pièce',
+  document_designer_column_unit: 'Unité',
+  document_designer_field_label: 'Libellé imprimé',
+  document_designer_section_title: 'Titre de la section',
+  document_designer_style: 'Style du document',
+  document_designer_page_size: 'Format de page',
+  document_designer_orientation: 'Orientation',
+  document_designer_margin: 'Marge (mm)',
+  document_designer_undo: 'Annuler',
+  document_designer_redo: 'Rétablir',
+  document_designer_move_up: 'Monter',
+  document_designer_move_down: 'Descendre',
+  document_designer_move_section_up: 'Monter la section',
+  document_designer_move_section_down: 'Descendre la section',
+  document_designer_preview: 'Aperçu du PDF réel',
+  document_designer_return_to_canvas: 'Revenir au canevas de mise en page',
+  document_designer_work_order_id: 'Identifiant WO autorisé',
+  document_designer_preview_hint:
+    'Le serveur vérifie que vous avez accès à cet ordre de travail.',
+  document_designer_publish_title: 'Publier cette version du document ?',
+  document_designer_publish_body:
+    'La version publiée devient immuable. Toute modification future crée un nouveau brouillon.',
   request_form_configuration: 'Configuration du formulaire de demande',
   roles: 'Rôles',
   checklists: 'Checklists',
@@ -1387,16 +1604,34 @@ const frJSON = {
     'La liste « {{name}} » a été enregistrée avec {{taskCount}} tâche(s). Elles sont dans le formulaire du PM; enregistrez le PM pour conserver son affectation.',
   checklist_delete_success: 'La Checklist a été supprimée avec succès',
   checklist_delete_failure: "La Checklist n'a pas pu être supprimée",
+  checklist_delete_in_use:
+    'Cette liste est utilisée par un workflow d’automatisation. Retirez-la ou remplacez-la dans ce workflow avant de supprimer la liste.',
+  delete_task_list: 'Supprimer la liste de tâches',
   create_checklist: 'Créer une Checklist',
   view_task_list_library: 'Consulter les listes de tâches',
   task_list_library_help:
     'Bibliothèque des listes réutilisables. Sélectionnez une ligne pour consulter ses tâches ; utilisez le bouton Modifier pour changer la liste.',
+  task_list_library_load_error:
+    'Impossible de charger les listes de tâches. Vérifiez votre connexion puis réessayez.',
+  task_list_library_loading: 'Chargement des listes de tâches enregistrées…',
+  task_reference_unavailable:
+    'Une des personnes, un des équipements ou un des compteurs sélectionnés n’est plus disponible. Vérifiez les affectations de la tâche puis réessayez.',
   view_task_list: 'Consulter la liste',
   edit_task_list: 'Modifier la liste',
   task_count: '{{count}} tâche(s)',
   task_list_empty: 'Cette liste ne contient aucune tâche.',
+  task_list_empty_title: 'Aucune liste réutilisable pour le moment',
+  task_list_none_available: 'Aucune liste réutilisable n’est disponible.',
+  task_list_empty_library_help:
+    'Créez une liste d’opérations réutilisable pour ajouter les mêmes étapes d’inspection aux ordres de travail ou aux plans de maintenance préventive.',
+  confirm_delete_checklist_named:
+    'Supprimer « {{name}} » ? La liste réutilisable sera supprimée. Les ordres de travail déjà créés conservent leurs données d’exécution. Une liste utilisée par un workflow d’automatisation ne peut pas être supprimée avant d’en être retirée ou remplacée.',
   task_list_header_help:
     'En-tête de la liste : nom, description et catégorie. Les tâches ci-dessous forment les opérations, numérotées par pas de 10 et réordonnables.',
+  work_order_task_evidence_edit_help:
+    'Les résultats, notes et photos enregistrés sont conservés lors de la modification d’une étape. Une étape avec des données d’exécution ne peut pas être supprimée.',
+  work_order_task_evidence_conflict:
+    'Cette étape contient des données d’exécution et a été conservée dans l’ordre de travail. Aucune de vos modifications n’a été enregistrée.',
   add_task_list_operation: 'Ajouter une opération',
   task_list_requires_operation:
     'Ajoutez au moins une opération à cette liste avant de l’enregistrer.',
@@ -1433,6 +1668,16 @@ const frJSON = {
   pm_plan_mode_single: 'Plan standard',
   pm_plan_mode_strategy: 'Stratégie avec packages de tâches',
   pm_plan_mode_multi_counter: 'Plan multi-compteurs',
+  pm_plan_mode_single_help:
+    'Utilisez une fréquence récurrente et sa liste standard de tâches.',
+  pm_plan_mode_strategy_help:
+    'Créez des packages de tâches déclenchés à différents multiples de la fréquence de base.',
+  pm_plan_mode_multi_counter_help:
+    'Combinez plusieurs cycles de compteur avec une règle OU ou ET.',
+  pm_switch_mode_warning:
+    'Le changement de type de plan supprimera les packages ou cycles compteur configurés. Confirmez seulement si vous souhaitez abandonner cette configuration.',
+  pm_plan_task_assignment_missing:
+    'Un package ou cycle compteur référence un modèle de tâche absent de ce plan. Ajoutez de nouveau ce modèle ou retirez son affectation avant d’enregistrer.',
   pm_plan_single_help:
     'Le plan crée les ordres selon la récurrence et la liste de tâches configurées ci-dessus.',
   pm_strategy_editor_help:
@@ -1779,6 +2024,8 @@ const frJSON = {
   day: 'Jour',
   agenda: 'Agenda',
   previous: 'Précédent',
+  previous_week: 'Semaine précédente',
+  next_week: 'Semaine suivante',
   today: "Aujourd'hui",
   to_filter: 'Filtrer',
   'noRows.asset.message':
@@ -1903,6 +2150,10 @@ const frJSON = {
   REQUEST_REJECTED: 'Une demande est rejetée',
   PURCHASE_ORDER_CREATED: 'Un bon de commande est créé',
   PURCHASE_ORDER_UPDATED: 'Un bon de commande est mis à jour',
+  workflow_purchase_orders_disabled:
+    'Ce workflow utilise les bons de commande. Activez le module Achats pour le modifier.',
+  workflow_purchase_order_action_unavailable:
+    'Cette action de workflow d’approvisionnement n’est pas encore disponible. Vous pouvez supprimer ce workflow.',
   TASK_UPDATED: 'Une tâche est mise à jour',
   PART_UPDATED: 'Une pièce est mise à jour',
   add_condition: 'Ajouter une condition',
@@ -1945,6 +2196,7 @@ const frJSON = {
   trigger_configuration: 'Configuration du déclencheur',
   pm_call_register: 'Registre des appels préventifs',
   pm_call_due_date: 'Occurrence prévue',
+  pm_call_original_due_date: '(initialement {{date}})',
   pm_call_rescheduled: 'Reporté',
   pm_call_reschedule: 'Reporter',
   pm_call_reschedule_title: 'Reporter l’appel de maintenance',
@@ -2025,6 +2277,11 @@ const frJSON = {
   put_location_in_map: "Placer l'emplacement sur une carte",
   confirm_disable_user: 'Etes-vous sûr de désactiver {{user}}?',
   user_disabled_success: 'Utilisateur désactivé',
+  user_enabled_success: 'Utilisateur activé',
+  user_action_failed: "L'action sur l'utilisateur a échoué",
+  user_deleted_success: 'Utilisateur supprimé',
+  confirm_delete_user:
+    'Supprimer {{user}} ? Le compte sera désactivé et retiré de la liste des utilisateurs actifs.',
   disable: 'Désactiver',
   confirm_enable_user: "Etes-vous sûr d'activer {{user}}?",
   enable: 'Activer',
@@ -2606,6 +2863,7 @@ const frJSON = {
     "Cela révoquera la clé actuelle et en générera une nouvelle. L'ancienne clé cessera de fonctionner immédiatement.",
   api_key_rotated_success: 'Clé API générée avec succès',
   active: 'Actif',
+  inactive: 'Inactif',
   expired: 'Expiré',
   revoked: 'Révoqué',
   upgrade_api:
@@ -2753,9 +3011,21 @@ const frJSON = {
   reset: 'Réinitialiser',
   confirm_delete_row: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
   scheduled: 'Planifié',
-  customize_shift: 'Personnaliser le quart de travail',
+  customize_shift: 'Capacité individuelle',
+  capacity_enabled_state: 'Capacité activée',
+  capacity_enabled: 'Activer le calendrier de capacité',
+  capacity_schedule_disabled_help:
+    'Ce calendrier de capacité est désactivé. Aucune disponibilité ne sera comptabilisée tant qu’il ne sera pas activé.',
+  capacity_not_configured_help:
+    'Aucune disponibilité hebdomadaire n’est configurée. Cette personne compte actuellement pour 0 minute de capacité; définissez ses jours disponibles puis enregistrez pour l’inclure.',
+  capacity_available: 'disponible',
+  work_start_time: 'Début du travail',
+  clear_capacity_override: 'Revenir au défaut',
+  saving: 'Enregistrement…',
+  shift_capacity_save_error:
+    'Impossible d’enregistrer la capacité individuelle.',
   shift_capacity_not_roster:
-    'Ce réglage décrit les disponibilités et la capacité de charge d’une personne. Il ne constitue pas un planning d’équipe publié ni une affectation de quart confirmée.',
+    'Ce réglage décrit les disponibilités et la capacité de charge d’une personne, pas un planning d’équipe publié ni une affectation de quart confirmée. Chaque journée est traitée comme une plage continue à partir de l’heure de début pour la durée configurée; les pauses et les plages fractionnées ne sont pas modélisées.',
   default_schedule: 'Horaire par défaut',
   custom_capacity_by_week: 'Capacité personnalisée par semaine',
   total_weekly_capacity: 'Capacité hebdomadaire totale {{hours}}h {{minutes}}m',
@@ -2775,13 +3045,26 @@ const frJSON = {
   total_resource_capacity: 'Capacité totale des ressources',
   capacity_utilization_unavailable:
     'Utilisation indisponible car la capacité est nulle',
+  capacity_zero_day: 'Aucune capacité définie',
+  capacity_not_configured_short: 'Non configurée',
+  capacity_disabled_short: 'Capacité désactivée',
+  capacity_day_not_scheduled: 'Jour non travaillé',
+  capacity_day_not_scheduled_help:
+    'Aucune heure de travail n’est configurée pour cette date.',
+  capacity_day_not_configured_short: 'Jour non configuré',
+  capacity_day_not_configured_help:
+    'Aucune disponibilité hebdomadaire n’est définie pour ce jour.',
+  workday_start_caption: 'Début à {{time}}',
+  workday_window_caption: '{{start}}–{{end}}{{nextDay}}',
+  workday_next_day_suffix: ' (+1 jour)',
+  capacity_end_by_midnight: 'La capacité ne peut pas dépasser minuit.',
   unscheduled_work_orders: 'Ordres de travail non planifiés',
   user_capacity: 'Capacité utilisateur',
   overdue: 'En retard',
   due_soon: 'Échéance proche',
   all_users: 'Tous les utilisateurs',
   team_member: "Membre de l'équipe",
-  workload_edit_shift_aria: 'Modifier le planning de {{user}}',
+  workload_edit_shift_aria: 'Modifier la capacité individuelle de {{user}}',
   workload_open_order_aria: 'Ouvrir {{customId}} : {{title}}',
   no_data: 'Aucune donnée',
   hours_left: 'restantes',
@@ -2889,6 +3172,9 @@ const frJSON = {
   sites_delete_error: 'Impossible de supprimer le site.',
   site_delete_confirm: 'Supprimer le site {{name}} ?',
   site: 'Site',
+  all_sites_access: 'Accès à tous les sites',
+  assigned_sites: 'Sites autorisés',
+  select_sites: 'Sélectionner un ou plusieurs sites',
   select_site: 'Sélectionner un site',
   company_license: 'Licence',
   subscription_plan: 'Abonnement',
@@ -2969,7 +3255,54 @@ const frJSON = {
   maintenance_dashboard_subtitle:
     'Performance opérationnelle basée sur les statistiques OT disponibles.',
   current_iso_week: 'Semaine ISO en cours',
+  current_month: 'Depuis le début du mois',
+  capacity_planned_vs_allocated: 'Capacité disponible et travail planifié',
+  capacity_chart_period_subtitle:
+    'Capacité quotidienne de l’équipe et travail planifié sur la période sélectionnée, en heures',
+  capacity_chart_week_subtitle:
+    'Capacité et travail planifié jour par jour cette semaine, en heures.',
+  capacity_chart_month_subtitle:
+    'Totaux hebdomadaires du début du mois jusqu’à aujourd’hui, en heures. La semaine en cours peut être partielle.',
+  capacity_analytics_subtitle:
+    'Comparez les heures disponibles de l’équipe au travail affecté au planning sur les 30 derniers jours.',
+  capacity_analytics_access_required:
+    'Le droit Resource Planning ainsi que les permissions nécessaires sur les OT et les équipes sont requis pour consulter ces statistiques.',
+  capacity_analytics_data_note:
+    'La capacité et les durées planifiées proviennent de l’API Resource Planning et reflètent les horaires et affectations actuels. Il s’agit du planning actuel, pas d’un historique figé.',
+  capacity_chart_accessible_summary:
+    '{{periods}} périodes affichées. {{capacity}} heures de capacité disponible, {{allocated}} heures de travail affecté et {{peak}} % d’utilisation maximale.',
+  available_capacity_hours: 'Capacité disponible (heures)',
+  allocated_work_hours: 'Travail affecté (heures)',
+  capacity_utilization_percent: 'Capacité utilisée (%)',
+  open_capacity_analytics: 'Ouvrir les statistiques de capacité',
+  preventive_maintenance_analytics: 'Maintenance préventive',
+  preventive_maintenance_analytics_subtitle:
+    'Consultez les appels de maintenance arrivés à échéance et terminés sur les 30 derniers jours.',
+  preventive_maintenance_analytics_access_required:
+    'Le droit Maintenance préventive et la permission correspondante sont requis pour consulter ces statistiques.',
+  preventive_maintenance_calls_by_status:
+    'Appels de maintenance préventive par statut',
+  preventive_maintenance_calls_period_subtitle:
+    'Appels calendaires et compteurs regroupés par statut sur la période sélectionnée.',
+  preventive_maintenance_calls_accessible_summary:
+    '{{total}} appels de maintenance préventive sont représentés. Répartition par statut : {{statuses}}.',
+  preventive_maintenance_analytics_data_note:
+    'Chaque occurrence est comptée une fois selon son échéance effective. Les occurrences replanifiées utilisent leur nouvelle date. Les appels compteur sont inclus uniquement si la fonction Compteurs est activée.',
+  calendar_trigger: 'Calendrier',
+  meter_trigger: 'Compteur',
+  PLANNED: 'Planifié',
+  DUE: 'À échéance',
+  RESCHEDULED: 'Replanifié',
+  GENERATED: 'Ordre généré',
+  COMPLETED: 'Terminé',
+  IGNORED: 'Ignoré',
   last_30_days: '30 derniers jours',
+  analytics_period: 'Période',
+  analytics_last_days: '{{count}} derniers jours',
+  analytics_grouping: 'Regrouper les résultats par',
+  analytics_group_day: 'Jour',
+  analytics_group_week: 'Semaine',
+  analytics_group_month: 'Mois',
   dashboard_data_scoped_to_permissions:
     'Les résultats respectent vos droits et l’entreprise sélectionnée.',
   work_orders_in_period: 'Ordres de travail sur la période',
@@ -3008,7 +3341,308 @@ const frJSON = {
   critical: 'plus de 30 jours',
   attention: '8 à 30 jours',
   within_target: '0 à 7 jours',
-  open_work_order_analytics: 'Ouvrir les statistiques OT'
+  open_work_order_analytics: 'Ouvrir les statistiques OT',
+  document_designer_pdfme_subtitle: 'Concepteur visuel de documents OT',
+  document_designer_pdfme_notice:
+    'Ajoutez des composants depuis le panneau gauche, modifiez directement la page A4 et réglez le composant sélectionné dans le panneau des propriétés. Les valeurs sur le canevas sont des exemples ; l’aperçu PDF utilise les données autorisées de l’OT.',
+  document_designer_preview_pdf: 'Aperçu PDF d’un OT autorisé',
+  document_designer_preview_panel_title: 'Aperçu avec un ordre de travail',
+  document_designer_preview_id_help:
+    'Saisissez l’ID numérique ou le numéro visible (par exemple WO000021) d’un ordre de travail consultable. L’aperçu enregistre d’abord vos modifications dans le brouillon.',
+  document_designer_preview_id_invalid:
+    'La référence de l’ordre de travail ne doit pas dépasser 100 caractères.',
+  document_designer_preview_order_not_found:
+    'Aucun ordre de travail accessible ne correspond exactement à ce numéro. Vérifiez le numéro visible ou l’ID numérique.',
+  document_page_orientation: 'Orientation de la page',
+  document_page_orientation_portrait: 'Portrait',
+  document_page_orientation_landscape: 'Paysage',
+  document_page_orientation_help:
+    'Le changement d’orientation redimensionne la mise en page existante pour l’adapter au format.',
+  document_designer_preview_generate: 'Générer l’aperçu PDF',
+  document_designer_preview_authorized_help:
+    'Saisissez l’identifiant d’un OT auquel vous avez accès. QPM génère l’aperçu avec cet OT et la dernière version enregistrée du modèle.',
+  document_designer_field_reference: 'Champs de données disponibles',
+  document_designer_field_reference_hint:
+    'Référence facultative si vous avez besoin du nom exact d’un champ.',
+  document_template_unsaved_changes: 'Modifications non enregistrées',
+  document_template_all_changes_saved: 'Modifications enregistrées',
+  document_template_save_draft: 'Enregistrer le brouillon',
+  pdfme_work_orders_only:
+    'Le concepteur PDFME est actuellement réservé aux modèles d’ordres de travail.',
+  document_designer_binding_help:
+    'Pour afficher les données QPM, utilisez exactement ces noms de champ : workOrder.customId, workOrder.title, workOrder.description, workOrder.status, workOrder.priority, workOrder.dueDate, workOrder.estimatedDuration, workOrder.assignedTo, workOrder.team, workOrder.completedBy, workOrder.feedback, workOrder.signature, workOrder.customFields, workOrder.files, workOrder.comments, workOrder.history, workOrder.relations, company.logo, company.name, company.legalName, company.registeredAddress, company.registrationNumber, company.taxNumber, company.phone, company.email, asset.name, asset.serialNumber, location.name, site.name. Tables : workOrder.executionTasks, workOrder.laborTimeEntries, workOrder.materialsUsed. Les noms static: servent au contenu propre au modèle.',
+  document_designer_upload_font: 'Importer une police de secours',
+  document_designer_font_help:
+    'TTF ou OTF facultatif, jusqu’à 512 Ko. La police est enregistrée dans ce modèle.',
+  document_designer_font_installed:
+    'La police de secours personnalisée est enregistrée dans ce brouillon.',
+  document_designer_font_added: 'Police de secours ajoutée au brouillon.',
+  document_designer_font_invalid:
+    'Choisissez une police TTF ou OTF valide de moins de 512 Ko.',
+  document_designer_remove_font: 'Supprimer la police personnalisée',
+  document_designer_components: 'Ajouter un composant',
+  document_designer_template_options: 'Paramètres du modèle',
+  document_workspace_panels: 'Panneaux de l’espace de conception',
+  document_inspector_title: 'Propriétés',
+  document_inspector_empty:
+    'Sélectionnez un composant ou un champ sur le canevas ou dans l’arborescence pour modifier ses réglages ici.',
+  document_inspector_clear_selection: 'Effacer la sélection',
+  document_component_search: 'Rechercher un composant ou un champ',
+  document_component_search_empty:
+    'Aucun composant ou champ ne correspond à cette recherche.',
+  document_component_remove_button: 'Supprimer le composant',
+  document_component_duplicate_button: 'Dupliquer le bloc texte',
+  document_component_duplicated:
+    'Bloc texte dupliqué sous le contenu existant.',
+  document_component_duplicate_no_space:
+    'Il n’y a pas assez de place sur cette page pour dupliquer ce bloc.',
+  document_component_remove_title: 'Supprimer ce composant ?',
+  document_component_remove_help:
+    'Tous les champs et tableaux du composant seront retirés du brouillon courant. Le changement ne sera conservé qu’après l’enregistrement du brouillon.',
+  document_component_remove_confirm: 'Supprimer le composant',
+  document_component_removed: 'Composant retiré du brouillon.',
+  document_component_group_work_order: 'Ordre de travail et intervenants',
+  document_component_group_execution: 'Exécution et clôture',
+  document_component_group_context:
+    'Historique et informations complémentaires',
+  document_component_group_custom: 'Contenu personnalisé',
+  document_component_group_repeated: 'Zones répétées sur les pages',
+  document_component_page_header: 'En-tête de page',
+  document_component_page_footer: 'Pied de page',
+  document_component_summary: 'Résumé de l’ordre de travail',
+  document_component_tasks: 'Tableau des tâches exécutées',
+  document_component_labor: 'Tableau des temps de travail',
+  document_component_materials: 'Tableau des matériels utilisés',
+  document_component_people: 'Responsables, techniciens et clients',
+  document_component_comments: 'Commentaires de l’ordre de travail',
+  document_component_history: 'Historique de l’ordre de travail',
+  document_component_relations: 'Ordres de travail associés',
+  document_component_drag_help:
+    'Glissez un bloc sur le canevas ou cliquez pour l’insérer, puis déplacez le bloc sélectionné.',
+  document_component_custom_fields: 'Champs personnalisés',
+  document_component_text_block: 'Texte libre',
+  document_component_text_block_default: 'Saisissez votre texte ici',
+  document_component_text_block_added:
+    'Texte libre ajouté. Remplacez le texte indicatif directement sur le canevas.',
+  document_component_attachments: 'Pièces jointes',
+  document_component_signoff: 'Validation du technicien',
+  document_pdfme_job_card_title: 'FICHE\nDE MAINTENANCE',
+  document_pdfme_registered_address: 'ADRESSE OFFICIELLE',
+  document_pdfme_registration_number: 'N° D’IMMATRICULATION',
+  document_pdfme_tax_number: 'N° FISCAL',
+  document_pdfme_work_order: 'ORDRE DE TRAVAIL',
+  document_pdfme_status: 'STATUT',
+  document_pdfme_priority: 'PRIORITÉ',
+  document_pdfme_equipment: 'ÉQUIPEMENT',
+  document_pdfme_serial_number: 'N° DE SÉRIE',
+  document_pdfme_location: 'EMPLACEMENT FONCTIONNEL',
+  document_pdfme_site: 'SITE',
+  document_pdfme_scheduled_due: 'PLANIFICATION / ÉCHÉANCE',
+  document_pdfme_estimated_hours: 'HEURES ESTIMÉES',
+  document_pdfme_assigned_team: 'TECHNICIENS / ÉQUIPE AFFECTÉS',
+  document_pdfme_maintenance_description: 'DESCRIPTION DE LA MAINTENANCE',
+  document_pdfme_execution_tasks: 'OPÉRATIONS / TÂCHES EXÉCUTÉES',
+  document_pdfme_labor_title: 'MAIN-D’ŒUVRE PRÉVUE ET RÉELLE',
+  document_pdfme_labor_entries: 'ENTRÉES DE TEMPS ENREGISTRÉES',
+  document_pdfme_materials_title: 'MATÉRIELS ET PIÈCES DE RECHANGE',
+  document_pdfme_materials_used: 'MATÉRIELS UTILISÉS POUR CET ORDRE',
+  document_pdfme_closeout_title: 'SÉCURITÉ, NOTES D’EXÉCUTION ET VALIDATION',
+  document_pdfme_safety_instructions: 'CONSIGNES DE SÉCURITÉ DU SITE',
+  document_pdfme_execution_notes: 'NOTES D’EXÉCUTION / RETOUR',
+  document_pdfme_completed_by: 'INTERVENTION TERMINÉE PAR',
+  document_pdfme_technician_signature: 'SIGNATURE DU TECHNICIEN',
+  document_pdfme_supervisor_approval: 'APPROBATION / SIGNATURE DU RESPONSABLE',
+  document_pdfme_page: 'Page',
+  document_pdfme_primary_user: 'Responsable principal',
+  document_pdfme_customers: 'Clients associés',
+  document_pdfme_created_by: 'Créé par',
+  document_data_provenance_title: 'Source et relation des données',
+  document_data_provenance_binding: 'Liaison',
+  document_data_source_static:
+    'Contenu statique du modèle (sans liaison de données)',
+  document_data_source_company:
+    'Entreprise propriétaire de l’ordre de travail sélectionné',
+  document_data_source_asset: 'Équipement lié à l’ordre de travail sélectionné',
+  document_data_source_location:
+    'Emplacement lié à l’ordre de travail sélectionné',
+  document_data_source_site:
+    'Contexte du site de l’ordre de travail sélectionné',
+  document_data_source_relations:
+    'Ordres de travail liés à l’ordre sélectionné',
+  document_data_source_workOrder:
+    'Ordre de travail sélectionné et enregistrements associés',
+  document_data_relation_static:
+    'Ce contenu est enregistré dans le modèle et ne lit aucune donnée d’ordre de travail.',
+  document_data_relation_company:
+    'Les données d’entreprise viennent de celle de l’ordre de travail; les enregistrements d’autres entreprises sont exclus.',
+  document_data_relation_asset:
+    'Suit le lien équipement de l’ordre de travail. L’équipement est inclus uniquement s’il appartient à la même entreprise.',
+  document_data_relation_location:
+    'Suit le lien emplacement de l’ordre de travail. L’emplacement est inclus uniquement s’il appartient à la même entreprise.',
+  document_data_relation_site:
+    'Résolu à partir du contexte de site autorisé pour ce rapport.',
+  document_data_relation_relations:
+    'Seuls les liens contenant cet ordre et un autre ordre de la même entreprise sont affichés. La fonction de liaison doit être activée.',
+  document_data_relation_workOrder:
+    'Les lignes associées doivent appartenir à cet ordre et à la même entreprise. Certaines collections nécessitent aussi la fonction correspondante.',
+  document_data_diagnosis_button: 'Vérifier la disponibilité des données',
+  document_data_diagnosis_privacy:
+    'Ouvrez l’aperçu PDF ci-dessus et saisissez un identifiant d’OT autorisé. Seule la disponibilité est renvoyée; les valeurs ne sont pas affichées.',
+  document_data_diagnosis_available:
+    'Une valeur est disponible pour cette liaison.',
+  document_data_diagnosis_unavailable:
+    'Ces données sont indisponibles car la fonction requise n’est pas activée pour cette entreprise.',
+  document_data_diagnosis_unlinked:
+    'Aucun enregistrement lié ou attribué à cet ordre de travail pour ce champ.',
+  document_data_diagnosis_empty:
+    'Aucune valeur renvoyée. La fiche liée peut contenir une valeur vide ou avoir été exclue par les contrôles d’entreprise et de permission.',
+  document_data_diagnosis_emptyLabor: 'Aucune entrée de main-d’œuvre renvoyée.',
+  document_data_diagnosis_emptyRelations: 'Aucun ordre de travail lié renvoyé.',
+  document_data_diagnosis_count:
+    '{{count}} enregistrement(s) lié(s) renvoyé(s). Les valeurs sont masquées.',
+  document_data_diagnosis_error:
+    'Impossible de vérifier la disponibilité des données de cette liaison.',
+  document_component_added:
+    'Composant ajouté avec tous ses éléments sélectionnés. Faites-le glisser pour déplacer le bloc ou modifiez un élément séparément.',
+  document_component_page_limit:
+    'Ce modèle contient déjà le nombre maximal de pages.',
+  document_header_footer_button:
+    'Ajouter un en-tête et un pied de page modifiables',
+  document_header_footer_configured: 'En-tête et pied de page configurés',
+  document_header_footer_added:
+    'En-tête et pied de page modifiables ajoutés à chaque page.',
+  document_print_behavior_title: 'Comportement d’impression du composant',
+  document_print_zone_label: 'Zone d’impression',
+  document_print_zone_page_only: 'Cette page uniquement',
+  document_print_zone_header: 'En-tête de page (répété sur chaque page)',
+  document_print_zone_footer: 'Pied de page (répété sur chaque page)',
+  document_print_zone_report_header:
+    'En-tête de rapport (première page uniquement)',
+  document_print_zone_report_footer:
+    'Pied de rapport (dernière page uniquement)',
+  document_print_zone_mixed: 'Zones mixtes',
+  document_print_zone_help:
+    'Déplacez et mettez en forme ce composant sur le canevas. Les zones de page se répètent ; les zones de rapport ne s’impriment qu’au début ou à la fin.',
+  document_component_print_zone_help:
+    'Applique la zone d’impression à tous les éléments du composant. L’en-tête de rapport s’imprime sur la première page et le pied sur la dernière.',
+  document_hide_if_empty_help:
+    'Une valeur vide ou absente masque ce champ texte dans le PDF généré.',
+  document_outline_title: 'Arborescence du rapport',
+  document_outline_help:
+    'Choisissez une page, puis un élément pour le retrouver sur le canevas.',
+  document_outline_search: 'Rechercher un composant ou un champ',
+  document_outline_search_empty:
+    'Aucun composant ou champ ne correspond à cette recherche.',
+  document_outline_page: 'Page du rapport',
+  document_outline_page_option: 'Page {{number}} · {{count}} éléments',
+  document_outline_empty: 'Cette page ne contient pas encore de composant.',
+  document_component_group_other: 'Autres éléments',
+  document_component_visibility_title: 'Visibilité · {{name}}',
+  document_component_visibility_help:
+    'Masquer tout le composant, y compris son titre et ses tableaux vides, si toutes ses données sont absentes.',
+  document_component_move_previous_page: 'Déplacer vers la page précédente',
+  document_component_move_next_page: 'Déplacer vers la page suivante',
+  document_component_move_new_page: 'Déplacer vers une nouvelle page',
+  document_component_moved_new_page:
+    'Le composant a été déplacé vers une nouvelle page.',
+  document_component_moved_page:
+    'Composant placé sous le contenu existant de la page.',
+  document_component_move_page_full:
+    'Il n’y a pas assez de place sur cette page pour ce composant.',
+  document_component_align_zone: 'Aligner le composant dans sa zone',
+  document_component_aligned_zone:
+    'Composant aligné dans sa zone d’impression.',
+  document_component_zone_too_tall:
+    'Ce composant est trop haut pour tenir dans les marges de la page.',
+  document_zone_header: 'En-tête de page · répété sur chaque page',
+  document_zone_body: 'Corps de page · contenu propre à la page',
+  document_zone_footer: 'Pied de page · répété sur chaque page',
+  document_zone_reportHeader: 'En-tête de rapport · première page uniquement',
+  document_zone_reportFooter: 'Pied de rapport · dernière page uniquement',
+  document_zone_outline_note:
+    'Les zones de rapport s’impriment une seule fois ; l’en-tête et le pied de page se répètent aussi sur les pages ajoutées par les longs tableaux.',
+  document_zone_height_label: 'Hauteur (mm)',
+  document_zone_height_invalid:
+    'Choisissez une hauteur entre 8 mm et la moitié de la page, en gardant au moins 30 mm pour le corps du rapport.',
+  document_zone_height_component_overflow:
+    'Cette zone ne peut pas être réduite : un ou plusieurs composants dépasseraient de ses limites.',
+  document_zone_hide_if_empty:
+    'Masquer cette zone si tous ses champs liés sont vides',
+  document_zone_clear_action: 'Retirer tous les composants de {{zone}}',
+  document_zone_clear_title: 'Vider {{zone}} ?',
+  document_zone_clear_help:
+    'Tous les composants affectés à cette zone seront retirés du brouillon. La zone et son réglage de hauteur seront conservés.',
+  document_zone_clear_confirm: 'Vider la zone',
+  document_zone_cleared: 'Zone d’impression vidée.',
+  document_zone_empty_hint:
+    'Aucun composant n’est affecté à cette zone sur la page sélectionnée.',
+  document_zone_add_component: 'Choisir un composant',
+  document_zone_insert_title: 'Ajout dans {{zone}}',
+  document_zone_insert_help:
+    'Choisissez un composant pour le placer dans cette zone d’impression. Vous pouvez en ajouter plusieurs avant de revenir à la structure.',
+  document_zone_insert_cancel: 'Terminé',
+  document_zone_component_unsupported:
+    'Les tableaux et les signatures ne peuvent pas être placés dans les zones d’impression.',
+  document_zone_component_duplicate:
+    'Ce composant utilise un nom de champ déjà présent. Renommez ou supprimez le champ existant avant de l’ajouter à une zone d’impression.',
+  document_zone_no_space:
+    'Il n’y a pas assez de place dans cette zone sur les pages existantes. Déplacez ou redimensionnez d’abord le contenu.',
+  document_component_added_to_zone: 'Composant ajouté dans {{zone}}.',
+  document_page: 'Page',
+  document_table_data_mapping: 'Lier les colonnes aux données du rapport',
+  document_table_data_mapping_help:
+    'Chaque colonne est liée aux données associées à cet ordre de travail. Réordonnez ou supprimez les colonnes, définissez leur largeur en pourcentage ou faites glisser les séparateurs sur le canevas.',
+  document_table_column: 'Colonne',
+  document_table_source_field: 'Champ des données liées',
+  document_table_printed_heading: 'Titre imprimé de la colonne',
+  document_table_column_width: 'Largeur %',
+  document_table_dataset_label: 'Collection de données',
+  document_table_dataset_tasks: 'Ordre de travail → tâches exécutées',
+  document_table_dataset_labor: 'Ordre de travail → temps saisis',
+  document_table_dataset_materials: 'Ordre de travail → pièces utilisées',
+  document_table_order_tasks:
+    'Les lignes suivent l’ordre enregistré des tâches, puis la date de création et l’identifiant.',
+  document_table_order_labor:
+    'Les lignes sont triées par heure de début, puis par identifiant.',
+  document_table_order_materials:
+    'Les lignes sont triées par date de création, puis par identifiant.',
+  document_table_entitlement_labor:
+    'Le Suivi du temps doit être activé pour renvoyer les lignes de main-d’œuvre. Le diagnostic signale son indisponibilité.',
+  document_table_diagnosis_button: 'Vérifier les lignes d’un ordre',
+  document_table_preview_button: 'Aperçu de quelques lignes',
+  document_table_preview_privacy:
+    'Affiche au plus cinq lignes de cet ordre, limitées aux colonnes sélectionnées ci-dessous.',
+  document_table_preview_aria:
+    'Lignes représentatives du tableau de l’ordre de travail',
+  document_table_add_column: 'Ajouter une colonne',
+  document_table_remove_column: 'Supprimer la colonne',
+  document_table_move_column_up: 'Déplacer la colonne à gauche',
+  document_table_move_column_down: 'Déplacer la colonne à droite',
+  document_table_show_header: 'Afficher l’en-tête',
+  document_table_repeat_header: 'Répéter l’en-tête sur les pages suivantes',
+  document_table_empty_message: 'Message à afficher sans enregistrement',
+  document_table_empty_message_default: 'Aucun enregistrement',
+  document_table_column_step: 'Numéro d’étape',
+  document_table_column_task: 'Tâche / opération',
+  document_table_column_result: 'Résultat',
+  document_table_column_notes: 'Notes',
+  document_table_column_technician: 'Technicien',
+  document_table_column_activity: 'Activité',
+  document_table_column_startedAt: 'Heure de début',
+  document_table_column_durationHours: 'Heures',
+  document_table_column_status: 'État de la saisie',
+  document_table_column_part: 'Pièce',
+  document_table_column_description: 'Description',
+  document_table_column_quantity: 'Quantité',
+  document_table_column_unit: 'Unité',
+  document_template_scope: 'Disponibilité du modèle',
+  document_template_scope_company: 'Tous les sites de l’entreprise',
+  document_template_scope_site: 'Un seul site',
+  document_template_scope_help:
+    'Un modèle associé à un site est proposé uniquement pour les rapports de ce site.',
+  document_template_site_required: 'Sélectionnez un site pour ce modèle.',
+  document_template_no_sites: 'Créez un site avant d’affecter ce modèle.',
+  document_template_site_missing: 'Aucun site affecté'
 };
 
 export default frJSON;

@@ -41,6 +41,15 @@ import { AssetMiniDTO } from '../../../../../models/owns/asset';
 import { UserMiniDTO } from '../../../../../models/user';
 import { MeterMiniDTO } from 'src/models/owns/meter';
 
+const allocateTemporaryId = (usedIds: Set<number>) => {
+  let id = 0;
+  while (!id || usedIds.has(id)) {
+    id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  }
+  usedIds.add(id);
+  return id;
+};
+
 interface SelectTasksProps {
   selected: Task[];
   infos?: { name: string; description: string; category: string };
@@ -73,11 +82,15 @@ export default function SelectTasks({
   const [category, setCategory] = useState<string>('');
   const dispatch = useDispatch();
   const { hasFeature, user } = useAuth();
-  const { checklists } = useSelector((state) => state.checklists);
+  const { checklists, loadingGet, loadError } = useSelector(
+    (state) => state.checklists
+  );
 
   useEffect(() => {
-    if (!checklists.length) dispatch(getChecklists());
-  }, []);
+    if (!checklists.length) {
+      dispatch(getChecklists()).catch(() => undefined);
+    }
+  }, [checklists.length, dispatch]);
   useEffect(() => {
     setTasks(selected);
   }, [selected]);
@@ -257,12 +270,14 @@ export default function SelectTasks({
     { value: 'preview', label: t('preview') }
   ];
   const addTask = () => {
+    const usedTaskIds = new Set(tasks.map((task) => task.id));
+    const usedTaskBaseIds = new Set(tasks.map((task) => task.taskBase.id));
     setTasks([
       ...tasks,
       {
-        id: randomInt(),
+        id: allocateTemporaryId(usedTaskIds),
         taskBase: {
-          id: randomInt(),
+          id: allocateTemporaryId(usedTaskBaseIds),
           label: '',
           taskType: 'SUBTASK'
         },
@@ -272,9 +287,17 @@ export default function SelectTasks({
     ]);
   };
   const addCheckList = (checklist: Checklist) => {
+    const usedTaskBaseIds = new Set(tasks.map((task) => task.taskBase.id));
+    const usedTaskIds = new Set(tasks.map((task) => task.id));
     setTasks([
       ...tasks,
-      ...checklist.taskBases.map((taskBase) => getTaskFromTaskBase(taskBase))
+      ...checklist.taskBases.map((taskBase) => {
+        const task = getTaskFromTaskBase({
+          ...taskBase,
+          id: allocateTemporaryId(usedTaskBaseIds)
+        });
+        return { ...task, id: allocateTemporaryId(usedTaskIds) };
+      })
     ]);
   };
   const onDragEnd = ({ destination, source }: DropResult) => {
@@ -431,25 +454,57 @@ export default function SelectTasks({
           )}
           <Box>
             {openChecklist && (
-              <Select
-                displayEmpty
-                defaultValue=""
-                sx={{ mb: 1 }}
-                onChange={(event) => {
-                  const checklist = checklists.find(
-                    (item) => item.id === Number(event.target.value)
-                  );
-                  if (checklist) addCheckList(checklist);
-                  setOpenChecklist(false);
-                }}
-              >
-                <MenuItem value="">{t('select_checklist')}</MenuItem>
-                {checklists.map((checklist) => (
-                  <MenuItem key={checklist.id} value={checklist.id}>
-                    {checklist.name}
-                  </MenuItem>
-                ))}
-              </Select>
+              <Box sx={{ mb: 1 }}>
+                {loadingGet ? (
+                  <Alert severity="info" icon={<CircularProgress size={18} />}>
+                    {t('task_list_library_loading')}
+                  </Alert>
+                ) : null}
+                {loadError && (
+                  <Alert
+                    severity="error"
+                    sx={{ mt: loadingGet ? 1 : 0 }}
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        disabled={loadingGet}
+                        onClick={() =>
+                          dispatch(getChecklists()).catch(() => undefined)
+                        }
+                      >
+                        {t('retry')}
+                      </Button>
+                    }
+                  >
+                    {t('task_list_library_load_error')}
+                  </Alert>
+                )}
+                {!loadingGet && !loadError && checklists.length === 0 && (
+                  <Alert severity="info">{t('task_list_none_available')}</Alert>
+                )}
+                {checklists.length > 0 && (
+                  <Select
+                    displayEmpty
+                    defaultValue=""
+                    fullWidth
+                    onChange={(event) => {
+                      const checklist = checklists.find(
+                        (item) => item.id === Number(event.target.value)
+                      );
+                      if (checklist) addCheckList(checklist);
+                      setOpenChecklist(false);
+                    }}
+                  >
+                    <MenuItem value="">{t('select_checklist')}</MenuItem>
+                    {checklists.map((checklist) => (
+                      <MenuItem key={checklist.id} value={checklist.id}>
+                        {checklist.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                )}
+              </Box>
             )}
             {currentTab === 'edit' && (
               <Box>

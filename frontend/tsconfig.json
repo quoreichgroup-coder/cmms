@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "paths": {
+      "@pdfme/common": ["src/types/pdfme-common.d.ts"],
+      "@pdfme/schemas": ["src/types/pdfme-schemas.d.ts"],
+      "@pdfme/ui": ["src/types/pdfme-ui.d.ts"]
+    },
     "target": "es6",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,

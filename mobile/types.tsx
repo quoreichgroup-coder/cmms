@@ -39,6 +39,7 @@ export type RootStackParamList = {
   WorkOrderStats: undefined;
   Requests: undefined;
   PurchaseOrders: undefined;
+  PurchaseOrderDetails: { id: number };
   EditWorkOrder: { workOrder: WorkOrder; tasks: Task[] };
   EditRequest: { request: Request };
   EditAsset: { asset: AssetDTO };

@@ -143,11 +143,15 @@ function Workflows() {
     },
     PURCHASE_ORDER_CREATED: {
       conditions: purchaseOrderConditions,
-      actions: purchaseOrderActions
+      actions: purchaseOrderActions.filter(
+        (action) => action !== 'SEND_REMINDER_EMAIL'
+      )
     },
     PURCHASE_ORDER_UPDATED: {
       conditions: purchaseOrderConditions,
-      actions: purchaseOrderActions
+      actions: purchaseOrderActions.filter(
+        (action) => action !== 'SEND_REMINDER_EMAIL'
+      )
     },
     TASK_UPDATED: {
       conditions: taskConditions,
@@ -164,6 +168,12 @@ function Workflows() {
   });
   const [openDelete, setOpenDelete] = useState<boolean>(false);
   const { hasFeature } = useAuth();
+  const hasPurchaseOrderFeature = hasFeature(PlanFeature.PURCHASE_ORDER);
+  const availableMainConditions = mainConditions.filter(
+    (condition) =>
+      condition !== 'PART_UPDATED' &&
+      (hasPurchaseOrderFeature || !condition.startsWith('PURCHASE_ORDER'))
+  );
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const { workflows, loadingGet } = useSelector((state) => state.workflows);
@@ -465,6 +475,21 @@ function Workflows() {
   const onDeleteFailure = (err) =>
     showSnackBar(t('workflow_delete_failure'), 'error');
 
+  const workflowUsesPurchaseOrders = (workflow: Workflow) =>
+    workflow.mainCondition.startsWith('PURCHASE_ORDER') ||
+    !!workflow.action?.purchaseOrderAction ||
+    !!workflow.action?.purchaseOrderCategory ||
+    workflow.action?.partAction === 'CREATE_PURCHASE_ORDER' ||
+    workflow.secondaryConditions.some(
+      (condition) =>
+        !!condition.purchaseOrderCondition ||
+        !!condition.purchaseOrderCategory ||
+        !!condition.purchaseOrderStatus
+    );
+  const workflowHasUnsupportedPurchaseOrderAction = (workflow: Workflow) =>
+    workflow.action?.partAction === 'CREATE_PURCHASE_ORDER' ||
+    workflow.action?.purchaseOrderAction === 'SEND_REMINDER_EMAIL';
+
   const handleDelete = async (id: number) => {
     try {
       const deleted = await dispatch(deleteWorkflow(id));
@@ -550,7 +575,7 @@ function Workflows() {
   };
   const onEdit = (workflow: Workflow) => {
     fetchCategories('work-order-categories');
-    fetchCategories('purchase-order-categories');
+    if (hasPurchaseOrderFeature) fetchCategories('purchase-order-categories');
     fetchVendors();
     fetchLocations();
     fetchParts();
@@ -780,9 +805,15 @@ function Workflows() {
   const renderSingleCondition = (condition: UICondition, index: number) => {
     const config = conditionsConfig[condition.type];
     return (
-      <Stack direction={'row'} spacing={1} alignItems={'flex-start'}>
-        <Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
+        sx={{ width: '100%' }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Select
+            fullWidth
             value={condition.type}
             onChange={(event) =>
               handleConditionTypeChange(
@@ -802,6 +833,7 @@ function Workflows() {
           <Box sx={{ mt: 1 }}>
             {['text', 'number'].includes(config.type) ? (
               <TextField
+                fullWidth
                 value={condition.value}
                 onChange={(event) =>
                   handleConditionValueChange(event.target.value, index)
@@ -810,6 +842,7 @@ function Workflows() {
               />
             ) : config.type === 'select' ? (
               <Select
+                fullWidth
                 value={condition.value}
                 onChange={(event) =>
                   handleConditionValueChange(event.target.value, index)
@@ -868,7 +901,11 @@ function Workflows() {
             ) : null}
           </Box>
         </Box>
-        <IconButton onClick={() => onRemoveCondition(index)}>
+        <IconButton
+          onClick={() => onRemoveCondition(index)}
+          sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}
+          aria-label={t('to_delete')}
+        >
           <DeleteOutlinedIcon color={'error'} />
         </IconButton>
       </Stack>
@@ -881,12 +918,14 @@ function Workflows() {
         <Box sx={{ mt: 1 }}>
           {['text', 'number'].includes(config.type) ? (
             <TextField
+              fullWidth
               value={action.value}
               onChange={(event) => handleActionValueChange(event.target.value)}
               type={config.type}
             />
           ) : config.type === 'select' ? (
             <Select
+              fullWidth
               value={action.value}
               onChange={(event) => handleActionValueChange(event.target.value)}
               onOpen={config.onOpen}
@@ -942,7 +981,7 @@ function Workflows() {
   return (
     <Box
       sx={{
-        p: 4
+        p: { xs: 2, sm: 3, md: 4 }
       }}
     >
       <Grid container spacing={2}>
@@ -956,7 +995,7 @@ function Workflows() {
         <Grid item xs={12}>
           {view === 'list' && (
             <Grid container spacing={2}>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={6} lg={6}>
                 <Button
                   sx={{
                     mb: 2
@@ -989,15 +1028,63 @@ function Workflows() {
                     <Card
                       sx={{ p: 2, mt: 1 }}
                       style={{
-                        cursor: workflow.enabled ? 'pointer' : 'not-allowed'
+                        cursor:
+                          workflow.enabled &&
+                          !workflowHasUnsupportedPurchaseOrderAction(
+                            workflow
+                          ) &&
+                          (hasPurchaseOrderFeature ||
+                            !workflowUsesPurchaseOrders(workflow))
+                            ? 'pointer'
+                            : 'not-allowed'
                       }}
                       key={workflow.id}
                       onClick={() => {
-                        if (workflow.enabled) onEdit(workflow);
+                        if (
+                          workflow.enabled &&
+                          !workflowHasUnsupportedPurchaseOrderAction(
+                            workflow
+                          ) &&
+                          (hasPurchaseOrderFeature ||
+                            !workflowUsesPurchaseOrders(workflow))
+                        ) {
+                          onEdit(workflow);
+                        }
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="h4">{workflow.title}</Typography>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'stretch', sm: 'center' }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="h4"
+                            sx={{ overflowWrap: 'anywhere' }}
+                          >
+                            {workflow.title}
+                          </Typography>
+                          {!hasPurchaseOrderFeature &&
+                            workflowUsesPurchaseOrders(workflow) &&
+                            !workflowHasUnsupportedPurchaseOrderAction(
+                              workflow
+                            ) && (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {t('workflow_purchase_orders_disabled')}
+                              </Typography>
+                            )}
+                          {workflowHasUnsupportedPurchaseOrderAction(
+                            workflow
+                          ) && (
+                            <Typography variant="body2" color="warning.main">
+                              {t('workflow_purchase_order_action_unavailable')}
+                            </Typography>
+                          )}
+                        </Box>
                         {workflow.enabled || (
                           <Typography variant="h6">{t('disabled')}</Typography>
                         )}
@@ -1023,14 +1110,16 @@ function Workflows() {
               <Grid item xs={12}>
                 <Typography variant="h6">{t('title')}</Typography>
                 <TextField
+                  fullWidth
                   value={currentTitle}
                   onChange={(event) => setCurrentTitle(event.target.value)}
                   placeholder={t('title')}
                 />
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={6} lg={6}>
                 <Typography variant="h6">{t('if')}</Typography>
                 <Select
+                  fullWidth
                   value={currentMainCondition}
                   onChange={(event) => {
                     setCurrentMainCondition(
@@ -1039,14 +1128,14 @@ function Workflows() {
                     setCurrentConditions([]);
                   }}
                 >
-                  {mainConditions.map((mainCondition, index) => (
+                  {availableMainConditions.map((mainCondition, index) => (
                     <MenuItem key={index} value={mainCondition}>
                       {t(mainCondition)}
                     </MenuItem>
                   ))}
                 </Select>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={6} lg={6}>
                 <Typography variant="h6">{t('and_optional')}</Typography>
                 <Stack direction="column" spacing={2}>
                   {currentConditions.map((condition, index) =>
@@ -1061,9 +1150,10 @@ function Workflows() {
                   </Button>
                 </Stack>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={6} lg={6}>
                 <Typography variant="h6">{t('then')}</Typography>
                 <Select
+                  fullWidth
                   value={currentAction?.type}
                   onChange={(event) =>
                     handleActionTypeChange(

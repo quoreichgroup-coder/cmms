@@ -43,7 +43,7 @@ public class TeamController {
     @GetMapping("/mini")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public Collection<TeamMiniDTO> getMini(@Parameter(hidden = true) @CurrentUser User user) {
-        return teamService.findByCompany(user.getCompany().getId()).stream().map(teamMapper::toMiniDto).collect(Collectors.toList());
+        return teamService.findVisibleByCompany(user).stream().map(teamMapper::toMiniDto).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")

@@ -1,6 +1,7 @@
 package com.grash.dto.workOrder;
 
 import com.grash.dto.IdDTO;
+import com.grash.dto.TaskBaseDTO;
 import com.grash.dto.WorkOrderBasePatchDTO;
 import com.grash.dto.cutomField.CustomFieldValuePostDTO;
 import com.grash.model.User;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import jakarta.validation.Valid;
 
 @Data
 @NoArgsConstructor
@@ -27,4 +29,8 @@ public class WorkOrderPatchDTO extends WorkOrderBasePatchDTO {
     @Schema(description = "Whether the work order is archived")
     private boolean archived;
     private List<CustomFieldValuePostDTO> customFields = new ArrayList<>();
+
+    /** Optional task replacement included in the same transaction as the order edit. */
+    @Valid
+    private List<TaskBaseDTO> tasks;
 }

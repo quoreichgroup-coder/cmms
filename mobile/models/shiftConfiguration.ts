@@ -10,12 +10,14 @@ export type ShiftDayName =
 export interface ShiftDayConfiguration {
   dayOfWeek: ShiftDayName;
   availabilityMinutes: number;
+  startTime?: string;
   enabled: boolean;
 }
 
 export interface ShiftException {
   exceptionDate: string;
   availabilityMinutes: number;
+  startTime?: string;
   enabled: boolean;
 }
 

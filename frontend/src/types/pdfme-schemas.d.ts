@@ -1,0 +1,10 @@
+type PdfmePlugin = { propPanel: { defaultSchema: Record<string, any> }; [key: string]: any };
+export const ellipse: PdfmePlugin;
+export const image: PdfmePlugin;
+export const line: PdfmePlugin;
+export const multiVariableText: PdfmePlugin;
+export const rectangle: PdfmePlugin;
+export const signature: PdfmePlugin;
+export const table: PdfmePlugin;
+export const text: PdfmePlugin;
+export const barcodes: { qrcode: PdfmePlugin; [key: string]: any };

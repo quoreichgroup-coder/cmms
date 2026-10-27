@@ -39,6 +39,8 @@ interface PublishedTemplate {
   name: string;
   versionNumber: number;
   isDefault: boolean;
+  defaultScope?: 'COMPANY' | 'SITE';
+  siteName?: string | null;
 }
 
 interface Props {
@@ -240,6 +242,7 @@ export default function RequestReportModal({
               {templates.map((template) => (
                 <MenuItem key={template.id} value={template.id}>
                   {template.name} · v{template.versionNumber}
+                  {template.siteName ? ` · ${template.siteName}` : ''}
                   {template.isDefault ? ` · ${t('default', 'Default')}` : ''}
                 </MenuItem>
               ))}

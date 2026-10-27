@@ -98,7 +98,12 @@ public final class PreventiveMaintenancePlanPolicy {
     public static long meterCycleNumber(double reference, double interval, double dueValue) {
         if (!Double.isFinite(reference) || !Double.isFinite(interval) || interval <= 0
                 || !Double.isFinite(dueValue) || dueValue < reference) return 0;
-        return Math.max(0, Math.round((dueValue - reference) / interval));
+        double cycles = (dueValue - reference) / interval;
+        if (!Double.isFinite(cycles)) return Long.MAX_VALUE;
+        // A counter reading advances only after it reaches a threshold. Round
+        // upward by one representable double to absorb arithmetic noise at an
+        // exact decimal threshold without treating a partial cycle as due.
+        return Math.max(0, (long) Math.floor(Math.nextUp(cycles)));
     }
 
     /** OR fires on any newly due cycle; AND fires once every cycle is due. */

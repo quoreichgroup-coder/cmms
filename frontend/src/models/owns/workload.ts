@@ -12,6 +12,8 @@ export interface WorkloadUserDayDTO {
   userId: number;
   fullName: string;
   capacityMinutes: number;
+  capacityStatus?: 'AVAILABLE' | 'NON_WORKING_DAY' | 'DAY_NOT_CONFIGURED' | 'NOT_CONFIGURED' | 'SCHEDULE_DISABLED';
+  startTime?: string;
   allocatedMinutes: number;
   workOrders: WorkloadWorkOrderDTO[];
 }

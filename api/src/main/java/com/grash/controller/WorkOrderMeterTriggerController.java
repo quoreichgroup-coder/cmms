@@ -110,6 +110,7 @@ public class WorkOrderMeterTriggerController {
     }
 
     private void checkAccessToMeter(Meter meter, User user, boolean view) {
+        meterService.assertSiteScope(meter, user);
         boolean hasAccess = view
                 ? meter.canBeViewedBy(user)
                 : meter.canBeEditedBy(user);

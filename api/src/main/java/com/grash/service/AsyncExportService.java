@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,8 +50,10 @@ public class AsyncExportService {
             Locale locale = Helper.getLocale(user);
             do {
                 result = workOrderService.findByCompanyForExport(user.getCompany().getId(), PageRequest.of(page, 100));
+                List<WorkOrder> accessibleWorkOrders = result.getContent().stream()
+                        .filter(workOrder -> user.canAccessSite(workOrder.getSite())).toList();
                 csvFileGenerator.writeWorkOrdersToCsv(
-                        result.getContent(),
+                        accessibleWorkOrders,
                         outputStreamWriter,
                         locale,
                         csvSeparator,
@@ -84,8 +87,10 @@ public class AsyncExportService {
             Locale locale = Helper.getLocale(user);
             do {
                 result = assetService.findByCompanyForExport(user.getCompany().getId(), PageRequest.of(page, 100));
+                List<Asset> accessibleAssets = result.getContent().stream()
+                        .filter(asset -> user.canAccessSite(asset.getSite())).toList();
                 csvFileGenerator.writeAssetsToCsv(
-                        result.getContent(),
+                        accessibleAssets,
                         outputStreamWriter,
                         locale,
                         csvSeparator,
@@ -188,7 +193,7 @@ public class AsyncExportService {
             String csvSeparator = user.getCompany().getCompanySettings().getGeneralPreferences().getCsvSeparator();
             Locale locale = Helper.getLocale(user);
             do {
-                result = meterService.findByCompanyForExport(user.getCompany().getId(), PageRequest.of(page, 100));
+                result = meterService.findByCompanyForExport(user, PageRequest.of(page, 100));
                 csvFileGenerator.writeMetersToCsv(
                         result.getContent(),
                         outputStreamWriter,
@@ -223,8 +228,7 @@ public class AsyncExportService {
             String csvSeparator = user.getCompany().getCompanySettings().getGeneralPreferences().getCsvSeparator();
             Locale locale = Helper.getLocale(user);
             do {
-                result = preventiveMaintenanceService.findByCompanyForExport(user.getCompany().getId(),
-                        PageRequest.of(page, 100));
+                result = preventiveMaintenanceService.findByCompanyForExport(user, PageRequest.of(page, 100));
                 csvFileGenerator.writePreventiveMaintenancesToCsv(
                         result.getContent(),
                         outputStreamWriter,
@@ -259,7 +263,7 @@ public class AsyncExportService {
             String csvSeparator = user.getCompany().getCompanySettings().getGeneralPreferences().getCsvSeparator();
             Locale locale = Helper.getLocale(user);
             do {
-                result = partTransactionService.findByCompanyForExport(user.getCompany().getId(), PageRequest.of(page, 100));
+                result = partTransactionService.findByCompanyForExport(user, PageRequest.of(page, 100));
                 csvFileGenerator.writePartTransactionsToCsv(
                         result.getContent(),
                         outputStreamWriter,

@@ -2,6 +2,7 @@ package com.grash.repository;
 
 import com.grash.model.WorkOrder;
 import com.grash.model.enums.Priority;
+import com.grash.model.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -65,6 +66,20 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, Jpa
             "OR assigned.id = :id " +
             "OR :id IN (SELECT user.id FROM team.users user)")
     Collection<WorkOrder> findByAssignedToUser(@Param("id") Long id);
+
+    @Query("SELECT CASE WHEN COUNT(DISTINCT wo.id) > 0 THEN true ELSE false END " +
+            "FROM WorkOrder wo " +
+            "LEFT JOIN wo.assignedTo assigned " +
+            "LEFT JOIN wo.team team " +
+            "LEFT JOIN team.users teamUser " +
+            "WHERE wo.company.id = :companyId " +
+            "AND wo.status <> :completeStatus " +
+            "AND (wo.primaryUser.id = :userId " +
+            "OR assigned.id = :userId " +
+            "OR teamUser.id = :userId)")
+    boolean hasActiveAssignmentsForUser(@Param("userId") Long userId,
+                                        @Param("companyId") Long companyId,
+                                        @Param("completeStatus") Status completeStatus);
 
     @Query("SELECT DISTINCT wo FROM WorkOrder wo " +
             "LEFT JOIN wo.assignedTo assigned " +
@@ -260,6 +275,20 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, Jpa
             "AND wo.estimatedStartDate BETWEEN :start AND :end")
     Collection<WorkOrder> findByUserAndEstimatedStartDateBetween(
             @Param("userId") Long userId,
+            @Param("start") Date start,
+            @Param("end") Date end,
+            @Param("companyId") Long companyId);
+
+    @Query("SELECT DISTINCT u.id, wo FROM User u, WorkOrder wo " +
+            "LEFT JOIN wo.assignedTo assigned " +
+            "LEFT JOIN wo.team team " +
+            "LEFT JOIN team.users teamUser " +
+            "WHERE u.id IN :userIds AND u.company.id = :companyId " +
+            "AND wo.company.id = :companyId " +
+            "AND wo.estimatedStartDate BETWEEN :start AND :end " +
+            "AND (wo.primaryUser.id = u.id OR assigned.id = u.id OR teamUser.id = u.id)")
+    List<Object[]> findByUsersAndEstimatedStartDateBetween(
+            @Param("userIds") Collection<Long> userIds,
             @Param("start") Date start,
             @Param("end") Date end,
             @Param("companyId") Long companyId);

@@ -46,6 +46,7 @@ import { Task } from '../../../models/owns/tasks';
 import { getScheduleDescription } from '../../../utils/dates';
 import i18n from 'i18next';
 import RecentWorkOrders from './RecentWorkOrders';
+import MeterCallRegister from './MeterCallRegister';
 import { useNavigate } from 'react-router-dom';
 import useDateLocale from '../../../hooks/useDateLocale';
 import { getCustomFieldValuesForDetails } from '../type';
@@ -87,7 +88,7 @@ export default function PMDetails({
   const openMenu = Boolean(anchorEl);
   const [triggering, setTriggering] = useState<boolean>(false);
   const [taskReloadKey, setTaskReloadKey] = useState(0);
-  const { taskLoadFailed, taskLoading } = useSelector((state) => ({
+  const { taskLoadFailed, taskLoading, tasksLoaded } = useSelector((state) => ({
     taskLoadFailed:
       state.tasks.taskLoadErrorsByPreventiveMaintenance[
         preventiveMaintenance.id
@@ -95,7 +96,11 @@ export default function PMDetails({
     taskLoading:
       state.tasks.loadingTasksByPreventiveMaintenance[
         preventiveMaintenance.id
-      ] === true
+      ] === true,
+    tasksLoaded: Object.prototype.hasOwnProperty.call(
+      state.tasks.tasksByPreventiveMaintenance,
+      preventiveMaintenance.id
+    )
   }));
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -123,6 +128,10 @@ export default function PMDetails({
   useEffect(() => {
     dispatch(getTasksByPreventiveMaintenance(preventiveMaintenance.id));
   }, [preventiveMaintenance.id, taskReloadKey]);
+
+  useEffect(() => {
+    setTab(0);
+  }, [preventiveMaintenance.id]);
 
   const fieldsToRender = (
     preventiveMaintenance: PreventiveMaintenance
@@ -190,22 +199,28 @@ export default function PMDetails({
       justifyContent="center"
       alignItems="stretch"
       spacing={2}
-      padding={4}
+      sx={{ p: { xs: 2, sm: 4 } }}
     >
       <Grid
         item
         xs={12}
         display="flex"
-        flexDirection="row"
+        flexDirection={{ xs: 'column', sm: 'row' }}
         justifyContent="space-between"
+        gap={1}
       >
-        <Box>
-          <Typography variant="h2">{preventiveMaintenance?.name}</Typography>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography
+            variant="h2"
+            sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' }, overflowWrap: 'anywhere' }}
+          >
+            {preventiveMaintenance?.name}
+          </Typography>
           {preventiveMaintenance?.schedule.disabled && (
             <Typography variant="h5">{t('paused')}</Typography>
           )}
         </Box>
-        <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           {(hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) ||
             hasCreatePermission(PermissionEntity.WORK_ORDERS)) && (
             <IconButton style={{ marginRight: 10 }} onClick={handleOpenMenu}>
@@ -232,9 +247,18 @@ export default function PMDetails({
       </Grid>
       <Divider />
       <Grid item xs={12}>
-        <Tabs value={tab} onChange={handleChange}>
+        <Tabs
+          value={tab}
+          onChange={handleChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+        >
           <Tab label={t('details')} />
           <Tab label={t('recent_work_orders')} />
+          {preventiveMaintenance.schedule?.triggerType && (
+            <Tab label={t('pm_call_register')} />
+          )}
         </Tabs>
       </Grid>
       {tab === 0 ? (
@@ -558,7 +582,14 @@ export default function PMDetails({
                     </Alert>
                   </Grid>
                 )}
-                {!taskLoading && !taskLoadFailed && !!tasks.length && (
+                {taskLoading && !tasksLoaded && !taskLoadFailed && (
+                  <Grid item xs={12} lg={12}>
+                    <Stack alignItems="center" py={3}>
+                      <CircularProgress size={24} aria-label={t('loading')} />
+                    </Stack>
+                  </Grid>
+                )}
+                {tasksLoaded && (
                   <Grid item xs={12} lg={12}>
                     <Tasks
                       tasksProps={tasks}
@@ -572,11 +603,20 @@ export default function PMDetails({
             </Grid>
           </Box>
         </Grid>
+      ) : tab === 1 ? (
+        <Grid item xs={12}>
+          <RecentWorkOrders pmId={preventiveMaintenance.id} />
+        </Grid>
       ) : (
-        <RecentWorkOrders
-          pmId={preventiveMaintenance.id}
-          showMeterCalls={!!preventiveMaintenance.schedule?.triggerType}
-        />
+        <Grid item xs={12}>
+          <MeterCallRegister
+            pmId={preventiveMaintenance.id}
+            canManageCalls={hasEditPermission(
+              PermissionEntity.PREVENTIVE_MAINTENANCES,
+              preventiveMaintenance
+            )}
+          />
+        </Grid>
       )}
       {isImageViewerOpen && (
         <div style={{ zIndex: 1300 }}>

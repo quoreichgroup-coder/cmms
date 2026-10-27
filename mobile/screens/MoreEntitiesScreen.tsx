@@ -7,6 +7,7 @@ import useAuth from '../hooks/useAuth';
 import { PermissionEntity } from '../models/role';
 import { UiConfiguration } from '../models/uiConfiguration';
 import { PlanFeature } from '../models/subscriptionPlan';
+import { useLicenseEntitlement } from '../hooks/useLicenseEntitlement';
 import { qpmLayoutTokens } from '../theme/tokens';
 
 export default function MoreEntitiesScreen({
@@ -15,6 +16,7 @@ export default function MoreEntitiesScreen({
   const theme = useTheme();
   const { t } = useTranslation();
   const { hasViewPermission, hasFeature, user } = useAuth();
+  const hasResourcePlanningLicense = useLicenseEntitlement('RESOURCE_PLANNING');
   const entities: {
     label: string;
     icon: IconSource;
@@ -26,7 +28,8 @@ export default function MoreEntitiesScreen({
       label: 'my_shift_availability',
       icon: 'calendar-account',
       link: 'MyShiftAvailability',
-      visible: true
+      visible:
+        hasFeature(PlanFeature.RESOURCE_PLANNING) && hasResourcePlanningLicense
     },
     {
       label: 'locations',
@@ -68,14 +71,18 @@ export default function MoreEntitiesScreen({
       label: 'meters',
       icon: 'gauge',
       link: 'Meters',
-      visible: hasViewPermission(PermissionEntity.METERS),
+      visible:
+        hasViewPermission(PermissionEntity.METERS) &&
+        hasFeature(PlanFeature.METER),
       uiConfigKey: 'meters'
     },
     {
       label: 'preventive_maintenance',
       icon: 'calendar-clock',
       link: 'PreventiveMaintenances',
-      visible: hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES)
+      visible:
+        hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES) &&
+        hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE)
     },
     {
       label: 'people_teams',

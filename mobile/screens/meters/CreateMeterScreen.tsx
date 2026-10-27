@@ -20,6 +20,8 @@ import {
 } from '../../models/form';
 import { CustomFieldEntityType } from '../../models/customField';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import { PlanFeature } from '../../models/subscriptionPlan';
+import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 
 export default function CreateMeterScreen({
   navigation,
@@ -29,7 +31,8 @@ export default function CreateMeterScreen({
   const { uploadFiles, getWOFieldsAndShapes } = useContext(
     CompanySettingsContext
   );
-  const { getFilteredFields } = useAuth();
+  const { getFilteredFields, hasFeature } = useAuth();
+  const hasMeterFeature = hasFeature(PlanFeature.METER);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
   const { customFields } = useSelector((state) => state.customFields);
@@ -65,6 +68,15 @@ export default function CreateMeterScreen({
     ];
     return getWOFieldsAndShapes(fields, defaultShape);
   };
+
+  if (!hasMeterFeature) {
+    return (
+      <AsyncStateFeedback
+        mode="permissionDenied"
+        message={t('meter_feature_unavailable')}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>

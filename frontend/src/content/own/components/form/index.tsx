@@ -431,14 +431,15 @@ export default (props: PropsType) => {
 
                 {props.onCanceled && (
                   <Button
+                    type="button"
                     sx={{
                       mt: { xs: 2, sm: 0 }
                     }}
-                    onClick={() => props.onCanceled}
+                    onClick={props.onCanceled}
                     variant="outlined"
-                    disabled
+                    disabled={formik.isSubmitting}
                   >
-                    {t(props.submitText)}
+                    {t('cancel')}
                   </Button>
                 )}
                 {props.nextToButton}

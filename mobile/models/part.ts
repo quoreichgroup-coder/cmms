@@ -33,5 +33,6 @@ export interface PartMiniDTO {
   name: string;
   id: number;
   cost: number;
+  unit?: string | null;
   description: string;
 }

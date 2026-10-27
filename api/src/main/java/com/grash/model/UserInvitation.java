@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
@@ -30,9 +32,26 @@ public class UserInvitation extends Audit {
     @NotNull
     private Role role;
 
+    @Column(nullable = false)
+    private boolean allSitesAccess = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "t_user_invitation_site_access",
+            joinColumns = @JoinColumn(name = "invitation_id"),
+            inverseJoinColumns = @JoinColumn(name = "site_id"))
+    private List<Site> sites = new ArrayList<>();
+
     public UserInvitation(String email, Role role) {
         this.email = email;
         this.role = role;
+    }
+
+    public UserInvitation(String email, Role role, User inviter) {
+        this.email = email;
+        this.role = role;
+        this.allSitesAccess = inviter == null || inviter.isAllSitesAccess();
+        this.sites = inviter == null || inviter.getSites() == null
+                ? new ArrayList<>() : new ArrayList<>(inviter.getSites());
     }
 }
 

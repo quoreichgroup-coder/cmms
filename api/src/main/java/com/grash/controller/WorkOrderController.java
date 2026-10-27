@@ -94,7 +94,7 @@ public class WorkOrderController {
         return workOrderService.findByAsset(id).stream()
                 .filter(workOrder -> workOrder.getCompany() != null
                         && workOrder.getCompany().getId().equals(user.getCompany().getId())
-                        && workOrder.canBeViewedBy(user))
+                        && workOrder.canBeViewedBy(user) && user.canAccessSite(workOrder.getSite()))
                 .map(workOrderMapper::toShowDto)
                 .collect(Collectors.toList());
     }
@@ -108,7 +108,11 @@ public class WorkOrderController {
         if (optionalLocation.isPresent()) {
             if (!optionalLocation.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return workOrderService.findByLocation(id).stream().map(workOrderMapper::toShowDto).collect(Collectors.toList());
+            return workOrderService.findByLocation(id).stream()
+                    .filter(workOrder -> workOrder.getCompany() != null
+                            && workOrder.getCompany().getId().equals(user.getCompany().getId())
+                            && workOrder.canBeViewedBy(user) && user.canAccessSite(workOrder.getSite()))
+                    .map(workOrderMapper::toShowDto).collect(Collectors.toList());
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -137,7 +141,11 @@ public class WorkOrderController {
         if (optionalPart.isPresent()) {
             if (!optionalPart.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return workOrderService.getWorkOrdersByPart(id).stream().map(workOrderMapper::toShowDto).collect(Collectors.toList());
+            return workOrderService.getWorkOrdersByPart(id).stream()
+                    .filter(workOrder -> workOrder.getCompany() != null
+                            && workOrder.getCompany().getId().equals(user.getCompany().getId())
+                            && workOrder.canBeViewedBy(user) && user.canAccessSite(workOrder.getSite()))
+                    .map(workOrderMapper::toShowDto).collect(Collectors.toList());
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 

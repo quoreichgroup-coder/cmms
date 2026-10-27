@@ -40,6 +40,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Sign-in has dedicated per-identifier and per-IP brute-force buckets.
+        // Keep normal unauthenticated traffic from exhausting its separate budget.
+        if (isLoginRequest(request)) {
+            String clientIp = clientIpResolver.resolve(request);
+            if (rateLimiterService.isBruteForceEnabled()
+                    && !rateLimiterService.tryConsumeLoginIpAttempt(clientIp)) {
+                setResponseTooManyRequests(response);
+                return;
+            }
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Get the current authentication
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -63,6 +76,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // Continue the filter chain
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean isLoginRequest(HttpServletRequest request) {
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        return path != null && (path.endsWith("/auth/signin") || path.endsWith("/auth/signin-ldap"));
     }
 
     private static void setResponseTooManyRequests(@NotNull HttpServletResponse response) throws IOException {

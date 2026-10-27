@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import {
   Alert,
   Box,
@@ -51,6 +58,15 @@ import {
   percentageOrNull
 } from './metricCalculations';
 import { qpmWorkOrderStatusTokens } from 'src/theme/tokens';
+import { getCapacityUtilizationPercent } from '../WorkOrders/WorkloadView/capacityUtilization';
+import { PlanFeature } from '../../../models/owns/subscriptionPlan';
+import { PermissionEntity } from '../../../models/owns/role';
+import {
+  PreventiveMaintenanceCallAnalyticsDTO,
+  toPreventiveMaintenanceCallChartRows
+} from '../../../models/owns/preventiveMaintenanceAnalytics';
+import { getOverview as getWorkloadOverview } from '../../../slices/workload';
+import api, { getErrorMessage } from '../../../utils/api';
 
 const startOfIsoWeek = (date: Date): Date => {
   const result = new Date(date);
@@ -59,6 +75,12 @@ const startOfIsoWeek = (date: Date): Date => {
   result.setHours(0, 0, 0, 0);
   return result;
 };
+
+const localDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    '0'
+  )}-${String(date.getDate()).padStart(2, '0')}`;
 
 function MetricCard({
   title,
@@ -223,8 +245,36 @@ export default function MaintenanceDashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { setTitle } = useContext(TitleContext);
-  const { user, companySettings } = useAuth();
+  const {
+    user,
+    companySettings,
+    hasFeature,
+    hasViewPermission,
+    hasViewOtherPermission,
+    hasEditOtherPermission
+  } = useAuth();
   const analytics = useSelector((state) => state.woAnalytics);
+  const workload = useSelector((state) => state.workload);
+  const canViewCapacity =
+    !!user &&
+    user.superAccountRelations.length === 0 &&
+    hasFeature(PlanFeature.RESOURCE_PLANNING) &&
+    hasViewOtherPermission(PermissionEntity.WORK_ORDERS) &&
+    hasEditOtherPermission(PermissionEntity.PEOPLE_AND_TEAMS);
+  const canViewPmAnalytics =
+    !!user &&
+    user.superAccountRelations.length === 0 &&
+    hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE) &&
+    hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES);
+  const [pmCallStats, setPmCallStats] = useState<
+    PreventiveMaintenanceCallAnalyticsDTO[]
+  >([]);
+  const [pmCallStatsError, setPmCallStatsError] = useState<string | null>(null);
+  const [pmCallStatsLoading, setPmCallStatsLoading] = useState(false);
+  const pmCallStatsRequestId = useRef(0);
+  const [capacityView, setCapacityView] = useState<'day' | 'week' | 'month'>(
+    'day'
+  );
   const now = useMemo(() => new Date(), []);
   const [end, setEnd] = useState(now);
   const [start, setStart] = useState(() => {
@@ -250,9 +300,50 @@ export default function MaintenanceDashboard() {
     dispatch(getWOHours(start, end, companyId));
   }, [dispatch, start, end, companyId]);
 
+  const loadPmCallStats = useCallback((rangeStart: Date, rangeEnd: Date) => {
+    const requestId = ++pmCallStatsRequestId.current;
+    setPmCallStatsLoading(true);
+    setPmCallStatsError(null);
+    api
+      .get<PreventiveMaintenanceCallAnalyticsDTO[]>(
+        `preventive-maintenances/analytics/calls?startDate=${localDateKey(
+          rangeStart
+        )}&endDate=${localDateKey(rangeEnd)}`
+      )
+      .then((stats) => {
+        if (pmCallStatsRequestId.current === requestId) {
+          setPmCallStats(stats);
+        }
+      })
+      .catch((error) => {
+        if (pmCallStatsRequestId.current === requestId) {
+          setPmCallStatsError(getErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (pmCallStatsRequestId.current === requestId) {
+          setPmCallStatsLoading(false);
+        }
+      });
+    return requestId;
+  }, []);
+
   useEffect(() => {
     loadMetrics();
   }, [loadMetrics]);
+
+  useEffect(() => {
+    if (!canViewCapacity) return;
+    dispatch(getWorkloadOverview(localDateKey(start), localDateKey(end)));
+  }, [canViewCapacity, dispatch, start, end]);
+
+  useEffect(() => {
+    if (!canViewPmAnalytics) return;
+    loadPmCallStats(start, end);
+    return () => {
+      pmCallStatsRequestId.current += 1;
+    };
+  }, [canViewPmAnalytics, loadPmCallStats, start, end]);
 
   const closureRate = percentageOrNull(
     analytics.overview.complete,
@@ -272,6 +363,72 @@ export default function MaintenanceDashboard() {
     label: formatAnalyticsDateLabel(row.date, i18n.language),
     total: row.laborCost + row.partCost + row.additionalCost
   }));
+  const capacityRows = (workload.overview?.days ?? []).map((day) => ({
+    ...day,
+    label: new Intl.DateTimeFormat(i18n.language, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    }).format(new Date(`${day.date}T12:00:00`)),
+    capacityHours: day.teamCapacityMinutes / 60,
+    allocatedHours: day.teamAllocatedMinutes / 60,
+    utilizationPercent: getCapacityUtilizationPercent(
+      day.teamAllocatedMinutes,
+      day.teamCapacityMinutes
+    )
+  }));
+  const capacityChartRows: Array<{
+    label: string;
+    capacityHours: number;
+    allocatedHours: number;
+    utilizationPercent: number | null;
+  }> =
+    capacityView !== 'month'
+      ? capacityRows
+      : Array.from(
+          capacityRows.reduce((weeks, row) => {
+            const weekStart = startOfIsoWeek(new Date(`${row.date}T12:00:00`));
+            const key = localDateKey(weekStart);
+            const current = weeks.get(key) ?? {
+              dates: [] as string[],
+              capacityHours: 0,
+              allocatedHours: 0
+            };
+            current.dates.push(row.date);
+            current.capacityHours += row.capacityHours;
+            current.allocatedHours += row.allocatedHours;
+            weeks.set(key, current);
+            return weeks;
+          }, new Map<string, { dates: string[]; capacityHours: number; allocatedHours: number }>())
+        ).map(([, week]) => ({
+          ...week,
+          label:
+            week.dates.length === 1
+              ? new Intl.DateTimeFormat(i18n.language, {
+                  day: 'numeric',
+                  month: 'short'
+                }).format(new Date(`${week.dates[0]}T12:00:00`))
+              : `${new Intl.DateTimeFormat(i18n.language, {
+                  day: 'numeric'
+                }).format(
+                  new Date(`${week.dates[0]}T12:00:00`)
+                )}–${new Intl.DateTimeFormat(i18n.language, {
+                  day: 'numeric',
+                  month: 'short'
+                }).format(
+                  new Date(`${week.dates[week.dates.length - 1]}T12:00:00`)
+                )}`,
+          utilizationPercent: getCapacityUtilizationPercent(
+            week.allocatedHours * 60,
+            week.capacityHours * 60
+          )
+        }));
+  const pmCallRows = toPreventiveMaintenanceCallChartRows(pmCallStats).map(
+    (row) => ({
+      ...row,
+      label: t(row.status)
+    })
+  );
   const currency = createDashboardCurrencyFormatter(
     i18n.language,
     companySettings?.generalPreferences?.currency?.code
@@ -320,12 +477,27 @@ export default function MaintenanceDashboard() {
     selectedStart.setHours(0, 0, 0, 0);
     setStart(selectedStart);
     setEnd(selectedEnd);
+    setCapacityView('day');
   };
   const setIsoWeek = () => {
     const selectedEnd = new Date();
     selectedEnd.setHours(23, 59, 59, 999);
     setStart(startOfIsoWeek(selectedEnd));
     setEnd(selectedEnd);
+    setCapacityView('week');
+  };
+  const setCurrentMonth = () => {
+    const selectedEnd = new Date();
+    selectedEnd.setHours(23, 59, 59, 999);
+    const selectedStart = new Date(
+      selectedEnd.getFullYear(),
+      selectedEnd.getMonth(),
+      1
+    );
+    selectedStart.setHours(0, 0, 0, 0);
+    setStart(selectedStart);
+    setEnd(selectedEnd);
+    setCapacityView('month');
   };
 
   const openWorkOrders = () => navigate('/app/work-orders');
@@ -363,17 +535,35 @@ export default function MaintenanceDashboard() {
           <CustomDateRangePicker
             start={start}
             end={end}
-            setStart={setStart}
-            setEnd={setEnd}
+            setStart={(value) => {
+              setStart(value);
+              setCapacityView('day');
+            }}
+            setEnd={(value) => {
+              setEnd(value);
+              setCapacityView('day');
+            }}
             companyId={companyId}
             onCompanyChange={setCompanyId}
             months={1}
           />
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={setIsoWeek}>
+            <Button
+              variant={capacityView === 'week' ? 'contained' : 'outlined'}
+              onClick={setIsoWeek}
+            >
               {t('current_iso_week')}
             </Button>
-            <Button variant="outlined" onClick={setLast30Days}>
+            <Button
+              variant={capacityView === 'month' ? 'contained' : 'outlined'}
+              onClick={setCurrentMonth}
+            >
+              {t('current_month')}
+            </Button>
+            <Button
+              variant={capacityView === 'day' ? 'contained' : 'outlined'}
+              onClick={setLast30Days}
+            >
               {t('last_30_days')}
             </Button>
           </Stack>
@@ -448,6 +638,206 @@ export default function MaintenanceDashboard() {
       </Grid>
 
       <Grid container spacing={2}>
+        {canViewCapacity && (
+          <Grid item xs={12}>
+            <ChartPanel
+              title={t('capacity_planned_vs_allocated')}
+              subtitle={t(
+                capacityView === 'month'
+                  ? 'capacity_chart_month_subtitle'
+                  : capacityView === 'week'
+                  ? 'capacity_chart_week_subtitle'
+                  : 'capacity_chart_period_subtitle'
+              )}
+              loading={workload.loadingOverview}
+              error={workload.overviewError}
+              hasData={capacityChartRows.length > 0}
+              chartDescription={t('capacity_chart_accessible_summary', {
+                days: capacityChartRows.length,
+                capacity: number.format(
+                  capacityChartRows.reduce(
+                    (sum, row) => sum + row.capacityHours,
+                    0
+                  )
+                ),
+                allocated: number.format(
+                  capacityChartRows.reduce(
+                    (sum, row) => sum + row.allocatedHours,
+                    0
+                  )
+                ),
+                peak: number.format(
+                  Math.max(
+                    0,
+                    ...capacityChartRows.map(
+                      (row) => row.utilizationPercent ?? 0
+                    )
+                  )
+                )
+              })}
+              onRetry={() =>
+                dispatch(
+                  getWorkloadOverview(localDateKey(start), localDateKey(end))
+                )
+              }
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={capacityChartRows}
+                  barGap={6}
+                  margin={{ top: 12, right: 16, left: -12, bottom: 8 }}
+                >
+                  <CartesianGrid
+                    stroke={theme.palette.divider}
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={10}
+                    interval="preserveStartEnd"
+                    tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                  />
+                  <YAxis
+                    yAxisId="hours"
+                    allowDecimals={false}
+                    tickFormatter={(value) => `${value}h`}
+                    axisLine={false}
+                    tickLine={false}
+                    width={42}
+                    tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                  />
+                  <YAxis
+                    yAxisId="percent"
+                    orientation="right"
+                    tickFormatter={(value) => `${value}%`}
+                    axisLine={false}
+                    tickLine={false}
+                    width={44}
+                    tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      `${number.format(Number(value))}${
+                        name === t('capacity_utilization_percent') ? '%' : ' h'
+                      }`,
+                      name
+                    ]}
+                    contentStyle={tooltipContentStyle}
+                    labelStyle={tooltipLabelStyle}
+                    itemStyle={tooltipItemStyle}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={32}
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                  />
+                  <Bar
+                    yAxisId="hours"
+                    dataKey="capacityHours"
+                    name={t('available_capacity_hours')}
+                    fill={theme.palette.info.light}
+                    radius={[5, 5, 0, 0]}
+                  />
+                  <Bar
+                    yAxisId="hours"
+                    dataKey="allocatedHours"
+                    name={t('allocated_work_hours')}
+                    fill={theme.palette.primary.main}
+                    radius={[5, 5, 0, 0]}
+                  />
+                  <Line
+                    yAxisId="percent"
+                    type="monotone"
+                    dataKey="utilizationPercent"
+                    name={t('capacity_utilization_percent')}
+                    stroke={theme.palette.error.main}
+                    strokeWidth={2.5}
+                    connectNulls
+                    dot={{ r: 2.5, fill: theme.palette.error.main }}
+                    activeDot={{ r: 5, strokeWidth: 0 }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartPanel>
+            <Button
+              size="small"
+              sx={{ mt: 1 }}
+              onClick={() => navigate('/app/analytics/capacity')}
+            >
+              {t('open_capacity_analytics')}
+            </Button>
+          </Grid>
+        )}
+        {canViewPmAnalytics && (
+          <Grid item xs={12} lg={6}>
+            <ChartPanel
+              title={t('preventive_maintenance_calls_by_status')}
+              subtitle={t('preventive_maintenance_calls_period_subtitle')}
+              loading={pmCallStatsLoading}
+              error={pmCallStatsError}
+              hasData={pmCallStats.some((row) => row.count > 0)}
+              chartDescription={t(
+                'preventive_maintenance_calls_accessible_summary',
+                {
+                  total: pmCallStats.reduce((sum, row) => sum + row.count, 0),
+                  statuses: pmCallRows
+                    .filter((row) => row.CALENDAR + row.METER > 0)
+                    .map(
+                      (row) =>
+                        `${row.label}: ${number.format(
+                          row.CALENDAR + row.METER
+                        )}`
+                    )
+                    .join(', ')
+                }
+              )}
+              onRetry={() => loadPmCallStats(start, end)}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={pmCallRows}
+                  margin={{ top: 8, right: 12, left: -16, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    stroke={theme.palette.divider}
+                    strokeDasharray="3 3"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipContentStyle}
+                    labelStyle={tooltipLabelStyle}
+                    itemStyle={tooltipItemStyle}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="CALENDAR"
+                    name={t('calendar_trigger')}
+                    fill={theme.palette.primary.main}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="METER"
+                    name={t('meter_trigger')}
+                    fill={theme.palette.warning.main}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartPanel>
+          </Grid>
+        )}
         <Grid item xs={12} lg={8}>
           <ChartPanel
             title={t('work_order_status_trend')}

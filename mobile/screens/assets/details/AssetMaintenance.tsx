@@ -44,7 +44,8 @@ export default function AssetMaintenance({ asset, navigation }: Props) {
   const theme = useAppTheme();
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const { hasViewPermission, hasFeature } = useAuth();
-  const canViewMeters = hasViewPermission(PermissionEntity.METERS);
+  const canViewMeters =
+    hasViewPermission(PermissionEntity.METERS) && hasFeature(PlanFeature.METER);
   const canViewPM = hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES);
   const canViewPMFeature = hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE);
   const canViewDowntime = hasViewPermission(PermissionEntity.ASSETS);

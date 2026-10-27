@@ -21,6 +21,9 @@ const GeneralSettings = Loader(
 const DocumentTemplatesSettings = Loader(
   lazy(() => import('../content/own/Settings/Documents/DocumentTemplates'))
 );
+const DocumentDesigner = Loader(
+  lazy(() => import('../content/own/Settings/Documents/PdfmeDocumentDesigner'))
+);
 const FeaturesSettings = Loader(
   lazy(() => import('../content/own/Settings/Features'))
 );
@@ -275,6 +278,10 @@ const appRoutes = [
       {
         path: 'documents',
         element: <DocumentTemplatesSettings />
+      },
+      {
+        path: 'documents/:id/designer',
+        element: <DocumentDesigner />
       },
       {
         path: 'integrations',

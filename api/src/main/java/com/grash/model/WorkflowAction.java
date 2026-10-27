@@ -50,7 +50,6 @@ public class WorkflowAction extends CompanyAudit {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private WorkOrderCategory workOrderCategory;
     @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Checklist checklist;
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
