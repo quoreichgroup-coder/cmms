@@ -597,7 +597,10 @@ class PartServiceTest {
             part.setNonStock(true);
             when(partRepository.findById(1L)).thenReturn(Optional.of(part));
 
-            partService.restockPart(1L, 5, "desc");
+            PartRestockDTO dto = new PartRestockDTO();
+            dto.setQuantity(5);
+            dto.setDescription("desc");
+            partService.restock(1L, dto, user);
 
             verify(partRepository, never()).save(any());
             verify(partTransactionService, never()).create(any());
@@ -611,7 +614,10 @@ class PartServiceTest {
             when(partRepository.save(part)).thenReturn(part);
             stubShowDto();
 
-            partService.restockPart(1L, 5, "desc");
+            PartRestockDTO dto = new PartRestockDTO();
+            dto.setQuantity(5);
+            dto.setDescription("desc");
+            partService.restock(1L, dto, user);
 
             assertEquals(8, part.getQuantity());
             verify(partTransactionService).create(any(PartTransaction.class));
