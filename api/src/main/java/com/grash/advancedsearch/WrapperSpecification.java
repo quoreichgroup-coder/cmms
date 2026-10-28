@@ -3,6 +3,7 @@ package com.grash.advancedsearch;
 import com.grash.model.enums.EnumName;
 import com.grash.model.enums.Priority;
 import com.grash.model.enums.Status;
+import com.grash.model.enums.PurchaseRequisitionStatus;
 import jakarta.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.domain.Specification;
@@ -184,6 +185,7 @@ public class WrapperSpecification<T> implements Specification<T> {
                 case PRIORITY -> Priority.getPriorityFromString(value.toString());
                 case STATUS -> Status.getStatusFromString(value.toString());
                 case JS_DATE -> SearchDateValueConverter.convert(value.toString(), path.getJavaType());
+                case PURCHASE_REQUISITION_STATUS -> PurchaseRequisitionStatus.valueOf(value.toString());
             };
         }
         return value;

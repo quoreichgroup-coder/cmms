@@ -20,6 +20,8 @@ import {
   IconButton,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useMediaQuery,
   useTheme
@@ -64,6 +66,7 @@ function PurchaseRequisitions() {
   const [converting, setConverting] = useState(false);
   const [pageNumber, setPageNumber] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'draft' | 'approved'>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<PurchaseRequisition | null>(null);
   const [sourceWorkOrder, setSourceWorkOrder] = useState<{ id: number; name: string } | null>(null);
@@ -90,6 +93,25 @@ function PurchaseRequisitions() {
   const canTrackOwnRequests =
     hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) ||
     hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS);
+
+  const searchCriteria = (pageNum: number) => {
+    const statusValues = {
+      pending: ['PENDING_APPROVAL'],
+      draft: ['DRAFT'],
+      approved: ['APPROVED', 'PARTIALLY_ORDERED']
+    }[statusFilter];
+    return {
+      pageNum,
+      pageSize: 30,
+      filterFields: statusValues ? [{
+        field: 'status',
+        operation: statusValues.length === 1 ? 'eq' : 'in',
+        value: statusValues[0],
+        values: statusValues,
+        enumName: 'PURCHASE_REQUISITION_STATUS'
+      }] : []
+    };
+  };
 
   const clearSourceWorkOrderContext = () => {
     setSourceWorkOrder(null);
@@ -119,7 +141,7 @@ function PurchaseRequisitions() {
     try {
       const result = await api.post<Page<PurchaseRequisition>>(
         'purchase-requisitions/search',
-        { pageNum: 0, pageSize: 30 }
+        searchCriteria(0)
       );
       setRows(result.content);
       setPageNumber(0);
@@ -129,7 +151,7 @@ function PurchaseRequisitions() {
     } finally {
       setLoading(false);
     }
-  }, [showSnackBar, t]);
+  }, [showSnackBar, statusFilter, t]);
 
   const loadMore = async () => {
     if (loading || !hasMore) return;
@@ -138,7 +160,7 @@ function PurchaseRequisitions() {
     try {
       const result = await api.post<Page<PurchaseRequisition>>(
         'purchase-requisitions/search',
-        { pageNum: next, pageSize: 30 }
+        searchCriteria(next)
       );
       setRows((current) => [...current, ...result.content]);
       setPageNumber(next);
@@ -297,6 +319,21 @@ function PurchaseRequisitions() {
             </Button>
           )}
         </Stack>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={statusFilter}
+          onChange={(_, value) => {
+            if (value) setStatusFilter(value);
+          }}
+          aria-label={t('requisition_status_filter')}
+          sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { textTransform: 'none', px: { xs: 1, sm: 2 } } }}
+        >
+          <ToggleButton value="all">{t('all')}</ToggleButton>
+          <ToggleButton value="pending">{t('requisition_status_filter_pending')}</ToggleButton>
+          <ToggleButton value="draft">{t('requisition_status_filter_draft')}</ToggleButton>
+          <ToggleButton value="approved">{t('requisition_status_filter_approved')}</ToggleButton>
+        </ToggleButtonGroup>
         {loading && <Typography color="text.secondary">{t('loading')}</Typography>}
         {!loading && rows.length === 0 && (
           <Card variant="outlined"><CardContent>
