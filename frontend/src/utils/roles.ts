@@ -10,12 +10,15 @@ const viewPermissionsExcluded = [
 const editOtherPermissionsExcluded = [
   PermissionEntity.PEOPLE_AND_TEAMS,
   PermissionEntity.CATEGORIES,
-  documentTemplatePermission
+  documentTemplatePermission,
+  PermissionEntity.PURCHASE_REQUISITIONS,
+  PermissionEntity.PURCHASE_RECEIPTS
 ];
 const createPermissionsExcluded = [
   PermissionEntity.PEOPLE_AND_TEAMS,
   PermissionEntity.CATEGORIES,
-  documentTemplatePermission
+  documentTemplatePermission,
+  PermissionEntity.PURCHASE_RECEIPTS
 ];
 const deleteOtherPermissionsExcluded = [
   PermissionEntity.WORK_ORDERS,
@@ -27,11 +30,16 @@ const deleteOtherPermissionsExcluded = [
   PermissionEntity.METERS,
   PermissionEntity.VENDORS_AND_CUSTOMERS,
   PermissionEntity.CATEGORIES,
+  PermissionEntity.PURCHASE_REQUISITIONS,
+  PermissionEntity.PURCHASE_RECEIPTS,
   PermissionEntity.FILES,
   PermissionEntity.PEOPLE_AND_TEAMS,
   documentTemplatePermission
 ];
-const viewOtherPermissionsExcluded = [documentTemplatePermission];
+const viewOtherPermissionsExcluded = [
+  documentTemplatePermission,
+  PermissionEntity.PURCHASE_REQUISITIONS
+];
 
 export const defaultPermissions: Record<PermissionRoot, PermissionEntity[]> = {
   viewPermissions: allPermissionEntities.filter(

@@ -14,4 +14,9 @@ public class PartQuantityShowDTO extends AuditShowDTO {
     
     @Schema(description = "Part information")
     private PartMiniDTO part;
+
+    @Schema(description = "Purchase requisition that originated this order line, when converted from a request")
+    private Long purchaseRequisitionId;
+    private double receivedQuantity;
+    private double remainingToReceive;
 }

@@ -14,6 +14,7 @@ import com.grash.factory.MailServiceFactory;
 import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.workflow.WFMainCondition;
+import com.grash.model.enums.workflow.PurchaseOrderAction;
 import com.grash.service.*;
 import com.grash.utils.Helper;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -63,6 +66,7 @@ public class PurchaseOrderController {
     private final PurchaseOrderCategoryService purchaseOrderCategoryService;
     private final PurchaseOrderPolicyService purchaseOrderPolicyService;
     private final PartService partService;
+    private final PurchaseOrderReceiptService purchaseOrderReceiptService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -86,6 +90,26 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.findBySearchCriteria(searchCriteria).map(this::setPartQuantities));
     }
 
+    @GetMapping("/receiving-queue")
+    @PreAuthorize("permitAll()")
+    @Transactional(readOnly = true)
+    public Page<PurchaseOrderShowDTO> receivingQueue(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest req) {
+        User user = userService.whoami(req);
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        boolean includeOthers = user.getRole().getViewOtherPermissions()
+                .contains(PermissionEntity.PURCHASE_ORDERS);
+        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 50)),
+                Sort.by(Sort.Direction.DESC, "id"));
+        return purchaseOrderService.findReceivable(user.getCompany().getId(), includeOthers,
+                user.getId(), pageable).map(order -> setPartQuantities(purchaseOrderMapper.toShowDto(order)));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("permitAll()")
     public PurchaseOrderShowDTO getById(@PathVariable("id") Long id, HttpServletRequest req) {
@@ -107,6 +131,8 @@ public class PurchaseOrderController {
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
             purchaseOrderPolicyService.requireModuleEnabled(user);
+            // Legacy single-document API remains on its historical approval/inventory semantics.
+            purchaseOrderReq.setReceivingWorkflowEnabled(false);
             purchaseOrderReq.setVendor(resolveVendor(purchaseOrderReq.getVendor(), user));
             purchaseOrderReq.setCategory(resolveCategory(purchaseOrderReq.getCategory(), user));
             PurchaseOrder savedPurchaseOrder = purchaseOrderService.create(purchaseOrderReq);
@@ -156,6 +182,7 @@ public class PurchaseOrderController {
         }
 
         PurchaseOrder purchaseOrder = request.getPurchaseOrder();
+        purchaseOrder.setReceivingWorkflowEnabled(true);
         purchaseOrder.setVendor(resolveVendor(purchaseOrder.getVendor(), user));
         purchaseOrder.setCategory(resolveCategory(purchaseOrder.getCategory(), user));
         PurchaseOrder saved = purchaseOrderService.create(purchaseOrder);
@@ -275,6 +302,7 @@ public class PurchaseOrderController {
         if (saved.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
         }
+        ensureNoRequisitionSourcedLines(saved);
 
         List<PartQuantityCompletePatchDTO> requestedLines = request.getPartQuantities();
         if (requestedLines == null || requestedLines.isEmpty()) {
@@ -337,9 +365,20 @@ public class PurchaseOrderController {
     }
 
     private void runPurchaseOrderWorkflows(WFMainCondition condition, PurchaseOrder purchaseOrder, Long companyId) {
+        boolean requisitionSourced = hasRequisitionSourcedLines(purchaseOrder);
         workflowService.findByMainConditionAndCompany(condition, companyId).stream()
                 .filter(Workflow::isEnabled)
+                .filter(workflow -> !requisitionSourced
+                        || workflow.getAction() == null
+                        || workflow.getAction().getPurchaseOrderAction() == null
+                        || (workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.APPROVE
+                        && workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.REJECT))
                 .forEach(workflow -> workflowService.runPurchaseOrder(workflow, purchaseOrder));
+    }
+
+    private boolean hasRequisitionSourcedLines(PurchaseOrder purchaseOrder) {
+        return partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
+                .anyMatch(line -> line.getRequisitionLine() != null);
     }
 
     @PatchMapping("/{id}/respond")
@@ -359,15 +398,26 @@ public class PurchaseOrderController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
     public ResponseEntity delete(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
 
-        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdAndCompany_Id(
+        Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdForUpdateAndCompany(
                 id, user.getCompany().getId());
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
             if (savedPurchaseOrder.canBeDeletedBy(user)) {
                 purchaseOrderPolicyService.requireModuleEnabled(user);
+                if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
+                    throw new CustomException("An approved purchase order cannot be deleted; " +
+                            "use the cancellation workflow to preserve its stock and commitment history.",
+                            HttpStatus.CONFLICT);
+                }
+                ensureNoRequisitionSourcedLines(savedPurchaseOrder);
+                if (purchaseOrderReceiptService.hasReceipts(id)) {
+                    throw new CustomException("A purchase order with receipt history cannot be deleted; " +
+                            "use a cancellation workflow to preserve the stock audit.", HttpStatus.CONFLICT);
+                }
                 purchaseOrderService.delete(id, user.getCompany().getId());
                 return new ResponseEntity(new SuccessResponse(true, "Deleted successfully"),
                         HttpStatus.OK);
@@ -377,8 +427,24 @@ public class PurchaseOrderController {
 
     private PurchaseOrderShowDTO setPartQuantities(PurchaseOrderShowDTO purchaseOrderShowDTO) {
         Collection<PartQuantity> partQuantities = partQuantityService.findByPurchaseOrder(purchaseOrderShowDTO.getId());
-        purchaseOrderShowDTO.setPartQuantities(partQuantities.stream().map(partQuantityMapper::toShowDto).collect(Collectors.toList()));
+        Map<Long, Double> receivedByLine = purchaseOrderShowDTO.isReceivingWorkflowEnabled()
+                ? purchaseOrderReceiptService.receivedByLine(purchaseOrderShowDTO.getId()) : Map.of();
+        purchaseOrderShowDTO.setPartQuantities(partQuantities.stream().map(line -> {
+            var dto = partQuantityMapper.toShowDto(line);
+            double received = receivedByLine.getOrDefault(line.getId(), 0d);
+            dto.setReceivedQuantity(received);
+            dto.setRemainingToReceive(Math.max(0, line.getQuantity() - received));
+            return dto;
+        }).collect(Collectors.toList()));
         return purchaseOrderShowDTO;
+    }
+
+    private void ensureNoRequisitionSourcedLines(PurchaseOrder purchaseOrder) {
+        if (partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
+                .anyMatch(line -> line.getRequisitionLine() != null)) {
+            throw new CustomException("A purchase order sourced from a requisition cannot be edited or deleted. Reject it while pending to release reserved quantities; approved orders require a cancellation workflow.",
+                    HttpStatus.CONFLICT);
+        }
     }
 
     private Vendor resolveVendor(Vendor vendor, User user) {

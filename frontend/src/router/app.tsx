@@ -152,6 +152,9 @@ const PurchaseOrders = Loader(
 const CreatePurchaseOrders = Loader(
   lazy(() => import('../content/own/PurchaseOrders/Create'))
 );
+const PurchaseRequisitions = Loader(
+  lazy(() => import('../content/own/PurchaseRequisitions'))
+);
 const Locations = Loader(lazy(() => import('../content/own/Locations')));
 const WorkOrders = Loader(lazy(() => import('../content/own/WorkOrders')));
 const MaintenanceDashboard = Loader(
@@ -365,6 +368,10 @@ const appRoutes = [
         element: <PreventiveMaintenances />
       }
     ]
+  },
+  {
+    path: 'purchase-requisitions',
+    children: [{ path: '', element: <PurchaseRequisitions /> }]
   },
   {
     path: 'purchase-orders',

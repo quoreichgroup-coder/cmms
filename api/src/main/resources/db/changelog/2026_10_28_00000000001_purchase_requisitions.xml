@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-requisitions" author="qpm">
+        <createTable tableName="purchase_requisition">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_purchase_requisition"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_requisition_company" references="company(id)"/></column>
+            <column name="title" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="justification" type="TEXT"/>
+            <column name="required_date" type="TIMESTAMP"/>
+            <column name="status" type="VARCHAR(32)" defaultValue="DRAFT"><constraints nullable="false"/></column>
+            <column name="requester_id" type="BIGINT"><constraints foreignKeyName="fk_purchase_requisition_requester" references="own_user(id)"/></column>
+            <column name="decision_by_id" type="BIGINT"><constraints foreignKeyName="fk_purchase_requisition_decision_user" references="own_user(id)"/></column>
+            <column name="decision_at" type="TIMESTAMP"/>
+            <column name="decision_note" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="purchase_requisition" indexName="idx_purchase_requisition_company_status">
+            <column name="company_id"/><column name="status"/><column name="created_at"/>
+        </createIndex>
+
+        <createTable tableName="purchase_requisition_line">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_purchase_requisition_line"/></column>
+            <column name="requisition_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_requisition_line_header" references="purchase_requisition(id)"/></column>
+            <column name="part_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_requisition_line_part" references="part(id)"/></column>
+            <column name="quantity" type="DOUBLE PRECISION"><constraints nullable="false"/></column>
+            <column name="ordered_quantity" type="DOUBLE PRECISION" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="notes" type="TEXT"/>
+        </createTable>
+        <createIndex tableName="purchase_requisition_line" indexName="idx_purchase_requisition_line_header">
+            <column name="requisition_id"/>
+        </createIndex>
+
+        <addColumn tableName="part_quantity">
+            <column name="requisition_line_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="part_quantity" baseColumnNames="requisition_line_id"
+                                 constraintName="fk_part_quantity_requisition_line"
+                                 referencedTableName="purchase_requisition_line" referencedColumnNames="id"/>
+
+        <sql>CREATE SEQUENCE IF NOT EXISTS purchase_requisition_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS purchase_requisition_line_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>INSERT INTO role_create_permissions (role_id, create_permissions) SELECT id, 17 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_permissions (role_id, view_permissions) SELECT id, 17 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_other_permissions (role_id, view_other_permissions) SELECT id, 17 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions) SELECT id, 17 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_delete_other_permissions (role_id, delete_other_permissions) SELECT id, 17 FROM role WHERE code = 'ADMIN' ON CONFLICT DO NOTHING</sql>
+    </changeSet>
+</databaseChangeLog>

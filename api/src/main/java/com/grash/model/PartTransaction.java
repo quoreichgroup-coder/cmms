@@ -14,6 +14,8 @@ import org.hibernate.annotations.OnDeleteAction;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
@@ -36,6 +38,16 @@ public class PartTransaction extends CompanyAudit {
     private WorkOrder workOrder;
 
     private String description;
+
+    /**
+     * Source document for stock entries created from the new PO receiving flow.
+     * Nullable so existing work-order consumptions and manual restocks retain
+     * their current contract.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_order_receipt_line_id", unique = true)
+    @JsonIgnore
+    private PurchaseOrderReceiptLine purchaseOrderReceiptLine;
 
     public PartTransaction(Part part, @NotNull WorkOrder workOrder, double quantity) {
         this.part = part;

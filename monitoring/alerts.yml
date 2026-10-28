@@ -1,0 +1,42 @@
+groups:
+  - name: qpm-availability
+    rules:
+      - alert: QpmApiUnavailable
+        expr: up{job="qpm-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: QPM API metrics endpoint is unavailable
+
+      - alert: QpmHostExporterUnavailable
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host metrics exporter is unavailable
+
+      - alert: QpmApiHighServerErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{job="qpm-api",status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job="qpm-api"}[5m])), 0.01) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: API server error rate is above 5 percent
+
+      - alert: QpmApiHighP95Latency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="qpm-api"}[5m]))) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: API p95 response latency is above 1.5 seconds
+
+      - alert: QpmHostDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|overlay|squashfs"}) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host filesystem has less than 10 percent free

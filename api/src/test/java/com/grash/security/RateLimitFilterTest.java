@@ -58,6 +58,18 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void healthAndMetricsEndpoints_skipRateLimit() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/health-check");
+        when(request.getContextPath()).thenReturn("/api");
+        org.junit.jupiter.api.Assertions.assertTrue(filter.shouldNotFilter(request));
+
+        when(request.getRequestURI()).thenReturn("/actuator/prometheus");
+        when(request.getContextPath()).thenReturn("");
+        org.junit.jupiter.api.Assertions.assertTrue(filter.shouldNotFilter(request));
+        verifyNoInteractions(rateLimiterService, clientIpResolver, filterChain);
+    }
+
+    @Test
     void authenticationNull_appliesUnauthenticatedRateLimit() throws Exception {
         when(rateLimiterService.isRateLimitEnabled()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(null);

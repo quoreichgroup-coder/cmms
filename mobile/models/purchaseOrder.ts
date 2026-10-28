@@ -28,4 +28,5 @@ export default interface PurchaseOrder extends Audit {
   additionalInfoTerm: string;
   additionalInfoNotes: string;
   partQuantities: PartQuantityMiniDTO[];
+  receivingWorkflowEnabled?: boolean;
 }

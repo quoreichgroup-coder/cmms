@@ -34,6 +34,9 @@ public class PartQuantity extends CompanyAudit {
     private PurchaseOrder purchaseOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    private PurchaseRequisitionLine requisitionLine;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private WorkOrder workOrder;
 

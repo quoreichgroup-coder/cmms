@@ -6,6 +6,7 @@ import Category from './category';
 export type PurchaseOrderStatus = 'APPROVED' | 'PENDING' | 'REJECTED';
 export default interface PurchaseOrder extends Audit {
   status: PurchaseOrderStatus;
+  receivingWorkflowEnabled?: boolean;
   name: string;
   id: number;
   category: Category;

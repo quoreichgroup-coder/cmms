@@ -23,13 +23,15 @@ interface PartQuantityListProps {
   disabled: boolean;
   deleteDisabled?: boolean;
   onDelete?: (partQuantity: PartQuantityMiniDTO) => void;
+  showReceiptProgress?: boolean;
 }
 export default function PartQuantitiesList({
   partQuantities,
   onChange,
   disabled,
   deleteDisabled,
-  onDelete
+  onDelete,
+  showReceiptProgress = false
 }: PartQuantityListProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
@@ -67,6 +69,16 @@ export default function PartQuantitiesList({
             secondary={
               <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <Typography noWrap>{partQuantity.part.description}</Typography>
+                {partQuantity.purchaseRequisitionId && (
+                  <Typography variant="caption" color="text.secondary">
+                    {t('source_requisition', { id: partQuantity.purchaseRequisitionId })}
+                  </Typography>
+                )}
+                {showReceiptProgress && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {t('received')}: {partQuantity.receivedQuantity || 0} · {t('remaining')}: {partQuantity.remainingToReceive ?? partQuantity.quantity} {partQuantity.part.unit || ''}
+                  </Typography>
+                )}
               </div>
             }
           />
@@ -84,7 +96,8 @@ export default function PartQuantitiesList({
               type="number"
               disabled={disabled}
               inputProps={{
-                min: '0'
+                min: '0',
+                step: partQuantity.part.unit ? 'any' : 1
               }}
               size="small"
               onChange={(event) => onChange(event.target.value, partQuantity)}

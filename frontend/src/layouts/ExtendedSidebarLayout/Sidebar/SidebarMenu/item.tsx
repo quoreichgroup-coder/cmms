@@ -70,6 +70,7 @@ const sidebarLabelKeys: Record<string, string> = {
   locations: 'sidebar_sap_functional_locations',
   parts_and_inventory: 'sidebar_sap_materials_inventory',
   sets_of_parts: 'sidebar_sap_material_kits',
+  purchase_requisitions: 'purchase_requisitions',
   purchase_orders: 'sidebar_sap_procurement',
   meters: 'sidebar_sap_measuring_points',
   people_teams: 'sidebar_sap_maintenance_personnel_teams',

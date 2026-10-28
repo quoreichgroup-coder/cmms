@@ -199,6 +199,30 @@ export const getPurchaseOrders =
     }
   };
 
+export const getPurchaseOrdersToReceive =
+  (pageNum: number, pageSize: number): AppThunk =>
+  async (dispatch, getState) => {
+    const requestGeneration = getState().purchaseOrders.requestGeneration ?? 0;
+    dispatch(slice.actions.startPurchaseOrdersRequest());
+    const listRequestId = getState().purchaseOrders.listRequestId;
+    try {
+      const purchaseOrders = await api.get<Page<PurchaseOrder>>(
+        `${basePath}/receiving-queue?page=${pageNum}&size=${pageSize}`
+      );
+      dispatch(slice.actions.getPurchaseOrders({
+        purchaseOrders,
+        requestGeneration,
+        listRequestId
+      }));
+    } finally {
+      dispatch(slice.actions.setLoadingGet({
+        loading: false,
+        requestGeneration,
+        listRequestId
+      }));
+    }
+  };
+
 export const getMorePurchaseOrders =
   (criteria: SearchCriteria, pageNum: number): AppThunk =>
   async (dispatch, getState) => {
@@ -231,6 +255,26 @@ export const getMorePurchaseOrders =
           listRequestId
         })
       );
+    }
+  };
+
+export const getMorePurchaseOrdersToReceive =
+  (pageNum: number, pageSize: number): AppThunk =>
+  async (dispatch, getState) => {
+    const requestGeneration = getState().purchaseOrders.requestGeneration ?? 0;
+    const listRequestId = getState().purchaseOrders.listRequestId ?? 0;
+    dispatch(slice.actions.setLoadingGet({ loading: true, requestGeneration, listRequestId }));
+    try {
+      const purchaseOrders = await api.get<Page<PurchaseOrder>>(
+        `${basePath}/receiving-queue?page=${pageNum}&size=${pageSize}`
+      );
+      dispatch(slice.actions.getMorePurchaseOrders({
+        purchaseOrders,
+        requestGeneration,
+        listRequestId
+      }));
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false, requestGeneration, listRequestId }));
     }
   };
 

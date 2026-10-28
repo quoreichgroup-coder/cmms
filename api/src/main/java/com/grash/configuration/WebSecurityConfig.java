@@ -69,6 +69,9 @@ public class WebSecurityConfig {
                         .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/login/oauth2/**").permitAll()
                         .requestMatchers("/health-check").permitAll()
+                        // Actuator runs on the private management port in Docker Compose.
+                        // Keep it off the public Nginx port while allowing Prometheus to scrape it.
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                         .requestMatchers("/mail/send").permitAll()
                         .requestMatchers("/instance-config").permitAll()
                         .requestMatchers("/subscription-plans").permitAll()

@@ -1,7 +1,10 @@
 import {
   Box,
   Button,
+  Card,
+  CardContent,
   CircularProgress,
+  Chip,
   debounce,
   Dialog,
   DialogActions,
@@ -12,12 +15,14 @@ import {
   Grid,
   IconButton,
   Link,
+  Stack,
+  TextField,
   Tab,
   Tabs,
   Typography,
   useTheme
 } from '@mui/material';
-import { ChangeEvent, useContext, useMemo, useState } from 'react';
+import { ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
@@ -29,7 +34,7 @@ import { editPartQuantity } from '../../../slices/partQuantity';
 import { useDispatch } from '../../../store';
 import PartQuantitiesList from '../components/PartQuantitiesList';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
-import PartQuantity from 'src/models/owns/partQuantity';
+import { PartQuantityMiniDTO } from '../../../models/owns/partQuantity';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
 import { respondPurchaseOrder } from '../../../slices/purchaseOrder';
@@ -37,26 +42,110 @@ import BasicField from '../components/BasicField';
 import { getErrorMessage } from '../../../utils/api';
 import Alert from '@mui/material/Alert';
 import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
+import { PurchaseOrderReceipt } from '../../../models/owns/purchaseOrderReceipt';
+import api from '../../../utils/api';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import { useMediaQuery } from '@mui/material';
 
 interface PurchaseOrderDetailsProps {
   purchaseOrder: PurchaseOrder;
   handleOpenUpdate: () => void;
   handleDelete: () => void;
-  partQuantities: PartQuantity[];
+  partQuantities: PartQuantityMiniDTO[];
+  onReceiptCreated: () => void;
 }
+const newReceiptIdempotencyKey = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
-  const { purchaseOrder, handleOpenUpdate, handleDelete, partQuantities } =
+  const { purchaseOrder, handleOpenUpdate, handleDelete, partQuantities, onReceiptCreated } =
     props;
   const { t }: { t: any } = useTranslation();
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const [approving, setApproving] = useState<boolean>(false);
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [receiptSubmitting, setReceiptSubmitting] = useState(false);
+  const [receiptReference, setReceiptReference] = useState('');
+  const [receiptNotes, setReceiptNotes] = useState('');
+  const [receiptIdempotencyKey, setReceiptIdempotencyKey] = useState('');
+  const [receiptQuantities, setReceiptQuantities] = useState<Record<number, string>>({});
+  const [receipts, setReceipts] = useState<PurchaseOrderReceipt[]>([]);
   const { hasEditPermission, hasDeletePermission, user } = useAuth();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [currentTab, setCurrentTab] = useState<string>('details');
+  const canReceive = Boolean(
+    purchaseOrder.receivingWorkflowEnabled && purchaseOrder.status === 'APPROVED' &&
+    user?.role?.editOtherPermissions?.includes(PermissionEntity.PURCHASE_RECEIPTS)
+  );
+  const canViewReceipts = Boolean(
+    user?.role?.viewPermissions?.includes(PermissionEntity.PURCHASE_RECEIPTS)
+  );
+  const receiptProgressKey = purchaseOrder.status !== 'APPROVED'
+    ? null
+    : partQuantities.length === 0
+      ? 'receipt_pending'
+      : partQuantities.every((line) => (line.remainingToReceive ?? line.quantity) <= 0)
+      ? 'receipt_complete'
+      : partQuantities.some((line) => (line.receivedQuantity ?? 0) > 0)
+        ? 'receipt_partial'
+        : 'receipt_pending';
+
+  useEffect(() => {
+    if (!purchaseOrder.receivingWorkflowEnabled || !canViewReceipts) {
+      setReceipts([]);
+      return;
+    }
+    api.get<PurchaseOrderReceipt[]>(`purchase-orders/${purchaseOrder.id}/receipts`)
+      .then(setReceipts)
+      .catch((error) => showSnackBar(getErrorMessage(error), 'error'));
+  }, [purchaseOrder.id, purchaseOrder.receivingWorkflowEnabled, canViewReceipts, showSnackBar]);
+
+  const openReceipt = () => {
+    setReceiptQuantities(Object.fromEntries(partQuantities
+      .filter((line) => (line.remainingToReceive ?? line.quantity) > 0)
+      .map((line) => [line.id, String(line.remainingToReceive ?? line.quantity)])));
+    setReceiptReference('');
+    setReceiptNotes('');
+    setReceiptIdempotencyKey(newReceiptIdempotencyKey());
+    setReceiptDialogOpen(true);
+  };
+
+  const submitReceipt = async () => {
+    if (receiptSubmitting) return;
+    const lines = partQuantities.map((line) => ({
+      purchaseOrderLineId: line.id,
+      quantity: Number(receiptQuantities[line.id] || 0)
+    })).filter((line) => line.quantity > 0);
+    if (lines.length === 0) return;
+    setReceiptSubmitting(true);
+    try {
+      await api.post(`purchase-orders/${purchaseOrder.id}/receipts`, {
+        idempotencyKey: receiptIdempotencyKey,
+        reference: receiptReference.trim() || null,
+        notes: receiptNotes.trim() || null,
+        lines
+      });
+      if (canViewReceipts) {
+        const updated = await api.get<PurchaseOrderReceipt[]>(`purchase-orders/${purchaseOrder.id}/receipts`);
+        setReceipts(updated);
+      }
+      setReceiptDialogOpen(false);
+      setReceiptIdempotencyKey('');
+      onReceiptCreated();
+      showSnackBar(t('receipt_saved'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      setReceiptSubmitting(false);
+    }
+  };
   const tabs = [
     { value: 'details', label: t('details') },
     { value: 'parts', label: t('parts') },
@@ -210,6 +299,9 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
           <Typography variant="h2">{purchaseOrder?.name}</Typography>
           <Typography variant="h6">{purchaseOrder?.shippingAddress}</Typography>
           <Typography variant="h6">{t(purchaseOrder?.status)}</Typography>
+          {purchaseOrder.receivingWorkflowEnabled && canViewReceipts && receiptProgressKey && (
+            <Chip size="small" sx={{ mt: 1 }} color={receiptProgressKey === 'receipt_complete' ? 'success' : receiptProgressKey === 'receipt_partial' ? 'warning' : 'default'} label={t(receiptProgressKey)} />
+          )}
         </Box>
         <Box>
           {hasEditPermission(
@@ -220,7 +312,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
-          {hasDeletePermission(
+          {purchaseOrder.status !== 'APPROVED' && hasDeletePermission(
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
@@ -296,7 +388,9 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             {t('purchase_order_approval_confirmation_body')}
           </DialogContentText>
           <Alert severity="warning">
-            {t('purchase_order_approval_effect_hint')}
+            {purchaseOrder.receivingWorkflowEnabled
+              ? t('approval_does_not_receive_stock')
+              : t('purchase_order_approval_effect_hint')}
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -322,6 +416,36 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             }
           >
             {t('approve')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={receiptDialogOpen} onClose={() => !receiptSubmitting && setReceiptDialogOpen(false)} fullScreen={fullScreen} fullWidth maxWidth="sm">
+        <DialogTitle>{t('record_receipt')}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Alert severity="info">{t('receipt_workflow_hint')}</Alert>
+            <TextField fullWidth label={t('delivery_reference')} value={receiptReference} inputProps={{ maxLength: 100 }} onChange={(event) => { setReceiptReference(event.target.value); setReceiptIdempotencyKey(newReceiptIdempotencyKey()); }} />
+            {partQuantities.filter((line) => (line.remainingToReceive ?? line.quantity) > 0).map((line) => {
+              const remaining = line.remainingToReceive ?? line.quantity;
+              return (
+                <TextField
+                  key={line.id}
+                  type="number"
+                  fullWidth
+                  label={`${line.part.name} · ${t('remaining')}: ${remaining} ${line.part.unit || ''}`}
+                  value={receiptQuantities[line.id] ?? ''}
+                  inputProps={{ min: 0, max: remaining, step: line.part.unit ? 'any' : 1, inputMode: 'decimal' }}
+                  onChange={(event) => { setReceiptQuantities((current) => ({ ...current, [line.id]: event.target.value })); setReceiptIdempotencyKey(newReceiptIdempotencyKey()); }}
+                />
+              );
+            })}
+            <TextField fullWidth multiline minRows={2} label={t('notes')} value={receiptNotes} inputProps={{ maxLength: 2000 }} onChange={(event) => { setReceiptNotes(event.target.value); setReceiptIdempotencyKey(newReceiptIdempotencyKey()); }} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReceiptDialogOpen(false)} disabled={receiptSubmitting}>{t('cancel')}</Button>
+          <Button variant="contained" onClick={() => void submitReceipt()} disabled={receiptSubmitting || !partQuantities.some((line) => Number(receiptQuantities[line.id]) > 0)} startIcon={receiptSubmitting ? <CircularProgress size="1rem" /> : <LocalShippingOutlinedIcon />}>
+            {t('record_receipt')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -354,17 +478,57 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
           </Grid>
         )}
         {currentTab === 'parts' && (
-          <PartQuantitiesList
-            partQuantities={partQuantities}
-            disabled={
-              !hasEditPermission(
-                PermissionEntity.PURCHASE_ORDERS,
-                purchaseOrder
-              ) || purchaseOrder.status !== 'PENDING'
-            }
-            deleteDisabled={partQuantities.length === 1}
-            onChange={debouncedPartQuantityChange}
-          />
+          <Stack spacing={2}>
+            {purchaseOrder.receivingWorkflowEnabled && (
+              <Card variant="outlined">
+                <CardContent>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1}>
+                    <Box>
+                      <Typography variant="h6">{t('receiving')}</Typography>
+                      <Typography variant="body2" color="text.secondary">{t('receipt_workflow_hint')}</Typography>
+                    </Box>
+                    {canReceive && partQuantities.some((line) => (line.remainingToReceive ?? line.quantity) > 0) && (
+                      <Button variant="contained" startIcon={<LocalShippingOutlinedIcon />} onClick={openReceipt}>
+                        {t('record_receipt')}
+                      </Button>
+                    )}
+                  </Stack>
+                  {canViewReceipts && (receipts.length > 0 ? (
+                    <Stack spacing={1} sx={{ mt: 2 }}>
+                      {receipts.map((receipt) => (
+                        <Card key={receipt.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={0.5}>
+                              <Typography fontWeight={600}>{receipt.reference || `${t('receipt')} #${receipt.id}`}</Typography>
+                              <Typography variant="body2" color="text.secondary">{getFormattedDate(receipt.receivedAt)} · {receipt.receivedByName}</Typography>
+                            </Stack>
+                            <Stack spacing={0.5} sx={{ mt: 1 }}>
+                              {receipt.lines.map((line) => (
+                                <Typography key={line.id} variant="body2">{line.partName}: {line.quantity} {line.unit || ''}</Typography>
+                              ))}
+                            </Stack>
+                            {receipt.notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{receipt.notes}</Typography>}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{t('no_receipts_yet')}</Typography>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            <PartQuantitiesList
+              partQuantities={partQuantities}
+              disabled={
+                !hasEditPermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder) ||
+                purchaseOrder.status !== 'PENDING'
+              }
+              deleteDisabled={partQuantities.length === 1}
+              onChange={debouncedPartQuantityChange}
+              showReceiptProgress={purchaseOrder.receivingWorkflowEnabled && canViewReceipts}
+            />
+          </Stack>
         )}
         {currentTab === 'shipping' && (
           <Grid container spacing={2}>

@@ -332,7 +332,7 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const { t, i18n }: { t: any; i18n: any } = useTranslation();
   const dispatch = useDispatch();
   const theme = useTheme();
-  const { hasViewPermission, hasFeature, user, company } = useAuth();
+  const { hasViewPermission, hasCreatePermission, hasFeature, user, company } = useAuth();
   const { desktopSidebarCollapsed } = useContext(SidebarContext);
   const sidebarCollapsed = desktopSidebarCollapsed && !forceExpanded;
   const { urgentCount } = useSelector((state) => state.workOrders);
@@ -415,6 +415,9 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
             sectionClone.items = sectionClone.items.filter((item) => {
               const hasPermission = item.permission
                 ? hasViewPermission(item.permission) ||
+                  (item.createPermission
+                    ? hasCreatePermission(item.createPermission)
+                    : false) ||
                   (item.permissionFallback
                     ? hasViewPermission(item.permissionFallback)
                     : false)

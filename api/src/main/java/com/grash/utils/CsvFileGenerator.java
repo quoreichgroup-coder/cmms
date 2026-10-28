@@ -325,9 +325,11 @@ public class CsvFileGenerator {
             CSVPrinter printer = new CSVPrinter(writer, csvFormat);
             if (includeHeaders) {
                 List<String> headers = Arrays.asList("ID", "Part_ID", "Part", "Quantity", "Cost", "Work_Order_ID"
-                        , "Work_Order_Title",
-                        "Description", "Created_At");
-                printer.printRecord(headers.stream().map(header -> messageSource.getMessage(header, null, locale)).collect(Collectors.toList()));
+                        , "Work_Order_Title", "Description", "Created_At", "Purchase Order ID", "Receipt ID",
+                        "Receipt Reference");
+                printer.printRecord(headers.stream()
+                        .map(header -> messageSource.getMessage(header, null, header, locale))
+                        .collect(Collectors.toList()));
             }
             for (PartTransaction pt : partTransactions) {
                 printer.printRecord(pt.getId(),
@@ -338,7 +340,13 @@ public class CsvFileGenerator {
                         pt.getWorkOrder() == null ? null : pt.getWorkOrder().getId(),
                         pt.getWorkOrder() == null ? null : pt.getWorkOrder().getTitle(),
                         pt.getDescription(),
-                        pt.getCreatedAt()
+                        pt.getCreatedAt(),
+                        pt.getPurchaseOrderReceiptLine() == null ? null
+                                : pt.getPurchaseOrderReceiptLine().getReceipt().getPurchaseOrder().getId(),
+                        pt.getPurchaseOrderReceiptLine() == null ? null
+                                : pt.getPurchaseOrderReceiptLine().getReceipt().getId(),
+                        pt.getPurchaseOrderReceiptLine() == null ? null
+                                : pt.getPurchaseOrderReceiptLine().getReceipt().getReference()
                 );
             }
             printer.flush();

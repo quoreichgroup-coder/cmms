@@ -80,6 +80,9 @@ public class PurchaseOrder extends CompanyAudit {
     @Schema(description = "Indicates whether this is a demo purchase order")
     private boolean isDemo;
 
+    /** New PO flow: approval authorizes the order; only a recorded receipt changes stock. */
+    private boolean receivingWorkflowEnabled;
+
 //    @ManyToOne
 //    private Company requesterInformation;
 

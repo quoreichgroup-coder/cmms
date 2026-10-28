@@ -238,6 +238,10 @@ public class PartQuantityController {
     PartQuantityShowDTO create(@Parameter(description = "Part quantity to create") @Valid @RequestBody PartQuantity partQuantityReq,
                                HttpServletRequest req) {
         User user = userService.whoami(req);
+        if (partQuantityReq.getRequisitionLine() != null) {
+            throw new CustomException("Purchase requisition source links are managed by the conversion service",
+                    HttpStatus.BAD_REQUEST);
+        }
         if ((partQuantityReq.getPurchaseOrder() == null) == (partQuantityReq.getWorkOrder() == null)) {
             throw new CustomException("A part quantity must belong to exactly one purchase order or work order",
                     HttpStatus.BAD_REQUEST);
@@ -367,6 +371,11 @@ public class PartQuantityController {
     private void ensurePurchaseOrderCanChangeLines(PurchaseOrder purchaseOrder) {
         if (purchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase order lines cannot be changed", HttpStatus.CONFLICT);
+        }
+        if (partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
+                .anyMatch(line -> line.getRequisitionLine() != null)) {
+            throw new CustomException("Purchase order lines linked to an approved requisition cannot be changed",
+                    HttpStatus.CONFLICT);
         }
     }
 

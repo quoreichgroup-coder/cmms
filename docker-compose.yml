@@ -88,6 +88,7 @@ services:
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
       PDFME_RENDERER_URL: http://pdfme-renderer:8090
       PDFME_RENDERER_TOKEN: ${PDFME_RENDERER_TOKEN:-}
+      MANAGEMENT_SERVER_PORT: 8081
 
       LDAP_ENABLED: ${LDAP_ENABLED:-false}
       LDAP_ORG_ADMIN: ${LDAP_ORG_ADMIN:-}
@@ -110,6 +111,7 @@ services:
       LDAP_SYNC_CRON: ${LDAP_SYNC_CRON:-}
     expose:
       - "8080"
+      - "8081"
 
   pdfme-renderer:
     build:
@@ -204,9 +206,69 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  prometheus:
+    image: prom/prometheus:v3.13.5
+    container_name: atlas-prometheus
+    restart: unless-stopped
+    profiles: [monitoring]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - api
+      - node-exporter
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    container_name: atlas-grafana
+    restart: unless-stopped
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env before enabling monitoring}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.12.1
+    container_name: atlas-node-exporter
+    restart: unless-stopped
+    profiles: [monitoring]
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/containerd/.+)($|/)
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    expose:
+      - "9100"
+
 volumes:
   postgres_data:
   minio_data:
   license_cache:
   caddy_data:
   caddy_config:
+  prometheus_data:
+  grafana_data:

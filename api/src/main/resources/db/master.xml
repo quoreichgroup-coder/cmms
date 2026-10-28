@@ -305,4 +305,10 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_10_27_00000000002_procurement_recovery_index.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_28_00000000001_purchase_requisitions.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_28_00000000002_purchase_order_receipts.xml"
+             relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_28_00000000003_link_receipts_to_stock_transactions.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -17,5 +17,8 @@ public enum PermissionEntity {
     REQUESTS,
     ANALYTICS,
     REOPEN_WORK_ORDERS,
-    DOCUMENT_TEMPLATES
+    DOCUMENT_TEMPLATES,
+    // Append only: permissions are persisted as enum ordinals in legacy role tables.
+    PURCHASE_REQUISITIONS,
+    PURCHASE_RECEIPTS
 }

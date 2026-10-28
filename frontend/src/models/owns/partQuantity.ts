@@ -11,4 +11,7 @@ export interface PartQuantityMiniDTO {
   id: number;
   quantity: number;
   part: PartMiniDTO;
+  purchaseRequisitionId?: number;
+  receivedQuantity?: number;
+  remainingToReceive?: number;
 }

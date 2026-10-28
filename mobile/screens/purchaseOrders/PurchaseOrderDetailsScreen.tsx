@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Card, Chip, Divider, Text } from 'react-native-paper';
+import { Button, Card, Chip, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { RootStackScreenProps } from '../../types';
 import PurchaseOrder from '../../models/purchaseOrder';
@@ -11,6 +11,21 @@ import { PlanFeature } from '../../models/subscriptionPlan';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
 import { useAppTheme } from '../../custom-theme';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
+import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
+import { getErrorMessage } from '../../utils/api';
+
+interface Receipt {
+  id: number;
+  reference?: string;
+  receivedAt: string;
+  receivedByName: string;
+  lines: { id: number; partName: string; quantity: number; unit?: string }[];
+}
+
+const receiptKey = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export default function PurchaseOrderDetailsScreen({
   navigation,
@@ -19,7 +34,8 @@ export default function PurchaseOrderDetailsScreen({
   const { id } = route.params;
   const { t } = useTranslation();
   const theme = useAppTheme();
-  const { hasViewPermission, hasFeature } = useAuth();
+  const { hasViewPermission, hasFeature, user } = useAuth();
+  const { showSnackBar } = useContext(CustomSnackBarContext);
   const { getFormattedDate, getFormattedCurrency } = useContext(
     CompanySettingsContext
   );
@@ -32,6 +48,12 @@ export default function PurchaseOrderDetailsScreen({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const requestId = useRef(0);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptSaving, setReceiptSaving] = useState(false);
+  const [receiptReference, setReceiptReference] = useState('');
+  const [receiptQuantities, setReceiptQuantities] = useState<Record<number, string>>({});
+  const [currentReceiptKey, setCurrentReceiptKey] = useState('');
 
   const loadPurchaseOrder = useCallback(async () => {
     const currentRequestId = ++requestId.current;
@@ -47,6 +69,71 @@ export default function PurchaseOrderDetailsScreen({
       if (currentRequestId === requestId.current) setLoading(false);
     }
   }, [id]);
+
+  const canReceive = Boolean(
+    purchaseOrder?.receivingWorkflowEnabled &&
+      purchaseOrder.status === 'APPROVED' &&
+      user?.role?.editOtherPermissions?.includes(PermissionEntity.PURCHASE_RECEIPTS)
+  );
+  const canViewReceipts = Boolean(
+    user?.role?.viewPermissions?.includes(PermissionEntity.PURCHASE_RECEIPTS)
+  );
+
+  const loadReceipts = useCallback(async () => {
+    if (!purchaseOrder?.receivingWorkflowEnabled || !canViewReceipts) {
+      setReceipts([]);
+      return;
+    }
+    try {
+      setReceipts(await api.get<Receipt[]>(`purchase-orders/${id}/receipts`));
+    } catch (error) {
+      showSnackBar(getErrorMessage(error, t('purchase_orders_load_error')), 'error');
+    }
+  }, [canViewReceipts, id, purchaseOrder?.receivingWorkflowEnabled, showSnackBar, t]);
+
+  useEffect(() => {
+    void loadReceipts();
+  }, [loadReceipts]);
+
+  const openReceipt = () => {
+    setReceiptReference('');
+    setReceiptQuantities(
+      Object.fromEntries(
+        (purchaseOrder?.partQuantities ?? [])
+          .filter((line) => (line.remainingToReceive ?? line.quantity) > 0)
+          .map((line) => [line.id, String(line.remainingToReceive ?? line.quantity)])
+      )
+    );
+    setCurrentReceiptKey(receiptKey());
+    setReceiptOpen(true);
+  };
+
+  const saveReceipt = async () => {
+    if (receiptSaving || !currentReceiptKey) return;
+    const lines = (purchaseOrder?.partQuantities ?? [])
+      .map((line) => ({
+        purchaseOrderLineId: line.id,
+        quantity: Number((receiptQuantities[line.id] || '0').replace(',', '.'))
+      }))
+      .filter((line) => Number.isFinite(line.quantity) && line.quantity > 0);
+    if (lines.length === 0) return;
+    setReceiptSaving(true);
+    try {
+      await api.post(`purchase-orders/${id}/receipts`, {
+        idempotencyKey: currentReceiptKey,
+        reference: receiptReference.trim() || null,
+        lines
+      });
+      setReceiptOpen(false);
+      await loadReceipts();
+      await loadPurchaseOrder();
+      showSnackBar(t('receipt_saved'), 'success');
+    } catch (error) {
+      showSnackBar(getErrorMessage(error, t('receipt_save_failed')), 'error');
+    } finally {
+      setReceiptSaving(false);
+    }
+  };
 
   useEffect(() => {
     navigation.setOptions({
@@ -276,6 +363,18 @@ export default function PurchaseOrderDetailsScreen({
                     {t('purchase_order_quantity')}: {line.quantity}
                     {line.part?.unit ? ` ${line.part.unit}` : ''}
                   </Text>
+                  {purchaseOrder.receivingWorkflowEnabled && canViewReceipts && (
+                    <Text
+                      variant="bodySmall"
+                      style={[styles.receiptProgress, { color: theme.colors.onSurfaceVariant }]}
+                    >
+                      {t('receipt_progress', {
+                        received: line.receivedQuantity ?? 0,
+                        remaining: line.remainingToReceive ?? line.quantity,
+                        unit: line.part?.unit ? ` ${line.part.unit}` : ''
+                      })}
+                    </Text>
+                  )}
                 </View>
               </View>
             ))
@@ -289,6 +388,101 @@ export default function PurchaseOrderDetailsScreen({
           )}
         </Card.Content>
       </Card>
+
+      {purchaseOrder.receivingWorkflowEnabled && (
+        <Card mode="outlined" style={{ backgroundColor: theme.colors.surface }}>
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.receiptHeading}>
+              <View style={styles.headingText}>
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>
+                  {t('receiving')}
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('receipt_workflow_hint')}
+                </Text>
+              </View>
+              {canReceive && (purchaseOrder.partQuantities ?? []).some(
+                (line) => (line.remainingToReceive ?? line.quantity) > 0
+              ) && (
+                <Button mode="contained" compact onPress={openReceipt}>
+                  {t('record_receipt')}
+                </Button>
+              )}
+            </View>
+            {canViewReceipts && (receipts.length > 0 ? (
+              receipts.map((receipt) => (
+                <View key={receipt.id} style={styles.receiptHistoryItem}>
+                  <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>
+                    {receipt.reference || `${t('receipt')} #${receipt.id}`}
+                  </Text>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {getFormattedDate(receipt.receivedAt, true)} · {receipt.receivedByName}
+                  </Text>
+                  {receipt.lines.map((line) => (
+                    <Text key={line.id} variant="bodySmall" style={{ color: theme.colors.onSurface }}>
+                      {line.partName}: {line.quantity}{line.unit ? ` ${line.unit}` : ''}
+                    </Text>
+                  ))}
+                </View>
+              ))
+            ) : (
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('no_receipts_yet')}
+              </Text>
+            ))}
+          </Card.Content>
+        </Card>
+      )}
+
+      <Portal>
+        <Dialog visible={receiptOpen} onDismiss={() => !receiptSaving && setReceiptOpen(false)}>
+          <Dialog.Title>{t('record_receipt')}</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView contentContainerStyle={styles.receiptDialogContent}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('receipt_partial_help')}
+              </Text>
+              <TextInput
+                mode="outlined"
+                label={t('delivery_reference')}
+                value={receiptReference}
+                maxLength={100}
+                onChangeText={(value) => { setReceiptReference(value); setCurrentReceiptKey(receiptKey()); }}
+              />
+              {(purchaseOrder.partQuantities ?? []).filter(
+                (line) => (line.remainingToReceive ?? line.quantity) > 0
+              ).map((line) => (
+                <View key={line.id} style={styles.receiptLineInput}>
+                  <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>
+                    {line.part?.name || t('part')}
+                  </Text>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {t('remaining_to_receive')}: {line.remainingToReceive ?? line.quantity}{line.part?.unit ? ` ${line.part.unit}` : ''}
+                  </Text>
+                  <TextInput
+                    mode="outlined"
+                    label={t('received_quantity')}
+                    value={receiptQuantities[line.id] ?? ''}
+                    keyboardType="decimal-pad"
+                    onChangeText={(value) => {
+                      setReceiptQuantities((current) => ({ ...current, [line.id]: value }));
+                      setCurrentReceiptKey(receiptKey());
+                    }}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setReceiptOpen(false)} disabled={receiptSaving}>{t('cancel')}</Button>
+            <Button onPress={() => void saveReceipt()} loading={receiptSaving} disabled={
+              receiptSaving || !(purchaseOrder.partQuantities ?? []).some(
+                (line) => Number((receiptQuantities[line.id] || '0').replace(',', '.')) > 0
+              )
+            }>{t('confirm')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       {hasAnyValue([
         purchaseOrder.shippingShipToName,
@@ -372,11 +566,16 @@ const styles = StyleSheet.create({
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   summaryItem: { flex: 1, minWidth: 130, gap: 4 },
   field: { gap: 3 },
+  receiptHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   partLine: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     paddingVertical: 8
   },
-  partName: { flex: 1, minWidth: 140 }
+  partName: { flex: 1, minWidth: 140 },
+  receiptProgress: { width: '100%' },
+  receiptHistoryItem: { gap: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#8886', paddingTop: 10 },
+  receiptDialogContent: { gap: 12, padding: 2 },
+  receiptLineInput: { gap: 4 }
 });

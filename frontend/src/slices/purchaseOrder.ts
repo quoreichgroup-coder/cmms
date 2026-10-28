@@ -114,6 +114,20 @@ export const getPurchaseOrders =
     }
   };
 
+export const getPurchaseOrdersToReceive =
+  (page: number, size: number): AppThunk =>
+  async (dispatch) => {
+    try {
+      dispatch(slice.actions.setLoadingGet({ loading: true }));
+      const purchaseOrders = await api.get<Page<PurchaseOrder>>(
+        `${basePath}/receiving-queue?page=${page}&size=${size}`
+      );
+      dispatch(slice.actions.getPurchaseOrders({ purchaseOrders }));
+    } finally {
+      dispatch(slice.actions.setLoadingGet({ loading: false }));
+    }
+  };
+
 export const getSinglePurchaseOrder =
   (id: number): AppThunk =>
   async (dispatch) => {

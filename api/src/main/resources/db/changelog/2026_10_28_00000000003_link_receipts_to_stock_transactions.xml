@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-link-receipts-to-stock-transactions" author="qpm">
+        <addColumn tableName="part_transaction">
+            <column name="purchase_order_receipt_line_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="part_transaction"
+                                 baseColumnNames="purchase_order_receipt_line_id"
+                                 referencedTableName="purchase_order_receipt_line"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_part_transaction_po_receipt_line"/>
+        <addUniqueConstraint tableName="part_transaction"
+                             columnNames="purchase_order_receipt_line_id"
+                             constraintName="uk_part_transaction_po_receipt_line"/>
+    </changeSet>
+</databaseChangeLog>

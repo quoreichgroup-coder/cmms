@@ -18,6 +18,8 @@ public class PurchaseOrderShowDTO extends AuditShowDTO {
     @Schema(description = "Approval status")
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
+    private boolean receivingWorkflowEnabled;
+
     @Schema(description = "Name")
     private String name;
 

@@ -47,8 +47,11 @@ public class PurchaseOrderService {
         if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
         }
+        boolean receivingWorkflowEnabled = savedPurchaseOrder.isReceivingWorkflowEnabled();
         PurchaseOrder updatedPurchaseOrder = purchaseOrderMapper.updatePurchaseOrder(savedPurchaseOrder,
                 purchaseOrder);
+        // Flow version is selected at creation and cannot be upgraded/downgraded by a client patch.
+        updatedPurchaseOrder.setReceivingWorkflowEnabled(receivingWorkflowEnabled);
         Sanitizer.sanitizePurchaseOrder(updatedPurchaseOrder);
         updatedPurchaseOrder = purchaseOrderRepository.saveAndFlush(updatedPurchaseOrder);
         em.refresh(updatedPurchaseOrder);
@@ -84,6 +87,12 @@ public class PurchaseOrderService {
         Pageable page = PageRequest.of(searchCriteria.getPageNum(), searchCriteria.getPageSize(),
                 searchCriteria.getDirection(), searchCriteria.getSortField());
         return purchaseOrderRepository.findAll(builder.build(), page).map(purchaseOrderMapper::toShowDto);
+    }
+
+    public Page<PurchaseOrder> findReceivable(Long companyId, boolean includeOthers, Long userId,
+                                              Pageable pageable) {
+        return purchaseOrderRepository.findReceivable(companyId, ApprovalStatus.APPROVED,
+                includeOthers, userId, pageable);
     }
 }
 

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
 import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
+import PlaylistAddCheckOutlinedIcon from '@mui/icons-material/PlaylistAddCheckOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
@@ -27,6 +28,7 @@ export interface MenuItem {
   badgeTooltip?: string;
   permission?: PermissionEntity;
   permissionFallback?: PermissionEntity;
+  createPermission?: PermissionEntity;
   planFeature?: PlanFeature;
   uiConfigKey?: keyof Omit<UiConfiguration, 'id'>;
 
@@ -175,6 +177,14 @@ const ownMenuItems: MenuItems[] = [
             link: '/app/inventory/sets'
           }
         ]
+      },
+      {
+        name: 'purchase_requisitions',
+        link: '/app/purchase-requisitions',
+        icon: PlaylistAddCheckOutlinedIcon,
+        permission: PermissionEntity.PURCHASE_REQUISITIONS,
+        createPermission: PermissionEntity.PURCHASE_REQUISITIONS,
+        planFeature: PlanFeature.PURCHASE_ORDER
       },
       {
         name: 'purchase_orders',

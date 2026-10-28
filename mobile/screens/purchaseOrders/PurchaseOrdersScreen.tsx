@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Card, Chip, Divider, Text } from 'react-native-paper';
+import { Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../store';
@@ -11,7 +11,9 @@ import { SearchCriteria } from '../../models/page';
 import PurchaseOrder from '../../models/purchaseOrder';
 import {
   getMorePurchaseOrders,
-  getPurchaseOrders
+  getPurchaseOrders,
+  getMorePurchaseOrdersToReceive,
+  getPurchaseOrdersToReceive
 } from '../../slices/purchaseOrder';
 import { RootStackScreenProps } from '../../types';
 import { useAppTheme } from '../../custom-theme';
@@ -45,6 +47,7 @@ export default function PurchaseOrdersScreen({
   const [refreshing, setRefreshing] = React.useState(false);
   const [loadError, setLoadError] = React.useState(false);
   const [loadMoreError, setLoadMoreError] = React.useState(false);
+  const [showReceivingQueue, setShowReceivingQueue] = React.useState(false);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const currentRequest = React.useRef(0);
   const pagingInProgress = React.useRef(false);
@@ -55,7 +58,11 @@ export default function PurchaseOrdersScreen({
     setLoadMoreError(false);
     pagingInProgress.current = false;
     try {
-      await dispatch(getPurchaseOrders(EMPTY_CRITERIA));
+      if (showReceivingQueue) {
+        await dispatch(getPurchaseOrdersToReceive(0, PAGE_SIZE));
+      } else {
+        await dispatch(getPurchaseOrders(EMPTY_CRITERIA));
+      }
     } catch (_error) {
       if (requestId === currentRequest.current) setLoadError(true);
     } finally {
@@ -64,7 +71,7 @@ export default function PurchaseOrdersScreen({
         setRefreshing(false);
       }
     }
-  }, [dispatch]);
+  }, [dispatch, showReceivingQueue]);
 
   React.useEffect(() => {
     if (canView && isFocused) void loadFirstPage();
@@ -86,9 +93,11 @@ export default function PurchaseOrdersScreen({
       setLoadingMore(true);
       setLoadMoreError(false);
       try {
-        await dispatch(
-          getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1)
-        );
+        if (showReceivingQueue) {
+          await dispatch(getMorePurchaseOrdersToReceive(purchaseOrders.number + 1, PAGE_SIZE));
+        } else {
+          await dispatch(getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1));
+        }
       } catch (_error) {
         setLoadMoreError(true);
       } finally {
@@ -103,7 +112,8 @@ export default function PurchaseOrdersScreen({
       loadingGet,
       loadingMore,
       purchaseOrders.last,
-      purchaseOrders.number
+      purchaseOrders.number,
+      showReceivingQueue
     ]
   );
 
@@ -209,7 +219,9 @@ export default function PurchaseOrdersScreen({
                     variant="bodyMedium"
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
-                    {t('purchase_order_quantity')}: {line.quantity}
+                    {item.receivingWorkflowEnabled
+                      ? `${t('remaining_to_receive')}: ${line.remainingToReceive ?? line.quantity}`
+                      : `${t('purchase_order_quantity')}: ${line.quantity}`}
                     {line.part?.unit ? ` ${line.part.unit}` : ''}
                   </Text>
                 </View>
@@ -246,12 +258,25 @@ export default function PurchaseOrdersScreen({
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <Text
-        variant="bodySmall"
-        style={[styles.note, { color: theme.colors.onSurfaceVariant }]}
-      >
-        {t('purchase_orders_read_only_note')}
-      </Text>
+      <View style={styles.queueControls}>
+        <Text
+          variant="bodySmall"
+          style={[styles.note, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {t('purchase_orders_read_only_note')}
+        </Text>
+        <Button
+          mode={showReceivingQueue ? 'contained' : 'outlined'}
+          compact
+          onPress={() => {
+            setShowReceivingQueue((current) => !current);
+            setHasLoaded(false);
+            setRefreshing(true);
+          }}
+        >
+          {showReceivingQueue ? t('all_purchase_orders') : t('purchase_orders_to_receive')}
+        </Button>
+      </View>
       <FlatList
         data={purchaseOrders.content}
         keyExtractor={(item) => String(item.id)}
@@ -317,6 +342,7 @@ export default function PurchaseOrdersScreen({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', padding: 20 },
+  queueControls: { gap: 8 },
   note: { marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
   listContent: {
     paddingHorizontal: 16,

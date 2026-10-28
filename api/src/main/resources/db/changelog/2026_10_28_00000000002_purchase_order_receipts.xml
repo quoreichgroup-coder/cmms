@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-order-receipts" author="qpm">
+        <addColumn tableName="purchase_order">
+            <column name="receiving_workflow_enabled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createTable tableName="purchase_order_receipt">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_purchase_order_receipt"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_order_receipt_company" references="company(id)"/></column>
+            <column name="purchase_order_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_order_receipt_order" references="purchase_order(id)"/></column>
+            <column name="received_by_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_purchase_order_receipt_user" references="own_user(id)"/></column>
+            <column name="received_at" type="TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="reference" type="VARCHAR(100)"/>
+            <column name="notes" type="VARCHAR(2000)"/>
+            <column name="idempotency_key" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="request_hash" type="VARCHAR(64)"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="purchase_order_receipt" columnNames="purchase_order_id,idempotency_key" constraintName="uk_po_receipt_idempotency"/>
+        <createIndex tableName="purchase_order_receipt" indexName="idx_po_receipt_order_received">
+            <column name="purchase_order_id"/><column name="received_at"/>
+        </createIndex>
+        <createTable tableName="purchase_order_receipt_line">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_purchase_order_receipt_line"/></column>
+            <column name="receipt_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_po_receipt_line_receipt" references="purchase_order_receipt(id)"/></column>
+            <column name="part_quantity_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_po_receipt_line_order_line" references="part_quantity(id)"/></column>
+            <column name="quantity" type="DOUBLE PRECISION"><constraints nullable="false"/></column>
+            <column name="unit" type="VARCHAR(100)"/>
+        </createTable>
+        <createIndex tableName="purchase_order_receipt_line" indexName="idx_po_receipt_line_order_line">
+            <column name="part_quantity_id"/>
+        </createIndex>
+        <sql>CREATE SEQUENCE IF NOT EXISTS purchase_order_receipt_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS purchase_order_receipt_line_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions) SELECT id, 18 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_permissions (role_id, view_permissions) SELECT id, 18 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+    </changeSet>
+</databaseChangeLog>

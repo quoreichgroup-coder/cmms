@@ -27,6 +27,7 @@ import {
   deletePurchaseOrder,
   editPurchaseOrderWithLines,
   getPurchaseOrders,
+  getPurchaseOrdersToReceive,
   getSinglePurchaseOrder
 } from '../../../slices/purchaseOrder';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -74,6 +75,7 @@ function PurchaseOrders() {
   );
   const { customFields } = useSelector((state) => state.customFields);
   const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
+  const [showReceivingQueue, setShowReceivingQueue] = useState(false);
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: [],
     pageSize: 10,
@@ -135,9 +137,14 @@ function PurchaseOrders() {
   }, [purchaseOrderId]);
 
   useEffect(() => {
-    if (hasViewPermission(PermissionEntity.PURCHASE_ORDERS))
-      dispatch(getPurchaseOrders(criteria));
-  }, [criteria]);
+    if (hasViewPermission(PermissionEntity.PURCHASE_ORDERS)) {
+      if (showReceivingQueue) {
+        dispatch(getPurchaseOrdersToReceive(criteria.pageNum, criteria.pageSize));
+      } else {
+        dispatch(getPurchaseOrders(criteria));
+      }
+    }
+  }, [criteria, showReceivingQueue]);
 
   //see changes in ui on edit
   useEffect(() => {
@@ -287,6 +294,33 @@ function PurchaseOrders() {
             whiteSpace: 'nowrap'
           }}
         >
+          {params.value || '—'}
+        </Box>
+      )
+    },
+    {
+      field: 'remainingToReceive',
+      headerName: t('remaining_to_receive'),
+      description: t('remaining_to_receive'),
+      width: 210,
+      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) => {
+        if (!params.row.receivingWorkflowEnabled) return '—';
+        const totalsByUnit = new Map<string, { label: string; total: number }>();
+        (params.row.partQuantities ?? []).forEach((line) => {
+          const unit = line.part.unit?.trim() || t('unit_unspecified');
+          const key = unit.toLowerCase();
+          const current = totalsByUnit.get(key);
+          totalsByUnit.set(key, {
+            label: current?.label ?? unit,
+            total: (current?.total ?? 0) + (line.remainingToReceive ?? line.quantity)
+          });
+        });
+        return Array.from(totalsByUnit.values())
+          .map(({ label, total }) => `${total.toLocaleString()} ${label}`)
+          .join(' · ') || '—';
+      },
+      renderCell: (params: GridRenderCellParams<string>) => (
+        <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={params.value}>
           {params.value || '—'}
         </Box>
       )
@@ -575,14 +609,32 @@ function PurchaseOrders() {
             <title>{t('purchase_orders')}</title>
           </Helmet>
           <Box justifyContent="center" alignItems="stretch" paddingX={4}>
-            {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && (
+            <Stack
+              my={1}
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                {!showReceivingQueue && (
+                  <SearchInput onChange={debouncedQueryChange} />
+                )}
+                <Button
+                  variant={showReceivingQueue ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    setCriteria({ ...criteria, pageNum: 0 });
+                    setShowReceivingQueue(!showReceivingQueue);
+                  }}
+                >
+                  {showReceivingQueue ? t('all_purchase_orders') : t('purchase_orders_to_receive')}
+                </Button>
+              </Stack>
+              {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && (
               <Stack
-                my={1}
                 direction="row"
-                justifyContent="space-between"
-                alignItems="center"
+                justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
               >
-                <SearchInput onChange={debouncedQueryChange} />
                 <Button
                   onClick={() => navigate('/app/purchase-orders/create')}
                   startIcon={<AddOutlinedIcon />}
@@ -591,7 +643,8 @@ function PurchaseOrders() {
                   {t('purchase_order')}
                 </Button>
               </Stack>
-            )}
+              )}
+            </Stack>
             <Card
               sx={{
                 py: 2,
@@ -645,6 +698,7 @@ function PurchaseOrders() {
               handleOpenUpdate={handleOpenUpdate}
               handleDelete={() => setOpenDelete(true)}
               partQuantities={partQuantities}
+              onReceiptCreated={() => dispatch(getPartQuantitiesByPurchaseOrder(currentPurchaseOrder.id))}
             />
           </Drawer>
           {renderUpdateModal()}

@@ -31,6 +31,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final ClientIpResolver clientIpResolver;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (path == null) {
+            return false;
+        }
+        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        return "/health-check".equals(path)
+                || "/actuator/health".equals(path)
+                || "/actuator/prometheus".equals(path);
+    }
+
+    @Override
     protected void doFilterInternal(@NotNull HttpServletRequest request,
                                     @NotNull HttpServletResponse response,
                                     @NotNull FilterChain filterChain) throws ServletException, IOException {
