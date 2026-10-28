@@ -25,6 +25,8 @@ export interface PurchaseRequisition {
   status: PurchaseRequisitionStatus;
   requesterId?: number;
   requesterName?: string;
+  sourceWorkOrderId?: number;
+  sourceWorkOrderName?: string;
   decisionById?: number;
   decisionAt?: string;
   decisionNote?: string;

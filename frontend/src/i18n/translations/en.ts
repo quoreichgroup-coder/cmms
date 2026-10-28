@@ -579,6 +579,11 @@ const locale = {
   receipt: 'Receipt',
   record_receipt: 'Record receipt',
   requisitioner_or_creator: 'Requested by / created by',
+  requisition_source_work_order: 'Source work order',
+  requisition_from_work_order:
+    'This request will be linked to work order {{workOrder}}. Selected parts remain a request; no stock is reserved.',
+  requisition_title_from_work_order: 'Parts for {{workOrder}}',
+  request_parts: 'Request parts',
   next_action: 'Next action',
   delivery_overdue: 'Delivery overdue',
   continue_receiving: 'Continue receiving remaining items',

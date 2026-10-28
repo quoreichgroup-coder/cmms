@@ -27,7 +27,7 @@ import {
 import { Helmet } from 'react-helmet-async';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as Yup from 'yup';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { TitleContext } from '../../../contexts/TitleContext';
@@ -48,6 +48,7 @@ function PurchaseRequisitions() {
   const { setTitle } = useContext(TitleContext);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     user,
     hasFeature,
@@ -65,6 +66,7 @@ function PurchaseRequisitions() {
   const [hasMore, setHasMore] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<PurchaseRequisition | null>(null);
+  const [sourceWorkOrder, setSourceWorkOrder] = useState<{ id: number; name: string } | null>(null);
   const [decisionRow, setDecisionRow] = useState<PurchaseRequisition | null>(null);
   const [deleteRow, setDeleteRow] = useState<PurchaseRequisition | null>(null);
   const [decisionNote, setDecisionNote] = useState('');
@@ -89,9 +91,28 @@ function PurchaseRequisitions() {
     hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) ||
     hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS);
 
+  const clearSourceWorkOrderContext = () => {
+    setSourceWorkOrder(null);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('sourceWorkOrderId');
+    nextParams.delete('sourceWorkOrderName');
+    setSearchParams(nextParams, { replace: true });
+  };
+
   useEffect(() => {
     setTitle(t('purchase_requisitions'));
   }, [setTitle, t]);
+
+  useEffect(() => {
+    const id = Number(searchParams.get('sourceWorkOrderId'));
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    setSourceWorkOrder({
+      id,
+      name: searchParams.get('sourceWorkOrderName') || `WO-${id}`
+    });
+    setEditingRow(null);
+    setFormOpen(true);
+  }, [searchParams]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -266,7 +287,7 @@ function PurchaseRequisitions() {
             <Typography color="text.secondary">{t('purchase_requisitions_description')}</Typography>
           </Box>
           {hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) && (
-            <Button startIcon={<AddOutlinedIcon />} variant="contained" onClick={() => { setEditingRow(null); setFormOpen(true); }}>
+            <Button startIcon={<AddOutlinedIcon />} variant="contained" onClick={() => { setEditingRow(null); clearSourceWorkOrderContext(); setFormOpen(true); }}>
               {t('new_purchase_requisition')}
             </Button>
           )}
@@ -295,6 +316,11 @@ function PurchaseRequisitions() {
                   {row.requiredDate && (
                     <Typography variant="body2" sx={{ mt: 1 }} color="text.secondary">
                       {t('required_date')}: {new Date(row.requiredDate).toLocaleDateString()}
+                    </Typography>
+                  )}
+                  {row.sourceWorkOrderName && (
+                    <Typography variant="body2" sx={{ mt: 1 }} color="text.secondary">
+                      {t('requisition_source_work_order')}: {row.sourceWorkOrderName}
                     </Typography>
                   )}
                   {row.justification && <Typography variant="body2" sx={{ mt: 1 }}>{row.justification}</Typography>}
@@ -356,9 +382,14 @@ function PurchaseRequisitions() {
         {hasMore && <Button variant="outlined" onClick={() => void loadMore()} disabled={loading} sx={{ alignSelf: 'center' }}>{t('load_more')}</Button>}
       </Stack>
 
-      <Dialog open={formOpen} onClose={() => { setFormOpen(false); setEditingRow(null); }} fullScreen={fullScreen} fullWidth maxWidth="md">
+      <Dialog open={formOpen} onClose={() => { setFormOpen(false); setEditingRow(null); clearSourceWorkOrderContext(); }} fullScreen={fullScreen} fullWidth maxWidth="md">
         <DialogTitle>{editingRow ? t('edit_purchase_requisition') : t('new_purchase_requisition')}</DialogTitle>
         <DialogContent dividers>
+          {sourceWorkOrder && !editingRow && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {t('requisition_from_work_order', { workOrder: sourceWorkOrder.name })}
+            </Alert>
+          )}
           <Form
             fields={formFields}
             validation={Yup.object().shape({
@@ -376,7 +407,14 @@ function PurchaseRequisitions() {
                 quantity: line.quantity,
                 part: { id: line.partId, name: line.partName, description: '', cost: 0, unit: line.unit || '' }
               }))
-            } : { requiredDate: null, partQuantities: [] }}
+            } : {
+              title: sourceWorkOrder
+                ? t('requisition_title_from_work_order', { workOrder: sourceWorkOrder.name })
+                : '',
+              requiredDate: null,
+              partQuantities: [],
+              sourceWorkOrderId: sourceWorkOrder?.id
+            }}
             onChange={() => {}}
             onSubmit={async (values) => {
               if (!values.partQuantities?.length) {
@@ -392,6 +430,7 @@ function PurchaseRequisitions() {
                   title: values.title,
                   justification: values.justification,
                   requiredDate: values.requiredDate,
+                  sourceWorkOrderId: values.sourceWorkOrderId,
                   lines: values.partQuantities.map((line) => ({
                     partId: line.part?.id || line.part,
                     quantity: Number(line.quantity),
@@ -403,6 +442,7 @@ function PurchaseRequisitions() {
                 showSnackBar(editingRow ? t('requisition_updated') : t('requisition_created'), 'success');
                 setFormOpen(false);
                 setEditingRow(null);
+                clearSourceWorkOrderContext();
                 await refresh();
               } catch {
                 showSnackBar(t('requisition_action_failed'), 'error');
@@ -410,7 +450,7 @@ function PurchaseRequisitions() {
             }}
           />
         </DialogContent>
-      <DialogActions><Button onClick={() => { setFormOpen(false); setEditingRow(null); }}>{t('close')}</Button></DialogActions>
+      <DialogActions><Button onClick={() => { setFormOpen(false); setEditingRow(null); clearSourceWorkOrderContext(); }}>{t('close')}</Button></DialogActions>
       </Dialog>
 
       <Dialog open={!!decisionRow} onClose={() => setDecisionRow(null)} fullScreen={fullScreen} fullWidth maxWidth="xs">

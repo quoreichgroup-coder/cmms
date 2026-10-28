@@ -701,6 +701,11 @@ const frJSON = {
   receipt: 'Réception',
   record_receipt: 'Enregistrer une réception',
   requisitioner_or_creator: 'Demandeur / créateur',
+  requisition_source_work_order: 'Ordre de travail source',
+  requisition_from_work_order:
+    'Cette demande sera liée à l’OT {{workOrder}}. Les pièces sélectionnées restent une demande; aucun stock n’est réservé.',
+  requisition_title_from_work_order: 'Pièces pour {{workOrder}}',
+  request_parts: 'Demander des pièces',
   next_action: 'Prochaine action',
   delivery_overdue: 'Livraison en retard',
   continue_receiving: 'Poursuivre la réception du reliquat',

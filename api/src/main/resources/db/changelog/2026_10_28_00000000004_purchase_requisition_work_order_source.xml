@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-requisition-work-order-source" author="qpm">
+        <addColumn tableName="purchase_requisition">
+            <column name="source_work_order_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="purchase_requisition"
+                                 baseColumnNames="source_work_order_id"
+                                 constraintName="fk_purchase_requisition_work_order"
+                                 referencedTableName="work_order"
+                                 referencedColumnNames="id"/>
+        <createIndex tableName="purchase_requisition" indexName="idx_purchase_requisition_source_work_order">
+            <column name="source_work_order_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

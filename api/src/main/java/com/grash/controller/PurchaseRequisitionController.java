@@ -14,9 +14,11 @@ import com.grash.model.*;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.PurchaseRequisitionStatus;
 import com.grash.model.enums.RoleType;
+import com.grash.model.enums.Status;
 import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.model.enums.workflow.PurchaseOrderAction;
 import com.grash.repository.PurchaseRequisitionRepository;
+import com.grash.repository.WorkOrderRepository;
 import com.grash.repository.VendorRepository;
 import com.grash.service.PartService;
 import com.grash.service.PartQuantityService;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PurchaseRequisitionController {
     private final PurchaseRequisitionRepository requisitionRepository;
+    private final WorkOrderRepository workOrderRepository;
     private final UserService userService;
     private final PartService partService;
     private final VendorRepository vendorRepository;
@@ -67,6 +70,7 @@ public class PurchaseRequisitionController {
         requisition.setJustification(request.getJustification());
         requisition.setRequiredDate(request.getRequiredDate());
         requisition.setRequester(user);
+        applySourceWorkOrder(requisition, request.getSourceWorkOrderId(), user);
         applyLines(requisition, request.getLines(), user);
         return show(requisitionRepository.save(requisition));
     }
@@ -85,6 +89,7 @@ public class PurchaseRequisitionController {
         requisition.setTitle(request.getTitle().trim());
         requisition.setJustification(request.getJustification());
         requisition.setRequiredDate(request.getRequiredDate());
+        applySourceWorkOrder(requisition, request.getSourceWorkOrderId(), user);
         requisition.getLines().clear();
         applyLines(requisition, request.getLines(), user);
         return show(requisitionRepository.save(requisition));
@@ -295,12 +300,34 @@ public class PurchaseRequisitionController {
                 .justification(requisition.getJustification()).requiredDate(requisition.getRequiredDate())
                 .status(requisition.getStatus()).requesterId(requisition.getRequester() == null ? null : requisition.getRequester().getId())
                 .requesterName(requisition.getRequester() == null ? null : requisition.getRequester().getFirstName() + " " + requisition.getRequester().getLastName())
+                .sourceWorkOrderId(requisition.getSourceWorkOrder() == null ? null : requisition.getSourceWorkOrder().getId())
+                .sourceWorkOrderName(requisition.getSourceWorkOrder() == null ? null
+                        : requisition.getSourceWorkOrder().getCustomId() == null
+                                ? "WO-" + requisition.getSourceWorkOrder().getId()
+                                : requisition.getSourceWorkOrder().getCustomId())
                 .decisionById(requisition.getDecisionBy() == null ? null : requisition.getDecisionBy().getId())
                 .decisionAt(requisition.getDecisionAt()).decisionNote(requisition.getDecisionNote())
                 .lines(requisition.getLines().stream().map(line -> PurchaseRequisitionShowDTO.Line.builder()
                         .id(line.getId()).partId(line.getPart().getId()).partName(line.getPart().getName())
                         .unit(line.getPart().getUnit()).quantity(line.getQuantity()).orderedQuantity(line.getOrderedQuantity())
                         .notes(line.getNotes()).build()).collect(Collectors.toList())).build();
+    }
+
+    private void applySourceWorkOrder(PurchaseRequisition requisition, Long workOrderId, User user) {
+        if (workOrderId == null) {
+            requisition.setSourceWorkOrder(null);
+            return;
+        }
+        WorkOrder workOrder = workOrderRepository.findByIdAndCompany_Id(
+                        workOrderId, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Work order not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.canBeViewedBy(user)) {
+            throw new CustomException("Access denied to source work order", HttpStatus.FORBIDDEN);
+        }
+        if (workOrder.getStatus() == Status.COMPLETE) {
+            throw new CustomException("A completed work order cannot be a new requisition source", HttpStatus.CONFLICT);
+        }
+        requisition.setSourceWorkOrder(workOrder);
     }
 
     private void require(User user, String operation) {

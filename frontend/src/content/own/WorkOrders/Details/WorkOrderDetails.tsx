@@ -661,7 +661,11 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         <Stack
           direction="row"
           spacing={0.5}
-          sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' } }}
+          sx={{
+            alignSelf: { xs: 'flex-end', sm: 'flex-start' },
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end'
+          }}
         >
           {hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
             <IconButton aria-label={t('actions')} onClick={handleOpenMenu}>
@@ -684,6 +688,25 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
               <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
+          {workOrder.status !== 'COMPLETE' &&
+            hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+            hasFeature(PlanFeature.PURCHASE_ORDER) && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() =>
+                  navigate(
+                    `/app/purchase-requisitions?sourceWorkOrderId=${
+                      workOrder.id
+                    }&sourceWorkOrderName=${encodeURIComponent(
+                      workOrder.customId || `WO-${workOrder.id}`
+                    )}`
+                  )
+                }
+              >
+                {t('request_parts')}
+              </Button>
+            )}
         </Stack>
       </Grid>
       <Divider />

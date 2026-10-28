@@ -33,6 +33,10 @@ public class PurchaseRequisition extends CompanyAudit {
     @ManyToOne(fetch = FetchType.LAZY)
     private User requester;
 
+    /** Operational source for the request; linked without reserving work-order stock. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private WorkOrder sourceWorkOrder;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private User decisionBy;
 

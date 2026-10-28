@@ -20,6 +20,7 @@ public class PurchaseRequisitionCreateRequest {
     @Size(max = 4000)
     private String justification;
     private Date requiredDate;
+    private Long sourceWorkOrderId;
     @NotEmpty
     @Size(max = 200)
     @Valid

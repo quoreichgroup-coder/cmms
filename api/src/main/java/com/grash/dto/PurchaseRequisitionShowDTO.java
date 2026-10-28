@@ -17,6 +17,8 @@ public class PurchaseRequisitionShowDTO {
     private PurchaseRequisitionStatus status;
     private Long requesterId;
     private String requesterName;
+    private Long sourceWorkOrderId;
+    private String sourceWorkOrderName;
     private Long decisionById;
     private Date decisionAt;
     private String decisionNote;
