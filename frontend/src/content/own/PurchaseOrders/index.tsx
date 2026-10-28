@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   debounce,
   Dialog,
   DialogContent,
@@ -10,7 +11,9 @@ import {
   Drawer,
   Grid,
   Stack,
-  Typography
+  Typography,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
@@ -57,6 +60,8 @@ import { getCustomFieldsRequiredShape } from '../type';
 
 function PurchaseOrders() {
   const { t }: { t: any } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle } = useContext(TitleContext);
   const { getFormattedDate, getUserNameById, getFormattedCurrency } =
     useContext(CompanySettingsContext);
@@ -107,12 +112,16 @@ function PurchaseOrders() {
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
   useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
   const debouncedReceivingQueueSearch = useMemo(
-    () => debounce((query: string) => {
-      setReceivingQueue({ page: 0, query });
-    }, 500),
+    () =>
+      debounce((query: string) => {
+        setReceivingQueue({ page: 0, query });
+      }, 500),
     []
   );
-  useEffect(() => () => debouncedReceivingQueueSearch.clear(), [debouncedReceivingQueueSearch]);
+  useEffect(
+    () => () => debouncedReceivingQueueSearch.clear(),
+    [debouncedReceivingQueueSearch]
+  );
 
   const handleOpenDrawer = (purchaseOrder: PurchaseOrder) => {
     setCurrentPurchaseOrder(purchaseOrder);
@@ -147,7 +156,13 @@ function PurchaseOrders() {
   useEffect(() => {
     if (hasViewPermission(PermissionEntity.PURCHASE_ORDERS)) {
       if (showReceivingQueue) {
-        dispatch(getPurchaseOrdersToReceive(receivingQueue.page, criteria.pageSize, receivingQueue.query));
+        dispatch(
+          getPurchaseOrdersToReceive(
+            receivingQueue.page,
+            criteria.pageSize,
+            receivingQueue.query
+          )
+        );
       } else {
         dispatch(getPurchaseOrders(criteria));
       }
@@ -322,25 +337,101 @@ function PurchaseOrders() {
       width: 210,
       valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) => {
         if (!params.row.receivingWorkflowEnabled) return '—';
-        const totalsByUnit = new Map<string, { label: string; total: number }>();
+        const totalsByUnit = new Map<
+          string,
+          { label: string; total: number }
+        >();
         (params.row.partQuantities ?? []).forEach((line) => {
           const unit = line.part.unit?.trim() || t('unit_unspecified');
           const key = unit.toLowerCase();
           const current = totalsByUnit.get(key);
           totalsByUnit.set(key, {
             label: current?.label ?? unit,
-            total: (current?.total ?? 0) + (line.remainingToReceive ?? line.quantity)
+            total:
+              (current?.total ?? 0) + (line.remainingToReceive ?? line.quantity)
           });
         });
-        return Array.from(totalsByUnit.values())
-          .map(({ label, total }) => `${total.toLocaleString()} ${label}`)
-          .join(' · ') || '—';
+        return (
+          Array.from(totalsByUnit.values())
+            .map(({ label, total }) => `${total.toLocaleString()} ${label}`)
+            .join(' · ') || '—'
+        );
       },
       renderCell: (params: GridRenderCellParams<string>) => (
-        <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={params.value}>
+        <Box
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+          title={params.value}
+        >
           {params.value || '—'}
         </Box>
       )
+    },
+    {
+      field: 'vendor',
+      headerName: t('vendors'),
+      description: t('vendors'),
+      width: 180,
+      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) =>
+        params.row.vendor?.companyName || '—'
+    },
+    {
+      field: 'receivingOwner',
+      headerName: t('requisitioner_or_creator'),
+      description: t('requisitioner_or_creator'),
+      width: 190,
+      valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) =>
+        params.row.additionalInfoRequisitionedName?.trim() ||
+        getUserNameById(params.row.createdBy) ||
+        '—'
+    },
+    {
+      field: 'nextReceiptAction',
+      headerName: t('next_action'),
+      description: t('next_action'),
+      width: 220,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<null, PurchaseOrder>) => {
+        const dueDate = params.row.shippingDueDate
+          ? new Date(params.row.shippingDueDate)
+          : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDay = dueDate ? new Date(dueDate) : null;
+        dueDay?.setHours(0, 0, 0, 0);
+        const isOverdue = Boolean(
+          dueDay && !Number.isNaN(dueDay.getTime()) && dueDay < today
+        );
+        const isPartiallyReceived = (params.row.partQuantities ?? []).some(
+          (line) => (line.receivedQuantity ?? 0) > 0
+        );
+        return (
+          <Stack spacing={0.5} sx={{ py: 0.5, overflow: 'hidden' }}>
+            <Chip
+              size="small"
+              color={isOverdue ? 'error' : 'default'}
+              label={
+                !dueDate || Number.isNaN(dueDate.getTime())
+                  ? t('no_due_date')
+                  : isOverdue
+                  ? t('delivery_overdue')
+                  : `${t('due_date')}: ${getFormattedDate(
+                      params.row.shippingDueDate
+                    )}`
+              }
+              sx={{ maxWidth: '100%', alignSelf: 'flex-start' }}
+            />
+            <Typography variant="caption" noWrap>
+              {isPartiallyReceived
+                ? t('continue_receiving')
+                : t('record_receipt')}
+            </Typography>
+          </Stack>
+        );
+      }
     },
     {
       field: 'category',
@@ -390,6 +481,16 @@ function PurchaseOrders() {
       valueGetter: (params) => getFormattedDate(params.row.createdAt)
     }
   ];
+  const receivingQueueColumns = columns.filter((column) =>
+    [
+      'id',
+      'name',
+      'vendor',
+      'remainingToReceive',
+      'receivingOwner',
+      'nextReceiptAction'
+    ].includes(column.field)
+  );
   const fields: Array<IField> = [
     {
       name: 'purchaseOrderDetails',
@@ -635,7 +736,11 @@ function PurchaseOrders() {
             >
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 {showReceivingQueue ? (
-                  <SearchInput onChange={(event) => debouncedReceivingQueueSearch(event.target.value)} />
+                  <SearchInput
+                    onChange={(event) =>
+                      debouncedReceivingQueueSearch(event.target.value)
+                    }
+                  />
                 ) : (
                   <SearchInput onChange={debouncedQueryChange} />
                 )}
@@ -647,22 +752,24 @@ function PurchaseOrders() {
                     setShowReceivingQueue(!showReceivingQueue);
                   }}
                 >
-                  {showReceivingQueue ? t('all_purchase_orders') : t('purchase_orders_to_receive')}
+                  {showReceivingQueue
+                    ? t('all_purchase_orders')
+                    : t('purchase_orders_to_receive')}
                 </Button>
               </Stack>
               {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && (
-              <Stack
-                direction="row"
-                justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
-              >
-                <Button
-                  onClick={() => navigate('/app/purchase-orders/create')}
-                  startIcon={<AddOutlinedIcon />}
-                  variant="contained"
+                <Stack
+                  direction="row"
+                  justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
                 >
-                  {t('purchase_order')}
-                </Button>
-              </Stack>
+                  <Button
+                    onClick={() => navigate('/app/purchase-orders/create')}
+                    startIcon={<AddOutlinedIcon />}
+                    variant="contained"
+                  >
+                    {t('purchase_order')}
+                  </Button>
+                </Stack>
               )}
             </Stack>
             <Card
@@ -676,9 +783,11 @@ function PurchaseOrders() {
             >
               <Box sx={{ width: '95%' }}>
                 <CustomDataGrid
-                  columns={columns}
+                  columns={showReceivingQueue ? receivingQueueColumns : columns}
                   pageSize={criteria.pageSize}
-                  page={showReceivingQueue ? receivingQueue.page : criteria.pageNum}
+                  page={
+                    showReceivingQueue ? receivingQueue.page : criteria.pageNum
+                  }
                   rows={purchaseOrders.content}
                   rowCount={purchaseOrders.totalElements}
                   pagination
@@ -701,6 +810,9 @@ function PurchaseOrders() {
                       columnVisibilityModel: {}
                     }
                   }}
+                  columnVisibilityModel={
+                    showReceivingQueue && isMobile ? { id: false } : undefined
+                  }
                 />
               </Box>
             </Card>
@@ -718,7 +830,11 @@ function PurchaseOrders() {
               handleOpenUpdate={handleOpenUpdate}
               handleDelete={() => setOpenDelete(true)}
               partQuantities={partQuantities}
-              onReceiptCreated={() => dispatch(getPartQuantitiesByPurchaseOrder(currentPurchaseOrder.id))}
+              onReceiptCreated={() =>
+                dispatch(
+                  getPartQuantitiesByPurchaseOrder(currentPurchaseOrder.id)
+                )
+              }
             />
           </Drawer>
           {renderUpdateModal()}

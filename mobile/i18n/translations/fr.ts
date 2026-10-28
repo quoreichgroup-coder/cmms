@@ -833,22 +833,29 @@ const frJSON = {
   purchase_orders_load_error: 'Impossible de charger les bons de commande.',
   purchase_orders_empty: 'Aucun bon de commande trouvé.',
   purchase_orders_read_only_note:
-    'Consultation uniquement : les quantités reçues et les mises à jour de stock ne sont pas suivies ici.',
+    'Liste en consultation. Ouvrez une commande pour voir le détail ou enregistrer un reçu ; le stock change après son enregistrement.',
   purchase_order_summary: 'Résumé de la commande',
   ordered_quantity_by_unit: 'Quantité commandée par unité',
   unit_unspecified: 'unité non précisée',
   purchase_order_cost_estimate_note:
     'Estimation basée sur les coûts actuels des pièces ; le prix fournisseur peut différer.',
   purchase_order_due_date: 'Livraison prévue',
+  requisitioner_or_creator: 'Demandeur / créateur',
+  next_action: 'Prochaine action',
+  delivery_overdue: 'Livraison en retard',
+  continue_receiving: 'Poursuivre la réception du reliquat',
   purchase_order_items_count: '{{count}} article(s)',
   purchase_order_quantity: 'Quantité commandée',
   receiving: 'Réception',
-  receipt_workflow_hint: 'Enregistrez les quantités livrées. Le stock est mis à jour après confirmation.',
+  receipt_workflow_hint:
+    'Enregistrez les quantités livrées. Le stock est mis à jour après confirmation.',
   record_receipt: 'Enregistrer une réception',
-  receipt_progress: 'Reçu : {{received}}{{unit}} · Reste : {{remaining}}{{unit}}',
+  receipt_progress:
+    'Reçu : {{received}}{{unit}} · Reste : {{remaining}}{{unit}}',
   remaining_to_receive: 'Reste à recevoir',
   received_quantity: 'Quantité reçue maintenant',
-  receipt_partial_help: 'Saisissez les quantités livrées maintenant. Le reliquat pourra être réceptionné plus tard.',
+  receipt_partial_help:
+    'Saisissez les quantités livrées maintenant. Le reliquat pourra être réceptionné plus tard.',
   delivery_reference: 'Bon de livraison / référence',
   receipt: 'Réception',
   no_receipts_yet: 'Aucune réception enregistrée.',

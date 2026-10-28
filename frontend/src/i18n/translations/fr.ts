@@ -658,12 +658,17 @@ const frJSON = {
   requested_items: 'Articles demandés',
   new_purchase_requisition: 'Nouvelle demande d’achat',
   edit_purchase_requisition: 'Modifier la demande d’achat',
-  purchase_requisitions_description: 'Enregistrez et faites approuver les besoins internes avant de créer une commande fournisseur.',
-  requisition_is_internal_notice: 'Une demande d’achat est un document interne. Elle ne commande rien au fournisseur et ne modifie pas le stock.',
+  purchase_requisitions_description:
+    'Enregistrez et faites approuver les besoins internes avant de créer une commande fournisseur.',
+  requisition_is_internal_notice:
+    'Une demande d’achat est un document interne. Elle ne commande rien au fournisseur et ne modifie pas le stock.',
   no_purchase_requisitions: 'Aucune demande d’achat',
-  no_purchase_requisitions_hint: 'Créez une demande pour les pièces nécessaires à votre équipe.',
-  purchase_requisitions_load_failed: 'Impossible de charger les demandes d’achat.',
-  no_access_purchase_requisitions: 'Vous n’avez pas accès aux demandes d’achat.',
+  no_purchase_requisitions_hint:
+    'Créez une demande pour les pièces nécessaires à votre équipe.',
+  purchase_requisitions_load_failed:
+    'Impossible de charger les demandes d’achat.',
+  no_access_purchase_requisitions:
+    'Vous n’avez pas accès aux demandes d’achat.',
   requisition_number: 'Demande nº {{id}}',
   requisition_status_draft: 'Brouillon',
   requisition_status_pending_approval: 'En attente d’approbation',
@@ -680,7 +685,8 @@ const frJSON = {
   requisition_rejected: 'Demande refusée.',
   requisition_deleted: 'Brouillon supprimé.',
   delete_purchase_requisition: 'Supprimer la demande d’achat',
-  confirm_delete_purchase_requisition: 'Supprimer le brouillon « {{title}} » ? Cette action est définitive.',
+  confirm_delete_purchase_requisition:
+    'Supprimer le brouillon « {{title}} » ? Cette action est définitive.',
   requisition_created: 'Demande d’achat créée.',
   requisition_updated: 'Demande d’achat modifiée.',
   requisition_converted: 'Bon de commande créé depuis la demande.',
@@ -694,16 +700,23 @@ const frJSON = {
   received: 'Reçu',
   receipt: 'Réception',
   record_receipt: 'Enregistrer une réception',
+  requisitioner_or_creator: 'Demandeur / créateur',
+  next_action: 'Prochaine action',
+  delivery_overdue: 'Livraison en retard',
+  continue_receiving: 'Poursuivre la réception du reliquat',
   delivery_reference: 'Référence de livraison',
-  receipt_workflow_hint: 'Après approbation, saisissez la quantité physiquement reçue. Le stock est modifié uniquement après l’enregistrement du reçu.',
-  approval_does_not_receive_stock: 'L’approbation autorise la commande. Enregistrez un reçu séparément pour mettre à jour le stock.',
+  receipt_workflow_hint:
+    'Après approbation, saisissez la quantité physiquement reçue. Le stock est modifié uniquement après l’enregistrement du reçu.',
+  approval_does_not_receive_stock:
+    'L’approbation autorise la commande. Enregistrez un reçu séparément pour mettre à jour le stock.',
   receipt_saved: 'Réception enregistrée',
   no_receipts_yet: 'Aucune réception enregistrée.',
   receipt_pending: 'En attente de réception',
   receipt_partial: 'Partiellement reçu',
   receipt_complete: 'Entièrement reçu',
   requisition_decided_on: 'Examinée le {{date}}',
-  requisition_quantity_required: 'Saisissez une quantité supérieure à zéro pour chaque article demandé.',
+  requisition_quantity_required:
+    'Saisissez une quantité supérieure à zéro pour chaque article demandé.',
   load_more: 'Afficher la suite',
   select_vendor: 'Choisir un fournisseur',
   remaining: 'Restant',

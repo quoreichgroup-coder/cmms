@@ -536,12 +536,17 @@ const locale = {
   requested_items: 'Requested items',
   new_purchase_requisition: 'New purchase requisition',
   edit_purchase_requisition: 'Edit purchase requisition',
-  purchase_requisitions_description: 'Record and approve internal purchasing needs before creating supplier orders.',
-  requisition_is_internal_notice: 'A requisition is an internal request. It does not place an order with a supplier or change stock.',
+  purchase_requisitions_description:
+    'Record and approve internal purchasing needs before creating supplier orders.',
+  requisition_is_internal_notice:
+    'A requisition is an internal request. It does not place an order with a supplier or change stock.',
   no_purchase_requisitions: 'No purchase requisitions yet',
-  no_purchase_requisitions_hint: 'Create a request for the parts your team needs.',
-  purchase_requisitions_load_failed: 'Purchase requisitions could not be loaded.',
-  no_access_purchase_requisitions: 'You do not have access to Purchase Requisitions.',
+  no_purchase_requisitions_hint:
+    'Create a request for the parts your team needs.',
+  purchase_requisitions_load_failed:
+    'Purchase requisitions could not be loaded.',
+  no_access_purchase_requisitions:
+    'You do not have access to Purchase Requisitions.',
   requisition_number: 'Request #{{id}}',
   requisition_status_draft: 'Draft',
   requisition_status_pending_approval: 'Pending approval',
@@ -558,7 +563,8 @@ const locale = {
   requisition_rejected: 'Request rejected.',
   requisition_deleted: 'Draft request deleted.',
   delete_purchase_requisition: 'Delete purchase requisition',
-  confirm_delete_purchase_requisition: 'Delete the draft “{{title}}”? This cannot be undone.',
+  confirm_delete_purchase_requisition:
+    'Delete the draft “{{title}}”? This cannot be undone.',
   requisition_created: 'Purchase requisition created.',
   requisition_updated: 'Purchase requisition updated.',
   requisition_converted: 'Purchase order created from the request.',
@@ -572,16 +578,23 @@ const locale = {
   received: 'Received',
   receipt: 'Receipt',
   record_receipt: 'Record receipt',
+  requisitioner_or_creator: 'Requested by / created by',
+  next_action: 'Next action',
+  delivery_overdue: 'Delivery overdue',
+  continue_receiving: 'Continue receiving remaining items',
   delivery_reference: 'Delivery reference',
-  receipt_workflow_hint: 'After approval, record the quantity physically received. Stock changes only after a receipt is saved.',
-  approval_does_not_receive_stock: 'Approval authorizes this order. Record a receipt separately to update stock.',
+  receipt_workflow_hint:
+    'After approval, record the quantity physically received. Stock changes only after a receipt is saved.',
+  approval_does_not_receive_stock:
+    'Approval authorizes this order. Record a receipt separately to update stock.',
   receipt_saved: 'Receipt recorded',
   no_receipts_yet: 'No receipts recorded yet.',
   receipt_pending: 'Awaiting receipt',
   receipt_partial: 'Partially received',
   receipt_complete: 'Fully received',
   requisition_decided_on: 'Reviewed {{date}}',
-  requisition_quantity_required: 'Enter a quantity greater than zero for every requested item.',
+  requisition_quantity_required:
+    'Enter a quantity greater than zero for every requested item.',
   load_more: 'Load more',
   select_vendor: 'Select a supplier',
   remaining: 'Remaining',
@@ -876,8 +889,7 @@ const locale = {
   shipping_method: 'Shipping Method',
   required_name: 'The name is required',
   edit_po: 'Edit Purchase Order',
-  edit_po_description:
-    'Fill in the fields below to update the Purchase Order',
+  edit_po_description: 'Fill in the fields below to update the Purchase Order',
   purchase_order: 'Purchase Order',
   'noRows.po.message': 'Manage your Purchase Orders in a single place',
   'noRows.po.action': "Press the '+' button to create a Purchase Order.",

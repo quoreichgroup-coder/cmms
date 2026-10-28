@@ -694,22 +694,29 @@ const locale = {
   purchase_orders_load_error: 'Could not load purchase orders.',
   purchase_orders_empty: 'No purchase orders found.',
   purchase_orders_read_only_note:
-    'This is a read-only view. Receipt quantities and stock updates are not tracked here.',
+    'Read-only list. Open an order to view receipt details or record a receipt; stock changes only after saving it.',
   purchase_order_summary: 'Order summary',
   ordered_quantity_by_unit: 'Ordered quantity by unit',
   unit_unspecified: 'unit unspecified',
   purchase_order_cost_estimate_note:
     'Estimate from current part costs; supplier prices may differ.',
   purchase_order_due_date: 'Expected delivery',
+  requisitioner_or_creator: 'Requested by / created by',
+  next_action: 'Next action',
+  delivery_overdue: 'Delivery overdue',
+  continue_receiving: 'Continue receiving remaining items',
   purchase_order_items_count: '{{count}} item(s)',
   purchase_order_quantity: 'Ordered quantity',
   receiving: 'Receiving',
-  receipt_workflow_hint: 'Record delivered quantities. Stock updates after confirmation.',
+  receipt_workflow_hint:
+    'Record delivered quantities. Stock updates after confirmation.',
   record_receipt: 'Record receipt',
-  receipt_progress: 'Received: {{received}}{{unit}} · Remaining: {{remaining}}{{unit}}',
+  receipt_progress:
+    'Received: {{received}}{{unit}} · Remaining: {{remaining}}{{unit}}',
   remaining_to_receive: 'Remaining',
   received_quantity: 'Quantity received now',
-  receipt_partial_help: 'Enter the quantities delivered now. You can receive the remainder later.',
+  receipt_partial_help:
+    'Enter the quantities delivered now. You can receive the remainder later.',
   delivery_reference: 'Delivery note / reference',
   receipt: 'Receipt',
   no_receipts_yet: 'No receipts recorded yet.',

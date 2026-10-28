@@ -39,7 +39,9 @@ export default function PurchaseOrdersScreen({
   const canView =
     hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
     hasFeature(PlanFeature.PURCHASE_ORDER);
-  const { getFormattedDate } = React.useContext(CompanySettingsContext);
+  const { getFormattedDate, getUserNameById } = React.useContext(
+    CompanySettingsContext
+  );
   const { purchaseOrders, loadingGet } = useSelector(
     (state) => state.purchaseOrders
   );
@@ -94,9 +96,13 @@ export default function PurchaseOrdersScreen({
       setLoadMoreError(false);
       try {
         if (showReceivingQueue) {
-          await dispatch(getMorePurchaseOrdersToReceive(purchaseOrders.number + 1, PAGE_SIZE));
+          await dispatch(
+            getMorePurchaseOrdersToReceive(purchaseOrders.number + 1, PAGE_SIZE)
+          );
         } else {
-          await dispatch(getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1));
+          await dispatch(
+            getMorePurchaseOrders(EMPTY_CRITERIA, purchaseOrders.number + 1)
+          );
         }
       } catch (_error) {
         setLoadMoreError(true);
@@ -143,6 +149,19 @@ export default function PurchaseOrdersScreen({
 
   const renderOrder = ({ item }: { item: PurchaseOrder }) => {
     const badge = statusColor(item.status);
+    const partiallyReceived = (item.partQuantities ?? []).some(
+      (line) => (line.receivedQuantity ?? 0) > 0
+    );
+    const dueDay = item.shippingDueDate ? new Date(item.shippingDueDate) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDay?.setHours(0, 0, 0, 0);
+    const overdue = Boolean(
+      dueDay && !Number.isNaN(dueDay.getTime()) && dueDay < today
+    );
+    const requester =
+      item.additionalInfoRequisitionedName?.trim() ||
+      getUserNameById(item.createdBy);
     return (
       <Card
         mode="outlined"
@@ -195,6 +214,38 @@ export default function PurchaseOrdersScreen({
               {getFormattedDate(item.shippingDueDate, true)}
             </Text>
           )}
+          {showReceivingQueue && (
+            <View style={styles.receivingMeta}>
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant, flexShrink: 1 }}
+              >
+                {t('requisitioner_or_creator')}: {requester || '—'}
+              </Text>
+              {overdue && (
+                <Text
+                  variant="labelSmall"
+                  style={{ color: theme.colors.error }}
+                >
+                  {t('delivery_overdue')}
+                </Text>
+              )}
+              <Chip
+                compact
+                style={{
+                  backgroundColor: theme.colors.secondaryContainer,
+                  alignSelf: 'flex-start'
+                }}
+                textStyle={{
+                  color: theme.colors.onSecondaryContainer
+                }}
+              >
+                {partiallyReceived
+                  ? t('continue_receiving')
+                  : t('record_receipt')}
+              </Chip>
+            </View>
+          )}
           {item.partQuantities?.length > 0 && (
             <>
               <Divider style={styles.divider} />
@@ -220,7 +271,9 @@ export default function PurchaseOrdersScreen({
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
                     {item.receivingWorkflowEnabled
-                      ? `${t('remaining_to_receive')}: ${line.remainingToReceive ?? line.quantity}`
+                      ? `${t('remaining_to_receive')}: ${
+                          line.remainingToReceive ?? line.quantity
+                        }`
                       : `${t('purchase_order_quantity')}: ${line.quantity}`}
                     {line.part?.unit ? ` ${line.part.unit}` : ''}
                   </Text>
@@ -274,7 +327,9 @@ export default function PurchaseOrdersScreen({
             setRefreshing(true);
           }}
         >
-          {showReceivingQueue ? t('all_purchase_orders') : t('purchase_orders_to_receive')}
+          {showReceivingQueue
+            ? t('all_purchase_orders')
+            : t('purchase_orders_to_receive')}
         </Button>
       </View>
       <FlatList
@@ -360,6 +415,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   headingText: { flex: 1, gap: 3 },
+  receivingMeta: { gap: 6 },
   title: { fontWeight: '700' },
   divider: { marginVertical: 2 },
   partLine: {
