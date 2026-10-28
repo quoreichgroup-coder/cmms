@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Button, Card, Chip, Divider, Text } from 'react-native-paper';
+import {
+  Button,
+  Card,
+  Chip,
+  Divider,
+  Text,
+  TextInput
+} from 'react-native-paper';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from '../../store';
@@ -50,6 +57,8 @@ export default function PurchaseOrdersScreen({
   const [loadError, setLoadError] = React.useState(false);
   const [loadMoreError, setLoadMoreError] = React.useState(false);
   const [showReceivingQueue, setShowReceivingQueue] = React.useState(false);
+  const [queueSearch, setQueueSearch] = React.useState('');
+  const [activeQueueSearch, setActiveQueueSearch] = React.useState('');
   const [loadingMore, setLoadingMore] = React.useState(false);
   const currentRequest = React.useRef(0);
   const pagingInProgress = React.useRef(false);
@@ -61,7 +70,9 @@ export default function PurchaseOrdersScreen({
     pagingInProgress.current = false;
     try {
       if (showReceivingQueue) {
-        await dispatch(getPurchaseOrdersToReceive(0, PAGE_SIZE));
+        await dispatch(
+          getPurchaseOrdersToReceive(0, PAGE_SIZE, activeQueueSearch)
+        );
       } else {
         await dispatch(getPurchaseOrders(EMPTY_CRITERIA));
       }
@@ -73,7 +84,7 @@ export default function PurchaseOrdersScreen({
         setRefreshing(false);
       }
     }
-  }, [dispatch, showReceivingQueue]);
+  }, [activeQueueSearch, dispatch, showReceivingQueue]);
 
   React.useEffect(() => {
     if (canView && isFocused) void loadFirstPage();
@@ -97,7 +108,11 @@ export default function PurchaseOrdersScreen({
       try {
         if (showReceivingQueue) {
           await dispatch(
-            getMorePurchaseOrdersToReceive(purchaseOrders.number + 1, PAGE_SIZE)
+            getMorePurchaseOrdersToReceive(
+              purchaseOrders.number + 1,
+              PAGE_SIZE,
+              activeQueueSearch
+            )
           );
         } else {
           await dispatch(
@@ -117,6 +132,7 @@ export default function PurchaseOrdersScreen({
       loadMoreError,
       loadingGet,
       loadingMore,
+      activeQueueSearch,
       purchaseOrders.last,
       purchaseOrders.number,
       showReceivingQueue
@@ -331,6 +347,37 @@ export default function PurchaseOrdersScreen({
             ? t('all_purchase_orders')
             : t('purchase_orders_to_receive')}
         </Button>
+        {showReceivingQueue && (
+          <View style={styles.searchRow}>
+            <TextInput
+              mode="outlined"
+              dense
+              value={queueSearch}
+              onChangeText={setQueueSearch}
+              placeholder={t('search_purchase_orders')}
+              accessibilityLabel={t('search_purchase_orders')}
+              returnKeyType="search"
+              onSubmitEditing={() => {
+                const next = queueSearch.trim();
+                if (next === activeQueueSearch) void loadFirstPage();
+                else setActiveQueueSearch(next);
+              }}
+              style={styles.searchInput}
+            />
+            <Button
+              mode="contained"
+              compact
+              onPress={() => {
+                const next = queueSearch.trim();
+                if (next === activeQueueSearch) void loadFirstPage();
+                else setActiveQueueSearch(next);
+              }}
+              accessibilityLabel={t('search')}
+            >
+              {t('search')}
+            </Button>
+          </View>
+        )}
       </View>
       <FlatList
         data={purchaseOrders.content}
@@ -397,7 +444,9 @@ export default function PurchaseOrdersScreen({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', padding: 20 },
-  queueControls: { gap: 8 },
+  queueControls: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchInput: { flex: 1 },
   note: { marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
   listContent: {
     paddingHorizontal: 16,

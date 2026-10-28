@@ -828,6 +828,7 @@ const frJSON = {
   parts_and_inventory: 'Pièces/Inventaire',
   purchase_orders: 'Bons de commande',
   purchase_orders_to_receive: 'À réceptionner',
+  search_purchase_orders: 'Rechercher une commande ou un fournisseur',
   all_purchase_orders: 'Tous les bons de commande',
   purchase_order_details: 'Détail du bon de commande',
   purchase_orders_load_error: 'Impossible de charger les bons de commande.',

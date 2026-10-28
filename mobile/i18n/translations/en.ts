@@ -689,6 +689,7 @@ const locale = {
   parts_and_inventory: 'Parts/Inventory',
   purchase_orders: 'Purchase Orders',
   purchase_orders_to_receive: 'To receive',
+  search_purchase_orders: 'Search order or supplier',
   all_purchase_orders: 'All purchase orders',
   purchase_order_details: 'Purchase Order Details',
   purchase_orders_load_error: 'Could not load purchase orders.',
