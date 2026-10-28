@@ -104,8 +104,11 @@ public class PurchaseOrderController {
         purchaseOrderPolicyService.requireModuleEnabled(user);
         boolean includeOthers = user.getRole().getViewOtherPermissions()
                 .contains(PermissionEntity.PURCHASE_ORDERS);
-        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 50)),
-                Sort.by(Sort.Direction.DESC, "id"));
+        // Put the most time-sensitive commitments first. PostgreSQL's explicit
+        // NULLS LAST keeps undated orders behind orders with a delivery promise.
+        Sort queueSort = Sort.by(Sort.Order.asc("shippingDueDate").nullsLast(),
+                Sort.Order.desc("id"));
+        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 50)), queueSort);
         return purchaseOrderService.findReceivable(user.getCompany().getId(), includeOthers,
                 user.getId(), pageable).map(order -> setPartQuantities(purchaseOrderMapper.toShowDto(order)));
     }
