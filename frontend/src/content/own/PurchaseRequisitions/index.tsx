@@ -76,7 +76,7 @@ function PurchaseRequisitions() {
   // The decision endpoint requires edit-other plus visibility of other users' requests.
   const canApprove =
     user?.role?.editOtherPermissions?.includes(
-      PermissionEntity.PURCHASE_REQUISITIONS
+      PermissionEntity.PURCHASE_REQUISITION_APPROVAL
     ) &&
     hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
     hasViewOtherPermission(PermissionEntity.PURCHASE_REQUISITIONS);

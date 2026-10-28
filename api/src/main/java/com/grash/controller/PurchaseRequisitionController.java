@@ -152,7 +152,7 @@ public class PurchaseRequisitionController {
     public PurchaseRequisitionShowDTO decide(@PathVariable Long id,
             @Valid @RequestBody PurchaseRequisitionDecisionRequest decision, HttpServletRequest httpRequest) {
         User user = userService.whoami(httpRequest);
-        require(user, "edit");
+        require(user, "approve");
         procurementPolicy.requireModuleEnabled(user);
         PurchaseRequisition requisition = locked(id, user);
         if (requisition.getStatus() != PurchaseRequisitionStatus.PENDING_APPROVAL) {
@@ -338,6 +338,8 @@ public class PurchaseRequisitionController {
             case "create" -> user.getRole().getCreatePermissions().contains(permission);
             case "view" -> user.getRole().getViewPermissions().contains(permission);
             case "edit" -> user.getRole().getEditOtherPermissions().contains(permission);
+            case "approve" -> user.getRole().getEditOtherPermissions()
+                    .contains(PermissionEntity.PURCHASE_REQUISITION_APPROVAL);
             case "delete" -> user.getRole().getDeleteOtherPermissions().contains(permission);
             default -> false;
         };

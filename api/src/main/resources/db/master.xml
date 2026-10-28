@@ -313,4 +313,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_10_28_00000000004_purchase_requisition_work_order_source.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_10_28_00000000005_purchase_requisition_approval_permission.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

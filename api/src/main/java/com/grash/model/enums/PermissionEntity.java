@@ -20,5 +20,6 @@ public enum PermissionEntity {
     DOCUMENT_TEMPLATES,
     // Append only: permissions are persisted as enum ordinals in legacy role tables.
     PURCHASE_REQUISITIONS,
-    PURCHASE_RECEIPTS
+    PURCHASE_RECEIPTS,
+    PURCHASE_REQUISITION_APPROVAL
 }

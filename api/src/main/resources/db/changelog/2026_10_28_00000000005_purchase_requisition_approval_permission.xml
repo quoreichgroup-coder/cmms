@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-requisition-approval-permission" author="qpm">
+        <!-- PermissionEntity uses ordinal persistence. Append-only ordinal 19 is intentional.
+             Preserve approval only for roles that had the old effective permission combination. -->
+        <sql>
+            INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions)
+            SELECT edit_role.role_id, 19
+            FROM role_edit_other_permissions edit_role
+            JOIN role_view_permissions view_role
+              ON view_role.role_id = edit_role.role_id AND view_role.view_permissions = 17
+            JOIN role_view_other_permissions view_other_role
+              ON view_other_role.role_id = edit_role.role_id AND view_other_role.view_other_permissions = 17
+            WHERE edit_role.edit_other_permissions = 17
+            ON CONFLICT DO NOTHING
+        </sql>
+    </changeSet>
+</databaseChangeLog>
