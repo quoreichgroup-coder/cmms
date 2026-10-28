@@ -48,7 +48,13 @@ function PurchaseRequisitions() {
   const { setTitle } = useContext(TitleContext);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const navigate = useNavigate();
-  const { user, hasFeature, hasViewPermission, hasCreatePermission } = useAuth();
+  const {
+    user,
+    hasFeature,
+    hasViewPermission,
+    hasViewOtherPermission,
+    hasCreatePermission
+  } = useAuth();
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [rows, setRows] = useState<PurchaseRequisition[]>([]);
@@ -65,9 +71,13 @@ function PurchaseRequisitions() {
   const [convertRow, setConvertRow] = useState<PurchaseRequisition | null>(null);
   const [vendorId, setVendorId] = useState<number | null>(null);
   const [quantities, setQuantities] = useState<Record<number, number>>({});
-  const canApprove = user?.role?.editOtherPermissions?.includes(
-    PermissionEntity.PURCHASE_REQUISITIONS
-  );
+  // The decision endpoint requires edit-other plus visibility of other users' requests.
+  const canApprove =
+    user?.role?.editOtherPermissions?.includes(
+      PermissionEntity.PURCHASE_REQUISITIONS
+    ) &&
+    hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+    hasViewOtherPermission(PermissionEntity.PURCHASE_REQUISITIONS);
   const canEditOther = canApprove;
   const canDelete = user?.role?.deleteOtherPermissions?.includes(
     PermissionEntity.PURCHASE_REQUISITIONS
