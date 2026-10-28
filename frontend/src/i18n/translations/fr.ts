@@ -652,6 +652,9 @@ const frJSON = {
   locations: 'Emplacements',
   parts_and_inventory: 'Pièces/Inventaire',
   purchase_requisitions: 'Demandes d’achat',
+  purchase_requisitions_permission: 'Demandes d’achat / approbation',
+  requisition_approval_access_hint:
+    'Les approbations se traitent ici. Pour approuver la demande en attente d’un autre utilisateur, un administrateur doit accorder les droits Lecture, Voir les autres et Modifier les autres pour les demandes d’achat dans Paramètres → Rôles. Le demandeur ne peut pas approuver sa propre demande.',
   requisition_title: 'Objet de la demande',
   requisition_justification: 'Justification du besoin',
   required_date: 'Date souhaitée',

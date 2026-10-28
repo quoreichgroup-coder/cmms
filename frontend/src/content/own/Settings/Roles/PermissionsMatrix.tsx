@@ -48,7 +48,7 @@ function PermissionsMatrix({
       ASSETS: t('assets'),
       PARTS_AND_MULTIPARTS: t('parts_and_sets'),
       PURCHASE_ORDERS: t('purchase_orders'),
-      PURCHASE_REQUISITIONS: t('purchase_requisitions'),
+      PURCHASE_REQUISITIONS: t('purchase_requisitions_permission'),
       PURCHASE_RECEIPTS: t('purchase_receipts'),
       METERS: t('meters'),
       VENDORS_AND_CUSTOMERS: t('vendors_customers'),

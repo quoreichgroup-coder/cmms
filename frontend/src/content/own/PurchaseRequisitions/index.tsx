@@ -281,6 +281,11 @@ function PurchaseRequisitions() {
         <Alert severity="info" variant="outlined">
           {t('requisition_is_internal_notice')}
         </Alert>
+        {!canApprove && (
+          <Alert severity="info" variant="outlined">
+            {t('requisition_approval_access_hint')}
+          </Alert>
+        )}
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
           <Box>
             <Typography variant="h5" fontWeight={700}>{t('purchase_requisitions')}</Typography>

@@ -526,6 +526,9 @@ const locale = {
   locations: 'Locations',
   parts_and_inventory: 'Parts/Inventory',
   purchase_requisitions: 'Purchase Requisitions',
+  purchase_requisitions_permission: 'Purchase Requisitions / Approval',
+  requisition_approval_access_hint:
+    'Approvals are handled here. To approve another user’s pending request, an administrator must grant View, View other, and Edit other for Purchase Requisitions in Settings → Roles. Requesters cannot approve their own requests.',
   purchase_orders: 'Purchase Orders',
   purchase_orders_to_receive: 'To receive',
   all_purchase_orders: 'All purchase orders',
