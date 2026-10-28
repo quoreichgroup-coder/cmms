@@ -90,9 +90,9 @@ public class PurchaseOrderService {
     }
 
     public Page<PurchaseOrder> findReceivable(Long companyId, boolean includeOthers, Long userId,
-                                              Pageable pageable) {
+                                              String query, Pageable pageable) {
         return purchaseOrderRepository.findReceivable(companyId, ApprovalStatus.APPROVED,
-                includeOthers, userId, pageable);
+                includeOthers, userId, query, pageable);
     }
 }
 

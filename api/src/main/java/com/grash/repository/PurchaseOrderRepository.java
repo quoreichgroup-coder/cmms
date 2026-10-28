@@ -19,15 +19,19 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     Optional<PurchaseOrder> findByIdAndCompany_Id(Long id, Long companyId);
 
-    @Query(value = "select po from PurchaseOrder po where po.company.id = :companyId " +
+    @Query(value = "select po from PurchaseOrder po left join po.vendor vendor where po.company.id = :companyId " +
             "and po.receivingWorkflowEnabled = true and po.status = :status " +
             "and (:includeOthers = true or po.createdBy = :userId) " +
+            "and (:query is null or lower(po.name) like lower(concat('%', :query, '%')) " +
+            "or lower(coalesce(vendor.companyName, '')) like lower(concat('%', :query, '%'))) " +
             "and exists (select line.id from PartQuantity line where line.purchaseOrder = po " +
             "and line.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
             "where receiptLine.partQuantity = line), 0.0))",
-            countQuery = "select count(po) from PurchaseOrder po where po.company.id = :companyId " +
+            countQuery = "select count(po) from PurchaseOrder po left join po.vendor vendor where po.company.id = :companyId " +
                     "and po.receivingWorkflowEnabled = true and po.status = :status " +
                     "and (:includeOthers = true or po.createdBy = :userId) " +
+                    "and (:query is null or lower(po.name) like lower(concat('%', :query, '%')) " +
+                    "or lower(coalesce(vendor.companyName, '')) like lower(concat('%', :query, '%'))) " +
                     "and exists (select line.id from PartQuantity line where line.purchaseOrder = po " +
                     "and line.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
                     "where receiptLine.partQuantity = line), 0.0))")
@@ -35,6 +39,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
                                       @Param("status") ApprovalStatus status,
                                       @Param("includeOthers") boolean includeOthers,
                                       @Param("userId") Long userId,
+                                      @Param("query") String query,
                                       Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

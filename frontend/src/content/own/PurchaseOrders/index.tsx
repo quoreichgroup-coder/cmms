@@ -76,6 +76,7 @@ function PurchaseOrders() {
   const { customFields } = useSelector((state) => state.customFields);
   const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
   const [showReceivingQueue, setShowReceivingQueue] = useState(false);
+  const [receivingQueue, setReceivingQueue] = useState({ page: 0, query: '' });
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: [],
     pageSize: 10,
@@ -105,6 +106,13 @@ function PurchaseOrders() {
   };
   const debouncedQueryChange = useMemo(() => debounce(onQueryChange, 1300), []);
   useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
+  const debouncedReceivingQueueSearch = useMemo(
+    () => debounce((query: string) => {
+      setReceivingQueue({ page: 0, query });
+    }, 500),
+    []
+  );
+  useEffect(() => () => debouncedReceivingQueueSearch.clear(), [debouncedReceivingQueueSearch]);
 
   const handleOpenDrawer = (purchaseOrder: PurchaseOrder) => {
     setCurrentPurchaseOrder(purchaseOrder);
@@ -139,12 +147,12 @@ function PurchaseOrders() {
   useEffect(() => {
     if (hasViewPermission(PermissionEntity.PURCHASE_ORDERS)) {
       if (showReceivingQueue) {
-        dispatch(getPurchaseOrdersToReceive(criteria.pageNum, criteria.pageSize));
+        dispatch(getPurchaseOrdersToReceive(receivingQueue.page, criteria.pageSize, receivingQueue.query));
       } else {
         dispatch(getPurchaseOrders(criteria));
       }
     }
-  }, [criteria, showReceivingQueue]);
+  }, [criteria, showReceivingQueue, receivingQueue]);
 
   //see changes in ui on edit
   useEffect(() => {
@@ -168,10 +176,19 @@ function PurchaseOrders() {
   }, [singlePurchaseOrder, purchaseOrders]);
 
   const onPageSizeChange = (size: number) => {
-    setCriteria({ ...criteria, pageSize: size });
+    if (showReceivingQueue) {
+      setCriteria({ ...criteria, pageSize: size });
+      setReceivingQueue((current) => ({ ...current, page: 0 }));
+    } else {
+      setCriteria({ ...criteria, pageSize: size });
+    }
   };
   const onPageChange = (number: number) => {
-    setCriteria({ ...criteria, pageNum: number });
+    if (showReceivingQueue) {
+      setReceivingQueue((current) => ({ ...current, page: number }));
+    } else {
+      setCriteria({ ...criteria, pageNum: number });
+    }
   };
 
   useEffect(() => {
@@ -617,13 +634,16 @@ function PurchaseOrders() {
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                {!showReceivingQueue && (
+                {showReceivingQueue ? (
+                  <SearchInput onChange={(event) => debouncedReceivingQueueSearch(event.target.value)} />
+                ) : (
                   <SearchInput onChange={debouncedQueryChange} />
                 )}
                 <Button
                   variant={showReceivingQueue ? 'contained' : 'outlined'}
                   onClick={() => {
                     setCriteria({ ...criteria, pageNum: 0 });
+                    setReceivingQueue({ page: 0, query: '' });
                     setShowReceivingQueue(!showReceivingQueue);
                   }}
                 >
@@ -658,7 +678,7 @@ function PurchaseOrders() {
                 <CustomDataGrid
                   columns={columns}
                   pageSize={criteria.pageSize}
-                  page={criteria.pageNum}
+                  page={showReceivingQueue ? receivingQueue.page : criteria.pageNum}
                   rows={purchaseOrders.content}
                   rowCount={purchaseOrders.totalElements}
                   pagination

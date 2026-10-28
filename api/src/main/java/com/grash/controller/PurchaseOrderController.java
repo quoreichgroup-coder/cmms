@@ -96,6 +96,7 @@ public class PurchaseOrderController {
     public Page<PurchaseOrderShowDTO> receivingQueue(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String query,
             HttpServletRequest req) {
         User user = userService.whoami(req);
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
@@ -110,7 +111,14 @@ public class PurchaseOrderController {
                 Sort.Order.desc("id"));
         PageRequest pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 50)), queueSort);
         return purchaseOrderService.findReceivable(user.getCompany().getId(), includeOthers,
-                user.getId(), pageable).map(order -> setPartQuantities(purchaseOrderMapper.toShowDto(order)));
+                user.getId(), normalizeQueueQuery(query), pageable)
+                .map(order -> setPartQuantities(purchaseOrderMapper.toShowDto(order)));
+    }
+
+    private String normalizeQueueQuery(String query) {
+        if (query == null || query.isBlank()) return null;
+        String normalized = query.trim();
+        return normalized.length() > 100 ? normalized.substring(0, 100) : normalized;
     }
 
     @GetMapping("/{id}")

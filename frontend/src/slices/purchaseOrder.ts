@@ -115,12 +115,14 @@ export const getPurchaseOrders =
   };
 
 export const getPurchaseOrdersToReceive =
-  (page: number, size: number): AppThunk =>
+  (page: number, size: number, query = ''): AppThunk =>
   async (dispatch) => {
     try {
       dispatch(slice.actions.setLoadingGet({ loading: true }));
+      const params = new URLSearchParams({ page: String(page), size: String(size) });
+      if (query.trim()) params.set('query', query.trim());
       const purchaseOrders = await api.get<Page<PurchaseOrder>>(
-        `${basePath}/receiving-queue?page=${page}&size=${size}`
+        `${basePath}/receiving-queue?${params.toString()}`
       );
       dispatch(slice.actions.getPurchaseOrders({ purchaseOrders }));
     } finally {
