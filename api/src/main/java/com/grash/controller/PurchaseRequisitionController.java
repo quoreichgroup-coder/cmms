@@ -324,7 +324,9 @@ public class PurchaseRequisitionController {
         if (!workOrder.canBeViewedBy(user)) {
             throw new CustomException("Access denied to source work order", HttpStatus.FORBIDDEN);
         }
-        if (workOrder.getStatus() == Status.COMPLETE) {
+        boolean alreadyLinkedSource = requisition.getSourceWorkOrder() != null
+                && requisition.getSourceWorkOrder().getId().equals(workOrderId);
+        if (workOrder.getStatus() == Status.COMPLETE && !alreadyLinkedSource) {
             throw new CustomException("A completed work order cannot be a new requisition source", HttpStatus.CONFLICT);
         }
         requisition.setSourceWorkOrder(workOrder);
