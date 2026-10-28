@@ -39,7 +39,7 @@
         </createIndex>
         <sql>CREATE SEQUENCE IF NOT EXISTS purchase_order_receipt_seq START WITH 1 INCREMENT BY 50</sql>
         <sql>CREATE SEQUENCE IF NOT EXISTS purchase_order_receipt_line_seq START WITH 1 INCREMENT BY 50</sql>
-        <sql>INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions) SELECT id, 18 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
-        <sql>INSERT INTO role_view_permissions (role_id, view_permissions) SELECT id, 18 FROM role WHERE code IN ('ADMIN', 'LIMITED_ADMIN') ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions) SELECT id, 18 FROM role WHERE code IN (0, 1) ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_permissions (role_id, view_permissions) SELECT id, 18 FROM role WHERE code IN (0, 1) ON CONFLICT DO NOTHING</sql>
     </changeSet>
 </databaseChangeLog>
