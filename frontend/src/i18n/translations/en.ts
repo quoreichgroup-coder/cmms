@@ -586,6 +586,8 @@ const locale = {
   requisition_source_work_order: 'Source work order',
   requisition_from_work_order:
     'This request will be linked to work order {{workOrder}}. Selected parts remain a request; no stock is reserved.',
+  requisition_from_work_order_parts_notice:
+    'Parts already assigned to this work order are not copied. Their assignment consumes stock, so add only quantities that still need to be purchased.',
   requisition_title_from_work_order: 'Parts for {{workOrder}}',
   request_parts: 'Request parts',
   next_action: 'Next action',

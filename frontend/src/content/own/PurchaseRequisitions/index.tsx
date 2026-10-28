@@ -392,7 +392,14 @@ function PurchaseRequisitions() {
         <DialogContent dividers>
           {sourceWorkOrder && !editingRow && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              {t('requisition_from_work_order', { workOrder: sourceWorkOrder.name })}
+              <Stack spacing={0.5}>
+                <Typography variant="body2">
+                  {t('requisition_from_work_order', { workOrder: sourceWorkOrder.name })}
+                </Typography>
+                <Typography variant="body2">
+                  {t('requisition_from_work_order_parts_notice')}
+                </Typography>
+              </Stack>
             </Alert>
           )}
           <Form

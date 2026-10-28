@@ -708,6 +708,8 @@ const frJSON = {
   requisition_source_work_order: 'Ordre de travail source',
   requisition_from_work_order:
     'Cette demande sera liée à l’OT {{workOrder}}. Les pièces sélectionnées restent une demande; aucun stock n’est réservé.',
+  requisition_from_work_order_parts_notice:
+    'Les pièces déjà affectées à cet OT ne sont pas copiées. Leur affectation consomme du stock; ajoutez uniquement les quantités qui restent à acheter.',
   requisition_title_from_work_order: 'Pièces pour {{workOrder}}',
   request_parts: 'Demander des pièces',
   next_action: 'Prochaine action',
