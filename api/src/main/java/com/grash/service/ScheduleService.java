@@ -109,8 +109,8 @@ public class ScheduleService {
 
         if (shouldSchedule) {
             try {
-                ScheduleBuilder<?> scheduleBuilder = null;
                 Date startsOn = schedule.getStartsOn();
+                ScheduleBuilder<?> scheduleBuilder = null;
 
                 if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.COMPLETED_DATE) {
                     if (workOrdersPage.isEmpty()) {
@@ -144,28 +144,20 @@ public class ScheduleService {
                                     .preserveHourOfDayAcrossDaylightSavings(true)
                                     .inTimeZone(timeZone);
                             break;
-
                         case WEEKLY:
                             if (schedule.getDaysOfWeek() == null || schedule.getDaysOfWeek().isEmpty()) {
                                 throw new CustomException("Days of week are required for weekly recurrence.",
                                         HttpStatus.BAD_REQUEST);
                             }
-
-                            // Convert ISO days to Quartz format
                             String daysOfWeekCron = schedule.getDaysOfWeek().stream()
-                                    .map(d -> (d + 1) % 7 + 1) // 0-based (Mon=0) to Calendar (Sun=1, Mon=2)
+                                    .map(d -> (d + 1) % 7 + 1)
                                     .map(String::valueOf)
                                     .collect(Collectors.joining(","));
-
                             String cronExpression = String.format("0 %d %d ? * %s", minute, hour, daysOfWeekCron);
                             scheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression)
                                     .withMisfireHandlingInstructionFireAndProceed()
                                     .inTimeZone(timeZone);
-
-                            // Store the frequency in the job data so the job can handle it
-                            // The cron will fire every week on specified days, but the job will check frequency
                             break;
-
                         case MONTHLY:
                             scheduleBuilder = CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                                     .withIntervalInMonths(schedule.getFrequency())
@@ -173,7 +165,6 @@ public class ScheduleService {
                                     .preserveHourOfDayAcrossDaylightSavings(true)
                                     .inTimeZone(timeZone);
                             break;
-
                         case YEARLY:
                             scheduleBuilder = CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                                     .withIntervalInYears(schedule.getFrequency())
@@ -181,7 +172,6 @@ public class ScheduleService {
                                     .preserveHourOfDayAcrossDaylightSavings(true)
                                     .inTimeZone(timeZone);
                             break;
-
                         default:
                             throw new CustomException("Unsupported recurrence type: " + schedule.getRecurrenceType(),
                                     HttpStatus.BAD_REQUEST);
@@ -269,6 +259,14 @@ public class ScheduleService {
                 }
                 return;
             }
+            if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE
+                    && schedule.getRecurrenceType() == RecurrenceType.WEEKLY
+                    && !hasFutureWeeklyOccurrence(schedule, new Date())) {
+                log.info("Not restoring weekly schedule {} because no valid occurrence remains before its end date.",
+                        schedule.getId());
+                syncCalendarCallRegister(schedule, Collections.emptyList());
+                return;
+            }
             // A previous run may have left the durable job behind after its trigger was removed.
             // Quartz rejects scheduling the same job key again, so replace that orphan before rebuilding it.
             JobKey jobKey = new JobKey("wo-job-" + schedule.getId(), "wo-group");
@@ -279,6 +277,32 @@ public class ScheduleService {
         } catch (SchedulerException e) {
             throw new CustomException("Error checking quartz trigger for schedule " + schedule.getId(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private boolean hasFutureWeeklyOccurrence(Schedule schedule, Date after) {
+        Date startsOn = schedule.getStartsOn();
+        if (startsOn == null || schedule.getDaysOfWeek() == null || schedule.getDaysOfWeek().isEmpty()) return false;
+        Calendar start = Calendar.getInstance(TimeZone.getTimeZone(schedule.getPreventiveMaintenance().getCompany()
+                .getCompanySettings().getGeneralPreferences().getTimeZone()));
+        start.setTime(startsOn);
+        String daysOfWeekCron = schedule.getDaysOfWeek().stream()
+                .map(d -> (d + 1) % 7 + 1)
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+        String cronExpression = String.format("0 %d %d ? * %s", start.get(Calendar.MINUTE),
+                start.get(Calendar.HOUR_OF_DAY), daysOfWeekCron);
+        try {
+            CronExpression cron = new CronExpression(cronExpression);
+            cron.setTimeZone(start.getTimeZone());
+            Date candidate = cron.getNextValidTimeAfter(after);
+            while (candidate != null && !checkIfWeeklyShouldRun(schedule, candidate)) {
+                candidate = cron.getNextValidTimeAfter(candidate);
+            }
+            return candidate != null && (schedule.getEndsOn() == null || !candidate.after(schedule.getEndsOn()));
+        } catch (java.text.ParseException e) {
+            throw new CustomException("Invalid weekly recurrence for schedule " + schedule.getId(),
+                    HttpStatus.BAD_REQUEST);
         }
     }
 

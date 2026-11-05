@@ -417,6 +417,41 @@ class ScheduleServiceTest {
     class ScheduleWorkOrderGuards {
 
         @Test
+        void startupRestoreDoesNotRecreateExpiredWeeklyTrigger() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceType(RecurrenceType.WEEKLY);
+            schedule.setStartsOn(daysFromNow(-8));
+            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now().getDayOfWeek().getValue() - 1));
+            schedule.setEndsOn(daysFromNow(1));
+            when(scheduler.checkExists(new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group")))
+                    .thenReturn(false);
+
+            scheduleService.ensureWorkOrderScheduled(schedule);
+
+            verify(scheduler, never()).scheduleJob(any(JobDetail.class), any(Trigger.class));
+            verify(scheduler, never()).deleteJob(any(JobKey.class));
+        }
+
+        @Test
+        void startupRestoreKeepsWeeklyTriggerWhenFutureOccurrenceRemains() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceType(RecurrenceType.WEEKLY);
+            schedule.setStartsOn(daysFromNow(-1));
+            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now().getDayOfWeek().getValue() % 7));
+            schedule.setEndsOn(daysFromNow(8));
+            when(scheduler.checkExists(new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group")))
+                    .thenReturn(false);
+            when(callRepository.findBySchedule_IdAndCallTypeAndStatus(SCHEDULE_ID, ScheduleTriggerType.METER,
+                    PreventiveMaintenanceCallStatus.PLANNED)).thenReturn(Collections.emptyList());
+            when(callRepository.findBySchedule_IdAndCallTypeAndStatus(SCHEDULE_ID, ScheduleTriggerType.CALENDAR,
+                    PreventiveMaintenanceCallStatus.PLANNED)).thenReturn(Collections.emptyList());
+
+            scheduleService.ensureWorkOrderScheduled(schedule);
+
+            verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
+        }
+
+        @Test
         void persistsUpcomingCalendarOccurrencesInCallRegister() throws SchedulerException {
             Schedule schedule = buildSchedule();
             schedule.setTriggerType(ScheduleTriggerType.CALENDAR);

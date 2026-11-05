@@ -260,4 +260,23 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 - Settings → Integrations → Webhooks affiche les 50 derniers dead letters de la société : événement, tentatives, date et classe d'erreur expurgée. Aucun payload, endpoint URL ou secret n'est renvoyé. Le rejeu demande les droits `view SETTINGS` et `editOther SETTINGS`, verrouille l'événement de la société, remet les tentatives à zéro et conserve l'identifiant d'événement et ses abonnés d'origine.
 - Tests : 24 tests verts pour le dead-letter (DTO expurgé, tenant-scope, rejeu, refus des états non DEAD, permissions, migration PostgreSQL). TypeScript et ESLint passent sur le panneau. Le build CRA/Docker produit `index.html` et le manifeste; les deux warnings TaskLists déjà présents subsistent.
-- Images reconstruites : API `sha256:fa5ed4471a8f899423ea55f076159f491456772ec6586f455a38dcee225ea92f`; frontend `sha256:516f37aeda77c0783c403634f4ad6951cea8d57204fbdcbb0c85329afde30888`. Déploiement des deux conteneurs en attente de validation du redémarrage et du smoke HTTPS.
+- Images reconstruites : API `sha256:fa5ed4471a8f899423ea55f076159f491456772ec6586f455a38dcee225ea92f`; frontend `sha256:516f37aeda77c0783c403634f4ad6951cea8d57204fbdcbb0c85329afde30888`.
+
+### Vérification après déploiement dead-letter — 5 novembre 2026, 11:24 UTC
+
+- Les conteneurs API et frontend tournent sur ces images locales. Le nouveau frontend répond en HTTPS 200 et l’API `/api/health-check` répond `{"success":true,"message":"Service is up and running"}` en HTTPS 200 après environ 45 secondes d’initialisation. Liquibase confirme 885 changesets appliqués; l’API est prête.
+- Vérification de démarrage a également confirmé un nouveau bon de travail `WO000028` généré par la tâche préventive 252 lors de la récupération du trigger manqué au redémarrage (`Handling 2 trigger(s) that missed their scheduled fire-time`). Comme `WO000026` et `WO000027` avaient déjà été observés après de précédents redémarrages, l’occurrence et la configuration du planning 252 restent à valider avec le métier; éviter les redémarrages inutiles tant que ce point n’est pas clarifié.
+- Le commit `b454f38a` contient la console dead-letter; le répertoire de travail n’a que l’APK v1.0.60 non suivi. Le contrôle du remote et le push n’ont pas pu être confirmés, l’accès DNS à `github.com` étant indisponible dans cette session.
+- Backlog restant : recette visuelle responsive authentifiée; cycle PO d’annulation et retours de réception; politique de rétention de l’outbox; configuration/connectivité Sage 300 (URL Web API, société et compte technique); validation métier de WO000026–WO000028 et du planning 252; smoke test end-to-end avec un endpoint webhook autorisé.
+
+### Récupération sûre du planning préventif — 5 novembre 2026, 11:48 UTC
+
+- Cause confirmée pour les WO000026–WO000028 : un trigger hebdomadaire avait consommé sa dernière occurrence avant `endsOn`, puis Quartz l’avait retiré. Au redémarrage suivant, `ensureWorkOrderScheduled` reconstruisait le trigger depuis `startsOn` passée avec `FireAndProceed`; le rattrapage devenait une nouvelle occurrence horodatée à l’heure du redémarrage. Le planning 252 est hebdomadaire, fréquence 1, commencé le 2 novembre et terminé le 8 novembre.
+- La restauration hebdomadaire vérifie maintenant qu’une occurrence valide (y compris la cadence hebdomadaire) reste à venir avant de recréer un trigger absent. Un trigger déjà présent est conservé. Deux tests couvrent absence d’occurrence valide et restauration lorsqu’une occurrence reste à venir.
+- `MAVEN_OPTS='-Xmx1024m -XX:MaxMetaspaceSize=384m' mvn -o -Dmaven.compiler.useIncrementalCompilation=false -Dtest=ScheduleServiceTest test` réussit : **65 tests, 0 échec**. Image API reconstruite et redéployée (`sha256:5ec7f6076e3baa260436974de47918f8ea66aa86e00b5f9d5b41ed05626162af`). Au redémarrage, le log confirme « Not restoring weekly schedule 252 because no valid occurrence remains before its end date »; l’API répond HTTP 200. La base reste à 4 appels générés pour ce planning, dernier WO `WO000028`; aucun nouveau WO n’a été produit par ce redémarrage.
+- Les WO000026–WO000028 existants restent à valider/traiter par le responsable maintenance. Le changement est présent dans le workspace, mais pas encore committé : le dossier `.git` est monté en lecture seule dans cette session. Le push précédent reste non confirmé faute de résolution DNS vers GitHub.
+
+### Contrat des webhooks PO — 5 novembre 2026, 11:49 UTC
+
+- `docs/WEBHOOKS-PURCHASE-ORDERS.md` documente les trois événements, le snapshot envoyé, la signature HMAC, les identifiants stables, les répétitions possibles, le traitement des réponses HTTP et les paramètres de retry à partir du comportement présent dans le code.
+- Le smoke test vers une URL externe autorisée et la décision de rétention/purge restent à faire; aucune livraison de test n’a été envoyée à un système externe.
