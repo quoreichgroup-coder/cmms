@@ -3461,6 +3461,13 @@ const frJSON = {
   webhook_endpoint_last_triggered: 'Dernier déclenchement',
   webhook_endpoint_never_triggered: 'Jamais déclenché',
   webhook_endpoint_type: 'Type',
+  webhook_dead_letters_title: 'Livraisons webhook en échec',
+  webhook_dead_letters_description:
+    'Événements ayant épuisé les tentatives automatiques. Le rejeu conserve les abonnés et l’identifiant d’origine.',
+  webhook_dead_letters_empty: 'Aucune livraison en échec à traiter.',
+  webhook_dead_letter_attempts: 'tentatives',
+  webhook_dead_letter_retry: 'Relancer la livraison',
+  webhook_dead_letter_retry_queued: 'Livraison webhook remise en file',
   WEBHOOK_ASSET_STATUS_CHANGE: "Changement de statut de l'équipement",
   WEBHOOK_METER_TRIGGER_STATUS_CHANGE:
     'Changement de statut du déclencheur de compteur',

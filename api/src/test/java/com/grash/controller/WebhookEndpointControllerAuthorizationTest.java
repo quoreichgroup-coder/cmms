@@ -6,6 +6,7 @@ import com.grash.model.User;
 import com.grash.model.enums.RoleType;
 import com.grash.service.UserService;
 import com.grash.service.WebhookEndpointService;
+import com.grash.service.WebhookOutboxService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,9 @@ class WebhookEndpointControllerAuthorizationTest extends AbstractControllerTest 
     @MockitoBean
     private UserService userService;
 
+    @MockitoBean
+    private WebhookOutboxService webhookOutboxService;
+
     @BeforeEach
     void setUp() {
         Role role = new Role();
@@ -56,5 +60,13 @@ class WebhookEndpointControllerAuthorizationTest extends AbstractControllerTest 
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(webhookEndpointService, webhookEndpointMapper);
+    }
+
+    @Test
+    void deadLetterListingWithoutSettingsViewIsForbiddenBeforeCallingService() throws Exception {
+        mockMvc.perform(get("/webhook-endpoints/outbox/dead-letters"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(webhookOutboxService);
     }
 }

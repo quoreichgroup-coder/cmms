@@ -3,12 +3,15 @@ package com.grash.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grash.model.WebhookOutboxEvent;
+import com.grash.dto.webhookEndpoint.WebhookOutboxDeadLetterDTO;
+import com.grash.exception.CustomException;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.model.enums.webhook.WebhookOutboxStatus;
 import com.grash.repository.WebhookOutboxEventRepository;
 import com.grash.repository.WebhookEndpointRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -79,6 +82,31 @@ public class WebhookOutboxService {
     @Transactional(readOnly = true)
     public WebhookOutboxEvent find(Long id) {
         return repository.findById(id).orElseThrow();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WebhookOutboxDeadLetterDTO> deadLetters(Long companyId) {
+        return repository.findTop50ByCompanyIdAndStatusOrderByCreatedAtDesc(companyId,
+                        WebhookOutboxStatus.DEAD).stream()
+                .map(event -> WebhookOutboxDeadLetterDTO.builder()
+                        .id(event.getId()).eventType(event.getEventType().name())
+                        .attempts(event.getAttempts()).createdAt(event.getCreatedAt())
+                        .lastError(event.getLastError()).build())
+                .toList();
+    }
+
+    @Transactional
+    public void retryDeadLetter(Long companyId, Long eventId) {
+        WebhookOutboxEvent event = repository.findByIdAndCompanyIdForUpdate(eventId, companyId)
+                .orElseThrow(() -> new CustomException("Webhook outbox event not found", HttpStatus.NOT_FOUND));
+        if (event.getStatus() != WebhookOutboxStatus.DEAD) {
+            throw new CustomException("Only dead-letter events can be retried", HttpStatus.CONFLICT);
+        }
+        event.setStatus(WebhookOutboxStatus.PENDING);
+        event.setAttempts(0);
+        event.setNextAttemptAt(new Date());
+        event.setClaimedAt(null);
+        event.setLastError(null);
     }
 
     @Transactional

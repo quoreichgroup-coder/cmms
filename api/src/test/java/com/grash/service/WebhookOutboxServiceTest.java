@@ -5,6 +5,7 @@ import com.grash.model.WebhookOutboxEvent;
 import com.grash.model.WebhookEndpoint;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.model.enums.webhook.WebhookOutboxStatus;
+import com.grash.exception.CustomException;
 import com.grash.repository.WebhookOutboxEventRepository;
 import com.grash.repository.WebhookEndpointRepository;
 import org.junit.jupiter.api.Test;
@@ -136,6 +137,58 @@ class WebhookOutboxServiceTest {
         assertEquals(WebhookOutboxStatus.DELIVERED, event.getStatus());
         assertNotNull(event.getDeliveredAt());
         assertNull(event.getClaimedAt());
+    }
+
+    @Test
+    void deadLetterListIsCompanyScopedAndOmitsPayload() {
+        WebhookOutboxEvent dead = new WebhookOutboxEvent();
+        dead.setId(15L);
+        dead.setCompanyId(9L);
+        dead.setEventType(WebhookEvent.PURCHASE_ORDER_CHANGE);
+        dead.setStatus(WebhookOutboxStatus.DEAD);
+        dead.setAttempts(8);
+        dead.setCreatedAt(new Date());
+        dead.setPayload("sensitive payload deliberately excluded from DTO");
+        when(repository.findTop50ByCompanyIdAndStatusOrderByCreatedAtDesc(9L, WebhookOutboxStatus.DEAD))
+                .thenReturn(List.of(dead));
+
+        var items = service().deadLetters(9L);
+
+        assertEquals(1, items.size());
+        assertEquals(15L, items.get(0).id());
+        assertEquals("PURCHASE_ORDER_CHANGE", items.get(0).eventType());
+        assertEquals(8, items.get(0).attempts());
+        verify(repository).findTop50ByCompanyIdAndStatusOrderByCreatedAtDesc(9L, WebhookOutboxStatus.DEAD);
+    }
+
+    @Test
+    void retryDeadLetterResetsAttemptsAndQueuesImmediately() {
+        WebhookOutboxEvent event = processingEvent();
+        event.setCompanyId(9L);
+        event.setStatus(WebhookOutboxStatus.DEAD);
+        event.setAttempts(8);
+        event.setLastError("SocketException");
+        when(repository.findByIdAndCompanyIdForUpdate(8L, 9L)).thenReturn(java.util.Optional.of(event));
+
+        service().retryDeadLetter(9L, 8L);
+
+        assertEquals(WebhookOutboxStatus.PENDING, event.getStatus());
+        assertEquals(0, event.getAttempts());
+        assertNull(event.getLastError());
+        assertNull(event.getClaimedAt());
+        assertFalse(event.getNextAttemptAt().after(new Date(System.currentTimeMillis() + 1_000)));
+    }
+
+    @Test
+    void retryRejectsEventOutsideDeadLetterState() {
+        WebhookOutboxEvent event = processingEvent();
+        event.setStatus(WebhookOutboxStatus.PENDING);
+        when(repository.findByIdAndCompanyIdForUpdate(8L, 9L)).thenReturn(java.util.Optional.of(event));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> service().retryDeadLetter(9L, 8L));
+
+        assertEquals(org.springframework.http.HttpStatus.CONFLICT, exception.getHttpStatus());
     }
 
     private WebhookOutboxEvent processingEvent() {

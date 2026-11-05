@@ -245,7 +245,7 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - L'outbox stocke le payload métier, le snapshot minimal, la liste des abonnés actifs au moment de l'événement, l'état, le nombre de tentatives, la prochaine date et une erreur expurgée. La table et ses index sont ajoutés à Liquibase.
 - Le worker récupère des lots avec `FOR UPDATE SKIP LOCKED`, reprend les claims laissés PROCESSING depuis plus de 5 minutes, utilise des délais croissants (30 s jusqu'à 6 h) et passe en DEAD après 8 échecs. Le header stable `X-Webhook-Id` permet aux consommateurs d'ignorer un doublon après livraison partielle. Les événements sont inscrits dans la transaction PO; un rollback n'expose pas d'événement.
 - `WebhookOutboxServiceTest` (5), `WebhookOutboxWorkerTest` (2), `PurchaseOrderWebhookServiceTest` (3), `PurchaseOrderApprovalGovernedInventoryTest` (5) et `ProcurementApprovalMigrationIntegrationTest` (7, PostgreSQL Testcontainers) et le reste des suites Procurement PR/PO passent dans le lot ciblé (**101 tests, zéro échec**).
-- Le backlog restant porte sur la gestion opérationnelle du dead letter (inspection/rejeu), la rétention des événements terminés et la documentation du contrat pour les consommateurs externes. Le test d'intégration PostgreSQL couvre la création de table, l'insertion d'un événement et le verrouillage `SKIP LOCKED`; les derniers changements Java doivent encore être reconstruits dans l'image Docker.
+- Le backlog restant porte sur la rétention des événements terminés et la documentation du contrat pour les consommateurs externes. Le dead letter est traité dans la mise à jour Settings ci-dessous. Le test PostgreSQL couvre la création de table, l'insertion d'un événement et le verrouillage `SKIP LOCKED`.
 
 ### Déploiement de l’outbox PO — 5 novembre 2026, 10:46 UTC
 
@@ -253,4 +253,11 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - Liquibase a appliqué la migration d’outbox : 1 nouveau changeset, 884 déjà présents, 885 au total. Hibernate a initialisé le contexte; l’endpoint public `https://eam.quoreichgroup.bf/api/health-check` répond HTTP 200.
 - La table `webhook_outbox_event` existe; elle contient 0 événement au contrôle post-déploiement. Aucun événement réel n’a encore traversé la livraison en production; le test end-to-end avec endpoint webhook externe reste à effectuer.
 - Le redémarrage a aussi déclenché la génération planifiée `WO000027` pour le schedule 252 après le `WO000026` observé au redémarrage précédent. Les deux occurrences doivent être validées par le responsable maintenance pour confirmer l’absence de doublon métier.
-- Backlog restant : recette visuelle responsive authentifiée; cycle PO d’annulation et retours de réception; écran dead-letter et politique de rétention de l’outbox; configuration/connectivité Sage 300 (URL Web API, société et compte technique); validation métier des deux occurrences PM; smoke test end-to-end avec un endpoint webhook autorisé.
+- Backlog restant : recette visuelle responsive authentifiée; cycle PO d’annulation et retours de réception; politique de rétention de l’outbox; configuration/connectivité Sage 300 (URL Web API, société et compte technique); validation métier des deux occurrences PM; smoke test end-to-end avec un endpoint webhook autorisé.
+
+
+### Console d'exploitation dead-letter — 5 novembre 2026, 11:20 UTC
+
+- Settings → Integrations → Webhooks affiche les 50 derniers dead letters de la société : événement, tentatives, date et classe d'erreur expurgée. Aucun payload, endpoint URL ou secret n'est renvoyé. Le rejeu demande les droits `view SETTINGS` et `editOther SETTINGS`, verrouille l'événement de la société, remet les tentatives à zéro et conserve l'identifiant d'événement et ses abonnés d'origine.
+- Tests : 24 tests verts pour le dead-letter (DTO expurgé, tenant-scope, rejeu, refus des états non DEAD, permissions, migration PostgreSQL). TypeScript et ESLint passent sur le panneau. Le build CRA/Docker produit `index.html` et le manifeste; les deux warnings TaskLists déjà présents subsistent.
+- Images reconstruites : API `sha256:fa5ed4471a8f899423ea55f076159f491456772ec6586f455a38dcee225ea92f`; frontend `sha256:516f37aeda77c0783c403634f4ad6951cea8d57204fbdcbb0c85329afde30888`. Déploiement des deux conteneurs en attente de validation du redémarrage et du smoke HTTPS.

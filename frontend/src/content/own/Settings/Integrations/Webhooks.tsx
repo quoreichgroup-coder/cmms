@@ -1,6 +1,9 @@
 import {
   Box,
   Button,
+  Alert,
+  Card,
+  CardContent,
   Checkbox,
   Chip,
   CircularProgress,
@@ -38,8 +41,11 @@ import { useDispatch, useSelector } from '../../../../store';
 import {
   addWebhookEndpoint,
   deleteWebhookEndpoint,
+  getWebhookDeadLetters,
   getWebhookEndpoints,
-  rotateSecret
+  retryWebhookDeadLetter,
+  rotateSecret,
+  WebhookDeadLetter
 } from '../../../../slices/webhookEndpoint';
 import {
   EVENT_ASKS_ASSET_STATUSES,
@@ -115,6 +121,9 @@ function Webhooks() {
   const [rotatingSecretId, setRotatingSecretId] = useState<number | null>(null);
   const [openRotateDialog, setOpenRotateDialog] = useState(false);
   const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null);
+  const [deadLetters, setDeadLetters] = useState<WebhookDeadLetter[]>([]);
+  const [loadingDeadLetters, setLoadingDeadLetters] = useState(false);
+  const [retryingDeadLetterId, setRetryingDeadLetterId] = useState<number | null>(null);
 
   const handleOpenCreateModal = () => setOpenCreateModal(true);
   const handleCloseCreateModal = () => setOpenCreateModal(false);
@@ -132,6 +141,32 @@ function Webhooks() {
       showSnackBar(getErrorMessage(error), 'error');
     } finally {
       setLoadingCreate(false);
+    }
+  };
+
+  const loadDeadLetters = async () => {
+    setLoadingDeadLetters(true);
+    try {
+      setDeadLetters(await getWebhookDeadLetters());
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      setLoadingDeadLetters(false);
+    }
+  };
+
+  const handleRetryDeadLetter = async (id: number) => {
+    if (retryingDeadLetterId !== null) return;
+    setRetryingDeadLetterId(id);
+    try {
+      if (await retryWebhookDeadLetter(id)) {
+        setDeadLetters((current) => current.filter((event) => event.id !== id));
+        showSnackBar(t('webhook_dead_letter_retry_queued'), 'success');
+      }
+    } catch (error) {
+      showSnackBar(getErrorMessage(error), 'error');
+    } finally {
+      setRetryingDeadLetterId(null);
     }
   };
 
@@ -192,6 +227,10 @@ function Webhooks() {
 
   useEffect(() => {
     dispatch(getWebhookEndpoints());
+  }, []);
+
+  useEffect(() => {
+    void loadDeadLetters();
   }, []);
 
   useEffect(() => {
@@ -313,6 +352,72 @@ function Webhooks() {
         notClickable
         hidePagination
       />
+
+      <Box sx={{ mt: 4 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          spacing={1}
+          sx={{ mb: 1.5 }}
+        >
+          <Box>
+            <Typography variant="h5">{t('webhook_dead_letters_title')}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('webhook_dead_letters_description')}
+            </Typography>
+          </Box>
+          <Button onClick={() => void loadDeadLetters()} disabled={loadingDeadLetters}>
+            {t('refresh')}
+          </Button>
+        </Stack>
+        {loadingDeadLetters ? (
+          <Box display="flex" justifyContent="center" py={3}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : deadLetters.length === 0 ? (
+          <Alert severity="success">{t('webhook_dead_letters_empty')}</Alert>
+        ) : (
+          <Stack spacing={1}>
+            {deadLetters.map((event) => (
+              <Card key={event.id} variant="outlined">
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    spacing={1.5}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography fontWeight={600}>
+                        {t(getWebhookEventLabelKey(event.eventType as WebhookEvent))}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {event.attempts} {t('webhook_dead_letter_attempts')}
+                        {' · '}{getFormattedDate(event.createdAt)}
+                      </Typography>
+                      {event.lastError && (
+                        <Typography variant="caption" color="error.main">
+                          {event.lastError}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      onClick={() => void handleRetryDeadLetter(event.id)}
+                      disabled={retryingDeadLetterId !== null}
+                      startIcon={retryingDeadLetterId === event.id ? <CircularProgress size={16} /> : undefined}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {t('webhook_dead_letter_retry')}
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Box>
 
       {/* Create Webhook Endpoint Modal */}
       <DialogWrapper

@@ -3212,6 +3212,13 @@ const locale = {
   webhook_endpoint_last_triggered: 'Last Triggered',
   webhook_endpoint_never_triggered: 'Never triggered',
   webhook_endpoint_type: 'Type',
+  webhook_dead_letters_title: 'Failed webhook deliveries',
+  webhook_dead_letters_description:
+    'Events that exhausted automatic retries. Replaying keeps the original subscribers and event ID.',
+  webhook_dead_letters_empty: 'No failed deliveries to review.',
+  webhook_dead_letter_attempts: 'attempts',
+  webhook_dead_letter_retry: 'Retry delivery',
+  webhook_dead_letter_retry_queued: 'Webhook delivery queued for retry',
   WEBHOOK_ASSET_STATUS_CHANGE: 'Asset Status Change',
   WEBHOOK_METER_TRIGGER_STATUS_CHANGE: 'Meter Trigger Status Change',
   WEBHOOK_NEW_ASSET: 'New Asset',

@@ -15,6 +15,14 @@ interface WebhookEndpointState {
   loadingGet: boolean;
 }
 
+export interface WebhookDeadLetter {
+  id: number;
+  eventType: string;
+  attempts: number;
+  createdAt: string;
+  lastError: string | null;
+}
+
 const initialState: WebhookEndpointState = {
   webhookEndpoints: [],
   loadingGet: false
@@ -101,5 +109,16 @@ export const rotateSecret =
     }
     return null;
   };
+
+export const getWebhookDeadLetters = async (): Promise<WebhookDeadLetter[]> =>
+  api.get<WebhookDeadLetter[]>(`${basePath}/outbox/dead-letters`);
+
+export const retryWebhookDeadLetter = async (id: number): Promise<boolean> => {
+  const result = await api.post<{ success: boolean }>(
+    `${basePath}/outbox/dead-letters/${id}/retry`,
+    {}
+  );
+  return result.success;
+};
 
 export default slice;

@@ -1,6 +1,7 @@
 package com.grash.controller;
 
 import com.grash.dto.SuccessResponse;
+import com.grash.dto.webhookEndpoint.WebhookOutboxDeadLetterDTO;
 import com.grash.dto.webhookEndpoint.WebhookEndpointPatchDTO;
 import com.grash.dto.webhookEndpoint.WebhookEndpointPostDTO;
 import com.grash.dto.webhookEndpoint.WebhookEndpointShowDTO;
@@ -11,6 +12,7 @@ import com.grash.model.WebhookEndpoint;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.security.CurrentUser;
 import com.grash.service.WebhookEndpointService;
+import com.grash.service.WebhookOutboxService;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -56,6 +58,7 @@ public class WebhookEndpointController {
 
     private final WebhookEndpointService webhookEndpointService;
     private final WebhookEndpointMapper webhookEndpointMapper;
+    private final WebhookOutboxService webhookOutboxService;
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_CLIENT')")
@@ -121,6 +124,32 @@ public class WebhookEndpointController {
                 .map(webhookEndpointMapper::toShowDto)
                 .peek(dto -> dto.setSecret(null))
                 .toList());
+    }
+
+    @GetMapping("/outbox/dead-letters")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Operation(summary = "List failed webhook deliveries", description =
+            "Returns a limited, company-scoped list without payloads, URLs, or secrets.")
+    public ResponseEntity<List<WebhookOutboxDeadLetterDTO>> listDeadLetters(
+            @Parameter(hidden = true) @CurrentUser User user) {
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        return ResponseEntity.ok(webhookOutboxService.deadLetters(user.getCompany().getId()));
+    }
+
+    @PostMapping("/outbox/dead-letters/{id}/retry")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Operation(summary = "Retry a failed webhook delivery", description =
+            "Requeues one dead-letter event for the original subscribers using its stable delivery identifiers.")
+    public ResponseEntity<SuccessResponse> retryDeadLetter(
+            @Parameter(hidden = true) @CurrentUser User user, @PathVariable Long id) {
+        if (!user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
+                || !user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        webhookOutboxService.retryDeadLetter(user.getCompany().getId(), id);
+        return ResponseEntity.ok(new SuccessResponse(true, "Webhook delivery queued for retry"));
     }
 
     @PatchMapping("/{id}")
