@@ -10,6 +10,8 @@ import com.grash.repository.SiteRepository;
 import com.grash.repository.AssetRepository;
 import com.grash.repository.WorkOrderRepository;
 import com.grash.repository.PreventiveMaintenanceRepository;
+import com.grash.repository.PartQuantityRepository;
+import com.grash.repository.PurchaseRequisitionLineRepository;
 import com.grash.repository.GeneratedDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,8 @@ public class SiteService {
     private final WorkOrderRepository workOrderRepository;
     private final PreventiveMaintenanceRepository preventiveMaintenanceRepository;
     private final GeneratedDocumentRepository generatedDocumentRepository;
+    private final PartQuantityRepository partQuantityRepository;
+    private final PurchaseRequisitionLineRepository requisitionLineRepository;
     private final CompanyConfigurationAuditService configurationAuditService;
 
     @Transactional(readOnly = true)
@@ -79,7 +83,8 @@ public class SiteService {
                 .filter(value -> value.getCompany().getId().equals(user.getCompany().getId()))
                 .orElseThrow(() -> new CustomException("Site not found", HttpStatus.NOT_FOUND));
         if (assetRepository.existsBySite_Id(id) || workOrderRepository.existsBySite_Id(id)
-                || preventiveMaintenanceRepository.existsBySite_Id(id) || generatedDocumentRepository.existsBySite_Id(id))
+                || preventiveMaintenanceRepository.existsBySite_Id(id) || generatedDocumentRepository.existsBySite_Id(id)
+                || partQuantityRepository.existsBySite_Id(id) || requisitionLineRepository.existsBySite_Id(id))
             throw new CustomException("Site is in use and cannot be deleted", HttpStatus.CONFLICT);
         configurationAuditService.record(user.getCompany(), user, "SITE", id, "DELETED",
                 List.of("name", "code", "rootLocation", "timeZone", "documentLanguage"));

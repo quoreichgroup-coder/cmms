@@ -29,6 +29,7 @@ import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 import { useContext, useEffect } from 'react';
 import { TitleContext } from '../../../../contexts/TitleContext';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import BuildCircleOutlinedIcon from '@mui/icons-material/BuildCircleOutlined';
 
 interface FeatureModule {
   id: string;
@@ -60,6 +61,13 @@ function FeaturesSettings() {
       titleKey: 'work_orders',
       descriptionKey: 'work_orders_settings_description',
       preferencesPath: '/app/settings/features/work-order'
+    },
+    {
+      id: 'task-lists',
+      icon: BuildCircleOutlinedIcon,
+      titleKey: 'maintenance_task_lists',
+      descriptionKey: 'task_list_settings_description',
+      preferencesPath: '/app/settings/features/task-lists'
     },
     {
       id: 'requests',

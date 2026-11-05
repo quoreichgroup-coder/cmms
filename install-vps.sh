@@ -50,6 +50,12 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+# The root Compose file uses this external, private network to connect only
+# the backend and the separate QUOREICH license authority.
+if ! as_root docker network inspect atlas-license-internal >/dev/null 2>&1; then
+  as_root docker network create --driver bridge --internal atlas-license-internal >/dev/null
+fi
+
 echo "Construction des services définis dans $compose_file..."
 as_root docker compose -f "$compose_file" build
 

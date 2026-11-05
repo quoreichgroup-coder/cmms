@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-work-order-task-list-plan" author="qpm">
+        <addColumn tableName="work_order">
+            <column name="maintenance_task_list_id" type="BIGINT"/>
+            <column name="maintenance_task_list_reference" type="VARCHAR(120)"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="work_order" baseColumnNames="maintenance_task_list_id"
+                                 constraintName="fk_work_order_maintenance_task_list"
+                                 referencedTableName="maintenance_task_list" referencedColumnNames="id"/>
+        <createIndex tableName="work_order" indexName="idx_work_order_task_list">
+            <column name="maintenance_task_list_id"/>
+        </createIndex>
+        <createTable tableName="work_order_planned_operation">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_work_order_planned_operation"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_wo_plan_operation_company" references="company(id)"/></column>
+            <column name="work_order_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_wo_plan_operation_order" references="work_order(id)" deleteCascade="true"/></column>
+            <column name="operation_number" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="short_description" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="long_text" type="TEXT"/>
+            <column name="work_center" type="VARCHAR(120)"/>
+            <column name="control_key" type="VARCHAR(40)"/>
+            <column name="workers" type="NUMERIC(10,2)"/>
+            <column name="planned_work" type="NUMERIC(12,3)"/>
+            <column name="work_unit" type="VARCHAR(20)"/>
+            <column name="duration" type="NUMERIC(12,3)"/>
+            <column name="duration_unit" type="VARCHAR(20)"/>
+            <column name="system_condition" type="VARCHAR(80)"/>
+            <column name="operation_order" type="INT"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="work_order_planned_operation" indexName="idx_wo_plan_operation_order">
+            <column name="work_order_id"/><column name="operation_order"/>
+        </createIndex>
+        <createTable tableName="work_order_planned_material">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_work_order_planned_material"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_wo_plan_material_company" references="company(id)"/></column>
+            <column name="operation_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_wo_plan_material_operation" references="work_order_planned_operation(id)" deleteCascade="true"/></column>
+            <column name="part_id" type="BIGINT"/>
+            <column name="part_code" type="VARCHAR(120)"/>
+            <column name="part_name" type="VARCHAR(255)"/>
+            <column name="quantity" type="NUMERIC(14,4)"><constraints nullable="false"/></column>
+            <column name="unit" type="VARCHAR(20)"/>
+            <column name="storage_location" type="VARCHAR(120)"/>
+            <column name="estimated_unit_cost" type="NUMERIC(14,4)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="work_order_planned_material" indexName="idx_wo_plan_material_operation"><column name="operation_id"/></createIndex>
+        <sql>CREATE SEQUENCE IF NOT EXISTS work_order_planned_operation_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS work_order_planned_material_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
+    <changeSet id="2026-10-28-auto-task-list-group-counters" author="qpm">
+        <createTable tableName="maintenance_task_list_counter">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_maintenance_task_list_counter"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_counter_company" references="company(id)"/></column>
+            <column name="group_code" type="VARCHAR(80)"><constraints nullable="false"/></column>
+            <column name="next_counter" type="INT"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="maintenance_task_list_counter" columnNames="company_id,group_code"
+                             constraintName="uk_task_list_counter_company_group"/>
+        <sql>CREATE SEQUENCE IF NOT EXISTS maintenance_task_list_counter_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
+    <changeSet id="2026-10-28-auto-task-list-groups" author="qpm">
+        <createTable tableName="maintenance_task_list_group_sequence">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_task_list_group_sequence"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_group_sequence_company" references="company(id)"/></column>
+            <column name="next_group_number" type="INT" defaultValueNumeric="1"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="maintenance_task_list_group_sequence" columnNames="company_id"
+                             constraintName="uk_task_list_group_sequence_company"/>
+        <sql>CREATE SEQUENCE IF NOT EXISTS maintenance_task_list_group_sequence_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
+    <changeSet id="2026-10-28-task-list-reference-objects" author="qpm">
+        <addColumn tableName="maintenance_task_list">
+            <column name="asset_id" type="BIGINT"/>
+            <column name="location_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="maintenance_task_list" baseColumnNames="asset_id"
+                                 constraintName="fk_task_list_asset" referencedTableName="asset" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="maintenance_task_list" baseColumnNames="location_id"
+                                 constraintName="fk_task_list_location" referencedTableName="location" referencedColumnNames="id"/>
+        <createIndex tableName="maintenance_task_list" indexName="idx_task_list_asset"><column name="asset_id"/></createIndex>
+        <createIndex tableName="maintenance_task_list" indexName="idx_task_list_location"><column name="location_id"/></createIndex>
+    </changeSet>
+</databaseChangeLog>

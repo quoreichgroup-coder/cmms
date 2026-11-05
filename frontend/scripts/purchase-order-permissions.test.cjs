@@ -15,7 +15,7 @@ const moduleExports = {};
 vm.runInNewContext(compiled, {
   exports: moduleExports,
   require: () => ({
-    PermissionEntity: { PURCHASE_ORDERS: 'PURCHASE_ORDERS' }
+    PermissionEntity: { PURCHASE_ORDER_APPROVAL: 'PURCHASE_ORDER_APPROVAL' }
   })
 });
 
@@ -25,7 +25,7 @@ test('purchase-order response requires the client role and edit-other permission
   assert.equal(
     canRespondToPurchaseOrders({
       roleType: 'ROLE_CLIENT',
-      editOtherPermissions: ['PURCHASE_ORDERS']
+      editOtherPermissions: ['PURCHASE_ORDER_APPROVAL']
     }),
     true
   );
@@ -39,7 +39,7 @@ test('purchase-order response requires the client role and edit-other permission
   assert.equal(
     canRespondToPurchaseOrders({
       roleType: 'ROLE_SUPER_ADMIN',
-      editOtherPermissions: ['PURCHASE_ORDERS']
+      editOtherPermissions: ['PURCHASE_ORDER_APPROVAL']
     }),
     false
   );

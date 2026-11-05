@@ -9,6 +9,7 @@ import com.grash.dto.workOrder.WorkOrderLifecycleEventShowDTO;
 import com.grash.dto.workOrder.WorkOrderExecutionTimeDTO;
 import com.grash.dto.workOrder.WorkOrderSendReportDTO;
 import com.grash.dto.workOrder.WorkOrderShowDTO;
+import com.grash.dto.workOrder.WorkOrderHistoryMetricsDTO;
 import com.grash.exception.CustomException;
 import com.grash.mapper.FileMapper;
 import com.grash.mapper.WorkOrderMapper;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -91,11 +93,33 @@ public class WorkOrderController {
                                                    HttpServletRequest req) {
         User user = userService.whoami(req);
         assetService.checkAccessToAssetId(id, user);
-        return workOrderService.findByAsset(id).stream()
+        List<WorkOrder> accessibleWorkOrders = workOrderService.findByAsset(id).stream()
                 .filter(workOrder -> workOrder.getCompany() != null
                         && workOrder.getCompany().getId().equals(user.getCompany().getId())
                         && workOrder.canBeViewedBy(user) && user.canAccessSite(workOrder.getSite()))
-                .map(workOrderMapper::toShowDto)
+                .collect(Collectors.toList());
+        boolean includeLaborCost = user.getCompany().getCompanySettings()
+                .getGeneralPreferences().isLaborCostInTotalCost();
+        Map<Long, WorkOrderHistoryMetricsDTO> metrics =
+                workOrderService.getHistoryMetrics(accessibleWorkOrders, includeLaborCost);
+        Map<Long, List<WorkOrderShowDTO.PlannedOperationDTO>> plannedOperations =
+                workOrderService.getPlannedOperationsForHistory(accessibleWorkOrders.stream()
+                        .map(WorkOrder::getId).collect(Collectors.toList()));
+        return accessibleWorkOrders.stream()
+                .map(workOrder -> {
+                    WorkOrderShowDTO result = workOrderMapper.toShowDto(workOrder);
+                    WorkOrderHistoryMetricsDTO workOrderMetrics = metrics.get(workOrder.getId());
+                    result.setPlannedOperations(plannedOperations.getOrDefault(workOrder.getId(), List.of()));
+                    if (workOrderMetrics != null) {
+                        result.setActualLaborSeconds(workOrderMetrics.actualLaborSeconds());
+                        result.setActualStartAt(workOrderMetrics.actualStartAt());
+                        result.setActualLaborCost(workOrderMetrics.actualLaborCost());
+                        result.setActualPartCost(workOrderMetrics.actualPartCost());
+                        result.setActualAdditionalCost(workOrderMetrics.actualAdditionalCost());
+                        result.setActualTotalCost(workOrderMetrics.actualTotalCost());
+                    }
+                    return result;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -121,6 +145,14 @@ public class WorkOrderController {
     public WorkOrderShowDTO getById(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
         return workOrderMapper.toShowDto(workOrderService.checkAccessToWorkOrderId(id, user));
+    }
+
+    @GetMapping("/{id}/planned-operations")
+    @PreAuthorize("permitAll()")
+    public List<WorkOrderShowDTO.PlannedOperationDTO> getPlannedOperations(
+            @PathVariable("id") Long id, HttpServletRequest req) {
+        User user = userService.whoami(req);
+        return workOrderService.getPlannedOperations(id, user);
     }
 
     @PostMapping("")

@@ -50,7 +50,9 @@ function PermissionsMatrix({
       PURCHASE_ORDERS: t('purchase_orders'),
       PURCHASE_REQUISITIONS: t('purchase_requisitions_permission'),
       PURCHASE_REQUISITION_APPROVAL: t('purchase_requisition_approval_permission'),
+      PURCHASE_ORDER_APPROVAL: t('purchase_order_approval_permission'),
       PURCHASE_RECEIPTS: t('purchase_receipts'),
+      TASK_LISTS: t('task_lists_permission'),
       METERS: t('meters'),
       VENDORS_AND_CUSTOMERS: t('vendors_customers'),
       FILES: t('files'),
@@ -129,7 +131,8 @@ function PermissionsMatrix({
                       checked={isChecked(root, entity)}
                       disabled={
                         isEditable &&
-                        (entity === PermissionEntity.PURCHASE_REQUISITION_APPROVAL &&
+                        ((entity === PermissionEntity.PURCHASE_REQUISITION_APPROVAL ||
+                          entity === PermissionEntity.PURCHASE_ORDER_APPROVAL) &&
                           root !== 'editOtherPermissions' ||
                           !currentUserHasPermission(root, entity) &&
                             !isChecked(root, entity))

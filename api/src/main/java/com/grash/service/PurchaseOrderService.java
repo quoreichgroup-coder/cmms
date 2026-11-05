@@ -29,10 +29,13 @@ public class PurchaseOrderService {
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final CompanyService companyService;
     private final EntityManager em;
+    private final ProcurementApprovalService procurementApprovals;
+    private final ProcurementSiteService procurementSiteService;
 
     @Transactional
     public PurchaseOrder create(PurchaseOrder purchaseOrder) {
-        // The request body cannot bypass the approval and inventory transaction.
+        // The request body cannot set a final status. The controller starts the policy
+        // after it has persisted the complete PO, including separately submitted lines.
         purchaseOrder.setStatus(ApprovalStatus.PENDING);
         Sanitizer.sanitizePurchaseOrder(purchaseOrder);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
@@ -44,6 +47,7 @@ public class PurchaseOrderService {
     public PurchaseOrder update(Long id, Long companyId, PurchaseOrderPatchDTO purchaseOrder) {
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.findByIdForUpdateAndCompany(id, companyId)
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
+        procurementApprovals.requireEditable("PO", id, companyId);
         if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
         }
@@ -60,6 +64,7 @@ public class PurchaseOrderService {
 
     @Transactional
     public void delete(Long id, Long companyId) {
+        procurementApprovals.requireEditable("PO", id, companyId);
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByIdForUpdateAndCompany(id, companyId)
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
         if (purchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
@@ -81,18 +86,20 @@ public class PurchaseOrderService {
         return purchaseOrderRepository.save(purchaseOrder);
     }
 
-    public Page<PurchaseOrderShowDTO> findBySearchCriteria(SearchCriteria searchCriteria) {
+    public Page<PurchaseOrderShowDTO> findBySearchCriteria(SearchCriteria searchCriteria, com.grash.model.User user) {
         SpecificationBuilder<PurchaseOrder> builder = new SpecificationBuilder<>();
         searchCriteria.getFilterFields().forEach(builder::with);
+        builder.with(procurementSiteService.purchaseOrdersVisibleTo(user));
         Pageable page = PageRequest.of(searchCriteria.getPageNum(), searchCriteria.getPageSize(),
                 searchCriteria.getDirection(), searchCriteria.getSortField());
         return purchaseOrderRepository.findAll(builder.build(), page).map(purchaseOrderMapper::toShowDto);
     }
 
     public Page<PurchaseOrder> findReceivable(Long companyId, boolean includeOthers, Long userId,
-                                              String query, Pageable pageable) {
+                                              boolean allSites, java.util.Collection<Long> siteIds,
+                                              String query, String receiptState, Pageable pageable) {
         return purchaseOrderRepository.findReceivable(companyId, ApprovalStatus.APPROVED,
-                includeOthers, userId, query, pageable);
+                includeOthers, userId, allSites, siteIds, query, receiptState, pageable);
     }
 }
 

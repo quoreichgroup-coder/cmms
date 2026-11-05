@@ -21,8 +21,15 @@ import BasicField from '../../../components/BasicField';
 import { getFormattedCostPerUnit } from '../../../utils/formatters';
 import { getFormattedQuantityWithUnit } from '../PartsScreen';
 import { getCustomFieldValuesForDetails } from '../../../models/form';
+import { Button } from 'react-native-paper';
 
-export default function PartDetails({ part }: { part: Part }) {
+export default function PartDetails({
+  part,
+  onRequestReplenishment
+}: {
+  part: Part;
+  onRequestReplenishment?: () => void;
+}) {
   const { t } = useTranslation();
   const { getFormattedCurrency, getFormattedDate: ctxGetFormattedDate } =
     useContext(CompanySettingsContext);
@@ -96,6 +103,16 @@ export default function PartDetails({ part }: { part: Part }) {
           isLink={field.isLink}
         />
       ))}
+      {onRequestReplenishment && (
+        <Button
+          mode="contained-tonal"
+          icon="cart-plus"
+          style={styles.replenishment}
+          onPress={onRequestReplenishment}
+        >
+          {t('purchase_requisition_replenish')}
+        </Button>
+      )}
       <ListField
         values={part?.assignedTo}
         label={t('assigned_to')}
@@ -128,5 +145,6 @@ export default function PartDetails({ part }: { part: Part }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1
-  }
+  },
+  replenishment: { margin: 16 }
 });

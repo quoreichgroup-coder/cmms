@@ -11,11 +11,13 @@ export default function CustomDateTimePicker({
   onChange,
   value,
   label,
+  mode = 'datetime',
   disabled = false
 }: {
   onChange: (date: Date) => void;
   value: Date | null;
   label: string;
+  mode?: 'date' | 'datetime' | 'time';
   disabled?: boolean;
 }) {
   const theme = useTheme();
@@ -62,7 +64,7 @@ export default function CustomDateTimePicker({
       </TouchableOpacity>
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
-        mode="datetime"
+        mode={mode}
         onConfirm={(newValue) => {
           if (!disabled) onChange(newValue);
           hideDatePicker();

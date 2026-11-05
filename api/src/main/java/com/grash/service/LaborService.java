@@ -18,6 +18,7 @@ import jakarta.transaction.Transactional;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -83,6 +84,11 @@ public class LaborService {
 
     public Collection<Labor> findByWorkOrder(Long id) {
         return laborRepository.findByWorkOrder_Id(id);
+    }
+
+    public List<Labor> findByWorkOrders(Collection<Long> workOrderIds) {
+        if (workOrderIds == null || workOrderIds.isEmpty()) return List.of();
+        return laborRepository.findByWorkOrder_IdIn(workOrderIds);
     }
 
     public Labor stop(Labor labor) {

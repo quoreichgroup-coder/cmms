@@ -81,6 +81,15 @@ class LicenseReadOnlyFilterTest {
     }
 
     @Test
+    void forcedLicenseRefreshRemainsAvailableWhenTheLicenseIsReadOnly() throws Exception {
+        var request = new MockHttpServletRequest("POST", "/license/refresh");
+        var response = new MockHttpServletResponse();
+        filter.doFilter(request, response, chain);
+        verify(chain).doFilter(request, response);
+        verifyNoInteractions(licenses);
+    }
+
+    @Test
     void validLicenseAllowsChanges() throws Exception {
         when(licenses.getLicensingState()).thenReturn(LicensingState.builder().valid(true).build());
         var request = new MockHttpServletRequest("POST", "/assets");

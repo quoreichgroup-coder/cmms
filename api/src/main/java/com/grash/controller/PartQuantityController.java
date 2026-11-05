@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 public class PartQuantityController {
 
     private final PartQuantityService partQuantityService;
+    private final ProcurementSiteService procurementSiteService;
+    private final ProcurementApprovalService procurementApprovalService;
     private final PartQuantityMapper partQuantityMapper;
     private final UserService userService;
     private final WorkOrderService workOrderService;
@@ -67,6 +69,7 @@ public class PartQuantityController {
     public Collection<PartQuantityShowDTO> getByPurchaseOrder(HttpServletRequest req, @PathVariable(
             "id") Long id) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
@@ -75,7 +78,10 @@ public class PartQuantityController {
         if (optionalPurchaseOrder.isPresent()) {
             if (!optionalPurchaseOrder.get().canBeViewedBy(user))
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-            return partQuantityService.findByPurchaseOrder(id).stream().map(partQuantityMapper::toShowDto).collect(Collectors.toList());
+            Collection<PartQuantity> lines = partQuantityService.findByPurchaseOrder(id);
+            if (lines.stream().anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+            return lines.stream().map(partQuantityMapper::toShowDto).collect(Collectors.toList());
         } else throw new CustomException("Not found", HttpStatus.NOT_FOUND);
     }
 
@@ -147,9 +153,11 @@ public class PartQuantityController {
             if (!savedPurchaseOrder.canBeEditedBy(user)) {
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             }
+            Collection<PartQuantity> savedPartQuantities = partQuantityService.findByPurchaseOrder(id);
+            if (savedPartQuantities.stream().anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             purchaseOrderPolicyService.requireModuleEnabled(user);
             ensurePurchaseOrderCanChangeLines(savedPurchaseOrder);
-            Collection<PartQuantity> savedPartQuantities = partQuantityService.findByPurchaseOrder(id);
 
             if (partQuantitiesReq.stream().anyMatch(patch -> patch.getPart() == null || patch.getPart().getId() == null)) {
                 throw new CustomException("Part IDs are required", HttpStatus.BAD_REQUEST);
@@ -182,6 +190,11 @@ public class PartQuantityController {
                     PartQuantity savedPartQuantity =
                             savedPartQuantities.stream().filter(partQuantity -> partQuantity.getPart().getId().equals(partQuantityReq.getPart().getId())).findFirst().get();
                     savedPartQuantity.setQuantity(partQuantityReq.getQuantity());
+                    savedPartQuantity.setSite(procurementSiteService.resolveLineSite(partQuantityReq.getSiteId(), savedPartQuantity.getSite(), user));
+                    if (partQuantityReq.getPurchaseUnitPrice() != null) {
+                        try { partQuantityService.setAgreedPurchasePrice(savedPartQuantity, partQuantityReq.getPurchaseUnitPrice()); }
+                        catch (IllegalArgumentException ex) { throw new CustomException("Invalid purchase unit price", HttpStatus.BAD_REQUEST); }
+                    }
                     partQuantityService.save(savedPartQuantity);
                 } else {
                     //new Parts
@@ -190,6 +203,12 @@ public class PartQuantityController {
                     if (requestedPart != null) {
                         PartQuantity partQuantity = new PartQuantity(requestedPart, null, savedPurchaseOrder,
                                 partQuantityReq.getQuantity());
+                        partQuantity.setSite(procurementSiteService.resolveLineSite(partQuantityReq.getSiteId(), null, user));
+                        if (partQuantityReq.getPurchaseUnitPrice() == null) {
+                            throw new CustomException("Supplier unit price is required", HttpStatus.BAD_REQUEST);
+                        }
+                        try { partQuantityService.setAgreedPurchasePrice(partQuantity, partQuantityReq.getPurchaseUnitPrice()); }
+                        catch (IllegalArgumentException ex) { throw new CustomException("Invalid purchase unit price", HttpStatus.BAD_REQUEST); }
                         partQuantityService.create(partQuantity);
                     }
                 }
@@ -212,10 +231,15 @@ public class PartQuantityController {
         Optional<PartQuantity> optionalPartQuantity = partQuantityService.findById(id);
         if (optionalPartQuantity.isPresent()) {
             PartQuantity savedPartQuantity = optionalPartQuantity.get();
-            if (savedPartQuantity.getPurchaseOrder() != null &&
-                    (!belongsToCompany(savedPartQuantity.getPurchaseOrder(), user)
-                            || !savedPartQuantity.getPurchaseOrder().canBeViewedBy(user))) {
-                throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+            if (savedPartQuantity.getPurchaseOrder() != null) {
+                purchaseOrderPolicyService.requireModuleEnabled(user);
+            }
+            if (savedPartQuantity.getPurchaseOrder() != null) {
+                if (!belongsToCompany(savedPartQuantity.getPurchaseOrder(), user)
+                        || !savedPartQuantity.getPurchaseOrder().canBeViewedBy(user)) {
+                    throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+                }
+                requirePurchaseOrderSiteAccess(savedPartQuantity.getPurchaseOrder(), user);
             }
             if (savedPartQuantity.getWorkOrder() != null && (!belongsToCompany(savedPartQuantity.getWorkOrder(), user)
                     || !savedPartQuantity.getWorkOrder().canBeViewedBy(user)
@@ -259,10 +283,19 @@ public class PartQuantityController {
                     .orElseThrow(() -> new CustomException("Purchase order not found", HttpStatus.NOT_FOUND));
             if (!purchaseOrder.canBeEditedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             purchaseOrderPolicyService.requireModuleEnabled(user);
+            requirePurchaseOrderSiteAccess(purchaseOrder, user);
             ensurePurchaseOrderCanChangeLines(purchaseOrder);
             requirePositivePurchaseQuantity(partQuantityReq.getQuantity());
             requireWholeQuantityWhenUnitIsMissing(part, partQuantityReq.getQuantity());
             partQuantityReq.setPurchaseOrder(purchaseOrder);
+            partQuantityReq.setSite(procurementSiteService.resolveLineSite(
+                    partQuantityReq.getSite() == null ? null : partQuantityReq.getSite().getId(), null, user));
+            try {
+                partQuantityService.setAgreedPurchasePrice(partQuantityReq, partQuantityReq.getPurchaseUnitPrice());
+            } catch (IllegalArgumentException ex) {
+                throw new CustomException("A valid supplier unit price with at most four decimals is required",
+                        HttpStatus.BAD_REQUEST);
+            }
         } else {
             if (partQuantityReq.getWorkOrder().getId() == null) {
                 throw new CustomException("Work order ID is required", HttpStatus.BAD_REQUEST);
@@ -275,6 +308,7 @@ public class PartQuantityController {
                 throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
             }
             partQuantityReq.setWorkOrder(workOrder);
+            partQuantityReq.setSite(workOrder.getSite());
         }
         PartQuantity savedPartQuantity = partQuantityService.create(partQuantityReq);
         return partQuantityMapper.toShowDto(savedPartQuantity);
@@ -295,6 +329,9 @@ public class PartQuantityController {
                 throw new CustomException("Part quantity must belong to exactly one parent document", HttpStatus.CONFLICT);
             }
             if (isWorkOrderPartQuantity) {
+                if (partQuantity.getQuantity() == null) {
+                    throw new CustomException("Work order part quantity is required", HttpStatus.BAD_REQUEST);
+                }
                 if (!belongsToCompany(savedPartQuantity.getWorkOrder(), user)
                         || !savedPartQuantity.getWorkOrder().canBeEditedBy(user)
                         || !user.canAccessSite(savedPartQuantity.getWorkOrder().getSite())) {
@@ -308,9 +345,18 @@ public class PartQuantityController {
                     throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
                 }
                 purchaseOrderPolicyService.requireModuleEnabled(user);
+                requirePurchaseOrderSiteAccess(purchaseOrder, user);
                 ensurePurchaseOrderCanChangeLines(purchaseOrder);
-                requirePositivePurchaseQuantity(partQuantity.getQuantity());
-                requireWholeQuantityWhenUnitIsMissing(savedPartQuantity.getPart(), partQuantity.getQuantity());
+                if (partQuantity.getQuantity() != null) {
+                    requirePositivePurchaseQuantity(partQuantity.getQuantity());
+                    requireWholeQuantityWhenUnitIsMissing(savedPartQuantity.getPart(), partQuantity.getQuantity());
+                }
+                if (partQuantity.getQuantity() == null && partQuantity.getPurchaseUnitPrice() == null) {
+                    throw new CustomException("At least one purchase line field is required", HttpStatus.BAD_REQUEST);
+                }
+                if (partQuantity.getSiteId() != null) {
+                    savedPartQuantity.setSite(procurementSiteService.resolveLineSite(partQuantity.getSiteId(), null, user));
+                }
             }
             if (savedPartQuantity.getWorkOrder() != null) {
                 partService.consumePart(savedPartQuantity.getPart().getId(),
@@ -364,11 +410,13 @@ public class PartQuantityController {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
         purchaseOrderPolicyService.requireModuleEnabled(user);
+        requirePurchaseOrderSiteAccess(purchaseOrder, user);
         ensurePurchaseOrderCanChangeLines(purchaseOrder);
         return true;
     }
 
     private void ensurePurchaseOrderCanChangeLines(PurchaseOrder purchaseOrder) {
+        procurementApprovalService.requireEditable("PO", purchaseOrder.getId(), purchaseOrder.getCompany().getId());
         if (purchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase order lines cannot be changed", HttpStatus.CONFLICT);
         }
@@ -379,8 +427,19 @@ public class PartQuantityController {
         }
     }
 
+    private void requirePurchaseOrderSiteAccess(PurchaseOrder purchaseOrder, User user) {
+        if (partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
+                .anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+    }
+
     private void requirePositivePurchaseQuantity(PartQuantityCompletePatchDTO partQuantity) {
         requirePositivePurchaseQuantity(partQuantity.getQuantity());
+    }
+
+    private void requirePositivePurchaseQuantity(Double quantity) {
+        if (quantity == null) throw new CustomException("Purchase order quantity is required", HttpStatus.BAD_REQUEST);
+        requirePositivePurchaseQuantity(quantity.doubleValue());
     }
 
     private void requirePositivePurchaseQuantity(double quantity) {

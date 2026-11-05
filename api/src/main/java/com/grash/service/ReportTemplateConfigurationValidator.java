@@ -33,15 +33,20 @@ public class ReportTemplateConfigurationValidator {
     private static final Set<String> ALIGNMENTS = Set.of("LEFT", "CENTER", "RIGHT");
     private static final Set<String> TONES = Set.of("DEFAULT", "ACCENT");
     private static final Set<String> TABLE_FIELDS = Set.of(
-            "workOrder.executionTasks", "workOrder.laborTimeEntries", "workOrder.materialsUsed");
+            "workOrder.executionTasks", "workOrder.laborTimeEntries", "workOrder.materialsUsed",
+            "purchaseOrder.lines", "purchaseRequisition.lines");
     private static final Map<String, Integer> TABLE_COLUMN_COUNTS = Map.of(
             "workOrder.executionTasks", 4,
             "workOrder.laborTimeEntries", 5,
-            "workOrder.materialsUsed", 4);
+            "workOrder.materialsUsed", 4,
+            "purchaseOrder.lines", 8,
+            "purchaseRequisition.lines", 6);
     private static final Map<String, Set<String>> TABLE_COLUMN_KEYS = Map.of(
             "workOrder.executionTasks", Set.of("step", "task", "result", "notes"),
             "workOrder.laborTimeEntries", Set.of("technician", "activity", "startedAt", "durationSeconds", "status"),
-            "workOrder.materialsUsed", Set.of("part", "description", "quantity", "unit"));
+            "workOrder.materialsUsed", Set.of("part", "description", "quantity", "unit"),
+            "purchaseOrder.lines", Set.of("part", "description", "quantity", "unit", "unitPrice", "currency", "lineTotal", "site"),
+            "purchaseRequisition.lines", Set.of("part", "description", "quantity", "unit", "notes", "site"));
     private static final Pattern COMPONENT_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
     private final DocumentDataProviderRegistry registry;
 
@@ -80,6 +85,7 @@ public class ReportTemplateConfigurationValidator {
         Set<String> uniqueFields = "2.0".equals(schemaVersion)
                 ? validateLayout(configuration.get("layout"), provider, allowEmptyLayout)
                 : validateLegacyFields(configuration.get("visibleFields"), provider);
+        if (!allowEmptyLayout || !uniqueFields.isEmpty()) validateProcurementRequiredFields(expectedProvider, uniqueFields);
         JsonNode labels = configuration.get("fieldLabels");
         if (labels != null) {
             if (!labels.isObject() || labels.size() > 32) bad();
@@ -97,6 +103,16 @@ public class ReportTemplateConfigurationValidator {
                 || !booleanField(options, "showPageNumbers")
                 || !booleanField(options, "repeatTableHeader")) bad();
         return configuration.deepCopy();
+    }
+
+    private void validateProcurementRequiredFields(String provider, Set<String> fields) {
+        Set<String> required = switch (provider) {
+            case "PURCHASE_ORDER" -> Set.of("purchaseOrder.number", "purchaseOrder.status", "purchaseOrder.lines");
+            case "PURCHASE_REQUISITION" -> Set.of("purchaseRequisition.number", "purchaseRequisition.status", "purchaseRequisition.lines");
+            default -> Set.of();
+        };
+        if (!fields.containsAll(required))
+            throw new CustomException("Purchase document templates must include the document number, approval status, and item table", HttpStatus.BAD_REQUEST);
     }
 
     /** Returns unique allowlisted data bindings in print order for both schema versions. */

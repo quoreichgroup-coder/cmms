@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class WorkflowService {
+    private final ProcurementApprovalService procurementApprovals;
     private final WorkflowRepository workflowRepository;
     private final WorkflowMapper workflowMapper;
     private final WorkOrderRepository workOrderRepository;
@@ -228,6 +229,12 @@ public class WorkflowService {
     }
 
     public void runPurchaseOrder(Workflow workflow, PurchaseOrder purchaseOrder) {
+        if (workflow.getAction() != null &&
+                (workflow.getAction().getPurchaseOrderAction() == com.grash.model.enums.workflow.PurchaseOrderAction.APPROVE
+                || workflow.getAction().getPurchaseOrderAction() == com.grash.model.enums.workflow.PurchaseOrderAction.REJECT)
+                && procurementApprovals.isGoverned("PO", purchaseOrder.getId(), purchaseOrder.getCompany().getId())) {
+            return; // A policy-managed order must be decided by its assigned human approvers.
+        }
         if (workflow.getSecondaryConditions().stream().allMatch(workflowCondition -> workflowCondition.isMetForPurchaseOrder(purchaseOrder))) {
             WorkflowAction action = workflow.getAction();
             switch (action.getPurchaseOrderAction()) {

@@ -24,6 +24,7 @@ export type IntegrationProvider =
   | 'power-automate'
   | 'n8n'
   | 'sap-eam'
+  | 'sage-300'
   | 'microsoft-calendar';
 
 interface IntegrationSetupDialogProps {
@@ -35,6 +36,14 @@ const providerDocs: Partial<Record<IntegrationProvider, string>> = {
   'power-automate':
     'https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook',
   n8n: 'https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/'
+};
+
+const providerTitleKeys: Record<IntegrationProvider, string> = {
+  'power-automate': 'integration_power_automate_title',
+  n8n: 'integration_n8n_title',
+  'sap-eam': 'integration_sap_title',
+  'sage-300': 'integration_sage300_title',
+  'microsoft-calendar': 'integration_calendar_title'
 };
 
 function IntegrationSetupDialog({
@@ -68,9 +77,7 @@ function IntegrationSetupDialog({
     >
       <DialogTitle id="integration-setup-title">
         {t('integration_setup_title', {
-          provider: t(
-            isN8n ? 'integration_n8n_title' : 'integration_power_automate_title'
-          )
+          provider: t(providerTitleKeys[provider])
         })}
       </DialogTitle>
       <DialogContent dividers>

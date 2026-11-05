@@ -39,17 +39,21 @@ public class PurchaseOrderCategoryController {
     @PreAuthorize("permitAll()")
     public Collection<PurchaseOrderCategory> getAll(HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
         if (user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
             if (user.getRole().getViewPermissions().contains(PermissionEntity.CATEGORIES)) {
                 return purchaseOrderCategoryService.findByCompanySettings(user.getCompany().getCompanySettings().getId());
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
-        } else return purchaseOrderCategoryService.getAll();
+        }
+        // Purchase-order categories are tenant configuration, even for elevated roles.
+        return purchaseOrderCategoryService.findByCompanySettings(user.getCompany().getCompanySettings().getId());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("permitAll()")
     public PurchaseOrderCategory getById(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
         Optional<PurchaseOrderCategory> optionalPurchaseOrderCategory = purchaseOrderCategoryService
                 .findByIdAndCompanySettings(id, user.getCompany().getCompanySettings().getId());
         if (optionalPurchaseOrderCategory.isPresent()) {

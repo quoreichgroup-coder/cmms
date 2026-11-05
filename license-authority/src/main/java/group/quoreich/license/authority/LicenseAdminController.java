@@ -37,6 +37,11 @@ public class LicenseAdminController {
         service.revoke(id);
     }
 
+    @PostMapping("/{id}/renew")
+    public Map<String, Object> renew(@PathVariable UUID id, @RequestBody LicenseRenewRequest request) {
+        return service.renew(id, request);
+    }
+
     @GetMapping("/{id}/activations")
     public List<Map<String, Object>> activations(@PathVariable UUID id) {
         return jdbc.query("""

@@ -16,6 +16,9 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import { getFormattedCostPerUnit } from '../../../utils/formatters';
 import { deletePartQuantity } from '../../../slices/partQuantity';
 import { useDispatch } from '../../../store';
+import MenuItem from '@mui/material/MenuItem';
+
+interface SiteOption { id: number; name: string }
 
 interface PartQuantityListProps {
   partQuantities: PartQuantityMiniDTO[];
@@ -24,6 +27,14 @@ interface PartQuantityListProps {
   deleteDisabled?: boolean;
   onDelete?: (partQuantity: PartQuantityMiniDTO) => void;
   showReceiptProgress?: boolean;
+  showPurchaseCostSnapshot?: boolean;
+  purchaseUnitPriceInput?: boolean;
+  purchasePriceCommitOnBlur?: boolean;
+  onPurchasePriceChange?: (value: string, partQuantity: PartQuantityMiniDTO) => void;
+  siteSelectionEnabled?: boolean;
+  siteSelectionRequired?: boolean;
+  siteOptions?: SiteOption[];
+  onSiteChange?: (siteId: number | null, partQuantity: PartQuantityMiniDTO) => void;
 }
 export default function PartQuantitiesList({
   partQuantities,
@@ -31,14 +42,29 @@ export default function PartQuantitiesList({
   disabled,
   deleteDisabled,
   onDelete,
-  showReceiptProgress = false
+  showReceiptProgress = false,
+  showPurchaseCostSnapshot = false,
+  purchaseUnitPriceInput = false,
+  purchasePriceCommitOnBlur = false,
+  onPurchasePriceChange,
+  siteSelectionEnabled = false,
+  siteSelectionRequired = false,
+  siteOptions = [],
+  onSiteChange
 }: PartQuantityListProps) {
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
-  const { getFormattedCurrency } = useContext(CompanySettingsContext);
+  const { getFormattedCurrency, getCurrencyCode } = useContext(CompanySettingsContext);
 
   return (
     <List>
+      {showPurchaseCostSnapshot && (
+        <ListItem sx={{ px: 2, py: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            {t('purchase_cost_snapshot_help', 'Cost estimate captured when this order line was created; it is not a supplier quote.')}
+          </Typography>
+        </ListItem>
+      )}
       {partQuantities.map((partQuantity, index) => (
         <ListItem
           key={partQuantity.part.id}
@@ -74,6 +100,23 @@ export default function PartQuantitiesList({
                     {t('source_requisition', { id: partQuantity.purchaseRequisitionId })}
                   </Typography>
                 )}
+                {siteSelectionEnabled ? (
+                  <TextField
+                    select
+                    size="small"
+                    label={t('site', 'Site')}
+                    required={siteSelectionRequired && siteOptions.length > 0}
+                    value={partQuantity.siteId ?? ''}
+                    disabled={disabled}
+                    onChange={(event) => onSiteChange?.(event.target.value ? Number(event.target.value) : null, partQuantity)}
+                    sx={{ mt: 1, minWidth: { xs: '100%', sm: 180 }, maxWidth: 280 }}
+                  >
+                    {!siteSelectionRequired && <MenuItem value="">{t('no_site', 'No site')}</MenuItem>}
+                    {siteOptions.map((site) => <MenuItem key={site.id} value={site.id}>{site.name}</MenuItem>)}
+                  </TextField>
+                ) : partQuantity.siteName ? (
+                  <Typography variant="caption" color="text.secondary" display="block">{t('site', 'Site')}: {partQuantity.siteName}</Typography>
+                ) : null}
                 {showReceiptProgress && (
                   <Typography variant="caption" color="text.secondary" display="block">
                     {t('received')}: {partQuantity.receivedQuantity || 0} · {t('remaining')}: {partQuantity.remainingToReceive ?? partQuantity.quantity} {partQuantity.part.unit || ''}
@@ -103,13 +146,42 @@ export default function PartQuantitiesList({
               onChange={(event) => onChange(event.target.value, partQuantity)}
               defaultValue={partQuantity.quantity}
             />
+            {purchaseUnitPriceInput && (
+              <TextField
+                label={t('agreed_unit_price', 'Agreed unit price')}
+                type="number"
+                size="small"
+                sx={{ width: { xs: '100%', sm: 170 } }}
+                disabled={disabled}
+                inputProps={{ min: 0, step: '0.0001' }}
+                {...(purchasePriceCommitOnBlur
+                  ? {
+                      key: `${partQuantity.id}-${partQuantity.purchaseUnitPrice ?? ''}`,
+                      defaultValue: partQuantity.purchaseUnitPrice ?? '',
+                      onBlur: (event) => onPurchasePriceChange?.(event.target.value, partQuantity)
+                    }
+                  : {
+                      value: partQuantity.purchaseUnitPrice ?? '',
+                      onChange: (event) => onPurchasePriceChange?.(event.target.value, partQuantity)
+                    })}
+                helperText={`${t('company_currency', 'Company currency')}${getCurrencyCode() ? ` · ${getCurrencyCode()}` : ''}`}
+              />
+            )}
             <Typography variant="h6">
               {' * '}
-              {getFormattedCostPerUnit(
-                partQuantity.part.cost,
-                partQuantity.part.unit,
-                getFormattedCurrency
-              )}
+                {purchaseUnitPriceInput
+                  ? partQuantity.purchaseUnitPrice == null
+                    ? t('enter_supplier_price', 'Enter agreed supplier price')
+                    : `${getFormattedCurrency(partQuantity.purchaseUnitPrice)}${partQuantity.part.unit ? ` / ${partQuantity.part.unit}` : ''}`
+                  : showPurchaseCostSnapshot
+                  ? partQuantity.purchaseUnitCostSnapshot == null || !partQuantity.purchaseCurrencySnapshot
+                    ? t('purchase_cost_snapshot_missing', 'Price snapshot unavailable')
+                    : `${new Intl.NumberFormat(undefined, { style: 'currency', currency: partQuantity.purchaseCurrencySnapshot }).format(partQuantity.purchaseUnitCostSnapshot)}${partQuantity.part.unit ? ` / ${partQuantity.part.unit}` : ''}`
+                  : getFormattedCostPerUnit(
+                      partQuantity.part.cost,
+                      partQuantity.part.unit,
+                      getFormattedCurrency
+                    )}
             </Typography>
             {!(disabled || deleteDisabled) && (
               <IconButton
@@ -141,13 +213,26 @@ export default function PartQuantitiesList({
             fontWeight="bold"
             sx={{ mr: !(deleteDisabled || disabled) ? 3 : 0 }}
           >
-            {getFormattedCurrency(
-              partQuantities.reduce(
-                (acc, partQuantity) =>
-                  acc + partQuantity.part.cost * partQuantity.quantity,
-                0
-              )
-            )}
+            {showPurchaseCostSnapshot
+              ? purchaseUnitPriceInput
+                ? partQuantities.length === 0 || partQuantities.some((line) => line.purchaseUnitPrice == null || !line.purchasePriceCurrency)
+                  ? '—'
+                  : new Intl.NumberFormat(undefined, { style: 'currency', currency: partQuantities[0].purchasePriceCurrency! }).format(partQuantities.reduce(
+                      (acc, line) => acc + line.purchaseUnitPrice! * line.quantity, 0
+                    ))
+                : partQuantities.length === 0 || partQuantities.some((line) => line.purchaseUnitCostSnapshot == null || !line.purchaseCurrencySnapshot)
+                ? '—'
+                : new Intl.NumberFormat(undefined, {
+                    style: 'currency',
+                    currency: partQuantities[0].purchaseCurrencySnapshot!
+                  }).format(partQuantities.reduce(
+                    (acc, line) => acc + (line.purchaseUnitCostSnapshot || 0) * line.quantity,
+                    0
+                  ))
+              : getFormattedCurrency(partQuantities.reduce(
+                  (acc, partQuantity) => acc + partQuantity.part.cost * partQuantity.quantity,
+                  0
+                ))}
           </Typography>
         }
       >

@@ -64,6 +64,8 @@ class WorkOrderServiceTest {
     @Mock
     private WorkOrderRepository workOrderRepository;
     @Mock
+    private WorkOrderAssignmentScopeValidator assignmentScopeValidator;
+    @Mock
     private WorkOrderLifecycleEventRepository workOrderLifecycleEventRepository;
     @Mock
     private SiteRepository siteRepository;

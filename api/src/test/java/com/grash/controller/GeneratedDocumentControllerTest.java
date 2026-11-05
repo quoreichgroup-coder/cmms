@@ -3,6 +3,11 @@ package com.grash.controller;
 import com.grash.model.User;
 import com.grash.model.Role;
 import com.grash.model.enums.RoleType;
+import com.grash.model.enums.PermissionEntity;
+import com.grash.model.Company;
+import com.grash.dto.GeneratedDocumentAccessEventDTO;
+import com.grash.dto.GeneratedDocumentAccessPageDTO;
+import com.grash.service.GeneratedDocumentAccessEventService;
 import com.grash.service.GeneratedDocumentService;
 import com.grash.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.grash.utils.Helper.setCurrentUser;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GeneratedDocumentControllerTest extends AbstractControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockitoBean private GeneratedDocumentService generatedDocumentService;
+    @MockitoBean private GeneratedDocumentAccessEventService accessEventService;
     @MockitoBean private UserService userService;
     private User user;
 
@@ -93,6 +101,38 @@ class GeneratedDocumentControllerTest extends AbstractControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(generatedDocumentService, never()).previewRequestReportData(any(), any(), any());
+    }
+
+    @Test
+    void documentAccessHistoryRequiresSettingsReadPermission() throws Exception {
+        user.getRole().setViewPermissions(Set.of());
+
+        mockMvc.perform(get("/settings/generated-document-access"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(accessEventService);
+    }
+
+    @Test
+    void documentAccessHistoryUsesCurrentCompanyAndValidatedFilters() throws Exception {
+        Company company = new Company(); company.setId(8L); user.setCompany(company);
+        user.getRole().setViewPermissions(Set.of(PermissionEntity.SETTINGS));
+        var event = new GeneratedDocumentAccessEventDTO(3L, 22L, "PURCHASE_ORDER", 45L,
+                11L, "Buyer One", "SUCCESS", new java.util.Date(1_700_000_000_000L));
+        when(accessEventService.search(eq(user), eq("buyer"), eq("PURCHASE_ORDER"), eq("SUCCESS"), eq(45L), eq(0)))
+                .thenReturn(new GeneratedDocumentAccessPageDTO(List.of(event), 1, 1, 0, 25));
+
+        mockMvc.perform(get("/settings/generated-document-access")
+                        .param("query", "buyer")
+                        .param("sourceType", "PURCHASE_ORDER")
+                        .param("outcome", "SUCCESS")
+                        .param("sourceId", "45"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].generatedDocumentId").value(22))
+                .andExpect(jsonPath("$.content[0].sourceType").value("PURCHASE_ORDER"))
+                .andExpect(jsonPath("$.content[0].outcome").value("SUCCESS"));
+
+        verify(accessEventService).search(eq(user), eq("buyer"), eq("PURCHASE_ORDER"), eq("SUCCESS"), eq(45L), eq(0));
     }
 
     @Test

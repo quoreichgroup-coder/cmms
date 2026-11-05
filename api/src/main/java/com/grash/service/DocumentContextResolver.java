@@ -17,9 +17,11 @@ public class DocumentContextResolver {
     private final CompanyLegalProfileRepository legalProfileRepository;
 
     public DocumentContext resolve(WorkOrderBase source) {
-        Company company = source.getCompany();
+        return resolve(source.getCompany(), source.getSite());
+    }
+
+    public DocumentContext resolve(Company company, Site site) {
         CompanyLegalProfile legal = legalProfileRepository.findByCompany_Id(company.getId()).orElse(null);
-        Site site = source.getSite();
         Language language = site != null && site.getDocumentLanguage() != null
                 ? site.getDocumentLanguage() : company.getCompanySettings().getGeneralPreferences().getLanguage();
         String address = legal != null && legal.getRegisteredAddress() != null

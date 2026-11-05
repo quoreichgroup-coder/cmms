@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 
 import SuspenseLoader from 'src/components/SuspenseLoader';
 import analyticsRoutes from './analytics';
@@ -15,11 +15,30 @@ const Loader = (Component) => (props) =>
 const SettingsLayout = Loader(
   lazy(() => import('../content/own/Settings/SettingsLayout'))
 );
+const ApprovalManagement = Loader(
+  lazy(() => import('../content/own/ApprovalManagement'))
+);
+const LegacyApprovalRedirect = () => {
+  const { policyId } = useParams();
+  const location = useLocation();
+  const target = location.pathname.endsWith('/history')
+    ? '/app/settings/approval-management/history'
+    : policyId
+    ? `/app/settings/approval-management/policies/${policyId}`
+    : '/app/settings/approval-management/policies';
+  return <Navigate to={`${target}${location.search}`} replace />;
+};
 const GeneralSettings = Loader(
   lazy(() => import('../content/own/Settings/General'))
 );
 const DocumentTemplatesSettings = Loader(
   lazy(() => import('../content/own/Settings/Documents/DocumentTemplates'))
+);
+const DocumentAccessHistorySettings = Loader(
+  lazy(() => import('../content/own/Settings/Documents/DocumentAccessHistory'))
+);
+const PurchaseOrderCategoriesSettings = Loader(
+  lazy(() => import('../content/own/Settings/PurchaseOrderCategories'))
 );
 const DocumentDesigner = Loader(
   lazy(() => import('../content/own/Settings/Documents/PdfmeDocumentDesigner'))
@@ -29,6 +48,9 @@ const FeaturesSettings = Loader(
 );
 const WorkOrderSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/WorkOrder'))
+);
+const TaskListSettings = Loader(
+  lazy(() => import('../content/own/Settings/Features/TaskLists'))
 );
 const ConfigureFields = Loader(
   lazy(
@@ -92,6 +114,14 @@ const ChecklistsSettings = Loader(
 const WorkflowsSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/Workflows'))
 );
+const PurchaseRequisitionApprovalSettings = Loader(
+  lazy(
+    () =>
+      import(
+        '../content/own/Settings/Features/Workflows/PurchaseRequisitionApproval'
+      )
+  )
+);
 
 const RequestPortalSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/RequestPortal'))
@@ -114,6 +144,9 @@ const AboutLicenses = Loader(
   lazy(() => import('../content/own/AboutLicenses'))
 );
 const HelpCenter = Loader(lazy(() => import('../content/own/HelpCenter')));
+const HelpCenterAdmin = Loader(
+  lazy(() => import('../content/own/Settings/HelpCenterAdmin'))
+);
 const CompanyProfile = Loader(
   lazy(() => import('../content/own/CompanyProfile'))
 );
@@ -172,6 +205,9 @@ const Requests = Loader(lazy(() => import('../content/own/Requests')));
 const PreventiveMaintenances = Loader(
   lazy(() => import('../content/own/PreventiveMaintenance'))
 );
+const MaintenanceTaskLists = Loader(
+  lazy(() => import('../content/own/MaintenanceTaskLists'))
+);
 
 const PeopleAndTeams = Loader(
   lazy(() => import('../content/own/PeopleAndTeams'))
@@ -216,6 +252,7 @@ const appRoutes = [
               { path: 'custom-fields', element: <WorkOrderCustomFields /> }
             ]
           },
+          { path: 'task-lists', element: <TaskListSettings /> },
           {
             path: 'request',
             children: [
@@ -267,7 +304,11 @@ const appRoutes = [
           },
           { path: 'request-portals', element: <RequestPortalSettings /> },
           { path: 'request-portals/:id', element: <RequestPortalSettings /> },
-          { path: 'workflows', element: <WorkflowsSettings /> }
+          { path: 'workflows', element: <WorkflowsSettings /> },
+          {
+            path: 'workflows/purchase-requisitions',
+            element: <PurchaseRequisitionApprovalSettings />
+          }
         ]
       },
       {
@@ -283,9 +324,28 @@ const appRoutes = [
         element: <DocumentTemplatesSettings />
       },
       {
+        path: 'document-access-history',
+        element: <DocumentAccessHistorySettings />
+      },
+      {
+        path: 'purchase-order-categories',
+        element: <PurchaseOrderCategoriesSettings />
+      },
+      {
         path: 'documents/:id/designer',
         element: <DocumentDesigner />
       },
+      {
+        path: 'approval-management',
+        element: <Navigate to="policies" replace />
+      },
+      { path: 'approval-management/policies', element: <ApprovalManagement /> },
+      {
+        path: 'approval-management/policies/:policyId',
+        element: <ApprovalManagement />
+      },
+      { path: 'approval-management/history', element: <ApprovalManagement /> },
+      { path: 'help-center', element: <HelpCenterAdmin /> },
       {
         path: 'integrations',
         element: <IntegrationsSettings />,
@@ -317,6 +377,7 @@ const appRoutes = [
   },
   { path: 'about-licenses', element: <AboutLicenses /> },
   { path: 'help', element: <HelpCenter /> },
+  { path: 'help/:slug', element: <HelpCenter /> },
   {
     path: 'subscription',
     children: [
@@ -369,6 +430,13 @@ const appRoutes = [
       }
     ]
   },
+  { path: 'task-lists', element: <MaintenanceTaskLists /> },
+  { path: 'approval-management/policies', element: <LegacyApprovalRedirect /> },
+  {
+    path: 'approval-management/policies/:policyId',
+    element: <LegacyApprovalRedirect />
+  },
+  { path: 'approval-management/history', element: <LegacyApprovalRedirect /> },
   {
     path: 'purchase-requisitions',
     children: [{ path: '', element: <PurchaseRequisitions /> }]

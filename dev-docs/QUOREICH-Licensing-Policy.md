@@ -18,7 +18,7 @@ Set `LICENSE_PRIVATE_KEY_FILE` to the protected private key path for the authori
 
 ## Deploy authority
 
-Run the separate Compose project from `license-authority/`. Provide a private `.env` with strong random values for `LICENSE_DB_USER`, `LICENSE_DB_PASSWORD`, and `LICENSE_ADMIN_TOKEN`, plus the private key path. The included Compose file binds port 8081 to loopback; put an authenticated TLS reverse proxy in front of it before connecting remote customer installations. Do not publish the admin token or expose the admin API to the public internet.
+Run the separate Compose project from `license-authority/`. Provide a private `.env` with strong random values for `LICENSE_DB_USER`, `LICENSE_DB_PASSWORD`, and `LICENSE_ADMIN_TOKEN`, plus the private key path. The included Compose file binds port 8081 to loopback and joins the private `atlas-license-internal` Docker network shared only with the application backend; put an authenticated TLS reverse proxy in front of it before connecting remote customer installations. Do not publish the admin token or expose the admin API to the public internet.
 
 For local administration through SSH, open a tunnel with `ssh -L 8081:127.0.0.1:8081 abdouramane@SERVER_IP`, then browse to `http://localhost:8081/`. Enter the `LICENSE_ADMIN_TOKEN` from the protected `license-authority/.env` file in the console; the page keeps it in memory only.
 
@@ -49,6 +49,7 @@ Other administrative endpoints:
 
 - `GET /admin/licenses` lists license metadata, not keys.
 - `GET /admin/licenses/{id}/activations` and `/events` show activations and audit history.
+- `POST /admin/licenses/{id}/renew` extends an active subscription (`expiresAt`) and optionally its maintenance date. For a perpetual license, expiry must remain absent; use the maintenance date for a maintenance renewal. Every successful change records `LICENSE_RENEWED`.
 - `POST /admin/licenses/{id}/revoke` revokes a license. An already-issued offline lease remains usable until its 30-day expiry window ends.
 - `POST /admin/licenses/activations/{activationId}/deactivate` frees an activation slot.
 
@@ -64,7 +65,7 @@ LICENSE_PUBLIC_KEY_PATH=/run/license-public/ed25519-public.pem
 LICENSE_ENVIRONMENT=PRODUCTION
 ```
 
-Set `LICENSE_ENVIRONMENT=PREPRODUCTION` for its single preproduction slot. Do not copy a production fingerprint to a different server. The backend creates and persists its installation fingerprint and signed lease in the `license_cache` volume. The backend contacts the authority at startup and then at most every 12 hours; a valid lease allows up to 30 days offline. An explicit activation rejection (HTTP 403, 404 or 409), an expired lease, or an unverifiable lease blocks writes with HTTP 423 while read and export operations remain available. Temporary HTTP failures such as 408 or 429 preserve a still-valid signed offline lease. A newly unlicensed instance is not forced into read-only mode, allowing activation and first-time setup.
+Set `LICENSE_ENVIRONMENT=PREPRODUCTION` for its single preproduction slot. Do not copy a production fingerprint to a different server. The backend creates and persists its installation fingerprint and signed lease in the `license_cache` volume. The backend contacts the authority at startup and then at most every 12 hours; a valid lease allows up to 30 days offline. After renewal, the company owner/superadmin can call authenticated `POST /api/license/refresh` (empty body) to request a fresh signed lease immediately instead of waiting for that interval. An explicit activation rejection (HTTP 403, 404 or 409), an expired lease, or an unverifiable lease blocks writes with HTTP 423 while read and export operations remain available. Temporary HTTP failures such as 408 or 429 preserve a still-valid signed offline lease. A newly unlicensed instance is not forced into read-only mode, allowing activation and first-time setup.
 
 Before rebuilding an installation for cutover, run the read-only deployment preflight from the repository root:
 
@@ -76,7 +77,7 @@ It verifies the selected provider, authority URL, mounted Ed25519 public key, pr
 
 ## Current scope and migration notes
 
-The authority exposes a secured REST administration API and a graphical QUOREICH operator console at `/`. The console supports issuing and listing licenses, inspecting activations, freeing an installation slot, and revoking licenses. Audit events are available through the REST API. License issuance is quote-based and pricing is not encoded in application logic. The source repository is AGPLv3, including this authority under the repository's license. Branding identity is fixed as QUOREICH for the derivative and does not depend on a paid upstream branding entitlement; upstream copyright and source links remain in the application notices.
+The authority exposes a secured REST administration API and a graphical QUOREICH operator console at `/`. The console supports issuing, listing, renewing and revoking licenses, inspecting activations, and freeing an installation slot. Audit events are available through the REST API. License issuance is quote-based and pricing is not encoded in application logic. Before selling, define an approved price book and contract template. A product catalogue can group the existing entitlement codes into a base CMMS offer, an operations offer (planning, inventory and cost controls), and an enterprise offer (SSO, custom roles, API/webhooks and advanced analytics); seat counts and deployment slots remain explicit per quote. These are packaging suggestions, not active plan definitions or prices. For predictable contracts, specify billing term, seat type/count, included environments, support/maintenance period, renewal date, export/read-only behavior after expiry, grace period, and revocation process in each order. The source repository is AGPLv3, including this authority under the repository's license. Branding identity is fixed as QUOREICH for the derivative and does not depend on a paid upstream branding entitlement; upstream copyright and source links remain in the application notices.
 
 The change from Keygen to QUOREICH is an explicit deployment step. The repository intentionally does not silently change an existing installation's provider, since that could remove currently valid commercial entitlements before the new authority and key are configured.
 

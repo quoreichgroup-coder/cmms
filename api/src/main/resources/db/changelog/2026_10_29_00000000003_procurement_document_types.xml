@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="2026_10_29_procurement_document_types_3" author="QPM">
+        <sql><![CDATA[
+            INSERT INTO document_type (company_id, code, name, category, description, provider_code, system_managed, active, created_at, updated_at)
+            SELECT NULL, 'PURCHASE_ORDER', 'Purchase Order', 'PROCUREMENT', 'Purchase order document templates', 'PURCHASE_ORDER', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM document_type WHERE company_id IS NULL AND code = 'PURCHASE_ORDER');
+            INSERT INTO document_type (company_id, code, name, category, description, provider_code, system_managed, active, created_at, updated_at)
+            SELECT NULL, 'PURCHASE_REQUISITION', 'Purchase Requisition', 'PROCUREMENT', 'Purchase requisition document templates', 'PURCHASE_REQUISITION', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM document_type WHERE company_id IS NULL AND code = 'PURCHASE_REQUISITION');
+        ]]></sql>
+        <rollback>
+            <sql>DELETE FROM document_type WHERE company_id IS NULL AND system_managed = TRUE AND code IN ('PURCHASE_ORDER', 'PURCHASE_REQUISITION');</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

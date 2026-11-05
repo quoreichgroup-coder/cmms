@@ -1116,6 +1116,7 @@ export const CustomSelect = ({
       }}
       disabled={formik.isSubmitting}
       loading={loading}
+      helperText={field.helperText}
       required={field?.required}
       error={!!formik.errors[field.name] || field.error}
       errorMessage={formik.errors[field.name]}

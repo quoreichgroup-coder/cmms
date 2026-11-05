@@ -11,6 +11,8 @@ import { PermissionEntity } from '../../../models/owns/role';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import SplitButton from '../components/SplitButton';
+import { Stack } from '@mui/material';
+import ContextualHelpButton from '../HelpCenter/ContextualHelpButton';
 import * as React from 'react';
 
 interface PropsType {}
@@ -47,27 +49,33 @@ const Inventory = ({}: PropsType) => {
         tabIndex={tabIndex}
         title={t('parts_and_inventory')}
         rawAction={
-          <SplitButton
-            onMainClick={
-              hasCreatePermission(PermissionEntity.PARTS_AND_MULTIPARTS)
-                ? action
-                : null
-            }
-            startIcon={<AddOutlinedIcon />}
-            label={tabs[tabIndex].label}
-            menuItems={
-              tabIndex === 0 &&
-              hasViewPermission(PermissionEntity.SETTINGS) &&
-              hasFeature(PlanFeature.IMPORT_CSV)
-                ? [
-                    {
-                      label: t('import_from_spreadsheet'),
-                      onClick: () => navigate('/app/imports/parts')
-                    }
-                  ]
-                : []
-            }
-          />
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <ContextualHelpButton
+              articleSlug="parts-inventory"
+              labelKey="help_contextual_inventory"
+            />
+            <SplitButton
+              onMainClick={
+                hasCreatePermission(PermissionEntity.PARTS_AND_MULTIPARTS)
+                  ? action
+                  : null
+              }
+              startIcon={<AddOutlinedIcon />}
+              label={tabs[tabIndex].label}
+              menuItems={
+                tabIndex === 0 &&
+                hasViewPermission(PermissionEntity.SETTINGS) &&
+                hasFeature(PlanFeature.IMPORT_CSV)
+                  ? [
+                      {
+                        label: t('import_from_spreadsheet'),
+                        onClick: () => navigate('/app/imports/parts')
+                      }
+                    ]
+                  : []
+              }
+            />
+          </Stack>
         }
       >
         {tabIndex === 0 && <Parts setAction={setAction} />}

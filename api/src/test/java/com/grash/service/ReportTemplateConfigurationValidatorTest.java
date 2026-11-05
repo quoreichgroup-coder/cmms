@@ -19,8 +19,20 @@ class ReportTemplateConfigurationValidatorTest {
         @Override public Map<String, Object> resolve(Object source, DocumentContextResolver.DocumentContext context,
                                                      Set<String> fields) { return Map.of(); }
     };
+    private final DocumentDataProvider purchaseOrderProvider = minimalProvider("PURCHASE_ORDER",
+            Set.of("purchaseOrder.number", "purchaseOrder.status", "purchaseOrder.lines"));
+    private final DocumentDataProvider purchaseRequisitionProvider = minimalProvider("PURCHASE_REQUISITION",
+            Set.of("purchaseRequisition.number", "purchaseRequisition.status", "purchaseRequisition.lines"));
     private final ReportTemplateConfigurationValidator validator = new ReportTemplateConfigurationValidator(
-            new DocumentDataProviderRegistry(java.util.List.of(provider)));
+            new DocumentDataProviderRegistry(java.util.List.of(provider, purchaseOrderProvider, purchaseRequisitionProvider)));
+
+    private static DocumentDataProvider minimalProvider(String code, Set<String> fields) {
+        return new DocumentDataProvider() {
+            @Override public String providerCode() { return code; }
+            @Override public boolean supports(String key) { return fields.contains(key); }
+            @Override public Map<String, Object> resolve(Object source, DocumentContextResolver.DocumentContext context, Set<String> requested) { return Map.of(); }
+        };
+    }
 
     @Test
     void acceptsOnlySupportedDeclarativeConfiguration() throws Exception {
@@ -32,6 +44,32 @@ class ReportTemplateConfigurationValidatorTest {
                 """);
 
         assertEquals(config, validator.validate(config, "WORK_ORDER", "WORK_ORDER"));
+    }
+
+    @Test
+    void purchaseDocumentsCannotPublishWithoutStatusIdentifierAndItems() throws Exception {
+        var valid = mapper.readTree("""
+                {"schemaVersion":"1.0","documentType":"PURCHASE_ORDER","provider":"PURCHASE_ORDER",
+                 "style":"CLASSIC","page":{"size":"A4","orientation":"PORTRAIT","marginMm":10},
+                 "visibleFields":["purchaseOrder.number","purchaseOrder.status","purchaseOrder.lines"],
+                 "options":{"showPageNumbers":true,"repeatTableHeader":true}}
+                """);
+        assertEquals(valid, validator.validate(valid, "PURCHASE_ORDER", "PURCHASE_ORDER"));
+        var missingStatus = valid.deepCopy();
+        ((com.fasterxml.jackson.databind.node.ArrayNode) missingStatus.get("visibleFields")).remove(1);
+        assertThrows(CustomException.class, () -> validator.validate(missingStatus, "PURCHASE_ORDER", "PURCHASE_ORDER"));
+
+        var requisition = mapper.readTree("""
+                {"schemaVersion":"2.0","documentType":"PURCHASE_REQUISITION","provider":"PURCHASE_REQUISITION",
+                 "style":"MODERN","page":{"size":"A4","orientation":"LANDSCAPE","marginMm":10},
+                 "layout":[{"id":"main","type":"SECTION","title":"Purchase requisition","columns":1,
+                   "items":[{"id":"number","type":"FIELD","fieldKey":"purchaseRequisition.number"},
+                            {"id":"status","type":"FIELD","fieldKey":"purchaseRequisition.status"},
+                            {"id":"items","type":"TABLE","fieldKey":"purchaseRequisition.lines",
+                             "tableColumns":["notes","quantity"],"columnWidths":[50,50]}]}],
+                 "options":{"showPageNumbers":true,"repeatTableHeader":true}}
+                """);
+        assertEquals(requisition, validator.validate(requisition, "PURCHASE_REQUISITION", "PURCHASE_REQUISITION"));
     }
 
     @Test

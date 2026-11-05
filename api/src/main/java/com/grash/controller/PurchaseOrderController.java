@@ -33,17 +33,30 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 @RestController
 @RequestMapping("/purchase-orders")
@@ -67,6 +80,8 @@ public class PurchaseOrderController {
     private final PurchaseOrderPolicyService purchaseOrderPolicyService;
     private final PartService partService;
     private final PurchaseOrderReceiptService purchaseOrderReceiptService;
+    private final ProcurementApprovalService procurementApprovalService;
+    private final ProcurementSiteService procurementSiteService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -77,9 +92,13 @@ public class PurchaseOrderController {
                                                                      "purchase orders") @RequestBody SearchCriteria searchCriteria,
                                                              HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        searchCriteria = normalizeSearchCriteria(searchCriteria);
+        // The tenant boundary is server-controlled for every role; clients cannot
+        // widen this query by omitting or replacing a company filter.
+        searchCriteria.filterCompany(user);
         if (user.getRole().getRoleType().equals(RoleType.ROLE_CLIENT)) {
             if (user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
-                searchCriteria.filterCompany(user);
                 boolean canViewOthers =
                         user.getRole().getViewOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS);
                 if (!canViewOthers) {
@@ -87,7 +106,19 @@ public class PurchaseOrderController {
                 }
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         }
-        return ResponseEntity.ok(purchaseOrderService.findBySearchCriteria(searchCriteria).map(this::setPartQuantities));
+        return ResponseEntity.ok(purchaseOrderService.findBySearchCriteria(searchCriteria, user).map(this::setPartQuantities));
+    }
+
+    static SearchCriteria normalizeSearchCriteria(SearchCriteria criteria) {
+        SearchCriteria normalized = criteria == null ? new SearchCriteria() : criteria;
+        if (normalized.getFilterFields() == null) normalized.setFilterFields(new ArrayList<>());
+        normalized.setPageNum(Math.max(0, normalized.getPageNum()));
+        normalized.setPageSize(Math.max(1, Math.min(normalized.getPageSize(), 100)));
+        if (normalized.getDirection() == null) normalized.setDirection(Sort.Direction.DESC);
+        if (normalized.getSortField() == null || normalized.getSortField().isBlank()) {
+            normalized.setSortField("id");
+        }
+        return normalized;
     }
 
     @GetMapping("/receiving-queue")
@@ -97,6 +128,7 @@ public class PurchaseOrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "ALL") String receiptState,
             HttpServletRequest req) {
         User user = userService.whoami(req);
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
@@ -110,8 +142,13 @@ public class PurchaseOrderController {
         Sort queueSort = Sort.by(Sort.Order.asc("shippingDueDate").nullsLast(),
                 Sort.Order.desc("id"));
         PageRequest pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(size, 50)), queueSort);
+        String normalizedReceiptState = receiptState == null ? "ALL" : receiptState.trim().toUpperCase(Locale.ROOT);
+        if (!List.of("ALL", "NOT_STARTED", "PARTIAL").contains(normalizedReceiptState)) {
+            throw new CustomException("Invalid receipt state", HttpStatus.BAD_REQUEST);
+        }
         return purchaseOrderService.findReceivable(user.getCompany().getId(), includeOthers,
-                user.getId(), normalizeQueueQuery(query), pageable)
+                user.getId(), procurementSiteService.canAccessAllSites(user),
+                procurementSiteService.siteIdsForQuery(user), normalizeQueueQuery(query), normalizedReceiptState, pageable)
                 .map(order -> setPartQuantities(purchaseOrderMapper.toShowDto(order)));
     }
 
@@ -125,10 +162,12 @@ public class PurchaseOrderController {
     @PreAuthorize("permitAll()")
     public PurchaseOrderShowDTO getById(@PathVariable("id") Long id, HttpServletRequest req) {
         User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
         Optional<PurchaseOrder> optionalPurchaseOrder = purchaseOrderService.findByIdAndCompany_Id(
                 id, user.getCompany().getId());
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
+            requireSiteAccess(savedPurchaseOrder, user);
             if (savedPurchaseOrder.canBeViewedBy(user)) {
                 return setPartQuantities(purchaseOrderMapper.toShowDto(savedPurchaseOrder));
             } else throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -137,6 +176,7 @@ public class PurchaseOrderController {
 
     @PostMapping("")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
     PurchaseOrderShowDTO create(@Parameter(description = "Purchase order data to create") @Valid @RequestBody PurchaseOrder purchaseOrderReq,
                                 HttpServletRequest req) {
         User user = userService.whoami(req);
@@ -147,14 +187,18 @@ public class PurchaseOrderController {
             purchaseOrderReq.setVendor(resolveVendor(purchaseOrderReq.getVendor(), user));
             purchaseOrderReq.setCategory(resolveCategory(purchaseOrderReq.getCategory(), user));
             PurchaseOrder savedPurchaseOrder = purchaseOrderService.create(purchaseOrderReq);
+            PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(savedPurchaseOrder));
+            var savedLines = partQuantityService.findByPurchaseOrder(savedPurchaseOrder.getId());
+            java.math.BigDecimal estimatedAmount = ProcurementApprovalService.estimatePurchaseOrderAmount(savedLines);
+            procurementApprovalService.start("PO", savedPurchaseOrder.getId(), savedPurchaseOrder.getName(),
+                    savedPurchaseOrder.getCreatedBy(), savedPurchaseOrder.getCompany(),
+                    estimatedAmount,
+                    user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
             runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, savedPurchaseOrder,
                     user.getCompany().getId());
-            PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(savedPurchaseOrder));
-            double cost =
-                    result.getPartQuantities().stream().mapToDouble(partQuantityShowDTO -> partQuantityShowDTO.getQuantity() * partQuantityShowDTO.getPart().getCost()).sum();
             String title = messageSource.getMessage("new_po", null, Helper.getLocale(user));
             String message = messageSource.getMessage("notification_new_po_request", new Object[]{result.getName(),
-                            cost,
+                            estimatedAmount,
                             user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
                     Helper.getLocale(user));
             Map<String, Object> mailVariables = new HashMap<String, Object>() {{
@@ -216,15 +260,24 @@ public class PurchaseOrderController {
                 throw new CustomException("A whole quantity is required when the part has no unit",
                         HttpStatus.BAD_REQUEST);
             }
-            partQuantityService.create(new PartQuantity(part, null, saved, quantity));
+            PartQuantity orderLine = new PartQuantity(part, null, saved, quantity);
+            orderLine.setSite(procurementSiteService.resolveLineSite(line.getSiteId(), null, user));
+            setAgreedPrice(orderLine, line.getPurchaseUnitPrice());
+            partQuantityService.create(orderLine);
         }
 
+        var savedLines = partQuantityService.findByPurchaseOrder(saved.getId());
+        java.math.BigDecimal estimatedAmount = ProcurementApprovalService.estimatePurchaseOrderAmount(savedLines);
+        procurementApprovalService.start("PO", saved.getId(), saved.getName(), saved.getCreatedBy(),
+                saved.getCompany(), estimatedAmount,
+                user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
         runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, saved, user.getCompany().getId());
-        if (request.isApproveOnSubmit() && saved.getStatus() == ApprovalStatus.PENDING) {
-            if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+        if (request.isApproveOnSubmit() && saved.getStatus() == ApprovalStatus.PENDING
+                && !procurementApprovalService.isGoverned("PO", saved.getId(), user.getCompany().getId())) {
+            if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDER_APPROVAL)) {
                 throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
             }
-            purchaseOrderApprovalService.respond(saved.getId(), user.getCompany().getId(), true);
+            purchaseOrderApprovalService.respond(saved.getId(), user.getCompany().getId(), true, user, null, true);
         }
 
         PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(saved));
@@ -233,7 +286,7 @@ public class PurchaseOrderController {
                 @Override
                 public void afterCommit() {
                     try {
-                        notifyPurchaseOrderCreated(result, user);
+                        notifyPurchaseOrderCreated(result, user, estimatedAmount);
                     } catch (RuntimeException exception) {
                         log.error("Purchase order {} was created, but its notification could not be sent",
                                 result.getId(), exception);
@@ -244,12 +297,98 @@ public class PurchaseOrderController {
         return result;
     }
 
-    private void notifyPurchaseOrderCreated(PurchaseOrderShowDTO result, User user) {
-        double cost = result.getPartQuantities().stream()
-                .mapToDouble(line -> line.getQuantity() * line.getPart().getCost()).sum();
+    /** Imports POs through the standard creation flow so approval workflows start normally. */
+    @PostMapping(value = "/import", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
+    public Map<String, Object> importCsv(@RequestParam("file") MultipartFile file, HttpServletRequest request) throws Exception {
+        if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024) throw new CustomException("purchase_import_file_invalid", HttpStatus.BAD_REQUEST);
+        User user = userService.whoami(request);
+        if (!user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        LinkedHashMap<String, ImportedPurchaseOrder> orders = new LinkedHashMap<>();
+        String csv = new String(file.getBytes(), StandardCharsets.UTF_8).replace("\uFEFF", "");
+        try (CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader().withIgnoreEmptyLines(true).parse(new StringReader(csv))) {
+            Set<String> requiredHeaders = Set.of("purchaseOrderKey", "name", "vendorId", "categoryId", "shippingDueDate", "additionalInfoNotes", "partId", "quantity", "purchaseUnitPrice");
+            if (!parser.getHeaderMap().keySet().containsAll(requiredHeaders)) throw new CustomException("purchase_import_headers_invalid", HttpStatus.BAD_REQUEST);
+            int rowNumber = 1;
+            for (CSVRecord row : parser) {
+                rowNumber++;
+                if (rowNumber > 5001) throw new CustomException("purchase_import_row_limit_exceeded", HttpStatus.BAD_REQUEST);
+                try {
+                    String key = csvRequired(row, "purchaseOrderKey");
+                    ImportedPurchaseOrder item = orders.computeIfAbsent(key, ignored -> new ImportedPurchaseOrder(row));
+                    item.assertSameHeader(row);
+                    long partId = Long.parseLong(csvRequired(row, "partId"));
+                    double quantity = Double.parseDouble(csvRequired(row, "quantity"));
+                    if (!Double.isFinite(quantity) || quantity <= 0) throw new IllegalArgumentException("quantity_invalid");
+                    java.math.BigDecimal unitPrice = new java.math.BigDecimal(csvRequired(row, "purchaseUnitPrice"));
+                    if (unitPrice.signum() < 0 || unitPrice.scale() > 4 || unitPrice.precision() > 19) throw new IllegalArgumentException("purchase_unit_price_invalid");
+                    Long siteId = csvOptional(row, "siteId").isBlank() ? null : Long.valueOf(csvOptional(row, "siteId"));
+                    item.addLine(partId, quantity, unitPrice, siteId);
+                } catch (RuntimeException error) {
+                    throw new CustomException("purchase_import_invalid_row_" + rowNumber + "_" + safeCsvMessage(error), HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+            }
+        }
+        if (orders.isEmpty()) throw new CustomException("purchase_import_empty", HttpStatus.BAD_REQUEST);
+        if (orders.size() > 100) throw new CustomException("purchase_import_document_limit_exceeded", HttpStatus.BAD_REQUEST);
+        for (ImportedPurchaseOrder imported : orders.values()) {
+            if (imported.linesByPart.isEmpty()) throw new CustomException("purchase_import_empty_lines", HttpStatus.UNPROCESSABLE_ENTITY);
+            PurchaseOrder order = new PurchaseOrder();
+            order.setName(imported.name);
+            order.setAdditionalInfoNotes(imported.notes);
+            order.setShippingDueDate(imported.shippingDueDate == null ? null : java.util.Date.from(imported.shippingDueDate.atStartOfDay().toInstant(ZoneOffset.UTC)));
+            if (imported.vendorId != null) { Vendor vendor = new Vendor(); vendor.setId(imported.vendorId); order.setVendor(vendor); }
+            if (imported.categoryId != null) { PurchaseOrderCategory category = new PurchaseOrderCategory(); category.setId(imported.categoryId); order.setCategory(category); }
+            PurchaseOrderCreateRequest dto = new PurchaseOrderCreateRequest();
+            dto.setPurchaseOrder(order); dto.setPartQuantities(new ArrayList<>(imported.linesByPart.values())); dto.setApproveOnSubmit(false);
+            createWithLines(dto, request); // Reuses validation, scoped references, notifications, and approval startup.
+        }
+        return Map.of("importedPurchaseOrders", orders.size(), "createdAs", "PENDING_APPROVAL");
+    }
+
+    private static String csvOptional(CSVRecord row, String name) { return !row.isMapped(name) || row.get(name) == null ? "" : row.get(name).trim(); }
+    private static String csvRequired(CSVRecord row, String name) { String value = csvOptional(row, name); if (value.isBlank()) throw new IllegalArgumentException(name + "_required"); return value; }
+    private static LocalDate csvDate(CSVRecord row, String name) { String value = csvOptional(row, name); return value.isBlank() ? null : LocalDate.parse(value.substring(0, Math.min(10, value.length()))); }
+    private static String safeCsvMessage(RuntimeException error) { return (error.getMessage() == null ? "invalid" : error.getMessage()).replaceAll("[^a-zA-Z0-9_-]", "_"); }
+    private static final class ImportedPurchaseOrder {
+        final String name, notes; final Long vendorId, categoryId; final LocalDate shippingDueDate;
+        final Map<Long, PartQuantityCompletePatchDTO> linesByPart = new LinkedHashMap<>();
+        ImportedPurchaseOrder(CSVRecord row) {
+            name = csvRequired(row, "name"); notes = csvOptional(row, "additionalInfoNotes");
+            vendorId = csvOptional(row, "vendorId").isBlank() ? null : Long.valueOf(csvOptional(row, "vendorId"));
+            categoryId = csvOptional(row, "categoryId").isBlank() ? null : Long.valueOf(csvOptional(row, "categoryId"));
+            shippingDueDate = csvDate(row, "shippingDueDate");
+        }
+        void addLine(long partId, double quantity, java.math.BigDecimal unitPrice, Long siteId) {
+            PartQuantityCompletePatchDTO line = linesByPart.get(partId);
+            if (line == null) {
+                line = new PartQuantityCompletePatchDTO();
+                Part part = new Part(); part.setId(partId); line.setPart(part);
+                linesByPart.put(partId, line);
+                line.setPurchaseUnitPrice(unitPrice);
+                line.setSiteId(siteId);
+            } else if (line.getPurchaseUnitPrice().compareTo(unitPrice) != 0) {
+                throw new IllegalArgumentException("purchase_unit_price_mismatch_for_duplicate_part");
+            } else if (!Objects.equals(line.getSiteId(), siteId)) {
+                throw new IllegalArgumentException("purchase_site_mismatch_for_duplicate_part");
+            }
+            line.setQuantity(line.getQuantity() + quantity);
+        }
+        void assertSameHeader(CSVRecord row) {
+            if (!name.equals(csvRequired(row, "name")) || !notes.equals(csvOptional(row, "additionalInfoNotes"))
+                    || !Objects.equals(vendorId, csvOptional(row, "vendorId").isBlank() ? null : Long.valueOf(csvOptional(row, "vendorId")))
+                    || !Objects.equals(categoryId, csvOptional(row, "categoryId").isBlank() ? null : Long.valueOf(csvOptional(row, "categoryId")))
+                    || !Objects.equals(shippingDueDate, csvDate(row, "shippingDueDate")))
+                throw new IllegalArgumentException("purchase_order_header_mismatch");
+        }
+    }
+
+    private void notifyPurchaseOrderCreated(PurchaseOrderShowDTO result, User user, java.math.BigDecimal estimatedAmount) {
         String title = messageSource.getMessage("new_po", null, Helper.getLocale(user));
         String message = messageSource.getMessage("notification_new_po_request", new Object[]{result.getName(),
-                        cost, user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
+                        estimatedAmount, user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
                 Helper.getLocale(user));
         Map<String, Object> mailVariables = new HashMap<>();
         mailVariables.put("purchaseOrderLink", frontendUrl + "/app/purchase-orders/" + result.getId());
@@ -282,9 +421,11 @@ public class PurchaseOrderController {
 
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
+            requireSiteAccess(savedPurchaseOrder, user);
             if (!savedPurchaseOrder.canBeEditedBy(user)) {
                 throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
             }
+            procurementApprovalService.requireEditable("PO", id, user.getCompany().getId());
             purchaseOrderPolicyService.requireModuleEnabled(user);
             if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
                 throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
@@ -308,12 +449,14 @@ public class PurchaseOrderController {
         User user = userService.whoami(req);
         PurchaseOrder saved = purchaseOrderService.findByIdForUpdateAndCompany(id, user.getCompany().getId())
                 .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
+        requireSiteAccess(saved, user);
         if (!saved.canBeEditedBy(user)) throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
+        procurementApprovalService.requireEditable("PO", id, user.getCompany().getId());
         purchaseOrderPolicyService.requireModuleEnabled(user);
         if (saved.getStatus() == ApprovalStatus.APPROVED) {
             throw new CustomException("Approved purchase orders cannot be changed", HttpStatus.CONFLICT);
         }
-        ensureNoRequisitionSourcedLines(saved);
+        ensureNoRequisitionSourcedLines(saved, user);
 
         List<PartQuantityCompletePatchDTO> requestedLines = request.getPartQuantities();
         if (requestedLines == null || requestedLines.isEmpty()) {
@@ -338,6 +481,10 @@ public class PurchaseOrderController {
                 throw new CustomException("A whole quantity is required when the part has no unit",
                         HttpStatus.BAD_REQUEST);
             }
+            if (line.getPurchaseUnitPrice() != null && (line.getPurchaseUnitPrice().signum() < 0
+                    || line.getPurchaseUnitPrice().scale() > 4 || line.getPurchaseUnitPrice().precision() > 19)) {
+                throw new CustomException("A valid supplier unit price with at most four decimals is required", HttpStatus.BAD_REQUEST);
+            }
             requestedParts.put(partId, part);
         }
 
@@ -345,7 +492,7 @@ public class PurchaseOrderController {
         purchaseOrderPatch.setVendor(resolveVendor(purchaseOrderPatch.getVendor(), user));
         purchaseOrderPatch.setCategory(resolveCategory(purchaseOrderPatch.getCategory(), user));
         PurchaseOrder updated = purchaseOrderService.update(id, user.getCompany().getId(), purchaseOrderPatch);
-        replacePurchaseOrderLines(updated, requestedLines, requestedParts);
+        replacePurchaseOrderLines(updated, requestedLines, requestedParts, user);
 
         runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_UPDATED, updated, user.getCompany().getId());
         return setPartQuantities(purchaseOrderMapper.toShowDto(updated));
@@ -353,7 +500,8 @@ public class PurchaseOrderController {
 
     private void replacePurchaseOrderLines(PurchaseOrder purchaseOrder,
                                            List<PartQuantityCompletePatchDTO> requestedLines,
-                                           Map<Long, Part> requestedParts) {
+                                           Map<Long, Part> requestedParts,
+                                           User user) {
         Collection<PartQuantity> existingLines = partQuantityService.findByPurchaseOrder(purchaseOrder.getId());
         Map<Long, PartQuantity> existingByPartId = existingLines.stream().collect(Collectors.toMap(
                 line -> line.getPart().getId(), line -> line));
@@ -364,10 +512,15 @@ public class PurchaseOrderController {
             PartQuantity existing = existingByPartId.get(partId);
             if (existing != null) {
                 existing.setQuantity(requested.getQuantity());
+                existing.setSite(procurementSiteService.resolveLineSite(requested.getSiteId(), existing.getSite(), user));
+                if (requested.getPurchaseUnitPrice() != null) setAgreedPrice(existing, requested.getPurchaseUnitPrice());
                 partQuantityService.save(existing);
             } else {
-                partQuantityService.create(new PartQuantity(requestedParts.get(partId), null, purchaseOrder,
-                        requested.getQuantity()));
+                PartQuantity created = new PartQuantity(requestedParts.get(partId), null, purchaseOrder,
+                        requested.getQuantity());
+                created.setSite(procurementSiteService.resolveLineSite(requested.getSiteId(), null, user));
+                setAgreedPrice(created, requested.getPurchaseUnitPrice());
+                partQuantityService.create(created);
             }
         }
         existingByPartId.forEach((partId, existing) -> {
@@ -375,10 +528,23 @@ public class PurchaseOrderController {
         });
     }
 
+    private void setAgreedPrice(PartQuantity line, java.math.BigDecimal amount) {
+        try { partQuantityService.setAgreedPurchasePrice(line, amount); }
+        catch (IllegalArgumentException ex) {
+            throw new CustomException("A valid supplier unit price with at most four decimals is required", HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private void runPurchaseOrderWorkflows(WFMainCondition condition, PurchaseOrder purchaseOrder, Long companyId) {
         boolean requisitionSourced = hasRequisitionSourcedLines(purchaseOrder);
+        boolean governed = procurementApprovalService.isGoverned("PO", purchaseOrder.getId(), companyId);
         workflowService.findByMainConditionAndCompany(condition, companyId).stream()
                 .filter(Workflow::isEnabled)
+                .filter(workflow -> !governed
+                        || workflow.getAction() == null
+                        || workflow.getAction().getPurchaseOrderAction() == null
+                        || (workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.APPROVE
+                        && workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.REJECT))
                 .filter(workflow -> !requisitionSourced
                         || workflow.getAction() == null
                         || workflow.getAction().getPurchaseOrderAction() == null
@@ -392,18 +558,27 @@ public class PurchaseOrderController {
                 .anyMatch(line -> line.getRequisitionLine() != null);
     }
 
+    private void requireSiteAccess(PurchaseOrder purchaseOrder, User user) {
+        boolean accessible = partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
+                .allMatch(line -> procurementSiteService.canAccessSite(user, line.getSite()));
+        if (!accessible) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+    }
+
     @PatchMapping("/{id}/respond")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     @Transactional
     public PurchaseOrderShowDTO respond(@Parameter(description = "Whether the purchase order is approved") @RequestParam("approved") boolean approved, @PathVariable("id") Long id,
                                         HttpServletRequest req) {
         User user = userService.whoami(req);
-        if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
+        if (!user.getRole().getEditOtherPermissions().contains(PermissionEntity.PURCHASE_ORDER_APPROVAL)) {
             throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         }
         purchaseOrderPolicyService.requireModuleEnabled(user);
+        PurchaseOrder currentOrder = purchaseOrderService.findByIdAndCompany_Id(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
+        requireSiteAccess(currentOrder, user);
         PurchaseOrder respondedPurchaseOrder = purchaseOrderApprovalService.respond(
-                id, user.getCompany().getId(), approved);
+                id, user.getCompany().getId(), approved, user, req.getParameter("comment"));
         return setPartQuantities(purchaseOrderMapper.toShowDto(respondedPurchaseOrder));
     }
 
@@ -417,17 +592,20 @@ public class PurchaseOrderController {
                 id, user.getCompany().getId());
         if (optionalPurchaseOrder.isPresent()) {
             PurchaseOrder savedPurchaseOrder = optionalPurchaseOrder.get();
+            requireSiteAccess(savedPurchaseOrder, user);
             if (savedPurchaseOrder.canBeDeletedBy(user)) {
                 purchaseOrderPolicyService.requireModuleEnabled(user);
+                procurementApprovalService.requireEditable("PO", id, user.getCompany().getId());
                 if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
-                    throw new CustomException("An approved purchase order cannot be deleted; " +
-                            "use the cancellation workflow to preserve its stock and commitment history.",
+                    throw new CustomException(messageSource.getMessage("purchase_order_cancel_unavailable",
+                            null, Helper.getLocale(user)),
                             HttpStatus.CONFLICT);
                 }
-                ensureNoRequisitionSourcedLines(savedPurchaseOrder);
+                ensureNoRequisitionSourcedLines(savedPurchaseOrder, user);
                 if (purchaseOrderReceiptService.hasReceipts(id)) {
-                    throw new CustomException("A purchase order with receipt history cannot be deleted; " +
-                            "use a cancellation workflow to preserve the stock audit.", HttpStatus.CONFLICT);
+                    throw new CustomException(messageSource.getMessage("purchase_order_receipt_cancel_unavailable",
+                            null, Helper.getLocale(user)),
+                            HttpStatus.CONFLICT);
                 }
                 purchaseOrderService.delete(id, user.getCompany().getId());
                 return new ResponseEntity(new SuccessResponse(true, "Deleted successfully"),
@@ -450,10 +628,11 @@ public class PurchaseOrderController {
         return purchaseOrderShowDTO;
     }
 
-    private void ensureNoRequisitionSourcedLines(PurchaseOrder purchaseOrder) {
+    private void ensureNoRequisitionSourcedLines(PurchaseOrder purchaseOrder, User user) {
         if (partQuantityService.findByPurchaseOrder(purchaseOrder.getId()).stream()
                 .anyMatch(line -> line.getRequisitionLine() != null)) {
-            throw new CustomException("A purchase order sourced from a requisition cannot be edited or deleted. Reject it while pending to release reserved quantities; approved orders require a cancellation workflow.",
+            throw new CustomException(messageSource.getMessage("purchase_order_requisition_edit_unavailable",
+                    null, Helper.getLocale(user)),
                     HttpStatus.CONFLICT);
         }
     }

@@ -86,6 +86,11 @@ public class QuoreichLicenseClient {
         return stateFromCachedLease(now);
     }
 
+    public synchronized LicensingState refreshLicensingState() {
+        lastAuthorityCheck = Instant.EPOCH;
+        return getLicensingState();
+    }
+
     public boolean isActivationConfigured() {
         return authorityUrl != null && !authorityUrl.isBlank()
                 && publicKeyPath != null && !publicKeyPath.isBlank()

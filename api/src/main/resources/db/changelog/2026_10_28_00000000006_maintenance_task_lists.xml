@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-maintenance-task-lists" author="qpm">
+        <createTable tableName="maintenance_task_list">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_maintenance_task_list"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_maintenance_task_list_company" references="company(id)"/></column>
+            <column name="group_code" type="VARCHAR(80)"><constraints nullable="false"/></column>
+            <column name="group_counter" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="task_list_type" type="VARCHAR(40)"><constraints nullable="false"/></column>
+            <column name="work_center" type="VARCHAR(120)"/>
+            <column name="valid_from" type="DATE"/>
+            <column name="valid_to" type="DATE"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="DRAFT"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="maintenance_task_list" columnNames="company_id,group_code,group_counter"
+                             constraintName="uk_task_list_company_group_counter"/>
+
+        <createTable tableName="task_list_operation">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_task_list_operation"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_operation_company" references="company(id)"/></column>
+            <column name="task_list_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_operation_header" references="maintenance_task_list(id)" deleteCascade="true"/></column>
+            <column name="operation_number" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="short_description" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="long_text" type="TEXT"/>
+            <column name="work_center" type="VARCHAR(120)"/>
+            <column name="control_key" type="VARCHAR(40)"/>
+            <column name="workers" type="NUMERIC(10,2)"/>
+            <column name="planned_work" type="NUMERIC(12,3)"/>
+            <column name="work_unit" type="VARCHAR(20)"/>
+            <column name="duration" type="NUMERIC(12,3)"/>
+            <column name="duration_unit" type="VARCHAR(20)"/>
+            <column name="system_condition" type="VARCHAR(80)"/>
+            <column name="operation_order" type="INT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <addUniqueConstraint tableName="task_list_operation" columnNames="task_list_id,operation_number"
+                             constraintName="uk_task_list_operation_number"/>
+        <createIndex tableName="task_list_operation" indexName="idx_task_list_operation_order">
+            <column name="task_list_id"/><column name="operation_order"/>
+        </createIndex>
+
+        <createTable tableName="task_list_operation_material">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_task_list_operation_material"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_material_company" references="company(id)"/></column>
+            <column name="operation_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_material_operation" references="task_list_operation(id)" deleteCascade="true"/></column>
+            <column name="part_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_task_list_material_part" references="part(id)"/></column>
+            <column name="quantity" type="NUMERIC(14,4)"><constraints nullable="false"/></column>
+            <column name="unit" type="VARCHAR(20)"/>
+            <column name="storage_location" type="VARCHAR(120)"/>
+            <column name="estimated_unit_cost" type="NUMERIC(14,4)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <createIndex tableName="task_list_operation_material" indexName="idx_task_list_material_operation">
+            <column name="operation_id"/>
+        </createIndex>
+        <createIndex tableName="task_list_operation_material" indexName="idx_task_list_material_part">
+            <column name="part_id"/>
+        </createIndex>
+
+        <sql>CREATE SEQUENCE IF NOT EXISTS maintenance_task_list_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS task_list_operation_seq START WITH 1 INCREMENT BY 50</sql>
+        <sql>CREATE SEQUENCE IF NOT EXISTS task_list_operation_material_seq START WITH 1 INCREMENT BY 50</sql>
+
+        <!-- New capability starts with the same role profile as existing PM access; narrower permissions remain intact. -->
+        <sql>INSERT INTO role_create_permissions (role_id, create_permissions) SELECT role_id, 20 FROM role_create_permissions WHERE create_permissions = 4 ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_permissions (role_id, view_permissions) SELECT role_id, 20 FROM role_view_permissions WHERE view_permissions = 4 ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_view_other_permissions (role_id, view_other_permissions) SELECT role_id, 20 FROM role_view_other_permissions WHERE view_other_permissions = 4 ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions) SELECT role_id, 20 FROM role_edit_other_permissions WHERE edit_other_permissions = 4 ON CONFLICT DO NOTHING</sql>
+        <sql>INSERT INTO role_delete_other_permissions (role_id, delete_other_permissions) SELECT role_id, 20 FROM role_delete_other_permissions WHERE delete_other_permissions = 4 ON CONFLICT DO NOTHING</sql>
+    </changeSet>
+</databaseChangeLog>

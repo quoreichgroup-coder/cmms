@@ -79,7 +79,14 @@ We'd love to have **new contributors**, so feel free to join us!
 2. Copy `.env.example` to `.env`, then set the required production values and
    restrict its permissions (`chmod 600 .env`).
 
-3. Build and start:
+3. Create the private network used only between the backend and QUOREICH
+   License Authority (safe to run again if it already exists):
+   ```bash
+   docker network inspect atlas-license-internal >/dev/null 2>&1 || \
+     docker network create --internal atlas-license-internal
+   ```
+
+4. Build and start:
    ```bash
    docker compose up -d --build
    ```

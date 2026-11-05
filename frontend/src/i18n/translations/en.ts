@@ -1,4 +1,7 @@
+import { approvalManagementEn } from './approvalManagement';
+
 const locale = {
+  ...approvalManagementEn,
   show_password: 'Show password',
   hide_password: 'Hide password',
   generate_password: 'Generate',
@@ -17,7 +20,101 @@ const locale = {
   help_center_title: 'QPM Help Center',
   help_center_intro:
     'Short guides to help you find common maintenance actions.',
-  help_search_placeholder: 'Search the guides',
+  help_center_landing_subtitle:
+    'Find guides, tutorials, and answers to help you get the most out of QPM.',
+  help_search_placeholder: 'Search documentation, features, or topics...',
+  help_clear_search: 'Clear search',
+  help_close_navigation: 'Close documentation navigation',
+  help_documentation: 'Documentation',
+  help_category_label: 'Guide',
+  help_search_keyboard_hint:
+    'Use ↑ and ↓ to navigate · Enter to open · Esc to close',
+  help_guides_available: '{{count}} guides available',
+  help_browse_by_topic: 'Browse by topic',
+  help_topics_intro:
+    'Choose a guide to find the steps and information you need.',
+  help_popular_guides: 'Popular guides',
+  help_getting_started: 'Getting started',
+  help_getting_started_intro:
+    'Start with your profile, then explore how QPM organizes maintenance work.',
+  help_article_count_singular: '{{count}} article',
+  help_article_count_plural: '{{count}} articles',
+  help_min_read: 'min read',
+  help_article_overview: 'Overview',
+  help_article_steps: 'Instructions',
+  help_article_section: 'Section',
+  help_step: 'Step',
+  help_related_articles: 'Related guides',
+  help_updated_date: 'Updated {{date}}',
+  help_breadcrumb: 'Documentation breadcrumb',
+  help_on_this_page: 'On this page',
+  help_back_to_home: 'All guides',
+  help_no_visible_guides:
+    'No guides are available for your current permissions.',
+  help_center_management: 'Help Center management',
+  help_center_management_intro:
+    'Create, review, and publish guides for your organization.',
+  help_categories: 'Categories',
+  help_articles: 'Articles',
+  help_new_category: 'New category',
+  help_edit_category: 'Edit category',
+  help_new_article: 'New article',
+  help_edit_article: 'Edit article',
+  help_category_title: 'Category title',
+  help_icon_name: 'Icon name',
+  help_icon_helper: 'Optional icon identifier for the documentation category.',
+  help_visible_to_module: 'Limit visibility to a module',
+  help_all_permitted_users: 'All users with Help Center access',
+  help_use_category_visibility: 'Use category visibility',
+  help_slug_helper: 'Leave blank to create a URL from the title.',
+  help_article_content: 'Article content',
+  help_editor_placeholder: 'Write clear, step-by-step guidance…',
+  help_image_upload_hint:
+    'PNG, JPEG, or WebP · Up to 10 MB. Images are stored privately.',
+  help_keywords_helper: 'Separate keywords with commas.',
+  help_editor_supported_content:
+    'Headings, lists, links, tables, and screenshots are supported.',
+  help_edit_published_note:
+    'Your edits are saved as a draft. Published readers keep seeing the current version until you publish the update.',
+  help_draft_note:
+    'This article is a draft and is not visible to regular users.',
+  help_unpublished_changes: 'Unpublished changes',
+  help_publish_update: 'Publish update',
+  help_no_categories: 'No documentation categories yet.',
+  help_no_articles: 'No articles match this status.',
+  help_no_categories_for_article: 'Create a category before adding an article.',
+  help_category_saved: 'Category saved.',
+  help_category_restored: 'Category restored.',
+  help_article_saved: 'Draft saved.',
+  help_article_published: 'Article published.',
+  help_article_archived: 'Article archived.',
+  help_article_restored: 'Article restored as a draft.',
+  restore: 'Restore',
+  help_save_failed: 'Could not save documentation.',
+  help_publish_failed: 'Could not publish this article.',
+  help_admin_load_error:
+    'Could not load documentation. Check your access and retry.',
+  help_category_has_articles:
+    'Archive or move its articles before archiving this category.',
+  help_article_required_fields:
+    'Choose a category and complete the title, summary, and content.',
+  help_article_preview: 'Article preview',
+  help_image_invalid: 'Choose a PNG, JPEG, or WebP image smaller than 10 MB.',
+  help_image_uploaded: 'Image uploaded and added to the article.',
+  help_image_accessibility_title: 'Describe this image',
+  help_image_accessibility_hint:
+    'Write a short description for screen readers, or mark the image as decorative if it adds no information.',
+  help_image_alt_text: 'Alternative text',
+  help_image_decorative: 'Decorative image',
+  help_edit_image_alt: 'Edit image description',
+  help_contextual_work_orders: 'Work Orders help',
+  help_contextual_requests: 'Maintenance Requests help',
+  help_contextual_equipment: 'Equipment help',
+  help_contextual_inventory: 'Inventory help',
+  help_contextual_settings: 'Settings help',
+  help_image_upload_failed: 'Could not upload the image.',
+  help_image_upload_note:
+    'Images are private storage objects served through QPM.',
   help_permissions_note:
     'Guides are shown according to your permissions. If you expect a screen that is missing, contact your administrator.',
   help_open_module: 'Open module',
@@ -528,10 +625,16 @@ const locale = {
   purchase_requisitions: 'Purchase Requisitions',
   purchase_requisitions_permission: 'Purchase Requisitions',
   purchase_requisition_approval_permission: 'Approve Purchase Requisitions',
+  purchase_order_approval_permission: 'Approve Purchase Orders',
   requisition_approval_access_hint:
-    'Approvals are handled here. To approve another user’s pending request, an administrator must grant View and View other for Purchase Requisitions, plus Edit other for Approve Purchase Requisitions in Settings → Roles. Requesters cannot approve their own requests.',
+    'Approvals are handled here. An administrator must grant Edit other for Approve Purchase Requisitions in Settings → Roles. That permission shows pending requests from other users here; requesters cannot approve their own requests.',
   purchase_orders: 'Purchase Orders',
+  purchase_order_categories: 'Purchase order categories',
   purchase_orders_to_receive: 'To receive',
+  receipt_status_filter: 'Receipt status',
+  receipt_filter_all: 'All open',
+  receipt_filter_not_started: 'Not started',
+  receipt_filter_partial: 'Partially received',
   all_purchase_orders: 'All purchase orders',
   remaining_to_receive: 'Remaining to receive',
   requisition_title: 'Request title',
@@ -577,11 +680,275 @@ const locale = {
   requisition_updated: 'Purchase requisition updated.',
   requisition_converted: 'Purchase order created from the request.',
   requisition_action_failed: 'The requisition action could not be completed.',
+  approval_no_active_policy:
+    'Approval was previously configured for this document type, but no active policy exists. Activate an approval policy in Settings.',
+  approval_no_matching_policy:
+    'No active approval policy matches this requisition amount and currency. Review the approval policy conditions in Settings.',
+  approval_approver_unavailable:
+    'The configured approval step has no eligible approver. Review its user or role assignment and approval permission.',
+  approval_distinct_approvers:
+    'Each approval level must have an eligible approver who can be assigned to that level.',
+  approval_invalid_amount_snapshot:
+    'The requisition amount could not be calculated. Check the requested quantities and part costs.',
   source_requisition: 'From request #{{id}}',
   requisition_review_note: 'Decision note',
   rejection_note_required: 'required to reject',
   requisition_needs_one_line: 'Add at least one requested item.',
   purchase_receipts: 'Purchase receipts',
+  task_lists_permission: 'Maintenance task lists',
+  maintenance_task_lists: 'Maintenance task lists',
+  maintenance_task_lists_intro:
+    'Define reusable maintenance operations and planned components for work orders.',
+  task_list_import: 'Import CSV',
+  task_list_export: 'Export CSV',
+  task_list_import_success:
+    'Imported {{importedCounters}} counters in {{generatedGroups}} groups.',
+  task_list_import_error:
+    'Could not import task lists. Check the CSV and retry.',
+  task_list_export_error: 'Could not export task lists. Please try again.',
+  export_csv: 'Export CSV',
+  purchase_export_failed: 'Could not export purchase documents. Please retry.',
+  import_csv: 'Import CSV',
+  download_csv_template: 'CSV template',
+  purchase_import_failed:
+    'Could not import purchase documents. Check the template and retry.',
+  purchase_requisition_imported:
+    'Imported {{importedRequisitions}} requisitions as drafts. Review and submit them for approval.',
+  purchase_order_imported:
+    'Imported {{importedPurchaseOrders}} purchase orders. They were sent through the configured approval workflow.',
+  task_list_settings_title: 'Task list settings',
+  task_list_settings_invalid:
+    'Workers must be between 0.01 and 999999. Operation numbering values must be whole numbers between 1 and 999999.',
+  task_list_settings_description:
+    'Set operation defaults and automatic operation numbering.',
+  task_list_operation_defaults: 'Operation defaults',
+  task_list_reference_catalogs: 'Work centers and control keys',
+  task_list_reference_catalogs_help:
+    'Maintain the QPM selection lists. Enter codes from your plant configuration. A work center in SAP is plant-specific, and control-key behavior remains defined by SAP Customizing; QPM stores the selected code for task lists and future integration.',
+  task_list_work_center_catalog: 'Work center codes',
+  task_list_control_key_catalog: 'Control key codes',
+  task_list_catalog_one_per_line:
+    'Enter one exact code per line. Duplicate codes are rejected.',
+  task_list_operation_defaults_help:
+    'These values prefill new operations. Work center suggestions from existing task lists take precedence when available.',
+  task_list_default_workers: 'Default number of technicians',
+  task_list_default_work_unit: 'Default planned work unit',
+  task_list_default_duration_unit: 'Default operation duration unit',
+  task_list_operation_numbering: 'Operation numbering',
+  task_list_operation_numbering_help:
+    'New operations receive the next number automatically. Existing operation numbers are preserved.',
+  task_list_operation_number_start: 'First operation number',
+  task_list_operation_number_increment: 'Number increment',
+  task_list_settings_saved: 'Task list settings saved.',
+  task_list_settings_save_error: 'Could not save task list settings.',
+  task_list_settings_load_error: 'Could not load task list settings.',
+  hours_abbreviation: 'Hours (H)',
+  minutes_abbreviation: 'Minutes (MIN)',
+  seconds_abbreviation: 'Seconds (S)',
+  maintenance_task_list_optional: 'Maintenance task list (optional)',
+  select_maintenance_task_list: 'Select a valid active task list',
+  no_active_task_lists: 'No active, currently valid task lists are available.',
+  task_lists_load_error:
+    'Task lists could not be loaded. You can retry by reopening this form.',
+  task_list_work_order_plan_helper:
+    'Operations and planned materials are copied to this work order. Stock is not reserved or issued.',
+  work_order_planned_operations: 'Planned operations',
+  no_planned_operations: 'No operations were copied from this task list.',
+  work_order_plan_load_error: 'The planned operations could not be loaded.',
+  work_order_planned_materials: 'Planned materials',
+  planned_operation: 'Operation {{number}}',
+  planned_duration: 'Duration',
+  planned_quantity: 'Planned quantity',
+  create_task_list: 'Create maintenance task list',
+  edit_maintenance_task_list: 'Edit maintenance task list',
+  task_list_step_basic: 'Basic information',
+  task_list_step_operations: 'Operations',
+  task_list_step_materials: 'Components',
+  task_list_step_review: 'Review',
+  task_list_search_placeholder:
+    'Search group, counter, description or work center',
+  task_list_results_count: '{{count}} task lists',
+  task_list_group: 'Group',
+  task_list_group_code: 'Task list group',
+  task_list_group_counter: 'Group counter',
+  task_list_existing_group: 'Add to an existing group (optional)',
+  task_list_new_group_auto: 'Create a new group automatically',
+  task_list_group_code_auto_help:
+    'QPM generates the group number and first counter when saved. Choose a compatible existing group to add another counter.',
+  task_list_group_generated_on_save: 'Generated automatically when saved',
+  task_list_group_code_immutable_help:
+    'The task list group is assigned on creation and cannot be changed.',
+  task_list_group_counter_count: '{{count}} counters',
+  task_list_groups_load_error:
+    'Existing groups could not be loaded. You can still create a new group.',
+  task_list_reuse_existing_default:
+    'Reuse an existing value or enter a new one.',
+  task_list_work_center_suggestions:
+    'Consistent values used before are suggested; you can change them.',
+  task_list_defaults_load_failed:
+    'Saved work-center defaults could not be loaded. You can still enter values manually.',
+  task_list_copy_from_counter: 'Copy operations from a counter',
+  task_list_copy_from_counter_help:
+    'Optional. Operations and planned components are copied into this new counter; the source remains unchanged.',
+  task_list_copy_counter_parts_permission:
+    'Copying is disabled because your role cannot view parts; planned components must not be silently omitted.',
+  task_list_copy_counter_parts_denied:
+    'This counter contains planned parts outside your visibility. Ask an administrator to grant access before copying it.',
+  task_list_parts_no_match:
+    'No matching parts found. Search by part code or description.',
+  task_list_search_parts: 'Find a part',
+  task_list_search_parts_hint: 'Search by code, name, or description',
+  task_list_search_parts_minimum:
+    'Enter at least 2 characters to search the parts catalog.',
+  task_list_parts_search_count: '{{count}} matching part(s)',
+  task_list_select_part: 'Select a part from the catalog',
+  task_list_part_picker_title: 'Select a planned component',
+  task_list_part_picker_help:
+    'Search the parts catalog, review the matching details, then select one part for this operation.',
+  task_list_no_counter_copy: 'Start with an empty counter',
+  task_list_group_counters_load_error:
+    'Could not load counters for this group. You can continue with an empty counter.',
+  task_list_replace_operations_confirm:
+    'This will replace the current operations and planned components. Continue?',
+  task_list_storage_location_from_part:
+    'Suggested from the part record; you can change it.',
+  task_list_group_code_limit_reached:
+    'The automatic task-list group number limit has been reached. Contact your administrator.',
+  task_list_group_not_found:
+    'The selected task-list group is no longer available.',
+  task_list_group_type_mismatch:
+    'A task list can only join a group with the same task-list type.',
+  task_list_group_object_mismatch:
+    'A task list can only join a group for the same equipment or functional location.',
+  task_list_reference_equipment: 'Equipment',
+  task_list_reference_location: 'Functional location',
+  task_list_reference_objects_load_error:
+    'Could not load eligible equipment or functional locations. Check your access and retry.',
+  task_list_equipment_required:
+    'Select an equipment record for an equipment task list.',
+  task_list_functional_location_required:
+    'Select a functional location for this task list.',
+  task_list_reference_object_not_allowed:
+    'General task lists cannot be linked to a single equipment or functional location.',
+  task_list_reference_object_unavailable:
+    'The selected equipment or functional location is unavailable.',
+  task_list_identity_immutable:
+    'Task-list type and reference object cannot be changed after creation.',
+  task_list_object_mismatch:
+    'This task list is linked to another equipment or functional location. Choose a compatible task list.',
+  asset_used_by_task_list:
+    'This equipment is referenced by a maintenance task list and cannot be deleted.',
+  location_used_by_task_list:
+    'This functional location is referenced by a maintenance task list and cannot be deleted.',
+  task_list_in_use_by_work_order:
+    'This task list is used by one or more work orders and cannot be deleted.',
+  task_list_in_use_by_preventive_maintenance:
+    'This task list is assigned to a preventive maintenance plan. Remove that assignment before deleting it.',
+  task_list_counter_generated_on_save: 'Assigned automatically when saved',
+  task_list_counter_auto_help:
+    'QPM assigns the next available counter for this group when you save.',
+  task_list_counter_immutable_help:
+    'This SAP-style group counter is assigned automatically and cannot be changed.',
+  task_list_group_counter_limit_reached:
+    'The automatic group counter limit has been reached. Contact your administrator.',
+  task_list_type: 'Task list type',
+  task_list_type_general: 'General',
+  task_list_type_equipment: 'Equipment',
+  task_list_type_functional_location: 'Functional location',
+  task_list_status_active: 'Active',
+  task_list_status_draft: 'Draft',
+  task_list_status_inactive: 'Inactive',
+  task_list_operation_count: '{{count}} operations',
+  task_list_material_count: '{{count}} components',
+  task_list_validity_open: 'No validity dates set',
+  task_list_wizard_help:
+    'Build the work steps and planned components in a few clear steps.',
+  task_list_invalid_validity:
+    'The end of validity must be on or after the start date.',
+  task_list_operations_title: 'Maintenance operations',
+  task_list_operations_help:
+    'Add and order the steps that technicians will perform.',
+  task_list_operation_number: 'Operation number',
+  task_list_operation_number_auto_help:
+    'Assigned automatically using Task List settings.',
+  task_list_draft_without_operations:
+    'A draft can be saved before operations are ready.',
+  short_description: 'Short description',
+  control_key: 'Control key',
+  system_condition: 'System condition',
+  select_system_condition: 'Select a condition',
+  system_condition_not_in_operation: 'Not in operation',
+  system_condition_in_operation: 'In operation',
+  system_condition_legacy_value: 'Existing value: {{value}}',
+  planned_work: 'Planned work',
+  duration_unit: 'Duration unit',
+  task_list_technicians: 'Number of technicians',
+  task_list_technicians_count: '{{count}} technician(s)',
+  task_list_total_labor_work: 'Total labor work (h)',
+  task_list_labor_work_formula:
+    '{{duration}} h × {{workers}} technician(s) = {{work}} h work',
+  task_list_labor_work_manual_help:
+    'Enter total work. Automatic calculation is available when units are in hours.',
+  task_list_materials_title: 'Planned components',
+  task_list_materials_help:
+    'These are requirements for the operation. Adding them does not reserve or consume stock.',
+  task_list_materials_permission_limited:
+    'Your role cannot browse parts. Existing component assignments will be preserved.',
+  task_list_manage_role_permissions: 'Manage role permissions',
+  task_list_parts_load_error:
+    'Parts could not be loaded. Retry before adding components.',
+  task_list_add_operation_first:
+    'Add an operation before assigning components.',
+  add_component: 'Add component',
+  required_quantity: 'Required quantity',
+  estimated_unit_cost: 'Estimated unit cost',
+  remove_component: 'Remove component',
+  task_list_review_title: 'Review the task list',
+  task_list_validation_error:
+    'Complete the required fields and correct any invalid quantities.',
+  task_list_save_error: 'The task list could not be saved.',
+  task_list_header_values_invalid: 'Check the task list description, type and work center lengths.',
+  task_list_operation_values_invalid: 'One or more operation fields exceed the supported length.',
+  task_list_operation_required_fields: 'Each operation needs an operation number and short description.',
+  task_list_operation_values_must_be_positive: 'Workers, planned work and duration must be greater than zero when provided.',
+  task_list_material_values_invalid: 'Each component needs a valid part and positive quantity; estimated cost cannot be negative.',
+  task_list_operation_not_found:
+    'An operation no longer belongs to this task list. Refresh it and try again.',
+  task_list_material_not_found:
+    'A component assignment is no longer available. Refresh it and try again.',
+  task_list_duplicate_group_counter: 'This group and counter already exist.',
+  task_list_saved: 'Task list updated.',
+  task_list_created: 'Task list created.',
+  task_list_deleted: 'Task list deleted.',
+  task_list_delete_error: 'The task list could not be deleted.',
+  task_list_search_empty: 'No matching task lists',
+  task_list_search_empty_help:
+    'Try another group, counter, description or work center.',
+  task_list_empty_page_title: 'No maintenance task lists yet',
+  task_list_empty_page_help:
+    'Create a task list to define reusable operations and planned components.',
+  part_reference: 'Part #{{id}}',
+  untitled_operation: 'Untitled operation',
+  untitled_task_list: 'Untitled task list',
+  task_list_operation_no_planning_data: 'No labor or duration estimate',
+  task_list_planned_material_disclaimer:
+    'Planned components remain separate from reservations and goods issues.',
+  task_list_discard_confirm: 'Discard your unsaved task list changes?',
+  task_list_delete_confirm: 'Delete “{{name}}”? This cannot be undone.',
+  task_list_load_error: 'Task lists could not be loaded.',
+  operation: 'Operation',
+  work_center: 'Work center',
+  valid_from: 'Valid from',
+  valid_to: 'Valid to',
+  back: 'Back',
+  loading: 'Loading…',
+  no_planned_materials: 'No planned components assigned.',
+  storage_location: 'Storage location',
+  deleting: 'Deleting…',
+  no_access_task_lists:
+    'You do not have permission to view maintenance task lists.',
+  task_list_feature_disabled:
+    'Preventive Maintenance is not enabled for this company. Contact your administrator to activate it.',
   receiving: 'Receiving',
   received: 'Received',
   receipt: 'Receipt',
@@ -593,6 +960,10 @@ const locale = {
   requisition_from_work_order_parts_notice:
     'Parts already assigned to this work order are not copied. Their assignment consumes stock, so add only quantities that still need to be purchased.',
   requisition_title_from_work_order: 'Parts for {{workOrder}}',
+  purchase_requisition_replenish: 'Request replenishment',
+  requisition_from_low_stock:
+    'Replenishment draft for {{part}}. Suggested quantity: {{quantity}} {{unit}}. Review it before saving or submitting.',
+  requisition_title_from_part: 'Replenish {{part}}',
   request_parts: 'Request parts',
   next_action: 'Next action',
   delivery_overdue: 'Delivery overdue',
@@ -652,6 +1023,11 @@ const locale = {
   sidebar_sap_technical_categories: 'Categories',
   sidebar_sap_documents: 'Documents',
   sidebar_sap_settings: 'Settings',
+  maintenance_management: 'Maintenance Management',
+  materials_management: 'Materials Management',
+  procurement: 'Procurement',
+  reports_analytics: 'Reports & Analytics',
+  administration: 'Administration',
   cancelled: 'Cancelled',
   reject: 'Reject',
   approve: 'Approve',
@@ -880,6 +1256,18 @@ const locale = {
   ordered_quantity_by_unit: 'Ordered quantity by unit',
   unit_unspecified: 'unit unspecified',
   estimated_total_cost: 'Estimated total cost',
+  agreed_unit_price: 'Agreed unit price',
+  enter_supplier_price: 'Enter the agreed supplier price',
+  company_currency: 'Company currency',
+  purchase_order_agreed_total: 'Agreed total',
+  purchase_order_agreed_total_note:
+    'Calculated from supplier agreed unit prices.',
+  purchase_price_updated: 'Supplier price updated',
+  purchase_price_update_failed: 'Supplier price could not be updated',
+  purchase_cost_snapshot_help:
+    'Cost estimate captured when this order line was created; it is not a supplier quote.',
+  purchase_cost_snapshot_missing:
+    'Cost estimate not recorded for this order line',
   purchase_order_cost_estimate_note:
     'Estimate from current part costs; supplier prices may differ.',
   shipping_to: 'Shipping to',
@@ -917,6 +1305,8 @@ const locale = {
   po_create_partial_failure:
     'The purchase order was created, but saving its parts or approval failed. Review the order and complete the missing step.',
   approve_while_submitting: 'Approve while submitting',
+  purchase_order_approve_on_submit_hint:
+    'Approval authorizes the order. Stock is updated only when a goods receipt is recorded.',
   purchase_order_approval_confirmation_title: 'Confirm purchase order approval',
   purchase_order_approval_confirmation_body:
     'Approving this purchase order immediately adds stockable part lines to inventory. Non-stock parts do not change inventory.',
@@ -1111,6 +1501,8 @@ const locale = {
   category_edit_failure: "The Category couldn't be edited",
   category_delete_success: 'The Category has been deleted successfully',
   category_delete_failure: "The Category couldn't be deleted",
+  purchase_order_category_in_use:
+    'This category is assigned to one or more purchase orders and cannot be deleted.',
   timers: 'Timers',
   costs: 'Costs',
   add_category: 'Add new category',
@@ -1124,6 +1516,14 @@ const locale = {
   acquisition_cost: 'Acquisition Cost',
   general_settings: 'General Settings',
   document_templates: 'Document templates',
+  document_access_history: 'Document access history',
+  document_access_history_description:
+    'Review who opened archived PDFs and whether the download succeeded.',
+  document_access_date: 'Access date',
+  document_access_document: 'Document',
+  document_access_actor: 'Opened by',
+  document_access_success: 'Downloaded',
+  document_access_failed: 'Download failed',
   document_templates_description:
     'Manage versioned Work Order and maintenance request report templates for your company.',
   document_templates_search: 'Search templates',
@@ -1173,7 +1573,9 @@ const locale = {
   document_template_selected_fields_count: '{{count}} fields',
   document_template_preview_title: 'Preview template',
   document_template_preview_help:
-    'Enter a Work Order ID to preview “{{name}}”. The draft is previewed when one exists; otherwise the current published version is used. No document will be archived.',
+    'Enter the record ID to preview “{{name}}”. You can enter a PR/PO as PR-123 or PO-123. The draft is used when available; no document will be archived.',
+  document_template_preview_pr_po_id_help:
+    'Use the number shown on the record, for example PR-123 or PO-123.',
   document_template_preview_work_order_required: 'Enter a valid Work Order ID.',
   work_order_number: 'Work Order ID',
   maintenance_request_number: 'Maintenance Request ID',
@@ -1215,6 +1617,32 @@ const locale = {
   document_template_canvas_move_up: 'Move up',
   document_template_canvas_move_down: 'Move down',
   document_field_workOrder_customId: 'Work Order ID',
+  document_field_purchaseOrder_number: 'Purchase Order number',
+  document_field_purchaseOrder_name: 'Order name',
+  document_field_purchaseOrder_status: 'Approval status',
+  document_field_purchaseOrder_vendor: 'Supplier',
+  document_field_purchaseOrder_category: 'Order category',
+  document_field_purchaseOrder_shippingDueDate: 'Delivery due date',
+  document_field_purchaseOrder_shipTo: 'Ship to',
+  document_field_purchaseOrder_shippingAddress: 'Shipping address',
+  document_field_purchaseOrder_shippingCity: 'Shipping city',
+  document_field_purchaseOrder_shippingState: 'Shipping state',
+  document_field_purchaseOrder_shippingZipCode: 'Shipping postal code',
+  document_field_purchaseOrder_shippingPhone: 'Shipping phone',
+  document_field_purchaseOrder_shippingFax: 'Shipping fax',
+  document_field_purchaseOrder_terms: 'Terms',
+  document_field_purchaseOrder_notes: 'Notes',
+  document_field_purchaseOrder_requestedBy: 'Requested by',
+  document_field_purchaseOrder_date: 'Order date',
+  document_field_purchaseOrder_lines: 'Ordered items',
+  document_field_purchaseRequisition_number: 'Requisition number',
+  document_field_purchaseRequisition_title: 'Title',
+  document_field_purchaseRequisition_status: 'Approval status',
+  document_field_purchaseRequisition_justification: 'Justification',
+  document_field_purchaseRequisition_requiredDate: 'Required by',
+  document_field_purchaseRequisition_requester: 'Requester',
+  document_field_purchaseRequisition_createdDate: 'Created on',
+  document_field_purchaseRequisition_lines: 'Requested items',
   document_field_workOrder_title: 'Work Order title',
   document_field_workOrder_description: 'Description',
   document_field_workOrder_status: 'Status',
@@ -1542,7 +1970,6 @@ const locale = {
   task_list_requires_operation:
     'Add at least one operation to this list before saving.',
   operation_number: 'Operation {{number}}',
-  operations: 'Operations',
   general_task_list: 'Reusable general task list',
   confirm_delete_checklist: 'Are you sure you want to delete this Checklist?',
   upgrade_checklist: 'Please Upgrade to use Checklists',
@@ -1569,6 +1996,27 @@ const locale = {
   pm_plan_configuration: 'Maintenance strategy and cycle set',
   pm_plan_configuration_help:
     'Choose a standard recurrence, task packages at different intervals, or a combined plan driven by multiple meters.',
+  pm_maintenance_task_list: 'Operations and planned components',
+  pm_task_list_none: 'No operation template',
+  pm_maintenance_task_list_help:
+    'Optionally apply an active Maintenance Task List to every work order generated by this plan. Planned components remain reservations/planning data, not consumed stock.',
+  pm_task_lists_load_error:
+    'Maintenance Task Lists could not be loaded. Check your access and retry.',
+  pm_task_lists_none_available:
+    'No active task list matches this plan’s equipment or functional location. General lists are available to all plans. Create or activate a list in Preventive Maintenance → Task Lists, assign the matching object, then refresh this list.',
+  pm_task_lists_checking_asset_location:
+    'Checking the selected equipment location to find matching task lists…',
+  pm_task_lists_asset_location_error:
+    'The equipment location could not be checked. The saved task list link was kept; retry before selecting a functional-location list.',
+  pm_task_list_incompatible_preserved:
+    'The linked task list is inactive, outside its validity dates, or does not match this plan. The link is preserved; choose a compatible list or clear it explicitly before saving.',
+  pm_task_list_unavailable_preserved:
+    'The saved task list could not be found. Its link was kept; clear the link or choose another list to continue.',
+  pm_task_list_access_denied_preserved:
+    'Your account cannot view the saved task list. Its link was kept; ask an administrator to grant access or clear the link to continue.',
+  pm_task_list_clear_unavailable: 'Clear task list link',
+  pm_task_list_load_error:
+    'The saved task list could not be checked because of a temporary error. The link was kept; retry to continue.',
   pm_plan_mode: 'Plan type',
   task_without_name: 'Unnamed task',
   pm_plan_mode_single: 'Standard plan',
@@ -2623,9 +3071,9 @@ const locale = {
     'Connect QPM maintenance events to the tools your teams already use, with a clear path from notification to controlled write-back.',
   integration_hub_security_note:
     'QPM does not store external tool credentials here. API keys inherit the permissions of their owner account and have no independent scopes. Do not use an administrator key in an external workflow.',
-  integration_external_workflows: 'External workflows',
+  integration_external_workflows: 'External workflows and ERP connectors',
   integration_external_workflows_description:
-    'Start with guided recipes using QPM webhooks and the existing API.',
+    'Use QPM webhooks for external workflows. ERP connectors appear here when their secure server integration is available.',
   integration_recipes_title: 'Maintenance workflow recipes',
   integration_recipes_description:
     'Choose an actual QPM event, then configure its destination in your external workflow tool.',
@@ -2653,6 +3101,13 @@ const locale = {
   integration_sap_title: 'SAP EAM / PM',
   integration_sap_description:
     'A SAP pilot can start with read-only discovery through your company middleware; QPM does not yet provide a direct connector.',
+  integration_sage300_title: 'Sage 300 ERP',
+  integration_sage300_description:
+    'Procurement setup and synchronization are not available yet. Sage configuration will be managed here in Settings when the secure backend connector is ready.',
+  integration_sage300_prerequisites_title: 'Needed before setup',
+  integration_sage300_prerequisites:
+    'Sage Web API address · company database · service account with Web API and purchasing permissions. Credentials must be stored in a server-side secrets vault.',
+  integration_sage300_docs: 'Open the Sage 300 Web API SDK documentation',
   integration_calendar_title: 'Microsoft and Google Calendar',
   integration_calendar_description:
     'Calendar publishing needs OAuth, server-side token storage and sync handling.',
@@ -2797,6 +3252,48 @@ const locale = {
   vendors_contractors_settings_description:
     'Manage external contractors and vendors your organization works with',
   workflows_settings_description: 'Create and manage automated workflows',
+  pr_approval_workflow: 'Purchase requisition approval',
+  pr_approval_workflow_description:
+    'Set up sequential approval levels for submitted purchase requisitions. Approvers must already have the PR approval permission.',
+  pr_approval_workflow_info:
+    'Each level is assigned to one user and runs in order. Changing this configuration affects new submissions; pending requests keep their assigned approval chain. An empty list keeps the existing shared approval queue.',
+  pr_approval_managed_externally:
+    'Approval policies have been activated for this company. This legacy editor is disabled; manage PR approval policies in Settings → Approval Management. Existing requests keep their submitted approval chain.',
+  pr_approval_config_saved: 'Approval workflow saved',
+  pr_approval_config_failed: 'Could not save approval workflow',
+  pr_approval_config_version: 'Configuration version {{version}}',
+  pr_approval_policy_title: 'Manage approval policies',
+  pr_approval_policy_description:
+    'Configure PR and PO rules and review actual decisions in Approval Management.',
+  pr_approval_levels_title: 'Approval levels',
+  pr_approval_levels_description:
+    'Approvers act in the order shown. Reorder levels with the arrow buttons.',
+  pr_approval_levels_count: '{{count}} / {{max}} levels',
+  pr_approval_level_order: 'Step {{current}} of {{total}}',
+  pr_approval_unassigned: 'Approver to be assigned',
+  pr_approval_select_approver: 'Select an approver',
+  pr_approval_select_approver_hint:
+    'Choose the person responsible for this level.',
+  pr_approval_unassigned_levels:
+    '{{count}} level(s) do not have an approver. Complete the selection before saving.',
+  pr_approval_no_users: 'No users are available to configure approvals.',
+  workflows_load_failed:
+    'Workflows could not be loaded. Check your connection and try again.',
+  workflow_lookup_load_failed:
+    'Field options could not be loaded. Close and reopen the list to try again.',
+  workflows_empty_title: 'No workflows configured',
+  workflows_empty_description:
+    'Create a workflow to automate actions for requests, work orders, or purchasing.',
+  pr_approval_empty_title: 'No approval levels configured',
+  pr_approval_empty_description:
+    'Requests will use the existing shared approval queue. Add a level to assign approvals to specific people.',
+  approval_level: 'Level',
+  approver: 'Approver',
+  your_approval: 'Your approval',
+  waiting_for_approver: 'Waiting for assigned approver',
+  add_approval_level: 'Add approval level',
+  move_up: 'Move up',
+  move_down: 'Move down',
   request_portals_settings_description:
     'Create, manage, and edit all Request Portals in your organization.',
   set_preferences: 'Set Preferences',
@@ -2818,7 +3315,6 @@ const locale = {
   options: 'Options',
   short_text: 'Short Text',
   long_text: 'Long Text',
-  number: 'Number',
   date_time: 'Date & Time',
   single_choice: 'Single Choice',
   label: 'Label',
@@ -3433,6 +3929,10 @@ const locale = {
   document_table_column_description: 'Description',
   document_table_column_quantity: 'Quantity',
   document_table_column_unit: 'Unit',
+  document_table_column_site: 'Site',
+  document_table_column_unitPrice: 'Unit price',
+  document_table_column_currency: 'Currency',
+  document_table_column_lineTotal: 'Line total',
   document_template_scope: 'Template availability',
   document_template_scope_company: 'All sites in this company',
   document_template_scope_site: 'One site only',
@@ -3441,7 +3941,60 @@ const locale = {
   document_template_site_required:
     'Select a site for a site-specific template.',
   document_template_no_sites: 'Create a site before assigning this template.',
-  document_template_site_missing: 'Site not assigned'
+  document_template_site_missing: 'Site not assigned',
+  document_view: 'View document',
+  document_download: 'Download document',
+  document_print: 'Print document',
+  document_open_new_tab: 'Open in new tab',
+  document_preview_title: 'Document preview',
+  document_preview_error:
+    'This document could not be previewed. Try opening it in a new tab.',
+  document_preview_secure_note:
+    'The document is loaded from its authorized file URL.',
+  document_metadata_name: 'File name',
+  document_metadata_id: 'File ID',
+  asset_history_search_placeholder: 'Search work orders',
+  asset_history_filter_status: 'Filter by status',
+  asset_history_all_statuses: 'All statuses',
+  asset_history_no_matching_orders: 'No work orders match these filters.',
+  asset_history_pagination: 'Work order history pages',
+  asset_history_order_type: 'Order type',
+  asset_history_planned_start: 'Planned start',
+  asset_history_actual_start: 'Actual start',
+  asset_history_completed: 'Completed',
+  asset_history_planned_hours: 'Planned hours',
+  asset_history_work_center: 'Work center',
+  asset_history_planned_cost: 'Estimated material cost',
+  asset_history_related_notification: 'Related notification',
+  asset_history_actual_hours: 'Actual labor hours',
+  asset_history_actual_cost: 'Actual total cost',
+  asset_history_preventive: 'Preventive maintenance',
+  asset_history_corrective: 'Corrective maintenance',
+  data_not_available: 'Not available',
+  no_preventive_plans_for_location:
+    'No preventive maintenance plans are assigned to this location.',
+  no_requests_for_location:
+    'No maintenance requests are linked to this location.',
+  next_due: 'Next due',
+  duplicate_operation: 'Duplicate operation',
+  procurement_print: 'Print / PDF',
+  procurement_print_help:
+    'Preview a published template, then issue a traceable PDF. Reprints remain available below.',
+  procurement_print_no_template:
+    'No published template is available. Publish the PR/PO template in Settings → Documents; drafts are not listed here.',
+  procurement_issue_pdf: 'Issue PDF',
+  procurement_reprint_pdf: 'Open / print',
+  procurement_issue_requires_approval:
+    'You can preview and reprint this document. Official issue requires the appropriate permission, and purchase orders must be approved.',
+  procurement_template_pricing_notice:
+    'Supplier unit prices and currency are not stored on PO lines yet. Do not add commercial totals to this template; only item names and quantities are available.',
+  document_field_purchaseOrder_requisition: 'Originating requisition(s)',
+  document_field_purchaseOrder_vendorAddress: 'Supplier address',
+  document_field_purchaseOrder_vendorPhone: 'Supplier phone',
+  document_field_purchaseOrder_vendorEmail: 'Supplier email',
+  document_field_purchaseRequisition_sourceWorkOrder: 'Source Work Order',
+  document_field_purchaseOrder_approvalHistory: 'Approval history',
+  document_field_purchaseRequisition_approvalHistory: 'Approval history'
 };
 
 export default locale;

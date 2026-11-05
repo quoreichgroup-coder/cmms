@@ -9,11 +9,13 @@ const basePath = 'workflows';
 interface WorkflowState {
   workflows: Workflow[];
   loadingGet: boolean;
+  loadingError: boolean;
 }
 
 const initialState: WorkflowState = {
   workflows: [],
-  loadingGet: false
+  loadingGet: false,
+  loadingError: false
 };
 
 const slice = createSlice({
@@ -63,6 +65,10 @@ const slice = createSlice({
     ) {
       const { loading } = action.payload;
       state.loadingGet = loading;
+      if (loading) state.loadingError = false;
+    },
+    setLoadingError(state: WorkflowState, action: PayloadAction<{ error: boolean }>) {
+      state.loadingError = action.payload.error;
     }
   }
 });
@@ -74,6 +80,10 @@ export const getWorkflows = (): AppThunk => async (dispatch) => {
   try {
     const workflows = await api.get<Workflow[]>(basePath);
     dispatch(slice.actions.getWorkflows({ workflows }));
+    dispatch(slice.actions.setLoadingError({ error: false }));
+  } catch (error) {
+    dispatch(slice.actions.setLoadingError({ error: true }));
+    throw error;
   } finally {
     dispatch(slice.actions.setLoadingGet({ loading: false }));
   }

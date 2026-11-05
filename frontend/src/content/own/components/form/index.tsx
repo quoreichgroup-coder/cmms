@@ -323,6 +323,9 @@ export default (props: PropsType) => {
                     ) : field.type === 'partQuantity' ? (
                       <SelectPartQuantities
                         selected={formik.values[field.name] ?? []}
+                        purchaseUnitPriceInput={field.purchaseUnitPriceInput}
+                        siteSelectionEnabled={field.siteSelectionEnabled}
+                        siteSelectionRequired={field.siteSelectionRequired}
                         onChange={(newPartQuantities) => {
                           handleChange(formik, field.name, newPartQuantities);
                         }}

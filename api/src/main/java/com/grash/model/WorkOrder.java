@@ -91,6 +91,19 @@ public class WorkOrder extends WorkOrderBase {
     @Schema(description = "Custom fields", accessMode = Schema.AccessMode.READ_ONLY)
     private List<CustomFieldValue> customFieldValues = new ArrayList<>();
 
+    @OneToMany(mappedBy = "workOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("operationOrder ASC")
+    @NotAudited
+    private List<WorkOrderPlannedOperation> plannedOperations = new ArrayList<>();
+
+    @Column(name = "maintenance_task_list_id")
+    @NotAudited
+    private Long maintenanceTaskListId;
+
+    @Column(name = "maintenance_task_list_reference", length = 120)
+    @NotAudited
+    private String maintenanceTaskListReference;
+
     @JsonIgnore
     public boolean isCompliant() {
         return this.getDueDate() == null || this.getCompletedOn().before(this.getDueDate());

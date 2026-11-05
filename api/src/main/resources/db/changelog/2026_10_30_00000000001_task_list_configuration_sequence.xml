@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-30-task-list-configuration-sequence" author="qpm">
+        <sql>CREATE SEQUENCE IF NOT EXISTS maintenance_task_list_configuration_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
+</databaseChangeLog>

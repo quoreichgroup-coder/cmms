@@ -76,6 +76,17 @@ public class DocumentTemplateController {
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(pdf);
     }
 
+    @PostMapping("/{id}/preview-procurement-pdf")
+    public ResponseEntity<byte[]> previewProcurementPdf(@PathVariable Long id, @RequestParam Long sourceId,
+                                                        @RequestParam String providerCode, HttpServletRequest request) {
+        if (!List.of("PURCHASE_ORDER", "PURCHASE_REQUISITION").contains(providerCode))
+            throw new com.grash.exception.CustomException("Unsupported procurement document type", org.springframework.http.HttpStatus.BAD_REQUEST);
+        byte[] pdf = generatedDocumentService.previewProcurementDocumentTemplate(
+                id, sourceId, providerCode, userService.whoami(request));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(pdf);
+    }
+
     @PostMapping("/{id}/preview-data")
     public Map<String, Object> previewData(@PathVariable Long id, @RequestParam Long workOrderId,
                                           HttpServletRequest request) {

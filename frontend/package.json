@@ -128,6 +128,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development runtime-env-cra --config-name=./public/runtime-env.js && react-app-rewired start --max_old_space_size=6096",
     "build": "react-app-rewired build",
+    "typecheck": "tsc --noEmit --pretty false",
     "eject": "react-scripts eject",
     "lint": "eslint .",
     "lint:fix": "eslint --fix",

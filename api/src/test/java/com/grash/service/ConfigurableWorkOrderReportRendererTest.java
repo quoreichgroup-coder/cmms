@@ -21,6 +21,35 @@ import static org.mockito.Mockito.*;
 
 class ConfigurableWorkOrderReportRendererTest {
     @Test
+    void procurementDocumentsDoNotAppendTechnicianSignatures() throws Exception {
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setTemplateMode("HTML");
+        resolver.setCharacterEncoding("UTF-8");
+        SpringTemplateEngine templateEngine = new SpringTemplateEngine();
+        templateEngine.setTemplateResolver(resolver);
+        StorageServiceFactory storageFactory = mock(StorageServiceFactory.class);
+        when(storageFactory.getStorageService()).thenReturn(mock(StorageService.class));
+        ConfigurableWorkOrderReportRenderer renderer = new ConfigurableWorkOrderReportRenderer(templateEngine, storageFactory);
+        var context = new DocumentContextResolver.DocumentContext("QPM", null, null, null, null, null,
+                null, "XOF", null, "UTC", Language.EN, Locale.ENGLISH, null, null);
+
+        for (String type : List.of("PURCHASE_ORDER", "PURCHASE_REQUISITION")) {
+            var configuration = new ObjectMapper().readTree("""
+                    {"documentType":"%s","provider":"%s","style":"CLASSIC",
+                     "page":{"size":"A4","orientation":"PORTRAIT","marginMm":10},
+                     "visibleFields":[],"options":{"showPageNumbers":false}}
+                    """.formatted(type, type));
+            byte[] pdf = renderer.render(configuration, List.of(), context, null, "#2F5BEA");
+            try (PdfDocument document = new PdfDocument(new PdfReader(new ByteArrayInputStream(pdf)))) {
+                String text = PdfTextExtractor.getTextFromPage(document.getPage(1));
+                assertFalse(text.contains("Technician signature"), type + " must not include a work-order sign-off area");
+            }
+        }
+    }
+
+    @Test
     void rendersMaintenanceRequestSpecificDocumentTitle() throws Exception {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
@@ -381,6 +410,42 @@ class ConfigurableWorkOrderReportRendererTest {
         assertThrows(IllegalArgumentException.class, () -> new ConfigurableWorkOrderReportRenderer.ReportTable(
                 "workOrder.executionTasks", "Operations", List.of("No.", "Operation", "Result", "Notes"),
                 List.of(), List.of(10, 38, 18, 33)));
+    }
+
+    @Test
+    void legacyTemplatePlacesApprovalHistoryOnItsOwnAppendixPage() {
+        var details = new ConfigurableWorkOrderReportRenderer.ReportBlock("FIELD",
+                new ConfigurableWorkOrderReportRenderer.ReportRow("purchaseOrder.number", "PO", "PO-70"), null);
+        var history = new ConfigurableWorkOrderReportRenderer.ReportBlock("FIELD",
+                new ConfigurableWorkOrderReportRenderer.ReportRow("purchaseOrder.approvalHistory", "History", "Finance — Approved"), null);
+
+        var sections = new ConfigurableWorkOrderReportRenderer(mock(org.thymeleaf.spring6.SpringTemplateEngine.class),
+                mock(StorageServiceFactory.class)).semanticSections(List.of(details, history), false, true);
+
+        assertEquals(2, sections.size());
+        assertEquals("approvalHistory", sections.get(1).key());
+        assertTrue(sections.get(1).pageBreakBefore());
+        assertFalse(sections.get(1).keepTogether());
+        assertEquals("Annexe — Historique des approbations", sections.get(1).title());
+    }
+
+    @Test
+    void configurableLayoutHonorsDedicatedApprovalHistorySectionPageBreak() {
+        var details = new ConfigurableWorkOrderReportRenderer.ReportBlock("FIELD",
+                new ConfigurableWorkOrderReportRenderer.ReportRow("purchaseRequisition.number", "PR", "PR-31"), null,
+                "Informations", 2, "general", "pr", null, false, "LEFT", false, false, false, false, false);
+        var history = new ConfigurableWorkOrderReportRenderer.ReportBlock("FIELD",
+                new ConfigurableWorkOrderReportRenderer.ReportRow("purchaseRequisition.approvalHistory", "History", "Finance — Approved"), null,
+                "Annexe — Historique des approbations", 1, "approval-history", "approval", null, false, "LEFT", false,
+                true, false, true, false);
+
+        var sections = new ConfigurableWorkOrderReportRenderer(mock(org.thymeleaf.spring6.SpringTemplateEngine.class),
+                mock(StorageServiceFactory.class)).layoutSections(List.of(details, history), true);
+
+        assertEquals(2, sections.size());
+        assertEquals("approval-history", sections.get(1).key());
+        assertTrue(sections.get(1).pageBreakBefore());
+        assertFalse(sections.get(1).keepTogether());
     }
 
     private void writeVisualReviewPdf(String fileName, byte[] pdf) throws Exception {

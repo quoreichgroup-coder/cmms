@@ -23,6 +23,12 @@ public class PartMiniDTO {
     
     @Schema(description = "Unit of measurement")
     private String unit;
+
+    @Schema(description = "Default storage area used to suggest component location")
+    private String area;
+
+    @Schema(description = "Barcode or part code, when configured")
+    private String barcode;
     
     @Schema(description = "Indicates whether this is a non-stock part")
     private boolean nonStock;

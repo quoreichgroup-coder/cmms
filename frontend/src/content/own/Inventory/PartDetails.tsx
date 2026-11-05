@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   CircularProgress,
   Divider,
   Grid,
@@ -23,6 +24,7 @@ import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutl
 import Part from '../../../models/owns/part';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import { PermissionEntity } from '../../../models/owns/role';
+import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import useAuth from '../../../hooks/useAuth';
 import ImageViewer from 'react-simple-image-viewer';
 import {
@@ -55,8 +57,12 @@ interface PartDetailsProps {
 }
 export default function PartDetails(props: PartDetailsProps) {
   const { part, handleOpenUpdate, handleOpenDelete, onCopy } = props;
-  const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
-    useAuth();
+  const {
+    hasEditPermission,
+    hasDeletePermission,
+    hasCreatePermission,
+    hasFeature
+  } = useAuth();
   const { t }: { t: any } = useTranslation();
   const { getFormattedDate, getFormattedCurrency } = useContext(
     CompanySettingsContext
@@ -159,14 +165,49 @@ export default function PartDetails(props: PartDetailsProps) {
         item
         xs={12}
         display="flex"
-        flexDirection="row"
+        flexDirection={{ xs: 'column', sm: 'row' }}
         justifyContent="space-between"
       >
         <Box>
           <Typography variant="h2">{part?.name}</Typography>
           <Typography variant="h6">{part?.description}</Typography>
         </Box>
-        <Box>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' }
+          }}
+        >
+          {!part.nonStock &&
+            part.minQuantity > 0 &&
+            part.quantity < part.minQuantity &&
+            hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+            hasFeature(PlanFeature.PURCHASE_ORDER) && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddShoppingCartOutlinedIcon />}
+                onClick={() =>
+                  navigate(
+                    `/app/purchase-requisitions?sourcePartId=${
+                      part.id
+                    }&sourcePartName=${encodeURIComponent(
+                      part.name
+                    )}&suggestedQuantity=${Math.max(
+                      part.unit
+                        ? part.minQuantity - part.quantity
+                        : Math.ceil(part.minQuantity - part.quantity),
+                      1
+                    )}`
+                  )
+                }
+                sx={{ mr: 1 }}
+              >
+                {t('purchase_requisition_replenish')}
+              </Button>
+            )}
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
               <EditOutlinedIcon color="primary" />

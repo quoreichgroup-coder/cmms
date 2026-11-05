@@ -95,6 +95,11 @@ public class PurchaseOrderReceiptService {
                         HttpStatus.BAD_REQUEST);
             }
             double alreadyReceived = received.getOrDefault(orderLine.getId(), 0d);
+            if (!Double.isFinite(orderLine.getQuantity()) || orderLine.getQuantity() <= 0
+                    || !Double.isFinite(alreadyReceived) || alreadyReceived < 0
+                    || alreadyReceived > orderLine.getQuantity() + 1e-9) {
+                throw new CustomException("purchase_order_receipt_totals_invalid", HttpStatus.CONFLICT);
+            }
             double remaining = orderLine.getQuantity() - alreadyReceived;
             if (quantity > remaining + 1e-9) {
                 throw new CustomException("Received quantity exceeds the remaining order quantity",
@@ -102,6 +107,12 @@ public class PurchaseOrderReceiptService {
             }
             Part locked = partRepository.findByIdAndCompany_IdForUpdate(orderLine.getPart().getId(), companyId)
                     .orElseThrow(() -> new CustomException("Part not found", HttpStatus.NOT_FOUND));
+            if (!locked.isNonStock()) {
+                double resultingQuantity = locked.getQuantity() + quantity;
+                if (!Double.isFinite(locked.getQuantity()) || !Double.isFinite(resultingQuantity)) {
+                    throw new CustomException("procurement_inventory_quantity_overflow", HttpStatus.CONFLICT);
+                }
+            }
             lockedParts.add(locked);
         }
 
@@ -126,7 +137,11 @@ public class PurchaseOrderReceiptService {
             receipt.getLines().add(receiptLine);
             if (!part.isNonStock()) {
                 double before = part.getQuantity();
-                part.setQuantity(before + requested.getQuantity());
+                double resultingQuantity = before + requested.getQuantity();
+                if (!Double.isFinite(before) || !Double.isFinite(resultingQuantity)) {
+                    throw new CustomException("procurement_inventory_quantity_overflow", HttpStatus.CONFLICT);
+                }
+                part.setQuantity(resultingQuantity);
                 partRepository.save(part);
                 stockChanges.add(new StockChange(part, before, part.getQuantity(), requested.getQuantity(), receiptLine));
             }

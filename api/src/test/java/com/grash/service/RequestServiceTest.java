@@ -50,6 +50,8 @@ class RequestServiceTest {
     @Mock
     private RequestRepository requestRepository;
     @Mock
+    private WorkOrderAssignmentScopeValidator assignmentScopeValidator;
+    @Mock
     private WorkOrderService workOrderService;
     @Mock
     private RequestMapper requestMapper;

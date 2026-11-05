@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-requisition-approval-workflow" author="qpm">
+        <addColumn tableName="purchase_requisition">
+            <column name="approval_approver_ids" type="TEXT"/>
+            <column name="approval_step" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="approval_config_version" type="INTEGER"/>
+            <column name="approval_history" type="TEXT"/>
+        </addColumn>
+        <createTable tableName="purchase_requisition_approval_config">
+            <column name="id" type="BIGINT"><constraints primaryKey="true" nullable="false" primaryKeyName="pk_pr_approval_config"/></column>
+            <column name="company_id" type="BIGINT"><constraints nullable="false" unique="true" uniqueConstraintName="uk_pr_approval_config_company" foreignKeyName="fk_pr_approval_config_company" references="company(id)"/></column>
+            <column name="approver_user_ids" type="TEXT"><constraints nullable="false"/></column>
+            <column name="version" type="INTEGER" defaultValueNumeric="1"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="updated_by" type="BIGINT"/>
+        </createTable>
+        <sql>CREATE SEQUENCE IF NOT EXISTS purchase_requisition_approval_config_seq START WITH 1 INCREMENT BY 50</sql>
+    </changeSet>
+</databaseChangeLog>

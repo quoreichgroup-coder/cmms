@@ -48,6 +48,22 @@ export default function CompanyLicense() {
     }
   };
 
+  const refresh = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      await api.post('license/refresh', {});
+      await dispatch(getLicenseValidity());
+      setSuccess(true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent>
@@ -83,6 +99,12 @@ export default function CompanyLicense() {
                 startIcon={busy ? <CircularProgress size={18} /> : undefined}>
                 {busy ? 'Activation en cours…' : 'Activer la licence'}
               </Button>
+              {license.hasLicense && <Button sx={{ mt: 2, ml: 1 }} type="button"
+                variant="outlined" onClick={refresh}
+                disabled={busy || available !== true}
+                startIcon={busy ? <CircularProgress size={18} /> : undefined}>
+                {busy ? 'Actualisation en cours…' : 'Actualiser après renouvellement'}
+              </Button>}
             </Box>
           ) : <Typography>Le propriétaire de l’entreprise peut activer ou renouveler la licence.</Typography>}
         </Stack>

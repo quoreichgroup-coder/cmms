@@ -19,6 +19,7 @@ import PartFiles from './PartFiles';
 import { useAppTheme } from '../../../custom-theme';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/role';
+import { PlanFeature } from '../../../models/subscriptionPlan';
 
 export default function PartDetailsHome({
   navigation,
@@ -31,7 +32,20 @@ export default function PartDetailsHome({
   const part = partInfos[id]?.part ?? partProp;
   const dispatch = useDispatch();
   const theme = useAppTheme();
-  const { hasEditPermission, hasDeletePermission } = useAuth();
+  const {
+    hasEditPermission,
+    hasDeletePermission,
+    hasCreatePermission,
+    hasFeature
+  } = useAuth();
+  const canRequestReplenishment = Boolean(
+    part &&
+      !part.nonStock &&
+      part.minQuantity > 0 &&
+      part.quantity < part.minQuantity &&
+      hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+      hasFeature(PlanFeature.PURCHASE_ORDER)
+  );
   const canOpenPartActions = Boolean(
     part &&
       (hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) ||
@@ -54,7 +68,26 @@ export default function PartDetailsHome({
   const renderScene = ({ route, jumpTo }) => {
     switch (route.key) {
       case 'details':
-        return <PartDetails part={part} />;
+        return (
+          <PartDetails
+            part={part}
+            onRequestReplenishment={
+              canRequestReplenishment
+                ? () =>
+                    navigation.push('PurchaseRequisitions', {
+                      sourcePartId: part.id,
+                      sourcePartName: part.name,
+                      suggestedQuantity: Math.max(
+                        part.unit
+                          ? part.minQuantity - part.quantity
+                          : Math.ceil(part.minQuantity - part.quantity),
+                        1
+                      )
+                    })
+                : undefined
+            }
+          />
+        );
       case 'work-orders':
         return <PartWorkOrders part={part} navigation={navigation} />;
       case 'assets':

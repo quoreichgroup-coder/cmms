@@ -129,7 +129,7 @@
                     </tbody>
                 </table>
                 <p class="empty-table" th:if="${#lists.isEmpty(block.table.rows)}"
-                   th:text="${requestReport ? 'No rows recorded.' : 'No execution records recorded.'}">No execution records recorded.</p>
+                   th:text="${procurementReport ? (french ? 'Aucun article enregistré.' : 'No purchase items recorded.') : (requestReport ? 'No rows recorded.' : 'No execution records recorded.')}">No execution records recorded.</p>
             </div>
         </th:block>
     </section>

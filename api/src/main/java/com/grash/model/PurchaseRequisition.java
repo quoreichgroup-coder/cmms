@@ -43,13 +43,29 @@ public class PurchaseRequisition extends CompanyAudit {
     private Date decisionAt;
     private String decisionNote;
 
+    /** Ordered approver user IDs snapshotted when the requisition is submitted. */
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    private String approvalApproverIds;
+
+    private Integer approvalStep = 0;
+
+    private Integer approvalConfigVersion;
+
+    /** JSON audit trail for each completed approval step. */
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    private String approvalHistory;
+
     @OneToMany(mappedBy = "requisition", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseRequisitionLine> lines = new ArrayList<>();
 
     public boolean canView(User user) {
         boolean isRequester = requester != null && requester.getId().equals(user.getId());
-        return isRequester || user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_REQUISITIONS)
+        boolean canViewAll = user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_REQUISITIONS)
                 && user.getRole().getViewOtherPermissions().contains(PermissionEntity.PURCHASE_REQUISITIONS);
+        boolean canApproveThisPendingRequest = status == PurchaseRequisitionStatus.PENDING_APPROVAL
+                && user.getRole().getEditOtherPermissions()
+                .contains(PermissionEntity.PURCHASE_REQUISITION_APPROVAL);
+        return isRequester || canViewAll || canApproveThisPendingRequest;
     }
 
     public boolean canEdit(User user) {

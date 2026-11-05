@@ -285,8 +285,10 @@ function Locations() {
   const onDeleteSuccess = () => {
     showSnackBar(t('location_delete_success'), 'success');
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('location_delete_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message = (err as any)?.responseBody?.message;
+    showSnackBar(message === 'location_used_by_task_list' ? t(message) : t('location_delete_failure'), 'error');
+  };
 
   const handleOpenDetails = async (id: number) => {
     const foundLocation =
@@ -379,8 +381,9 @@ function Locations() {
   const fetchMoreForParent = (parentId: number) => {
     const parentPage = childrenPages[parentId];
     if (parentPage && !parentPage.last) {
+      const parent = locationsHierarchy.find((row) => row.id === parentId);
       dispatch(
-        getLocationChildrenPaginated(parentId, [], {
+        getLocationChildrenPaginated(parentId, parent?.hierarchy || [], {
           ...pageable,
           page: (parentPage.number || 0) + 1
         })
@@ -1038,13 +1041,14 @@ function Locations() {
         <Helmet>
           <title>{t('locations')}</title>
         </Helmet>
-        <Box justifyContent="center" alignItems="stretch" paddingX={4}>
+        <Box justifyContent="center" alignItems="stretch" paddingX={{ xs: 1, sm: 2, md: 4 }}>
           <Box
             my={1}
             display="flex"
-            flexDirection="row"
+            flexDirection={{ xs: 'column', md: 'row' }}
             justifyContent="space-between"
-            alignItems="center"
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            gap={1.5}
           >
             {tabs.length > 1 ? (
               <Tabs
@@ -1062,8 +1066,15 @@ function Locations() {
             ) : (
               <Box />
             )}
-            <Stack direction={'row'} alignItems="center" spacing={1}>
-              <SearchInput onChange={debouncedQueryChange} />
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ flexWrap: 'wrap', justifyContent: { xs: 'flex-end', md: 'initial' } }}
+            >
+              <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 220px' }, minWidth: 0 }}>
+                <SearchInput onChange={debouncedQueryChange} />
+              </Box>
               <IconButton onClick={() => handleReset(true)} color="primary">
                 <ReplayOutlinedIcon />
               </IconButton>
@@ -1074,7 +1085,7 @@ function Locations() {
                 <SplitButton
                   onMainClick={() => setOpenAddModal(true)}
                   startIcon={<AddOutlinedIcon />}
-                  sx={{ mx: 6, my: 1 }}
+                  sx={{ mx: { xs: 0, md: 2 }, my: 1, flexShrink: 0 }}
                   label={t('location')}
                   menuItems={
                     hasViewPermission(PermissionEntity.SETTINGS) &&
@@ -1101,7 +1112,7 @@ function Locations() {
                 justifyContent: 'space-between'
               }}
             >
-              <Box sx={{ width: '95%' }}>
+              <Box sx={{ width: { xs: '100%', sm: '95%' }, minWidth: 0 }}>
                 {hierarchyError && (
                   <Alert severity="error" sx={{ mb: 2 }}>
                     {hierarchyError}

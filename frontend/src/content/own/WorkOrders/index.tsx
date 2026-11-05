@@ -92,13 +92,14 @@ import _ from 'lodash';
 import SearchInput from '../components/SearchInput';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { getPreventiveMaintenanceUrl } from 'src/utils/urlPaths';
-import { getErrorMessage } from '../../../utils/api';
+import api, { getErrorMessage } from '../../../utils/api';
 import SplitButton from '../components/SplitButton';
 import ContentState from '../components/ContentState';
 import useTableState from '../../../hooks/useTableState';
 import { assetStatuses } from '../../../models/owns/asset';
 import { ExportEntityType, useExport } from '../../../hooks/useExport';
 import { getCustomFields } from '../../../slices/customField';
+import ContextualHelpButton from '../HelpCenter/ContextualHelpButton';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { randomInt } from '../../../utils/generators';
 import type { Paths } from 'type-fest';
@@ -126,6 +127,19 @@ const normalizeFields = (fields: FilterField[]) =>
     .map((f) => ({ ...f, values: f.values ? [...f.values].sort() : f.values }));
 
 const FILTERS_STORAGE_KEY = 'workOrder_filters';
+interface TaskListOptionData {
+  id: number;
+  groupCode: string;
+  groupCounter: string;
+  description: string;
+  status: string;
+  validFrom?: string | null;
+  validTo?: string | null;
+}
+interface TaskListOptionsPage {
+  content: TaskListOptionData[];
+  totalPages?: number;
+}
 const DEFAULT_FILTER_FIELDS: FilterField[] = [
   { field: 'archived', operation: 'eq', value: false },
   {
@@ -159,6 +173,11 @@ function WorkOrders() {
   const theme = useTheme();
   const isCompactDialog = useMediaQuery(theme.breakpoints.down('sm'));
   const [currentTab, setCurrentTab] = useState<string>('list');
+  const [taskListOptions, setTaskListOptions] = useState<
+    Array<{ label: string; value: number }>
+  >([]);
+  const [taskListsLoading, setTaskListsLoading] = useState(false);
+  const [taskListsLoadError, setTaskListsLoadError] = useState(false);
   const {
     workOrders,
     loadingGet,
@@ -180,6 +199,9 @@ function WorkOrders() {
     hasFeature,
     user
   } = useAuth();
+  const canSelectTaskList =
+    hasViewPermission(PermissionEntity.TASK_LISTS) &&
+    hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE);
   const {
     uploadFiles,
     getWOFieldsAndShapes,
@@ -404,6 +426,63 @@ function WorkOrders() {
   }, []);
 
   useEffect(() => {
+    if (!openAddModal || !canSelectTaskList) return;
+    let cancelled = false;
+    setTaskListsLoading(true);
+    setTaskListsLoadError(false);
+    const loadActiveTaskLists = async () => {
+      const loadPage = (page: number) => api.get<TaskListOptionsPage>(
+        `maintenance-task-lists/options?query=&page=${page}&size=100`
+      );
+      const firstPage = await loadPage(0);
+      if (cancelled) return;
+      const results = [...(firstPage.content ?? [])];
+      const totalPages = Math.max(firstPage.totalPages ?? 1, 1);
+      const batchSize = 5;
+      for (let pageStart = 1; pageStart < totalPages; pageStart += batchSize) {
+        if (cancelled) return;
+        const pageNumbers = Array.from(
+          { length: Math.min(batchSize, totalPages - pageStart) },
+          (_, index) => pageStart + index
+        );
+        const pages = await Promise.all(pageNumbers.map(loadPage));
+        pages.forEach((page) => results.push(...(page.content ?? [])));
+        if (cancelled) return;
+      }
+      if (!cancelled) {
+        const today = new Date().toISOString().slice(0, 10);
+        const uniqueResults = Array.from(new Map(results.map((item) => [item.id, item])).values());
+        setTaskListOptions(
+          uniqueResults
+            .filter(
+              (item) =>
+                item.status === 'ACTIVE' &&
+                (!item.validFrom || item.validFrom <= today) &&
+                (!item.validTo || item.validTo >= today)
+            )
+            .map((item) => ({
+              label: `${item.groupCode} / ${item.groupCounter} — ${item.description}`,
+              value: item.id
+            }))
+        );
+      }
+    };
+    loadActiveTaskLists()
+      .catch(() => {
+        if (!cancelled) {
+          setTaskListOptions([]);
+          setTaskListsLoadError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setTaskListsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openAddModal, canSelectTaskList]);
+
+  useEffect(() => {
     if (currentTab === 'workload') {
       dispatch(getUsersMini());
     }
@@ -517,6 +596,9 @@ function WorkOrders() {
       ? newValues?.requiredSignature.includes('on')
       : newValues.requiredSignature;
     newValues.category = formatSelect(newValues.category);
+    newValues.maintenanceTaskListId =
+      newValues.maintenanceTaskList?.value ?? null;
+    delete newValues.maintenanceTaskList;
     return formatCustomFields(newValues);
   };
   const onCreationSuccess = (newWorkOrder: WorkOrder) => {
@@ -528,8 +610,15 @@ function WorkOrders() {
     setCalendarRefreshTrigger((trigger) => trigger + 1);
     showSnackBar(t('wo_create_success'), 'success');
   };
-  const onCreationFailure = (err) =>
-    showSnackBar(getErrorMessage(err, t('wo_create_failure')), 'error');
+  const onCreationFailure = (err) => {
+    const message = (err as any)?.responseBody?.message;
+    showSnackBar(
+      message === 'task_list_object_mismatch'
+        ? t(message)
+        : getErrorMessage(err, t('wo_create_failure')),
+      'error'
+    );
+  };
   const onEditSuccess = () => {
     setOpenUpdateModal(false);
     setIsUpdateFormDirty(false);
@@ -821,6 +910,26 @@ function WorkOrders() {
       label: t('tasks'),
       placeholder: t('select_tasks')
     },
+    ...(canSelectTaskList
+      ? [
+          {
+            name: 'maintenanceTaskList',
+            type: 'select' as const,
+            type2: 'taskList' as const,
+            label: t('maintenance_task_list_optional'),
+            placeholder: t('select_maintenance_task_list'),
+            helperText: taskListsLoading
+              ? t('loading')
+              : taskListsLoadError
+              ? t('task_lists_load_error')
+              : taskListOptions.length === 0
+              ? t('no_active_task_lists')
+              : t('task_list_work_order_plan_helper'),
+            items: taskListOptions,
+            loading: taskListsLoading
+          }
+        ]
+      : []),
     {
       name: 'files',
       type: 'file',
@@ -901,6 +1010,7 @@ function WorkOrders() {
                   }
                 : {
                     requiredSignature: false,
+                    maintenanceTaskList: null,
                     dueDate: initialDueDate,
                     asset: assetParamObject
                       ? {
@@ -1163,6 +1273,10 @@ function WorkOrders() {
             spacing={1}
             sx={{ flexShrink: 0 }}
           >
+            <ContextualHelpButton
+              articleSlug="work-orders"
+              labelKey="help_contextual_work_orders"
+            />
             <Tooltip title={t('actions')}>
               <IconButton
                 onClick={handleOpenMenu}

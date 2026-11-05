@@ -8,12 +8,32 @@ const { test } = require('node:test');
 const sourceRoot = path.join(__dirname, '../src');
 
 function loadLocale(relativePath) {
-  const source = fs.readFileSync(path.join(sourceRoot, relativePath), 'utf8');
+  const absolutePath = path.join(sourceRoot, relativePath);
+  const source = fs.readFileSync(absolutePath, 'utf8');
   const output = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS }
   }).outputText;
   const module = { exports: {} };
-  vm.runInNewContext(output, { exports: module.exports, module });
+  vm.runInNewContext(output, {
+    exports: module.exports,
+    module,
+    require: (specifier) => {
+      if (specifier !== './approvalManagement') throw new Error(`Unexpected locale import: ${specifier}`);
+      const importedSource = fs.readFileSync(
+        path.join(path.dirname(absolutePath), 'approvalManagement.ts'),
+        'utf8'
+      );
+      const importedOutput = ts.transpileModule(importedSource, {
+        compilerOptions: { module: ts.ModuleKind.CommonJS }
+      }).outputText;
+      const importedModule = { exports: {} };
+      vm.runInNewContext(importedOutput, {
+        exports: importedModule.exports,
+        module: importedModule
+      });
+      return importedModule.exports;
+    }
+  });
   return module.exports.default;
 }
 
@@ -27,14 +47,14 @@ function configuredFields() {
   );
   return [
     ...source.matchAll(
-      /const (?:workOrderFields|requestFields) = \[([\s\S]*?)\];/g
+      /const (?:purchaseOrderFields|purchaseRequisitionFields) = \[([\s\S]*?)\];/g
     )
   ].flatMap(([, values]) =>
     [...values.matchAll(/'([^']+)'/g)].map(([, value]) => value)
   );
 }
 
-test('every configurable Work Order and Request report field has French and English labels', () => {
+test('every configurable PR and PO report field has French and English labels', () => {
   const english = loadLocale('i18n/translations/en.ts');
   const french = loadLocale('i18n/translations/fr.ts');
   const fields = configuredFields();

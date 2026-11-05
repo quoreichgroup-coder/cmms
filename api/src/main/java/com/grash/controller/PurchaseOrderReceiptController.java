@@ -9,6 +9,8 @@ import com.grash.model.enums.PermissionEntity;
 import com.grash.service.PurchaseOrderPolicyService;
 import com.grash.service.PurchaseOrderReceiptService;
 import com.grash.service.PurchaseOrderService;
+import com.grash.service.PartQuantityService;
+import com.grash.service.ProcurementSiteService;
 import com.grash.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -28,12 +30,15 @@ public class PurchaseOrderReceiptController {
     private final PurchaseOrderService purchaseOrderService;
     private final PurchaseOrderPolicyService procurementPolicy;
     private final UserService userService;
+    private final PartQuantityService partQuantityService;
+    private final ProcurementSiteService procurementSiteService;
 
     @GetMapping
     @PreAuthorize("permitAll()")
     @Transactional(readOnly = true)
     public List<PurchaseOrderReceiptShowDTO> list(@PathVariable Long id, HttpServletRequest request) {
         User user = userService.whoami(request);
+        procurementPolicy.requireModuleEnabled(user);
         if (!user.getRole().getViewPermissions().contains(PermissionEntity.PURCHASE_RECEIPTS)) {
             throw new CustomException("Purchase receipt view permission required", HttpStatus.FORBIDDEN);
         }
@@ -62,6 +67,9 @@ public class PurchaseOrderReceiptController {
         if (!order.canBeViewedBy(user)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
+        if (partQuantityService.findByPurchaseOrder(id).stream()
+                .anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return order;
     }
 }

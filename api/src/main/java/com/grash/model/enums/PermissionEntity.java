@@ -21,5 +21,8 @@ public enum PermissionEntity {
     // Append only: permissions are persisted as enum ordinals in legacy role tables.
     PURCHASE_REQUISITIONS,
     PURCHASE_RECEIPTS,
-    PURCHASE_REQUISITION_APPROVAL
+    PURCHASE_REQUISITION_APPROVAL,
+    // Append only: permissions are stored as enum ordinals.
+    TASK_LISTS,
+    PURCHASE_ORDER_APPROVAL
 }

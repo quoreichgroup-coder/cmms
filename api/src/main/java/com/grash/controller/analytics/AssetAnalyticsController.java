@@ -7,7 +7,6 @@ import com.grash.model.Asset;
 import com.grash.model.AssetDowntime;
 import com.grash.model.User;
 import com.grash.model.WorkOrder;
-import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.Status;
 import com.grash.security.CurrentUser;
 import com.grash.service.AssetDowntimeService;
@@ -379,28 +378,21 @@ public class AssetAnalyticsController {
 
     @PostMapping("/{id}/overview")
     @PreAuthorize("hasAnyRole('ROLE_CLIENT', 'ROLE_SUPER_ADMIN')")
-    @Cacheable(
-            value = "getDateRangeOverview",
-            key = "T(com.grash.utils.CacheKeyUtils).dateRangeKey(#user.id, #dateRange.start, #dateRange.end)+'_'+#id"
-    )
     public ResponseEntity<AssetOverview> getDateRangeOverview(@PathVariable Long id, @Parameter(description = "Date " +
                                                                       "range for filtering analytics") @RequestBody DateRange dateRange
             , @Parameter(hidden = true) @CurrentUser User user) {
-        Asset savedAsset = assetService.findById(id).get();
+        assetService.checkAccessToAssetId(id, user);
         Date start = dateRange.getStart();
         Date end = dateRange.getEnd();
-        if (user.getRole().getViewPermissions().contains(PermissionEntity.ASSETS) &&
-                (user.getRole().getViewOtherPermissions().contains(PermissionEntity.ASSETS) || user.getId().equals(savedAsset.getCreatedBy()))) {
-            AssetOverview result = AssetOverview.builder()
-                    .mttr(assetService.getMTTR(id, start, end))
-                    .mtbf(assetService.getMTBF(id, start, end))
-                    .downtime(assetService.getDowntime(id, start, end))
-                    .uptime(assetService.getUptime(id, start, end))
-                    .totalCost(assetService.getTotalCost(id, start, end,
-                            user.getCompany().getCompanySettings().getGeneralPreferences().isLaborCostInTotalCost()))
-                    .build();
-            return ResponseEntity.ok(result);
-        } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        AssetOverview result = AssetOverview.builder()
+                .mttr(assetService.getMTTR(id, start, end))
+                .mtbf(assetService.getMTBF(id, start, end))
+                .downtime(assetService.getDowntime(id, start, end))
+                .uptime(assetService.getUptime(id, start, end))
+                .totalCost(assetService.getTotalCost(id, start, end,
+                        user.getCompany().getCompanySettings().getGeneralPreferences().isLaborCostInTotalCost()))
+                .build();
+        return ResponseEntity.ok(result);
     }
 
     private long getLivingTime(Asset asset, DateRange dateRange) {

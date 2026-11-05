@@ -6,7 +6,7 @@ import path from 'path';
 
 // Keep the dynamic Expo config self-contained: Expo evaluates this file before
 // Metro's TypeScript resolver is installed, so local TS imports can fail here.
-const apiUrl = process.env.API_URL || 'https://169-58-86-7.sslip.io/api';
+const apiUrl = process.env.API_URL || 'https://eam.quoreichgroup.bf/api';
 // Keep EAS linked to the existing QPM project even when commands are run
 // without a shell-level EAS_PROJECT_ID. This is the project ID already used
 // by the native Expo Updates configuration.
@@ -82,7 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
   slug: 'qpm',
-  version: '1.0.59',
+  version: '1.0.60',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'atlascmms',
@@ -108,11 +108,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: 'com.cmms.atlas',
-    buildNumber: '13',
+    buildNumber: '14',
     jsEngine: 'hermes',
     supportsTablet: false,
     // Bare React Native workflow requires a concrete runtime version for EAS Update.
-    runtimeVersion: '1.0.59',
+    runtimeVersion: '1.0.60',
     ...(googleServicesPlist && fs.existsSync(googleServicesPlist)
       ? { googleServicesFile: googleServicesPlist }
       : {}),
@@ -125,14 +125,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#071b3d'
     },
-    versionCode: 42,
+    versionCode: 43,
     package: 'com.atlas.cmms',
     jsEngine: 'hermes',
     edgeToEdgeEnabled: true,
     ...(fs.existsSync(androidGoogleServicesPath)
       ? { googleServicesFile: androidGoogleServicesPath }
       : {}),
-    runtimeVersion: '1.0.59'
+    runtimeVersion: '1.0.60'
   },
   web: {
     favicon: './assets/images/favicon.png'

@@ -6,10 +6,13 @@ import com.grash.mapper.PurchaseOrderCategoryMapper;
 import com.grash.model.PurchaseOrderCategory;
 import com.grash.model.User;
 import com.grash.repository.PurchaseOrderCategoryRepository;
+import com.grash.repository.PurchaseOrderRepository;
 import com.grash.utils.Sanitizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -18,6 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PurchaseOrderCategoryService {
     private final PurchaseOrderCategoryRepository purchaseOrderCategoryRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
 
     private final PurchaseOrderCategoryMapper purchaseOrderCategoryMapper;
 
@@ -56,11 +60,23 @@ public class PurchaseOrderCategoryService {
         return purchaseOrderCategoryRepository.findAll();
     }
 
+    @Transactional
     public void delete(Long id, Long companySettingsId) {
         PurchaseOrderCategory category = purchaseOrderCategoryRepository
                 .findByIdAndCompanySettings_Id(id, companySettingsId)
                 .orElseThrow(() -> new CustomException("Not found", HttpStatus.NOT_FOUND));
-        purchaseOrderCategoryRepository.delete(category);
+        Long companyId = category.getCompanySettings().getCompany().getId();
+        if (purchaseOrderRepository.existsByCategory_IdAndCompany_Id(id, companyId)) {
+            throw new CustomException("purchase_order_category_in_use", HttpStatus.CONFLICT);
+        }
+        try {
+            // Flush here so a concurrent PO reference is translated into the
+            // same actionable conflict as the preflight usage check.
+            purchaseOrderCategoryRepository.delete(category);
+            purchaseOrderCategoryRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new CustomException("purchase_order_category_in_use", HttpStatus.CONFLICT);
+        }
     }
 
     public Optional<PurchaseOrderCategory> findByIdAndCompanySettings(Long id, Long companySettingsId) {

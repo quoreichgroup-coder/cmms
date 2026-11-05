@@ -142,7 +142,7 @@ public class TaskService {
                 || !sameId(saved.getMeter(), request.getMeter())) {
             return false;
         }
-        List<String> savedOptions = saved.getOptions().stream()
+        List<String> savedOptions = (saved.getOptions() == null ? List.<TaskOption>of() : saved.getOptions()).stream()
                 .map(TaskOption::getLabel).sorted().toList();
         List<String> requestedOptions = request.getOptions() == null
                 ? List.of() : request.getOptions().stream().sorted().toList();

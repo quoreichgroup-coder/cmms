@@ -200,16 +200,20 @@ export const getPurchaseOrders =
   };
 
 export const getPurchaseOrdersToReceive =
-  (pageNum: number, pageSize: number, query = ''): AppThunk =>
+  (pageNum: number, pageSize: number, query = '', receiptState = 'ALL'): AppThunk =>
   async (dispatch, getState) => {
     const requestGeneration = getState().purchaseOrders.requestGeneration ?? 0;
     dispatch(slice.actions.startPurchaseOrdersRequest());
     const listRequestId = getState().purchaseOrders.listRequestId;
     try {
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        size: String(pageSize),
+        receiptState
+      });
+      if (query.trim()) params.set('query', query.trim());
       const purchaseOrders = await api.get<Page<PurchaseOrder>>(
-        `${basePath}/receiving-queue?page=${pageNum}&size=${pageSize}${
-          query.trim() ? `&query=${encodeURIComponent(query.trim())}` : ''
-        }`
+        `${basePath}/receiving-queue?${params.toString()}`
       );
       dispatch(
         slice.actions.getPurchaseOrders({
@@ -265,7 +269,7 @@ export const getMorePurchaseOrders =
   };
 
 export const getMorePurchaseOrdersToReceive =
-  (pageNum: number, pageSize: number, query = ''): AppThunk =>
+  (pageNum: number, pageSize: number, query = '', receiptState = 'ALL'): AppThunk =>
   async (dispatch, getState) => {
     const requestGeneration = getState().purchaseOrders.requestGeneration ?? 0;
     const listRequestId = getState().purchaseOrders.listRequestId ?? 0;
@@ -277,10 +281,14 @@ export const getMorePurchaseOrdersToReceive =
       })
     );
     try {
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        size: String(pageSize),
+        receiptState
+      });
+      if (query.trim()) params.set('query', query.trim());
       const purchaseOrders = await api.get<Page<PurchaseOrder>>(
-        `${basePath}/receiving-queue?page=${pageNum}&size=${pageSize}${
-          query.trim() ? `&query=${encodeURIComponent(query.trim())}` : ''
-        }`
+        `${basePath}/receiving-queue?${params.toString()}`
       );
       dispatch(
         slice.actions.getMorePurchaseOrders({

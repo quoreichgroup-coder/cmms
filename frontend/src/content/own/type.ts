@@ -47,7 +47,8 @@ export interface IField {
     | 'role'
     | 'currency'
     | 'meter'
-    | 'site';
+    | 'site'
+    | 'taskList';
   category?:
     | 'purchase-order-categories'
     | 'cost-categories'
@@ -67,6 +68,9 @@ export interface IField {
   midWidth?: boolean;
   onPress?: () => void;
   required?: boolean;
+  purchaseUnitPriceInput?: boolean;
+  siteSelectionEnabled?: boolean;
+  siteSelectionRequired?: boolean;
   error?: any;
   items?: { label: string; value: string | number; checked?: boolean }[];
   // listCheckbox?: { label: string; value: string; checked?: boolean }[];

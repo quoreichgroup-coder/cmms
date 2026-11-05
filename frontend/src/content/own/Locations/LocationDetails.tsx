@@ -43,6 +43,12 @@ import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { openSafeWindow } from '../../../utils/safeWindow';
+import ContentState from '../components/ContentState';
+import PreventiveMaintenance from '../../../models/owns/preventiveMaintenance';
+import MaintenanceRequest from '../../../models/owns/request';
+import { Page } from '../../../models/owns/page';
+import api from '../../../utils/api';
+import Pagination from '@mui/material/Pagination';
 
 interface LocationDetailsProps {
   location: Location;
@@ -50,6 +56,7 @@ interface LocationDetailsProps {
   handleOpenDelete: () => void;
   onCopy: (location: Location) => void;
 }
+type RelatedLoadState = 'loading' | 'ready' | 'error';
 export default function LocationDetails(props: LocationDetailsProps) {
   const { location, handleOpenUpdate, handleOpenDelete, onCopy } = props;
   const { t }: { t: any } = useTranslation();
@@ -57,6 +64,18 @@ export default function LocationDetails(props: LocationDetailsProps) {
   const { getFormattedDate, uploadFiles } = useContext(CompanySettingsContext);
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const [openAddFloorPlan, setOpenAddFloorPlan] = useState<boolean>(false);
+  const [reloadIndex, setReloadIndex] = useState(0);
+  const [relatedState, setRelatedState] = useState({
+    assets: 'loading' as RelatedLoadState,
+    workOrders: 'loading' as RelatedLoadState,
+    floorPlans: 'loading' as RelatedLoadState
+  });
+  const [maintenancePlans, setMaintenancePlans] = useState<PreventiveMaintenance[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [maintenancePage, setMaintenancePage] = useState(0);
+  const [maintenancePageCount, setMaintenancePageCount] = useState(0);
+  const [maintenanceLoadState, setMaintenanceLoadState] = useState<RelatedLoadState>('loading');
+  const [maintenanceRetry, setMaintenanceRetry] = useState(0);
   const [currentTab, setCurrentTab] = useState<string>('assets');
   const { assetsByLocation } = useSelector((state) => state.assets);
   const { workOrdersByLocation } = useSelector((state) => state.workOrders);
@@ -66,7 +85,8 @@ export default function LocationDetails(props: LocationDetailsProps) {
     hasDeletePermission,
     getFilteredFields,
     hasCreatePermission,
-    hasFeature
+    hasFeature,
+    hasViewPermission
   } = useAuth();
   const locationAssets = assetsByLocation[location.id] ?? [];
   const locationWorkOrders = workOrdersByLocation[location.id] ?? [];
@@ -77,6 +97,13 @@ export default function LocationDetails(props: LocationDetailsProps) {
     { value: 'files', label: t('files') },
     { value: 'workOrders', label: t('work_orders') },
     { value: 'floorPlans', label: t('floor_plans') },
+    ...(hasViewPermission(PermissionEntity.PREVENTIVE_MAINTENANCES) &&
+    hasFeature(PlanFeature.PREVENTIVE_MAINTENANCE)
+      ? [{ value: 'maintenancePlans', label: t('preventive_maintenance') }]
+      : []),
+    ...(hasViewPermission(PermissionEntity.REQUESTS)
+      ? [{ value: 'requests', label: t('requests') }]
+      : []),
     { value: 'people', label: t('people') }
   ];
 
@@ -107,10 +134,92 @@ export default function LocationDetails(props: LocationDetailsProps) {
   };
 
   useEffect(() => {
-    dispatch(getAssetsByLocation(location.id));
-    dispatch(getWorkOrdersByLocation(location.id));
-    dispatch(getFloorPlans(location.id));
-  }, [location]);
+    let active = true;
+    setRelatedState({
+      assets: 'loading',
+      workOrders: 'loading',
+      floorPlans: 'loading'
+    });
+    Promise.allSettled([
+      Promise.resolve(dispatch(getAssetsByLocation(location.id))),
+      Promise.resolve(dispatch(getWorkOrdersByLocation(location.id))),
+      Promise.resolve(dispatch(getFloorPlans(location.id)))
+    ]).then((results) => {
+      if (!active) return;
+      setRelatedState({
+        assets: results[0].status === 'fulfilled' ? 'ready' : 'error',
+        workOrders: results[1].status === 'fulfilled' ? 'ready' : 'error',
+        floorPlans: results[2].status === 'fulfilled' ? 'ready' : 'error'
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [dispatch, location.id, reloadIndex]);
+
+  useEffect(() => {
+    if (currentTab !== 'maintenancePlans' && currentTab !== 'requests') return;
+    let active = true;
+    const controller = new AbortController();
+    setMaintenanceLoadState('loading');
+    const endpoint = currentTab === 'maintenancePlans'
+      ? 'preventive-maintenances/search'
+      : 'requests/search';
+    const loadPage = async () => {
+      try {
+        const result = await api.post<Page<PreventiveMaintenance | MaintenanceRequest>>(
+          endpoint,
+          {
+            filterFields: [{ field: 'location.id', operation: 'eq', value: location.id }],
+            pageNum: maintenancePage,
+            pageSize: 10,
+            sortField: 'createdAt',
+            direction: 'DESC'
+          },
+          { signal: controller.signal }
+        );
+        if (!active) return;
+        if (currentTab === 'maintenancePlans') {
+          setMaintenancePlans(result.content as PreventiveMaintenance[]);
+        } else {
+          setMaintenanceRequests(result.content as MaintenanceRequest[]);
+        }
+        setMaintenancePageCount(result.totalPages);
+        setMaintenanceLoadState('ready');
+      } catch (_error) {
+        if (active && !controller.signal.aborted) setMaintenanceLoadState('error');
+      }
+    };
+    loadPage();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [currentTab, location.id, maintenancePage, maintenanceRetry]);
+
+  const renderRelatedState = (key: 'assets' | 'workOrders' | 'floorPlans') => {
+    if (relatedState[key] === 'loading') {
+      return (
+        <ContentState
+          variant="loading"
+          message={t('loading')}
+          minHeight={180}
+        />
+      );
+    }
+    if (relatedState[key] === 'error') {
+      return (
+        <ContentState
+          variant="error"
+          message={t('an_error_occured')}
+          actionLabel={t('retry')}
+          onAction={() => setReloadIndex((index) => index + 1)}
+          minHeight={180}
+        />
+      );
+    }
+    return null;
+  };
 
   const renderAddFloorPlanModal = () => (
     <Dialog
@@ -168,6 +277,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
   );
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
+    setMaintenancePage(0);
   };
   return (
     <Grid
@@ -175,21 +285,24 @@ export default function LocationDetails(props: LocationDetailsProps) {
       justifyContent="center"
       alignItems="stretch"
       spacing={2}
-      padding={4}
+      padding={{ xs: 1, sm: 2, md: 4 }}
     >
       {renderAddFloorPlanModal()}
       <Grid
         item
         xs={12}
         display="flex"
-        flexDirection="row"
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        gap={1}
         justifyContent="space-between"
       >
-        <Box>
-          <Typography variant="h2">{location?.name}</Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h2" sx={{ overflowWrap: 'anywhere' }}>
+            {location?.name}
+          </Typography>
           <Typography variant="h6">{location?.address}</Typography>
         </Box>
-        <Box>
+        <Box display="flex" justifyContent={{ xs: 'flex-end', sm: 'initial' }}>
           {hasEditPermission(PermissionEntity.LOCATIONS, location) && (
             <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
               <EditOutlinedIcon color="primary" />
@@ -243,6 +356,8 @@ export default function LocationDetails(props: LocationDetailsProps) {
       <Grid item xs={12}>
         {currentTab === 'assets' && (
           <Box>
+            {renderRelatedState('assets') || (
+              <>
             {hasCreatePermission(PermissionEntity.ASSETS) && (
               <Box display="flex" justifyContent="right">
                 <Button
@@ -277,10 +392,14 @@ export default function LocationDetails(props: LocationDetailsProps) {
                 </Typography>
               </Stack>
             )}
+              </>
+            )}
           </Box>
         )}
         {currentTab === 'workOrders' && (
           <Box>
+            {renderRelatedState('workOrders') || (
+              <>
             {hasCreatePermission(PermissionEntity.WORK_ORDERS) && (
               <Box display="flex" justifyContent="right">
                 <Button
@@ -312,6 +431,8 @@ export default function LocationDetails(props: LocationDetailsProps) {
               <Stack direction="row" justifyContent="center" width="100%">
                 <Typography variant="h5">{t('no_wo_in_location')}</Typography>
               </Stack>
+            )}
+              </>
             )}
           </Box>
         )}
@@ -355,6 +476,8 @@ export default function LocationDetails(props: LocationDetailsProps) {
         )}
         {currentTab === 'floorPlans' && (
           <Box>
+            {renderRelatedState('floorPlans') || (
+              <>
             {hasEditPermission(PermissionEntity.LOCATIONS, location) && (
               <Box display="flex" justifyContent="right">
                 <Button
@@ -415,6 +538,70 @@ export default function LocationDetails(props: LocationDetailsProps) {
                   {t('no_floor_plan_in_location')}
                 </Typography>
               </Stack>
+            )}
+              </>
+            )}
+          </Box>
+        )}
+        {(currentTab === 'maintenancePlans' || currentTab === 'requests') && (
+          <Box sx={{ width: '100%', minWidth: 0 }}>
+            {maintenanceLoadState === 'loading' ? (
+              <ContentState variant="loading" message={t('loading')} minHeight={180} />
+            ) : maintenanceLoadState === 'error' ? (
+              <ContentState
+                variant="error"
+                message={t('an_error_occured')}
+                actionLabel={t('retry')}
+                onAction={() => setMaintenanceRetry((attempt) => attempt + 1)}
+                minHeight={180}
+              />
+            ) : currentTab === 'maintenancePlans' ? (
+              maintenancePlans.length ? (
+                <List sx={{ width: '100%' }}>
+                  {maintenancePlans.map((plan) => (
+                    <ListItemButton
+                      key={plan.id}
+                      divider
+                      onClick={() => navigate(`/app/preventive-maintenances/${plan.id}`)}
+                    >
+                      <ListItemText
+                        primary={plan.name || plan.title}
+                        secondary={`${plan.customId || `#${plan.id}`}${plan.nextWorkOrderDate ? ` · ${t('next_due')}: ${getFormattedDate(plan.nextWorkOrderDate)}` : ''}${plan.schedule?.disabled ? ` · ${t('disabled')}` : ''}`}
+                      />
+                    </ListItemButton>
+                  ))}
+                </List>
+              ) : (
+                <ContentState variant="empty" message={t('no_preventive_plans_for_location')} minHeight={180} />
+              )
+            ) : maintenanceRequests.length ? (
+              <List sx={{ width: '100%' }}>
+                {maintenanceRequests.map((request) => (
+                  <ListItemButton
+                    key={request.id}
+                    divider
+                    onClick={() => navigate(`/app/requests/${request.id}`)}
+                  >
+                    <ListItemText
+                      primary={request.title}
+                      secondary={`${request.customId || `#${request.id}`} · ${request.cancelled ? t('cancelled') : request.workOrder ? t('approved') : t('pending')}${request.createdAt ? ` · ${getFormattedDate(request.createdAt)}` : ''}`}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            ) : (
+              <ContentState variant="empty" message={t('no_requests_for_location')} minHeight={180} />
+            )}
+            {maintenancePageCount > 1 && maintenanceLoadState === 'ready' && (
+              <Box display="flex" justifyContent="center" sx={{ py: 2 }}>
+                <Pagination
+                  count={maintenancePageCount}
+                  page={maintenancePage + 1}
+                  onChange={(_event, value) => setMaintenancePage(value - 1)}
+                  color="primary"
+                  aria-label={t('pagination')}
+                />
+              </Box>
             )}
           </Box>
         )}

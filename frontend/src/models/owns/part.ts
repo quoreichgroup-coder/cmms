@@ -31,8 +31,10 @@ export default interface Part extends Audit {
 }
 export interface PartMiniDTO {
   unit: string;
+  area?: string;
   name: string;
   id: number;
   cost: number;
   description: string;
+  barcode?: string;
 }

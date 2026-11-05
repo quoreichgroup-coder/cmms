@@ -14,4 +14,10 @@ export interface PartQuantityMiniDTO {
   purchaseRequisitionId?: number;
   receivedQuantity?: number;
   remainingToReceive?: number;
+  purchaseUnitCostSnapshot?: number | null;
+  purchaseCurrencySnapshot?: string | null;
+  purchaseUnitPrice?: number | null;
+  purchasePriceCurrency?: string | null;
+  siteId?: number | null;
+  siteName?: string | null;
 }

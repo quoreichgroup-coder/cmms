@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -14,7 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import SettingsLayout from '../../SettingsLayout';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from '../../../../../store';
 import { CustomSnackBarContext } from '../../../../../contexts/CustomSnackBarContext';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -68,6 +69,7 @@ import { getErrorMessage } from '../../../../../utils/api';
 import DateRangePicker from '../../../components/form/DateRangePicker';
 import HourRangePicker from '../../../components/form/HourRangePicker';
 import { TitleContext } from '../../../../../contexts/TitleContext';
+import { useNavigate } from 'react-router-dom';
 
 interface UICondition {
   type: WorkflowConditionType;
@@ -91,6 +93,7 @@ type FieldType =
 interface Field<T, C> {
   type: FieldType;
   items?: T[];
+  loading?: boolean;
   accessor?: keyof C;
   accessors?: (keyof C)[];
   formatter?: (value: T) => { label: string; value: string | number };
@@ -99,6 +102,7 @@ interface Field<T, C> {
 }
 function Workflows() {
   const { t }: { t: any } = useTranslation();
+  const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'create' | 'update'>('list');
   const [currentMainCondition, setCurrentMainCondition] =
     useState<WFMainCondition>(mainConditions[0]);
@@ -107,6 +111,7 @@ function Workflows() {
 
   const [currentConditions, setCurrentConditions] = useState<UICondition[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const [currentTitle, setCurrentTitle] = useState<string>('');
   const [currentWorkflowId, setCurrentWorkflowId] = useState<number>();
   // @ts-ignore
@@ -176,7 +181,7 @@ function Workflows() {
   );
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { workflows, loadingGet } = useSelector((state) => state.workflows);
+  const { workflows, loadingGet, loadingError } = useSelector((state) => state.workflows);
   const { vendorsMini } = useSelector((state) => state.vendors);
   const { locationsMini } = useSelector((state) => state.locations);
   const { categories } = useSelector((state) => state.categories);
@@ -185,30 +190,32 @@ function Workflows() {
   const { teamsMini } = useSelector((state) => state.teams);
   const brandConfig = useBrand();
   const { partsMini } = useSelector((state) => state.parts);
-  const fetchVendors = async () => {
-    if (!vendorsMini.length) dispatch(getVendorsMini());
+  const requestedLookups = useRef(new Set<string>());
+  const [loadingLookupKeys, setLoadingLookupKeys] = useState<Set<string>>(new Set());
+  const loadLookup = (key: string, hasCachedData: boolean, request: () => any) => {
+    if (hasCachedData || requestedLookups.current.has(key)) return;
+    requestedLookups.current.add(key);
+    setLoadingLookupKeys((current) => new Set(current).add(key));
+    void dispatch(request()).catch(() => {
+      requestedLookups.current.delete(key);
+      showSnackBar(t('workflow_lookup_load_failed'), 'error');
+    }).finally(() => {
+      setLoadingLookupKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    });
   };
-  const fetchParts = async () => {
-    if (!partsMini.length) dispatch(getPartsMini());
-  };
-  const fetchUsers = async () => {
-    if (!usersMini.length) dispatch(getUsersMini());
-  };
-  const fetchLocations = async () => {
-    if (!locationsMini.length) dispatch(getLocationsMini());
-  };
-  const fetchCategories = async (category: string) => {
-    if (!categories[category]) dispatch(getCategories(category));
-  };
-  const fetchAssets = async () => {
-    if (!assetsMini.length) dispatch(getAssetsMini());
-  };
-  const fetchTeams = async () => {
-    if (!teamsMini.length) dispatch(getTeamsMini());
-  };
-  const fetchChecklists = async () => {
-    if (!checklists.length) dispatch(getChecklists());
-  };
+  const fetchVendors = () => loadLookup('vendors', vendorsMini.length > 0, getVendorsMini);
+  const fetchParts = () => loadLookup('parts', partsMini.length > 0, getPartsMini);
+  const fetchUsers = () => loadLookup('users', usersMini.length > 0, getUsersMini);
+  const fetchLocations = () => loadLookup('locations', locationsMini.length > 0, getLocationsMini);
+  const fetchCategories = (category: string) =>
+    loadLookup(`categories:${category}`, Boolean(categories[category]), () => getCategories(category));
+  const fetchAssets = () => loadLookup('assets', assetsMini.length > 0, getAssetsMini);
+  const fetchTeams = () => loadLookup('teams', teamsMini.length > 0, getTeamsMini);
+  const fetchChecklists = () => loadLookup('checklists', checklists.length > 0, getChecklists);
   const objectFormatter = (value) => ({ id: Number(value) });
   const conditionsConfig: Record<
     WorkflowConditionType,
@@ -228,6 +235,7 @@ function Workflows() {
     ASSET_IS: {
       type: 'select',
       items: assetsMini,
+      loading: loadingLookupKeys.has('assets'),
       accessor: 'asset',
       onOpen: fetchAssets,
       formatter: (asset: AssetMiniDTO) => ({
@@ -247,6 +255,7 @@ function Workflows() {
             ? 'work-order-categories'
             : 'purchase-order-categories'
         ] ?? [],
+      loading: loadingLookupKeys.has(`categories:${currentMainCondition.startsWith('WORK_ORDER') ? 'work-order-categories' : 'purchase-order-categories'}`),
       onOpen: () =>
         fetchCategories(
           currentMainCondition.startsWith('WORK_ORDER')
@@ -271,6 +280,7 @@ function Workflows() {
     LOCATION_IS: {
       type: 'select',
       items: locationsMini,
+      loading: loadingLookupKeys.has('locations'),
       accessor: 'location',
       onOpen: fetchLocations,
       formatter: (location: LocationMiniDTO) => ({
@@ -286,6 +296,7 @@ function Workflows() {
     PART_IS: {
       type: 'select',
       items: partsMini,
+      loading: loadingLookupKeys.has('parts'),
       accessor: 'part',
       onOpen: fetchParts,
       formatter: (part: PartMiniDTO) => ({ label: part.name, value: part.id }),
@@ -307,6 +318,7 @@ function Workflows() {
     TEAM_IS: {
       type: 'select',
       items: teamsMini,
+      loading: loadingLookupKeys.has('teams'),
       accessor: 'team',
       onOpen: fetchTeams,
       formatter: (team: TeamMiniDTO) => ({ label: team.name, value: team.id }),
@@ -316,6 +328,7 @@ function Workflows() {
     USER_IS: {
       type: 'select',
       items: usersMini,
+      loading: loadingLookupKeys.has('users'),
       accessor: 'user',
       onOpen: fetchUsers,
       formatter: (user: UserMiniDTO) => ({
@@ -329,6 +342,7 @@ function Workflows() {
     VENDOR_IS: {
       type: 'select',
       items: vendorsMini,
+      loading: loadingLookupKeys.has('vendors'),
       accessor: 'vendor',
       onOpen: fetchVendors,
       formatter: (vendor: VendorMiniDTO) => ({
@@ -355,6 +369,7 @@ function Workflows() {
     ADD_CHECKLIST: {
       type: 'select',
       items: checklists,
+      loading: loadingLookupKeys.has('checklists'),
       accessor: 'checklist',
       onOpen: fetchChecklists,
       formatter: (checklist: Checklist) => ({
@@ -367,6 +382,7 @@ function Workflows() {
     ASSIGN_ASSET: {
       type: 'select',
       items: assetsMini,
+      loading: loadingLookupKeys.has('assets'),
       accessor: 'asset',
       onOpen: fetchAssets,
       formatter: (asset: AssetMiniDTO) => ({
@@ -389,6 +405,7 @@ function Workflows() {
             ? 'work-order-categories'
             : 'purchase-order-categories'
         ] ?? [],
+      loading: loadingLookupKeys.has(`categories:${currentMainCondition.startsWith('WORK_ORDER') || currentMainCondition.startsWith('REQUEST') ? 'work-order-categories' : 'purchase-order-categories'}`),
       onOpen: () =>
         fetchCategories(
           currentMainCondition.startsWith('WORK_ORDER') ||
@@ -405,6 +422,7 @@ function Workflows() {
     ASSIGN_LOCATION: {
       type: 'select',
       items: locationsMini,
+      loading: loadingLookupKeys.has('locations'),
       accessor: 'location',
       onOpen: fetchLocations,
       formatter: (location: LocationMiniDTO) => ({
@@ -422,6 +440,7 @@ function Workflows() {
     ASSIGN_TEAM: {
       type: 'select',
       items: teamsMini,
+      loading: loadingLookupKeys.has('teams'),
       accessor: 'team',
       onOpen: fetchTeams,
       formatter: (team: TeamMiniDTO) => ({ label: team.name, value: team.id }),
@@ -430,6 +449,7 @@ function Workflows() {
     ASSIGN_USER: {
       type: 'select',
       items: usersMini,
+      loading: loadingLookupKeys.has('users'),
       accessor: 'user',
       onOpen: fetchUsers,
       formatter: (user: UserMiniDTO) => ({
@@ -441,6 +461,7 @@ function Workflows() {
     ASSIGN_VENDOR: {
       type: 'select',
       items: vendorsMini,
+      loading: loadingLookupKeys.has('vendors'),
       accessor: 'vendor',
       onOpen: fetchVendors,
       formatter: (vendor: VendorMiniDTO) => ({
@@ -466,9 +487,12 @@ function Workflows() {
   };
 
   useEffect(() => {
-    dispatch(getWorkflows());
+    void dispatch(getWorkflows()).catch(() => undefined);
+  }, [dispatch]);
+
+  useEffect(() => {
     setTitle(t('workflows'));
-  }, []);
+  }, [setTitle, t]);
   const onDeleteSuccess = () => {
     showSnackBar(t('workflow_delete_success'), 'success');
   };
@@ -491,6 +515,8 @@ function Workflows() {
     workflow.action?.purchaseOrderAction === 'SEND_REMINDER_EMAIL';
 
   const handleDelete = async (id: number) => {
+    if (deleting || id == null) return;
+    setDeleting(true);
     try {
       const deleted = await dispatch(deleteWorkflow(id));
       setOpenDelete(false);
@@ -499,6 +525,8 @@ function Workflows() {
     } catch (err) {
       setOpenDelete(false);
       onDeleteFailure(err);
+    } finally {
+      setDeleting(false);
     }
   };
   const handleConditionTypeChange = (
@@ -506,7 +534,7 @@ function Workflows() {
     index: number
   ) => {
     const newConditions = [...currentConditions];
-    newConditions[index].type = value;
+    newConditions[index] = { type: value, value: null, values: [] };
     setCurrentConditions(newConditions);
   };
   const handleConditionValueChange = (
@@ -535,9 +563,10 @@ function Workflows() {
     ]);
   };
   const handleActionTypeChange = (value: WorkflowActionType) => {
-    setCurrentAction((action) => ({
+    setCurrentAction(() => ({
       type: value,
-      value: null
+      value: null,
+      values: []
     }));
   };
   const handleActionValueChange = (value: string | number) => {
@@ -622,20 +651,20 @@ function Workflows() {
       ];
       let result;
       for (let key of basicKeys) {
-        if (condition[key]) {
+        if (condition[key] !== null && condition[key] !== undefined && condition[key] !== '') {
           result = condition[key];
           break;
         }
       }
-      if (result) return result;
+      if (result !== undefined) return result;
       for (let key of objectKeys) {
-        if (condition[key]) {
+        if (condition[key] !== null && condition[key] !== undefined) {
           //@ts-ignore
           result = condition[key].id;
           break;
         }
       }
-      if (result) return result;
+      if (result !== undefined) return result;
     };
     const getValuesFromCondition = (
       condition: WorkflowCondition
@@ -667,20 +696,20 @@ function Workflows() {
       ];
       let result;
       for (let key of basicKeys) {
-        if (action[key]) {
+        if (action[key] !== null && action[key] !== undefined && action[key] !== '') {
           result = action[key];
           break;
         }
       }
-      if (result) return result;
+      if (result !== undefined) return result;
       for (let key of objectKeys) {
-        if (action[key]) {
+        if (action[key] !== null && action[key] !== undefined) {
           //@ts-ignore
           result = action[key].id;
           break;
         }
       }
-      if (result) return result;
+      if (result !== undefined) return result;
     };
     setCurrentTitle(workflow.title);
     setCurrentMainCondition(workflow.mainCondition);
@@ -711,16 +740,23 @@ function Workflows() {
       case 'dateRange':
       case 'hourRange':
         return (
-          field.values?.length == 2 && field.values.every((value) => !!value)
+          field.values?.length == 2 && field.values.every((value) =>
+            value !== null && value !== undefined && value !== ''
+          )
         );
       case 'simple':
         return true;
       default:
-        return !!field.value;
+        return field.value !== null && field.value !== undefined && field.value !== '';
     }
   };
   const onSave = () => {
     setSaving(true);
+    if (!currentTitle.trim()) {
+      setSaving(false);
+      showSnackBar(t('required_title'), 'error');
+      return;
+    }
     if (
       currentConditions.every((condition) =>
         checkFieldTypeValue(conditionsConfig[condition.type].type, condition)
@@ -742,7 +778,7 @@ function Workflows() {
         };
         const actionConfig = actionsConfig[currentAction.type];
         const workflow = {
-          title: currentTitle,
+          title: currentTitle.trim(),
           mainCondition: currentMainCondition,
           secondaryConditions: currentConditions.map((condition) => {
             const config = conditionsConfig[condition.type];
@@ -814,6 +850,7 @@ function Workflows() {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Select
             fullWidth
+            aria-label={t('and_optional')}
             value={condition.type}
             onChange={(event) =>
               handleConditionTypeChange(
@@ -834,6 +871,7 @@ function Workflows() {
             {['text', 'number'].includes(config.type) ? (
               <TextField
                 fullWidth
+                label={t(condition.type)}
                 value={condition.value}
                 onChange={(event) =>
                   handleConditionValueChange(event.target.value, index)
@@ -843,12 +881,24 @@ function Workflows() {
             ) : config.type === 'select' ? (
               <Select
                 fullWidth
+                aria-label={t(condition.type)}
                 value={condition.value}
                 onChange={(event) =>
                   handleConditionValueChange(event.target.value, index)
                 }
                 onOpen={config.onOpen}
               >
+                {config.loading && (
+                  <MenuItem disabled>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CircularProgress size={16} />
+                      <span>{t('loading')}</span>
+                    </Stack>
+                  </MenuItem>
+                )}
+                {!config.loading && config.items.length === 0 && (
+                  <MenuItem disabled>{t('no_results')}</MenuItem>
+                )}
                 {config.items.map((item, index) => (
                   <MenuItem key={index} value={config.formatter(item).value}>
                     {config.formatter(item).label}
@@ -864,6 +914,7 @@ function Workflows() {
                 renderInput={(params) => (
                   <TextField
                     fullWidth
+                    label={t(condition.type)}
                     placeholder={t('select_date')}
                     required={true}
                     {...params}
@@ -919,6 +970,7 @@ function Workflows() {
           {['text', 'number'].includes(config.type) ? (
             <TextField
               fullWidth
+              label={t(action.type)}
               value={action.value}
               onChange={(event) => handleActionValueChange(event.target.value)}
               type={config.type}
@@ -926,10 +978,22 @@ function Workflows() {
           ) : config.type === 'select' ? (
             <Select
               fullWidth
+              aria-label={t(action.type)}
               value={action.value}
               onChange={(event) => handleActionValueChange(event.target.value)}
               onOpen={config.onOpen}
             >
+              {config.loading && (
+                <MenuItem disabled>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CircularProgress size={16} />
+                    <span>{t('loading')}</span>
+                  </Stack>
+                </MenuItem>
+              )}
+              {!config.loading && config.items.length === 0 && (
+                <MenuItem disabled>{t('no_results')}</MenuItem>
+              )}
               {config.items.map((item, index) => (
                 <MenuItem key={index} value={config.formatter(item).value}>
                   {config.formatter(item).label}
@@ -943,6 +1007,7 @@ function Workflows() {
               renderInput={(params) => (
                 <TextField
                   fullWidth
+                  label={t(action.type)}
                   placeholder={t('select_date')}
                   required={true}
                   {...params}
@@ -991,15 +1056,21 @@ function Workflows() {
               shortBrandName: brandConfig.shortName
             })}
           </Typography>
+          <Button
+            sx={{ mt: 1, mb: 2 }}
+            variant="contained"
+            startIcon={<AddOutlinedIcon fontSize="small" />}
+            onClick={() => navigate('/app/settings/features/workflows/purchase-requisitions')}
+          >
+            {t('pr_approval_workflow')}
+          </Button>
         </Grid>
         <Grid item xs={12}>
           {view === 'list' && (
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} lg={6}>
                 <Button
-                  sx={{
-                    mb: 2
-                  }}
+                  sx={{ mb: 2 }}
                   variant="contained"
                   onClick={() => {
                     resetEditor();
@@ -1014,17 +1085,46 @@ function Workflows() {
                 </Button>
               </Grid>
               <Grid item xs={12}>
+                {loadingError && (
+                  <Alert
+                    severity="error"
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => {
+                          void dispatch(getWorkflows()).catch(() => undefined);
+                        }}
+                      >
+                        {t('retry')}
+                      </Button>
+                    }
+                    sx={{ mb: 2 }}
+                  >
+                    {t('workflows_load_failed')}
+                  </Alert>
+                )}
                 {loadingGet ? (
                   <Stack
                     direction={'row'}
                     width={'100%'}
+                    minHeight={180}
                     justifyContent={'center'}
                     alignItems={'center'}
                   >
-                    <CircularProgress />
+                    <CircularProgress aria-label={t('loading')} />
                   </Stack>
                 ) : (
-                  workflows.map((workflow) => (
+                  <>
+                    {!loadingError && workflows.length === 0 && (
+                      <Card variant="outlined" sx={{ p: 2, mt: 1 }}>
+                        <Typography fontWeight={600}>{t('workflows_empty_title')}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {t('workflows_empty_description')}
+                        </Typography>
+                      </Card>
+                    )}
+                    {workflows.map((workflow) => (
                     <Card
                       sx={{ p: 2, mt: 1 }}
                       style={{
@@ -1100,7 +1200,8 @@ function Workflows() {
                         </Button>
                       </Stack>
                     </Card>
-                  ))
+                    ))}
+                  </>
                 )}
               </Grid>
             </Grid>
@@ -1111,8 +1212,10 @@ function Workflows() {
                 <Typography variant="h6">{t('title')}</Typography>
                 <TextField
                   fullWidth
+                  required
                   value={currentTitle}
                   onChange={(event) => setCurrentTitle(event.target.value)}
+                  label={t('title')}
                   placeholder={t('title')}
                 />
               </Grid>
@@ -1120,12 +1223,16 @@ function Workflows() {
                 <Typography variant="h6">{t('if')}</Typography>
                 <Select
                   fullWidth
+                  aria-label={t('if')}
                   value={currentMainCondition}
                   onChange={(event) => {
-                    setCurrentMainCondition(
-                      event.target.value as WFMainCondition
-                    );
+                    const nextCondition = event.target.value as WFMainCondition;
+                    setCurrentMainCondition(nextCondition);
                     setCurrentConditions([]);
+                    setCurrentAction({
+                      type: mainConfig[nextCondition].actions[0],
+                      value: null
+                    });
                   }}
                 >
                   {availableMainConditions.map((mainCondition, index) => (
@@ -1154,6 +1261,7 @@ function Workflows() {
                 <Typography variant="h6">{t('then')}</Typography>
                 <Select
                   fullWidth
+                  aria-label={t('then')}
                   value={currentAction?.type}
                   onChange={(event) =>
                     handleActionTypeChange(
@@ -1172,9 +1280,11 @@ function Workflows() {
                 {renderActionField(currentAction)}
               </Grid>
               <Grid item xs={12}>
-                <Stack direction="row" spacing={1}>
+                <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1}>
                   <Button
                     variant="outlined"
+                    sx={{ minHeight: 44 }}
+                    disabled={saving}
                     onClick={() => {
                       resetEditor();
                       setView('list');
@@ -1187,6 +1297,7 @@ function Workflows() {
                     startIcon={saving ? <CircularProgress size="1rem" /> : null}
                     onClick={onSave}
                     variant="contained"
+                    sx={{ minHeight: 44, minWidth: { sm: 132 } }}
                   >
                     {t('save')}
                   </Button>
@@ -1204,6 +1315,7 @@ function Workflows() {
           onConfirm={() => handleDelete(currentWorkflowId)}
           confirmText={t('to_delete')}
           question={t('confirm_delete_workflow')}
+          loading={deleting}
         />
       </Grid>
     </Box>

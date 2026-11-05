@@ -9,6 +9,8 @@ RUN npm config set fetch-retry-maxtimeout 6000000 \
     && npm ci --legacy-peer-deps
 COPY . .
 
+RUN npm run typecheck
+
 RUN QPM_LOW_MEMORY_BUILD=1 GENERATE_SOURCEMAP=false \
     NODE_OPTIONS="--max_old_space_size=2560" npm run build
 

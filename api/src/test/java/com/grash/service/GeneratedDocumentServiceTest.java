@@ -12,11 +12,17 @@ import com.grash.model.Role;
 import com.grash.model.User;
 import com.grash.model.WorkOrder;
 import com.grash.model.Request;
+import com.grash.model.PurchaseOrder;
+import com.grash.model.PurchaseRequisition;
+import com.grash.repository.PurchaseRequisitionRepository;
+import com.grash.repository.PartQuantityRepository;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.Status;
 import com.grash.model.enums.DocumentTemplateStatus;
 import com.grash.repository.GeneratedDocumentRepository;
+import com.grash.repository.GeneratedDocumentAccessEventRepository;
 import com.grash.repository.DocumentTemplateRepository;
+import com.grash.repository.PurchaseOrderRepository;
 import org.springframework.context.MessageSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +42,7 @@ import static org.mockito.Mockito.*;
 class GeneratedDocumentServiceTest {
     @InjectMocks private GeneratedDocumentService service;
     @Mock private GeneratedDocumentRepository repository;
+    @Mock private GeneratedDocumentAccessEventRepository accessEventRepository;
     @Mock private WorkOrderService workOrderService;
     @Mock private StorageServiceFactory storageFactory;
     @Mock private DocumentContextResolver documentContextResolver;
@@ -44,12 +51,141 @@ class GeneratedDocumentServiceTest {
     @Mock private RequestService requestService;
     @Mock private StorageService storage;
     @Mock private DocumentTemplateRepository templateRepository;
+    @Mock private PurchaseOrderRepository purchaseOrderRepository;
+    @Mock private PartQuantityRepository partQuantityRepository;
+    @Mock private ProcurementSiteService procurementSiteService;
+    @Mock private PurchaseRequisitionRepository purchaseRequisitionRepository;
+    @Mock private PurchaseOrderPolicyService purchaseOrderPolicyService;
     @Mock private ReportTemplateConfigurationValidator templateValidator;
     @Mock private PdfmeTemplateConfigurationValidator pdfmeValidator;
     @Mock private PdfmeRendererClient pdfmeRendererClient;
     @Mock private DocumentDataProviderRegistry providerRegistry;
     @Mock private ConfigurableWorkOrderReportRenderer templateRenderer;
     @Mock private MessageSource messageSource;
+
+    @Test
+    void procurementPrintTablesHaveAHeaderForEveryAllowedColumn() {
+        var poTable = org.springframework.test.util.ReflectionTestUtils.invokeMethod(service, "reportTable",
+                "purchaseOrder.lines", java.util.Map.of("purchaseOrder.lines", List.of()), java.util.Locale.FRENCH,
+                "UTC", null);
+        var prTable = org.springframework.test.util.ReflectionTestUtils.invokeMethod(service, "reportTable",
+                "purchaseRequisition.lines", java.util.Map.of("purchaseRequisition.lines", List.of()), java.util.Locale.FRENCH,
+                "UTC", null);
+
+        assertNotNull(poTable);
+        assertNotNull(prTable);
+        assertEquals(8, ((ConfigurableWorkOrderReportRenderer.ReportTable) poTable).headers().size());
+        assertEquals(6, ((ConfigurableWorkOrderReportRenderer.ReportTable) prTable).headers().size());
+        assertEquals("Site", ((ConfigurableWorkOrderReportRenderer.ReportTable) poTable).headers().get(7));
+        assertEquals("Site", ((ConfigurableWorkOrderReportRenderer.ReportTable) prTable).headers().get(5));
+    }
+
+    @Test
+    void purchaseOrderCannotBeOfficiallyIssuedBeforeApproval() {
+        Company company = new Company(); company.setId(7L);
+        Role role = Role.builder().viewPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_ORDERS)))
+                .viewOtherPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_ORDERS)))
+                .editOtherPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_ORDERS))).build();
+        User user = new User(); user.setId(11L); user.setCompany(company); user.setRole(role);
+        PurchaseOrder order = new PurchaseOrder(); order.setId(42L); order.setCompany(company); order.setCreatedBy(11L);
+        when(purchaseOrderRepository.findByIdForUpdateAndCompany(42L, 7L)).thenReturn(Optional.of(order));
+        when(partQuantityRepository.findByPurchaseOrder_Id(42L)).thenReturn(List.of());
+
+        var error = assertThrows(com.grash.exception.CustomException.class,
+                () -> service.issuePurchaseOrder(42L, 3L, user));
+        assertEquals(org.springframework.http.HttpStatus.CONFLICT, error.getHttpStatus());
+        verifyNoInteractions(templateRepository, storageFactory);
+    }
+
+    @Test
+    void visiblePurchaseRequisitionCannotBeOfficiallyIssuedWithoutEditPermission() {
+        Company company = new Company(); company.setId(7L);
+        Role role = Role.builder().viewPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_REQUISITIONS)))
+                .viewOtherPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_REQUISITIONS)))
+                .editOtherPermissions(new HashSet<>()).build();
+        User viewer = new User(); viewer.setId(11L); viewer.setCompany(company); viewer.setRole(role);
+        User requester = new User(); requester.setId(12L);
+        PurchaseRequisition requisition = new PurchaseRequisition(); requisition.setCompany(company);
+        requisition.setRequester(requester);
+        when(purchaseRequisitionRepository.findWithLinesByIdAndCompany(42L, 7L)).thenReturn(Optional.of(requisition));
+
+        var error = assertThrows(com.grash.exception.CustomException.class,
+                () -> service.issuePurchaseRequisition(42L, 3L, viewer));
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, error.getHttpStatus());
+        verifyNoInteractions(templateRepository, storageFactory);
+    }
+
+    @Test
+    void procurementDocumentTemplatesRequireAnEnabledProcurementModule() {
+        User user = new User();
+        doThrow(new com.grash.exception.CustomException("module_disabled", org.springframework.http.HttpStatus.FORBIDDEN))
+                .when(purchaseOrderPolicyService).requireModuleEnabled(user);
+
+        var error = assertThrows(com.grash.exception.CustomException.class,
+                () -> service.listPublishedPurchaseOrderTemplates(42L, user));
+
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, error.getHttpStatus());
+        verifyNoInteractions(purchaseOrderRepository, templateRepository);
+    }
+
+    @Test
+    void approvedPurchaseOrderIssuesAStoredVersionedPdf() throws Exception {
+        Company company = new Company(); company.setId(7L);
+        company.getCompanySettings().getGeneralPreferences().setColor("#2F5BEA");
+        Role role = Role.builder().viewPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_ORDERS)))
+                .viewOtherPermissions(new HashSet<>()).editOtherPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.PURCHASE_ORDERS))).build();
+        User user = new User(); user.setId(11L); user.setCompany(company); user.setRole(role);
+        PurchaseOrder order = new PurchaseOrder(); order.setId(42L); order.setCompany(company); order.setCreatedBy(11L);
+        order.setStatus(com.grash.model.enums.ApprovalStatus.APPROVED);
+        var configuration = new com.fasterxml.jackson.databind.ObjectMapper().readTree("""
+                {"schemaVersion":"1.0","documentType":"PURCHASE_ORDER","provider":"PURCHASE_ORDER",
+                 "style":"CLASSIC","page":{"size":"A4","orientation":"PORTRAIT","marginMm":10},
+                 "visibleFields":["purchaseOrder.number","purchaseOrder.status","purchaseOrder.lines"],
+                 "options":{"showPageNumbers":true,"repeatTableHeader":true}}
+                """);
+        DocumentType type = new DocumentType(); type.setCode("PURCHASE_ORDER"); type.setProviderCode("PURCHASE_ORDER");
+        DocumentTemplateVersion version = new DocumentTemplateVersion();
+        version.setId(19L); version.setVersionNumber(3); version.setStatus(DocumentTemplateStatus.PUBLISHED); version.setConfiguration(configuration);
+        DocumentTemplate template = new DocumentTemplate(); template.setId(9L); template.setDocumentType(type);
+        template.setStatus(DocumentTemplateStatus.PUBLISHED); template.setPublishedVersion(version);
+        var context = new DocumentContextResolver.DocumentContext("QPM", "QPM SA", null, null, "Abidjan",
+                "RC-1", "NIF-1", "XOF", com.grash.model.enums.DateFormat.DDMMYY, "UTC",
+                com.grash.model.enums.Language.FR, java.util.Locale.FRENCH, null, null);
+        when(purchaseOrderRepository.findByIdForUpdateAndCompany(42L, 7L)).thenReturn(Optional.of(order));
+        when(partQuantityRepository.findByPurchaseOrder_Id(42L)).thenReturn(List.of());
+        when(templateRepository.findByIdAndCompany_IdAndStatus(9L, 7L, DocumentTemplateStatus.PUBLISHED))
+                .thenReturn(Optional.of(template));
+        when(templateValidator.validate(configuration, "PURCHASE_ORDER", "PURCHASE_ORDER")).thenReturn(configuration);
+        when(templateValidator.visibleFields(configuration)).thenReturn(List.of("purchaseOrder.number", "purchaseOrder.status", "purchaseOrder.lines"));
+        DocumentDataProvider provider = mock(DocumentDataProvider.class);
+        when(providerRegistry.require("PURCHASE_ORDER")).thenReturn(provider);
+        when(provider.resolve(eq(order), eq(context), anySet())).thenReturn(java.util.Map.of(
+                "purchaseOrder.number", "PO-42", "purchaseOrder.status", "Approuvé", "purchaseOrder.lines", List.of()));
+        when(documentContextResolver.resolve(company, null)).thenReturn(context);
+        when(messageSource.getMessage("report.field.purchaseOrder.number", null, "purchaseOrder.number", java.util.Locale.FRENCH))
+                .thenReturn("Numéro du bon de commande");
+        when(messageSource.getMessage("report.field.purchaseOrder.status", null, "purchaseOrder.status", java.util.Locale.FRENCH))
+                .thenReturn("Statut d’approbation");
+        when(templateRenderer.render(eq(configuration), anyList(), eq(context), isNull(), anyString()))
+                .thenReturn(new byte[]{'%', 'P', 'D', 'F'});
+        when(storageFactory.getStorageService()).thenReturn(storage);
+        when(storage.upload(any(byte[].class), anyString(), anyString())).thenReturn("issued/po-42.pdf");
+        when(repository.save(any(GeneratedDocument.class))).thenAnswer(invocation -> {
+            GeneratedDocument document = invocation.getArgument(0); document.setId(55L); return document;
+        });
+
+        var issued = service.issuePurchaseOrder(42L, 9L, user);
+
+        assertEquals("PURCHASE_ORDER", issued.getSourceType());
+        assertEquals("PURCHASE_ORDER_FORM", issued.getDocumentType());
+        assertEquals(42L, issued.getSourceId());
+        assertEquals(19L, issued.getTemplateVersionId());
+        verify(storage).upload(any(byte[].class), contains("PurchaseOrder-42-"), eq("issued-documents/7/purchase-orders"));
+        verify(templateRenderer).render(eq(configuration), org.mockito.ArgumentMatchers.<List<ConfigurableWorkOrderReportRenderer.ReportBlock>>argThat(blocks -> blocks.size() == 2
+                && blocks.stream().anyMatch(block -> block.row() != null && "PO-42".equals(block.row().value()))
+                && blocks.stream().noneMatch(block -> block.table() != null)),
+                eq(context), isNull(), anyString());
+    }
 
     @Test
     void issuingWorkOrderReportStoresImmutableArtifactMetadata() {
@@ -428,7 +564,57 @@ class GeneratedDocumentServiceTest {
                 () -> service.download(57L, user));
 
         assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, exception.getHttpStatus());
-        verifyNoInteractions(storageFactory);
+        verifyNoInteractions(storageFactory, accessEventRepository);
+    }
+
+    @Test
+    void successfulArchivedPdfDownloadRecordsActorDocumentAndOutcome() {
+        Company company = new Company(); company.setId(7L);
+        Role role = Role.builder().viewPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.REQUESTS)))
+                .viewOtherPermissions(new HashSet<>()).build();
+        User user = new User(); user.setId(12L); user.setFirstName("Amadou"); user.setLastName("Buyer");
+        user.setUsername("buyer"); user.setCompany(company); user.setRole(role);
+        Request request = new Request(); request.setId(55L); request.setCompany(company); request.setCreatedBy(12L);
+        GeneratedDocument document = new GeneratedDocument(); document.setId(57L); document.setCompany(company);
+        document.setSourceType("REQUEST"); document.setSourceId(55L); document.setStoragePath("private/request.pdf");
+        document.setFileName("request-55.pdf");
+        when(repository.findById(57L)).thenReturn(Optional.of(document));
+        when(requestService.findById(55L)).thenReturn(Optional.of(request));
+        when(storageFactory.getStorageService()).thenReturn(storage);
+        when(storage.download("private/request.pdf")).thenReturn(new byte[]{'%', 'P', 'D', 'F'});
+
+        var downloaded = service.download(57L, user);
+
+        assertArrayEquals(new byte[]{'%', 'P', 'D', 'F'}, downloaded.data());
+        var captor = org.mockito.ArgumentCaptor.forClass(com.grash.model.GeneratedDocumentAccessEvent.class);
+        verify(accessEventRepository).save(captor.capture());
+        assertEquals(57L, captor.getValue().getGeneratedDocumentId());
+        assertEquals("REQUEST", captor.getValue().getSourceType());
+        assertEquals(12L, captor.getValue().getActorId());
+        assertEquals("Amadou Buyer", captor.getValue().getActorName());
+        assertEquals("SUCCESS", captor.getValue().getOutcome());
+    }
+
+    @Test
+    void failedStorageDownloadIsRecordedBeforeTheErrorIsReturned() {
+        Company company = new Company(); company.setId(7L);
+        Role role = Role.builder().viewPermissions(new HashSet<>(java.util.Set.of(PermissionEntity.REQUESTS)))
+                .viewOtherPermissions(new HashSet<>()).build();
+        User user = new User(); user.setId(12L); user.setFirstName("Amadou"); user.setLastName("Buyer");
+        user.setUsername("buyer"); user.setCompany(company); user.setRole(role);
+        Request request = new Request(); request.setId(55L); request.setCompany(company); request.setCreatedBy(12L);
+        GeneratedDocument document = new GeneratedDocument(); document.setId(57L); document.setCompany(company);
+        document.setSourceType("REQUEST"); document.setSourceId(55L); document.setStoragePath("private/request.pdf");
+        when(repository.findById(57L)).thenReturn(Optional.of(document));
+        when(requestService.findById(55L)).thenReturn(Optional.of(request));
+        when(storageFactory.getStorageService()).thenReturn(storage);
+        when(storage.download("private/request.pdf")).thenThrow(new IllegalStateException("storage unavailable"));
+
+        assertThrows(IllegalStateException.class, () -> service.download(57L, user));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(com.grash.model.GeneratedDocumentAccessEvent.class);
+        verify(accessEventRepository).save(captor.capture());
+        assertEquals("FAILED", captor.getValue().getOutcome());
     }
 
     @Test
@@ -455,7 +641,7 @@ class GeneratedDocumentServiceTest {
                 .viewOtherPermissions(new HashSet<>()).build();
         User user = new User(); user.setId(11L); user.setCompany(company); user.setRole(role);
         WorkOrder order = new WorkOrder(); order.setId(42L); order.setCompany(company); order.setCreatedBy(11L);
-        DocumentType workOrderType = new DocumentType(); workOrderType.setCode("WORK_ORDER");
+        DocumentType workOrderType = new DocumentType(); workOrderType.setCode("WORK_ORDER"); workOrderType.setProviderCode("WORK_ORDER");
         DocumentTemplateVersion publishedVersion = new DocumentTemplateVersion();
         publishedVersion.setId(19L); publishedVersion.setVersionNumber(3);
         publishedVersion.setStatus(DocumentTemplateStatus.PUBLISHED);

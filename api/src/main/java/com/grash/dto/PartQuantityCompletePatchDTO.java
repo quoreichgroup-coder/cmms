@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -21,5 +24,12 @@ public class PartQuantityCompletePatchDTO {
     @Schema(description = "Part reference", implementation = IdDTO.class)
     @NotNull
     private Part part;
+
+    @Schema(description = "Supplier-agreed unit price in company currency")
+    @DecimalMin(value = "0.0", inclusive = true)
+    @Digits(integer = 15, fraction = 4)
+    private BigDecimal purchaseUnitPrice;
+
+    private Long siteId;
 }
 

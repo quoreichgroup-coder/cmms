@@ -20,6 +20,7 @@ import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.RoleCode;
 import com.grash.model.enums.RoleType;
 import com.grash.repository.UserRepository;
+import com.grash.repository.WorkOrderRepository;
 import com.grash.repository.VerificationTokenRepository;
 import com.grash.security.CustomUserDetail;
 import com.grash.security.JwtTokenProvider;
@@ -61,6 +62,8 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private WorkOrderRepository workOrderRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
@@ -105,6 +108,8 @@ class UserServiceTest {
     private RefreshTokenService refreshTokenService;
     @Mock
     private ApiKeyService apiKeyService;
+    @Mock
+    private CompanyConfigurationAuditService companyConfigurationAuditService;
 
     private Company company;
     private User user;
@@ -1252,7 +1257,7 @@ class UserServiceTest {
             userService.invite("invited@test.com", role, user, false);
 
             verify(userInvitationService).create(any(UserInvitation.class));
-            verify(mailService).sendMessageUsingThymeleafTemplate(
+            verify(mailService).sendMessageUsingThymeleafTemplateSynchronously(
                     eq(new String[]{"invited@test.com"}), anyString(), anyMap(), anyString(), any(), eq(null));
         }
     }

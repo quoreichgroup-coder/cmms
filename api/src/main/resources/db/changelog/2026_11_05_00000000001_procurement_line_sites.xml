@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="2026-11-05-procurement-line-sites" author="qpm">
+        <addColumn tableName="purchase_requisition_line">
+            <column name="site_id" type="BIGINT"/>
+        </addColumn>
+        <addColumn tableName="part_quantity">
+            <column name="site_id" type="BIGINT"/>
+        </addColumn>
+
+        <!-- Preserve only known historical provenance; never infer a site from a PO header. -->
+        <sql>update purchase_requisition_line prl
+             set site_id = wo.site_id
+             from purchase_requisition pr
+             join work_order wo on wo.id = pr.source_work_order_id
+             where prl.requisition_id = pr.id and prl.site_id is null and wo.site_id is not null</sql>
+        <sql>update part_quantity pq
+             set site_id = prl.site_id
+             from purchase_requisition_line prl
+             where pq.requisition_line_id = prl.id and pq.site_id is null and prl.site_id is not null</sql>
+
+        <addForeignKeyConstraint baseTableName="purchase_requisition_line" baseColumnNames="site_id"
+                                 constraintName="fk_purchase_requisition_line_site" referencedTableName="site"
+                                 referencedColumnNames="id" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableName="part_quantity" baseColumnNames="site_id"
+                                 constraintName="fk_part_quantity_site" referencedTableName="site"
+                                 referencedColumnNames="id" onDelete="RESTRICT"/>
+        <createIndex tableName="purchase_requisition_line" indexName="idx_purchase_requisition_line_site">
+            <column name="site_id"/>
+        </createIndex>
+        <createIndex tableName="part_quantity" indexName="idx_part_quantity_site">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

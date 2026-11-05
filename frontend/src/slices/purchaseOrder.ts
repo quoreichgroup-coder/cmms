@@ -115,11 +115,11 @@ export const getPurchaseOrders =
   };
 
 export const getPurchaseOrdersToReceive =
-  (page: number, size: number, query = ''): AppThunk =>
+  (page: number, size: number, query = '', receiptState = 'ALL'): AppThunk =>
   async (dispatch) => {
     try {
       dispatch(slice.actions.setLoadingGet({ loading: true }));
-      const params = new URLSearchParams({ page: String(page), size: String(size) });
+      const params = new URLSearchParams({ page: String(page), size: String(size), receiptState });
       if (query.trim()) params.set('query', query.trim());
       const purchaseOrders = await api.get<Page<PurchaseOrder>>(
         `${basePath}/receiving-queue?${params.toString()}`
@@ -193,15 +193,16 @@ export const addPurchaseOrderWithLines =
   };
 
 export const respondPurchaseOrder =
-  (id: number, approved: boolean): AppThunk =>
+  (id: number, approved: boolean, comment?: string): AppThunk =>
   async (dispatch) => {
     const purchaseOrderResponse = await api.patch<PurchaseOrder>(
-      `${basePath}/${id}/respond?approved=${approved}`,
+      `${basePath}/${id}/respond?approved=${approved}${comment ? `&comment=${encodeURIComponent(comment)}` : ''}`,
       {}
     );
     dispatch(
       slice.actions.editPurchaseOrder({ purchaseOrder: purchaseOrderResponse })
     );
+    return purchaseOrderResponse;
   };
 
 export const deletePurchaseOrder =

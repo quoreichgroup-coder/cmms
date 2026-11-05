@@ -13,6 +13,8 @@ import java.util.List;
 public class PreventiveMaintenancePlanConfiguration {
     private Mode mode = Mode.SINGLE;
     private Combination combination;
+    /** Optional operation/material template applied to every generated work order. */
+    private Long maintenanceTaskListId;
     private List<Package> packages = new ArrayList<>();
     private List<Cycle> cycles = new ArrayList<>();
 

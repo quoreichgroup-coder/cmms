@@ -826,11 +826,87 @@ const frJSON = {
   requests: 'Demandes',
   locations: 'Emplacements',
   parts_and_inventory: 'Pièces/Inventaire',
+  purchase_requisitions: 'Demandes d’achat',
+  purchase_requisition_new: 'Nouvelle demande d’achat',
+  purchase_requisition_edit: 'Modifier la demande d’achat',
+  purchase_requisition_delete_title: 'Supprimer le brouillon ?',
+  purchase_requisition_delete_confirm:
+    'Ce brouillon sera supprimé définitivement. Les demandes soumises ne peuvent pas être supprimées ici.',
+  purchase_requisition_delete_error: 'Impossible de supprimer le brouillon.',
+  purchase_requisition_from_work_order: 'Demander des pièces pour cet ordre',
+  purchase_requisition_mobile_hint:
+    'Suivez vos demandes du brouillon jusqu’à l’approbation et la commande.',
+  purchase_requisition_linked_work_order: 'Ordre lié : {{name}}',
+  purchase_requisition_manual_parts_help:
+    'Sélectionnez uniquement les pièces supplémentaires nécessaires. Les pièces de l’ordre ne sont pas copiées, car elles peuvent déjà avoir été sorties.',
+  purchase_requisition_title: 'Titre de la demande',
+  purchase_requisition_justification: 'Justification métier',
+  purchase_requisition_lines: 'Pièces demandées',
+  purchase_requisition_line_notes: 'Note de ligne (facultative)',
+  purchase_requisition_number: 'Demande n° {{id}}',
+  purchase_requisition_decision_recorded: 'Décision de {{user}} · {{date}}',
+  purchase_requisition_approve_title: 'Approuver cette demande ?',
+  purchase_requisition_reject_title: 'Rejeter cette demande ?',
+  purchase_requisition_decision_note:
+    'Note de décision (facultative pour une approbation)',
+  purchase_requisition_rejection_note_required:
+    'Indiquez un motif avant de rejeter.',
+  purchase_requisition_decision_error: 'Impossible d’enregistrer la décision.',
+  approval_policy_version: 'Version de la politique {{version}}',
+  approval_estimated_material_amount: 'Montant estimé des pièces',
+  approval_amount: 'Montant soumis à approbation',
+  approval_current_level: 'Niveau actuel {{current}} sur {{total}}',
+  approval_status_pending: 'En attente',
+  approval_status_approved: 'Approuvée',
+  approval_status_rejected: 'Rejetée',
+  approval_waiting_for_another_approver: 'Ce niveau est attribué à un autre approbateur.',
+  approval_summary_load_error: 'Impossible de charger le circuit. Réessayez avant de décider.',
+  purchase_requisition_source_wo: 'Ordre de travail',
+  purchase_requisition_ordered_quantity: '{{quantity}} commandée(s)',
+  purchase_requisition_replenish: 'Demander un réapprovisionnement',
+  purchase_requisition_restock_title: 'Réapprovisionnement : {{part}}',
+  purchase_requisition_converted:
+    'Bon de commande créé à partir de la demande.',
+  purchase_requisition_conversion_error:
+    'Impossible de créer un bon de commande à partir de cette demande.',
+  purchase_requisition_conversion_validation:
+    'Choisissez un fournisseur et saisissez au moins une quantité restante valide.',
+  purchase_order_name_optional: 'Nom du bon de commande (facultatif)',
+  purchase_requisitions_empty: 'Aucune demande d’achat trouvée.',
+  purchase_requisitions_load_error:
+    'Impossible de charger les demandes d’achat.',
+  purchase_requisition_parts_error: 'Impossible de charger les pièces.',
+  purchase_requisition_validation:
+    'Saisissez un titre, ajoutez au moins une pièce et indiquez des quantités supérieures à zéro.',
+  purchase_requisition_save_error:
+    'Impossible d’enregistrer la demande d’achat.',
+  purchase_requisition_submit_error:
+    'Le brouillon n’a pas pu être soumis. Il reste disponible dans la liste des demandes.',
+  no_access_purchase_requisitions:
+    'Vous n’avez pas accès aux demandes d’achat.',
+  all_purchase_requisitions: 'Toutes les demandes',
+  search_purchase_requisitions: 'Rechercher une demande',
+  purchase_requisition_status_cancelled: 'Annulée',
+  purchase_requisition_status_draft: 'Brouillon',
+  purchase_requisition_status_pending_approval: 'En attente d’approbation',
+  purchase_requisition_status_approved: 'Approuvée',
+  purchase_requisition_status_rejected: 'Rejetée',
+  purchase_requisition_status_partially_ordered: 'Partiellement commandée',
+  purchase_requisition_status_ordered: 'Commandée',
   purchase_orders: 'Bons de commande',
   purchase_orders_to_receive: 'À réceptionner',
+  receipt_status_filter: 'État de réception',
+  receipt_filter_all: 'Tous les reliquats',
+  receipt_filter_not_started: 'Non commencée',
+  receipt_filter_partial: 'Partiellement reçue',
   search_purchase_orders: 'Rechercher une commande ou un fournisseur',
   all_purchase_orders: 'Tous les bons de commande',
   purchase_order_details: 'Détail du bon de commande',
+  delete_purchase_order: 'Supprimer le bon de commande',
+  confirm_delete_purchase_order: 'Supprimer « {{name}} » ? Cette action est irréversible.',
+  purchase_order_deleted: 'Bon de commande supprimé',
+  purchase_order_delete_failed: 'Impossible de supprimer le bon de commande',
+  delete: 'Supprimer',
   purchase_orders_load_error: 'Impossible de charger les bons de commande.',
   purchase_orders_empty: 'Aucun bon de commande trouvé.',
   purchase_orders_read_only_note:
@@ -840,6 +916,13 @@ const frJSON = {
   unit_unspecified: 'unité non précisée',
   purchase_order_cost_estimate_note:
     'Estimation basée sur les coûts actuels des pièces ; le prix fournisseur peut différer.',
+  estimated_total_cost: 'Coût estimatif du stock',
+  agreed_unit_price: 'Prix unitaire convenu',
+  agreed_purchase_total: 'Total convenu avec le fournisseur',
+  supplier_price_unavailable: 'Prix fournisseur indisponible',
+  supplier_price_incomplete: 'Prix fournisseur incomplets',
+  line_total: 'Total de la ligne',
+  purchase_order_agreed_total_note: 'Calculé à partir des prix unitaires convenus avec le fournisseur.',
   purchase_order_due_date: 'Livraison prévue',
   requisitioner_or_creator: 'Demandeur / créateur',
   next_action: 'Prochaine action',
@@ -862,6 +945,8 @@ const frJSON = {
   no_receipts_yet: 'Aucune réception enregistrée.',
   receipt_saved: 'Réception enregistrée et stock mis à jour.',
   receipt_save_failed: 'Impossible d’enregistrer cette réception.',
+  procurement_inventory_quantity_overflow: 'Cette opération dépasserait la quantité de stock prise en charge.',
+  purchase_order_receipt_totals_invalid: 'Le bon de commande ou son historique de réception contient des quantités invalides. Contactez un administrateur avant toute nouvelle réception.',
   meters: 'Compteurs',
   people_teams: 'Personnes & Equipes',
   people: 'Personnes',
@@ -876,6 +961,19 @@ const frJSON = {
   cancelled: 'Annulé',
   reject: 'Rejeter',
   approve: 'Approuver',
+  purchase_order_approved: 'Bon de commande approuvé',
+  ap_intermediate_saved:
+    'Votre approbation a été enregistrée. Le bon de commande attend le prochain approbateur.',
+  purchase_order_rejected: 'Bon de commande refusé',
+  purchase_order_response_failed:
+    'Impossible de mettre à jour le statut du bon de commande',
+  approval_does_not_receive_stock:
+    'L’approbation confirme la commande. Elle ne réceptionne pas les articles en stock.',
+  purchase_order_approval_effect_hint:
+    "Dans le fonctionnement actuel, l'approbation ajoute immédiatement au stock toutes les quantités indiquées. La réception partielle n'est pas prise en charge ici.",
+  confirm_reject_purchase_order:
+    'Refuser ce bon de commande ? Son statut sera mis à jour et le demandeur pourra le consulter.',
+  purchase_order_approval_comment: 'Motif du refus',
   approving_request: 'Création d’un ordre de travail depuis cette demande.',
   request_create_success: 'Bon de travail demandé avec succès',
   request_create_failure: "La demande de travail n'a pas pu être créée",
@@ -1172,6 +1270,14 @@ const frJSON = {
   confirm_delete_po: 'Voulez-vous vraiment supprimer ce bon de commande ?',
   upgrade_po: 'Mettre à niveau pour créer des bons de commande',
   new_po: 'Nouveau bon de commande',
+  create_purchase_order: 'Créer un bon de commande',
+  direct_purchase_order_hint:
+    'Créez directement une commande fournisseur. Cela ne crée pas de demande d’achat; l’approbation reste une étape distincte.',
+  select_vendor_optional: 'Choisir un fournisseur (facultatif)',
+  purchase_order_shipping_address: 'Adresse de livraison',
+  purchase_order_shipping_details: 'Détails de livraison',
+  purchase_order_mobile_validation:
+    'Saisissez un nom de commande, au moins une pièce, des quantités positives, des quantités entières pour les pièces sans unité et une date au format AAAA-MM-JJ.',
   po_create_success: 'Le bon de commande a été créé avec succès',
   select_one_part: 'Sélectionnez au moins 1 pièce ',
   po_create_failure: "Le bon de commande n'a pas pu être créé",
@@ -1253,6 +1359,9 @@ const frJSON = {
   customer_delete_failure: "Le prestataire n'a pas pu être supprimé",
   customer_name: 'Nom du prestataire',
   website: 'Site Internet',
+  site: 'Site',
+  select_site: 'Sélectionner un site',
+  procurement_site_required: 'Sélectionnez un site pour chaque ligne d’achat.',
   customer_type: 'Type de prestataire',
   customer_type_description: 'ex. Electricien, Plombier',
   customer_description_description:
@@ -2223,6 +2332,11 @@ const frJSON = {
   are_you_sure_delete_reading:
     'Êtes-vous sûr de vouloir supprimer cette lecture ?',
   conflict_retry:
-    'La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes.'
+    'La ressource a été modifiée par une autre requête. Veuillez réessayer dans 5 secondes.',
+  procurement_print: 'Imprimer / PDF',
+  procurement_print_help: 'Prévisualisez un modèle publié, puis émettez un PDF traçable. Les copies émises restent réimprimables ci-dessous.',
+  procurement_print_no_template: 'Aucun modèle publié. Configurez-en un dans Paramètres → Documents.',
+  procurement_issue_pdf: 'Émettre et imprimer le PDF',
+  procurement_issue_requires_approval: 'Vous pouvez prévisualiser le document. L’émission officielle d’un PO exige son approbation finale et le droit de modification correspondant.'
 };
 export default frJSON;

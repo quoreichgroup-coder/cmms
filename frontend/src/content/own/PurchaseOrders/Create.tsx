@@ -18,6 +18,7 @@ import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import { addPurchaseOrderWithLines } from 'src/slices/purchaseOrder';
 import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
+import { getErrorMessage } from '../../../utils/api';
 
 function CreatePurchaseOrder() {
   const { t }: { t: any } = useTranslation();
@@ -36,7 +37,8 @@ function CreatePurchaseOrder() {
   const onMissingPartQuantities = () => {
     showSnackBar(t('select_one_part'), 'error');
   };
-  const onCreationFailure = () => showSnackBar(t('po_create_failure'), 'error');
+  const onCreationFailure = (error?: unknown) =>
+    showSnackBar(t(getErrorMessage(error, 'po_create_failure')), 'error');
   const defaultFields: Array<IField> = [
     {
       name: 'purchaseOrderDetails',
@@ -85,7 +87,10 @@ function CreatePurchaseOrder() {
       type: 'partQuantity',
       label: t('parts'),
       midWidth: true,
-      multiple: true
+      multiple: true,
+      purchaseUnitPriceInput: true,
+      siteSelectionEnabled: true,
+      siteSelectionRequired: true
     },
     {
       name: 'shippingInformation',
@@ -197,7 +202,7 @@ function CreatePurchaseOrder() {
         name: 'approveOnSubmit',
         type: 'switch',
         label: t('approve_while_submitting'),
-        helperText: t('purchase_order_approval_effect_hint')
+        helperText: t('purchase_order_approve_on_submit_hint')
       });
     }
     return fields;
@@ -249,6 +254,9 @@ function CreatePurchaseOrder() {
                     if (
                       values.partQuantities.some(
                         (partQuantity) => partQuantity.quantity <= 0
+                          || partQuantity.purchaseUnitPrice == null
+                          || !Number.isFinite(partQuantity.purchaseUnitPrice)
+                          || partQuantity.purchaseUnitPrice < 0
                       )
                     ) {
                       showSnackBar(t('each_item_superior_zero'), 'error');
@@ -264,7 +272,7 @@ function CreatePurchaseOrder() {
                       await dispatch(addPurchaseOrderWithLines(values));
                       onCreationSuccess();
                     } catch (err) {
-                      onCreationFailure();
+                      onCreationFailure(err);
                     }
                   }}
                 />

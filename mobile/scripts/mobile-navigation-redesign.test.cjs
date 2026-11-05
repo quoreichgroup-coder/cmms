@@ -42,7 +42,7 @@ test('create action remains permission-gated, contextual, and hidden while the k
   );
   assert.match(
     navigation,
-    /hasViewPermission\(PermissionEntity\.ANALYTICS\)\s*&&\s*\(/
+    /hasViewPermission\(PermissionEntity\.ANALYTICS\)\s*&&\s*hasFeature\(PlanFeature\.ANALYTICS\)\s*&&\s*\(/
   );
 });
 

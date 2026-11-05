@@ -21,7 +21,7 @@ public class LicenseReadOnlyFilter extends OncePerRequestFilter {
     private static final Set<String> ALLOWED_MUTATIONS = Set.of(
             "/auth/signin", "/auth/signin-ldap", "/auth/refresh", "/auth/oauth/exchange", "/auth/logout", "/auth/updatepwd",
             "/auth/activate-account", "/auth/reset-pwd-confirm", "/auth/delete-account-confirm",
-            "/paddle/create-checkout-session", "/license/activate");
+            "/paddle/create-checkout-session", "/license/activate", "/license/refresh");
     private static final Set<String> LEGACY_MUTATING_GETS = Set.of(
             "/subscriptions/downgrade", "/paddle/cancel", "/paddle/resume");
     private final LicenseService licenseService;

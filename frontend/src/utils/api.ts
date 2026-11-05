@@ -125,7 +125,8 @@ async function doFetch<T>(
         (conflictBody.message.includes(
           'recorded value, notes, or attachments'
         ) ||
-          conflictBody.message === 'checklist_in_use')
+          conflictBody.message === 'checklist_in_use' ||
+          conflictBody.message.startsWith('approval_'))
       ) {
         const err = new Error(`Request failed (${response.status})`);
         (err as any).status = response.status;

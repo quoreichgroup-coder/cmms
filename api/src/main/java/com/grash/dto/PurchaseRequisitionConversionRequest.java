@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.math.BigDecimal;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 
 @Data
 @NoArgsConstructor
@@ -28,5 +31,9 @@ public class PurchaseRequisitionConversionRequest {
         private Long requisitionLineId;
         @NotNull
         private Double quantity;
+        @NotNull
+        @DecimalMin(value = "0.0", inclusive = true)
+        @Digits(integer = 15, fraction = 4)
+        private BigDecimal purchaseUnitPrice;
     }
 }

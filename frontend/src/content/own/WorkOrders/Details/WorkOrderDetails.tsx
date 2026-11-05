@@ -27,6 +27,7 @@ import WorkOrder from '../../../../models/owns/workOrder';
 import {
   ChangeEvent,
   Fragment,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -93,7 +94,7 @@ import AddFileModal from './AddFileModal';
 import CommentsSection from './CommentsSection';
 import { useLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
 import { getCustomFieldValuesForDetails } from '../../type';
-import { getErrorMessage } from '../../../../utils/api';
+import api, { getErrorMessage } from '../../../../utils/api';
 import { getCommentsCountByWorkOrder } from '../../../../slices/comment';
 import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import CloseIcon from '@mui/icons-material/CloseOutlined';
@@ -180,6 +181,11 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   const [openSendReportModal, setOpenSendReportModal] =
     useState<boolean>(false);
   const [currentTab, setCurrentTab] = useState<string>('details');
+  const [plannedOperations, setPlannedOperations] = useState<
+    NonNullable<WorkOrder['plannedOperations']>
+  >([]);
+  const [plannedOperationsLoading, setPlannedOperationsLoading] = useState(false);
+  const [plannedOperationsError, setPlannedOperationsError] = useState(false);
   const [changingStatus, setChangingStatus] = useState<boolean>(false);
   const { partQuantitiesByWorkOrder, loadingPartQuantities } = useSelector(
     (state) => state.partQuantities
@@ -233,6 +239,26 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
     )
   }));
   const commentsCount = commentsCountByWorkOrder[workOrder.id]?.count ?? 0;
+
+  const loadPlannedOperations = useCallback(() => {
+    if (!workOrder.maintenanceTaskListId) {
+      setPlannedOperations([]);
+      return Promise.resolve();
+    }
+    setPlannedOperationsLoading(true);
+    setPlannedOperationsError(false);
+    return api
+      .get<NonNullable<WorkOrder['plannedOperations']>>(
+        `work-orders/${workOrder.id}/planned-operations`
+      )
+      .then(setPlannedOperations)
+      .catch(() => setPlannedOperationsError(true))
+      .finally(() => setPlannedOperationsLoading(false));
+  }, [workOrder.id, workOrder.maintenanceTaskListId]);
+
+  useEffect(() => {
+    void loadPlannedOperations();
+  }, [loadPlannedOperations]);
   const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
@@ -1091,6 +1117,100 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 </Grid>
               )}
             </Grid>
+            {workOrder.maintenanceTaskListId != null && (
+              <Box sx={{ mt: 2 }}>
+                <Divider sx={{ mb: 2 }} />
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  gap={0.5}
+                  sx={{ mb: 1.5 }}
+                >
+                  <Typography variant="h5">
+                    {t('work_order_planned_operations')}
+                  </Typography>
+                  {workOrder.maintenanceTaskListReference && (
+                    <Typography variant="body2" color="text.secondary">
+                      {t('maintenance_task_lists')}: {workOrder.maintenanceTaskListReference}
+                    </Typography>
+                  )}
+                </Stack>
+                {plannedOperationsLoading && <CircularProgress size={22} />}
+                {plannedOperationsError && (
+                  <Alert
+                    severity="error"
+                    action={
+                      <Button color="inherit" size="small" onClick={() => void loadPlannedOperations()}>
+                        {t('retry')}
+                      </Button>
+                    }
+                  >
+                    {t('work_order_plan_load_error')}
+                  </Alert>
+                )}
+                {!plannedOperationsLoading && !plannedOperationsError && plannedOperations.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    {t('no_planned_operations')}
+                  </Typography>
+                )}
+                <Stack spacing={1.25}>
+                  {[...plannedOperations]
+                    .sort((a, b) => a.operationOrder - b.operationOrder)
+                    .map((operation) => (
+                      <Box
+                        key={`${operation.operationNumber}-${operation.operationOrder}`}
+                        sx={{
+                          p: { xs: 1.5, sm: 2 },
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1.5,
+                          minWidth: 0
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          justifyContent="space-between"
+                          gap={0.5}
+                        >
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {operation.operationNumber} · {operation.shortDescription}
+                          </Typography>
+                          {(operation.workers != null || operation.plannedWork != null || operation.duration != null) && (
+                            <Typography variant="body2" color="text.secondary">
+                              {operation.workers != null && t('task_list_technicians_count', { count: operation.workers })}
+                              {operation.workers != null && (operation.duration != null || operation.plannedWork != null) && ' · '}
+                              {operation.plannedWork != null && `${t('planned_work')}: ${operation.plannedWork} ${operation.workUnit ?? ''}`}
+                              {operation.plannedWork != null && operation.duration != null && ' · '}
+                              {operation.duration != null && `${t('planned_duration')}: ${operation.duration} ${operation.durationUnit ?? ''}`}
+                            </Typography>
+                          )}
+                        </Stack>
+                        {operation.longText && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                            {operation.longText}
+                          </Typography>
+                        )}
+                        {!!operation.materials?.length && (
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                              {t('work_order_planned_materials')}
+                            </Typography>
+                            <Stack spacing={0.25} sx={{ mt: 0.25 }}>
+                              {operation.materials.map((material, index) => (
+                                <Typography key={`${material.partId ?? material.partName}-${index}`} variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                                  {material.partName ?? `#${material.partId}`} · {t('planned_quantity')}: {material.quantity} {material.unit ?? ''}
+                                  {material.storageLocation ? ` · ${material.storageLocation}` : ''}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+                      </Box>
+                    ))}
+                </Stack>
+              </Box>
+            )}
             {taskLoadFailed && (
               <Alert
                 severity="error"

@@ -191,8 +191,10 @@ const ShowAsset = ({}: PropsType) => {
     showSnackBar(t('asset_remove_success'), 'success');
     navigate('/app/assets');
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('asset_remove_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message = (err as any)?.responseBody?.message;
+    showSnackBar(message === 'asset_used_by_task_list' ? t(message) : t('asset_remove_failure'), 'error');
+  };
   const defaultFields: Array<IField> = [
     {
       name: 'assetInfo',

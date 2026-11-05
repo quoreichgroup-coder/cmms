@@ -105,6 +105,12 @@ public class LicenseService {
         return quoreichLicenseClient.activate(key);
     }
 
+    public LicensingState refreshQuoreichLicense() {
+        if (!"QUOREICH".equalsIgnoreCase(licenseProvider) || !quoreichLicenseClient.isActivationConfigured())
+            throw new com.grash.exception.CustomException("L’actualisation de la licence QUOREICH n’est pas configurée.", HttpStatus.SERVICE_UNAVAILABLE);
+        return quoreichLicenseClient.refreshLicensingState();
+    }
+
     public boolean isLocalFeaturePreviewActive() {
         return licensePreviewEnabled
                 && environment.acceptsProfiles(Profiles.of("dev"))

@@ -9,7 +9,11 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Typography,
   useMediaQuery,
@@ -57,13 +61,18 @@ import SearchInput from '../components/SearchInput';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
+import { getErrorMessage } from '../../../utils/api';
+import api from '../../../utils/api';
+import { downloadCsv } from '../../../utils/csv';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import { Page } from '../../../models/owns/page';
 
 function PurchaseOrders() {
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle } = useContext(TitleContext);
-  const { getFormattedDate, getUserNameById, getFormattedCurrency } =
+  const { getFormattedDate, getUserNameById } =
     useContext(CompanySettingsContext);
   const navigate = useNavigate();
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
@@ -81,7 +90,10 @@ function PurchaseOrders() {
   const { customFields } = useSelector((state) => state.customFields);
   const [openDrawerFromUrl, setOpenDrawerFromUrl] = useState<boolean>(false);
   const [showReceivingQueue, setShowReceivingQueue] = useState(false);
-  const [receivingQueue, setReceivingQueue] = useState({ page: 0, query: '' });
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = React.useRef<HTMLInputElement>(null);
+  const [receivingQueue, setReceivingQueue] = useState({ page: 0, query: '', receiptState: 'ALL' });
   const [criteria, setCriteria] = useState<SearchCriteria>({
     filterFields: [],
     pageSize: 10,
@@ -114,7 +126,7 @@ function PurchaseOrders() {
   const debouncedReceivingQueueSearch = useMemo(
     () =>
       debounce((query: string) => {
-        setReceivingQueue({ page: 0, query });
+        setReceivingQueue((current) => ({ ...current, page: 0, query }));
       }, 500),
     []
   );
@@ -160,7 +172,8 @@ function PurchaseOrders() {
           getPurchaseOrdersToReceive(
             receivingQueue.page,
             criteria.pageSize,
-            receivingQueue.query
+            receivingQueue.query,
+            receivingQueue.receiptState
           )
         );
       } else {
@@ -206,6 +219,61 @@ function PurchaseOrders() {
     }
   };
 
+  const exportPurchaseOrders = async () => {
+    if (exporting || showReceivingQueue) return;
+    setExporting(true);
+    try {
+      const all: PurchaseOrder[] = [];
+      let page = 0;
+      let last = false;
+      while (!last && all.length < 10000) {
+        const result = await api.post<Page<PurchaseOrder>>('purchase-orders/search', {
+          ...criteria, pageNum: page, pageSize: 100
+        });
+        all.push(...result.content);
+        last = result.last;
+        page += 1;
+      }
+      if (!last) throw new Error('export_limit_reached');
+      downloadCsv(`purchase-orders-${new Date().toISOString().slice(0, 10)}.csv`,
+        ['purchaseOrderKey', 'name', 'vendorId', 'categoryId', 'shippingDueDate', 'additionalInfoNotes', 'partId', 'quantity', 'purchaseUnitPrice', 'purchasePriceCurrency', 'unitCostSnapshot', 'costCurrencySnapshot', 'siteId', 'siteName', 'status', 'vendor', 'category', 'shipToName', 'companyName', 'address', 'city', 'state', 'zipCode', 'itemName', 'receivedQuantity'],
+        all.flatMap((order) => (order.partQuantities ?? []).map((line) => [order.id, order.name,
+          order.vendor?.id, order.category?.id, order.shippingDueDate, order.additionalInfoNotes,
+          line.part?.id, line.quantity, line.purchaseUnitPrice, line.purchasePriceCurrency, line.purchaseUnitCostSnapshot, line.purchaseCurrencySnapshot, line.siteId, line.siteName,
+          order.status, order.vendor?.companyName, order.category?.name,
+          order.shippingShipToName, order.shippingCompanyName, order.shippingAddress,
+          order.shippingCity, order.shippingState, order.shippingZipCode, line.part?.name,
+          line.receivedQuantity])));
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, 'purchase_export_failed')), 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const importPurchaseOrders = async (file?: File) => {
+    if (!file) return;
+    setImporting(true);
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const result = await api.post<{ importedPurchaseOrders: number; createdAs: string }>(
+        'purchase-orders/import', form,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` } }, true
+      );
+      showSnackBar(t('purchase_order_imported', result), 'success');
+      dispatch(getPurchaseOrders(criteria));
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, 'purchase_import_failed')), 'error');
+    } finally {
+      setImporting(false);
+      if (importFileRef.current) importFileRef.current.value = '';
+    }
+  };
+
+  const downloadPurchaseOrderTemplate = () => downloadCsv('purchase-orders-template.csv',
+    ['purchaseOrderKey', 'name', 'vendorId', 'categoryId', 'shippingDueDate', 'additionalInfoNotes', 'partId', 'quantity', 'purchaseUnitPrice', 'siteId'], []);
+
   useEffect(() => {
     if (currentPurchaseOrder)
       dispatch(getPartQuantitiesByPurchaseOrder(currentPurchaseOrder.id));
@@ -242,12 +310,13 @@ function PurchaseOrders() {
     setOpenUpdateModal(false);
     showSnackBar(t('changes_saved_success'), 'success');
   };
-  const onEditFailure = (err) => showSnackBar(t('po_edit_failure'), 'error');
+  const onEditFailure = (err) =>
+    showSnackBar(t(getErrorMessage(err, 'po_edit_failure')), 'error');
   const onDeleteSuccess = () => {
     showSnackBar(t('po_delete_success'), 'success');
   };
   const onDeleteFailure = (err) =>
-    showSnackBar(t('po_delete_failure'), 'error');
+    showSnackBar(t(getErrorMessage(err, 'po_delete_failure')), 'error');
   const columns: GridEnrichedColDef[] = [
     {
       field: 'id',
@@ -274,23 +343,23 @@ function PurchaseOrders() {
     },
     {
       field: 'totalCost',
-      headerName: t('estimated_total_cost'),
-      description: t('purchase_order_cost_estimate_note'),
+      headerName: t('purchase_order_agreed_total', 'Agreed total'),
+      description: t('purchase_order_agreed_total_note', 'Based on supplier agreed unit prices'),
       width: 150,
       valueGetter: (params: GridRenderCellParams<null, PurchaseOrder>) => {
         const partQuantities = params.row.partQuantities ?? [];
         if (
           partQuantities.length === 0 ||
           partQuantities.some(
-            (partQuantity) => !Number.isFinite(partQuantity.part?.cost)
+            (partQuantity) => !Number.isFinite(partQuantity.purchaseUnitPrice)
           )
         ) {
           return '—';
         }
-        return getFormattedCurrency(
-          partQuantities.reduce((acc, partQuantity) => {
-            return acc + partQuantity.part.cost * partQuantity.quantity;
-          }, 0)
+        const currency = partQuantities[0].purchasePriceCurrency;
+        if (!currency || partQuantities.some((line) => line.purchasePriceCurrency !== currency)) return '—';
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(
+          partQuantities.reduce((acc, line) => acc + line.purchaseUnitPrice! * line.quantity, 0)
         );
       }
     },
@@ -538,7 +607,10 @@ function PurchaseOrders() {
       name: 'partQuantities',
       type: 'partQuantity',
       label: t('parts'),
-      midWidth: true
+      midWidth: true,
+      purchaseUnitPriceInput: true,
+      siteSelectionEnabled: true,
+      siteSelectionRequired: true
     },
     {
       name: 'shippingInformation',
@@ -701,6 +773,12 @@ function PurchaseOrders() {
             }}
             onChange={({ field, e }) => {}}
             onSubmit={async (values) => {
+              const existingPartIds = new Set((partQuantities ?? []).map((line) => line.part.id));
+              if ((values.partQuantities ?? []).some((line) => !existingPartIds.has(line.part.id)
+                && (line.purchaseUnitPrice == null || !Number.isFinite(line.purchaseUnitPrice) || line.purchaseUnitPrice < 0))) {
+                showSnackBar(t('enter_supplier_price', 'Enter the agreed supplier price for each new line'), 'error');
+                return;
+              }
               values.vendor = formatSelect(values.vendor);
               values.category = formatSelect(values.category);
               values = formatCustomFields(values);
@@ -734,7 +812,7 @@ function PurchaseOrders() {
               justifyContent="space-between"
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
                 {showReceivingQueue ? (
                   <SearchInput
                     onChange={(event) =>
@@ -744,11 +822,26 @@ function PurchaseOrders() {
                 ) : (
                   <SearchInput onChange={debouncedQueryChange} />
                 )}
+                {showReceivingQueue && (
+                  <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 190 } }}>
+                    <InputLabel id="receipt-state-label">{t('receipt_status_filter')}</InputLabel>
+                    <Select
+                      labelId="receipt-state-label"
+                      value={receivingQueue.receiptState}
+                      label={t('receipt_status_filter')}
+                      onChange={(event) => setReceivingQueue({ ...receivingQueue, page: 0, receiptState: event.target.value })}
+                    >
+                      {['ALL', 'NOT_STARTED', 'PARTIAL'].map((state) => (
+                        <MenuItem key={state} value={state}>{t(`receipt_filter_${state.toLowerCase()}`)}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
                 <Button
                   variant={showReceivingQueue ? 'contained' : 'outlined'}
                   onClick={() => {
                     setCriteria({ ...criteria, pageNum: 0 });
-                    setReceivingQueue({ page: 0, query: '' });
+                    setReceivingQueue({ page: 0, query: '', receiptState: 'ALL' });
                     setShowReceivingQueue(!showReceivingQueue);
                   }}
                 >
@@ -757,11 +850,20 @@ function PurchaseOrders() {
                     : t('purchase_orders_to_receive')}
                 </Button>
               </Stack>
-              {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && (
-                <Stack
-                  direction="row"
-                  justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
-                >
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <input ref={importFileRef} hidden type="file" accept=".csv,text/csv" onChange={(event) => void importPurchaseOrders(event.target.files?.[0])} />
+                {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && <>
+                  <Button variant="outlined" disabled={importing || loadingGet} onClick={() => importFileRef.current?.click()}>
+                    {importing ? t('loading') : t('import_csv')}
+                  </Button>
+                  <Button variant="text" disabled={importing} onClick={downloadPurchaseOrderTemplate}>{t('download_csv_template')}</Button>
+                </>}
+                {!showReceivingQueue && hasViewPermission(PermissionEntity.PURCHASE_ORDERS) && (
+                  <Button variant="outlined" startIcon={<DownloadOutlinedIcon />} disabled={exporting || loadingGet} onClick={() => void exportPurchaseOrders()}>
+                    {exporting ? t('loading') : t('export_csv')}
+                  </Button>
+                )}
+                {hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) && (
                   <Button
                     onClick={() => navigate('/app/purchase-orders/create')}
                     startIcon={<AddOutlinedIcon />}
@@ -769,8 +871,8 @@ function PurchaseOrders() {
                   >
                     {t('purchase_order')}
                   </Button>
-                </Stack>
-              )}
+                )}
+              </Stack>
             </Stack>
             <Card
               sx={{

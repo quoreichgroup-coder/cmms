@@ -22,6 +22,11 @@ public class PurchaseRequisitionShowDTO {
     private Long decisionById;
     private Date decisionAt;
     private String decisionNote;
+    private Integer approvalStep;
+    private Integer approvalLevelCount;
+    private Integer approvalConfigVersion;
+    private Long currentApproverId;
+    private String approvalHistory;
     private List<Line> lines;
 
     @Data
@@ -34,5 +39,7 @@ public class PurchaseRequisitionShowDTO {
         private double quantity;
         private double orderedQuantity;
         private String notes;
+        private Long siteId;
+        private String siteName;
     }
 }

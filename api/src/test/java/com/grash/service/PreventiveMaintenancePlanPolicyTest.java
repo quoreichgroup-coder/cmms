@@ -3,6 +3,7 @@ package com.grash.service;
 import com.grash.model.PreventiveMaintenancePlanConfiguration;
 import com.grash.model.PreventiveMaintenancePlanConfiguration.Package;
 import com.grash.model.Schedule;
+import com.grash.model.PreventiveMaintenancePlanConfigurationConverter;
 import com.grash.model.enums.RecurrenceType;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,19 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PreventiveMaintenancePlanPolicyTest {
+    @Test
+    void optionalMaintenanceTaskListSurvivesPlanConfigurationPersistence() {
+        PreventiveMaintenancePlanConfiguration config = new PreventiveMaintenancePlanConfiguration();
+        config.setMaintenanceTaskListId(481L);
+
+        PreventiveMaintenancePlanConfigurationConverter converter =
+                new PreventiveMaintenancePlanConfigurationConverter();
+        String stored = converter.convertToDatabaseColumn(config);
+        PreventiveMaintenancePlanConfiguration restored = converter.convertToEntityAttribute(stored);
+
+        assertEquals(481L, restored.getMaintenanceTaskListId());
+    }
+
     @Test
     void strategyPackagesAreDueAtTheirConfiguredBaseCycleMultiples() {
         PreventiveMaintenancePlanConfiguration config = new PreventiveMaintenancePlanConfiguration();

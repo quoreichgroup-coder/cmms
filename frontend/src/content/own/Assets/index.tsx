@@ -70,6 +70,7 @@ import SearchInput from '../components/SearchInput';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import AssetStatusTag from './components/AssetStatusTag';
 import { getErrorMessage } from '../../../utils/api';
+import ContextualHelpButton from '../HelpCenter/ContextualHelpButton';
 import SplitButton from '../components/SplitButton';
 import {
   createColumnHelper,
@@ -1046,6 +1047,10 @@ function Assets() {
               alignItems="center"
               sx={{ flexWrap: 'wrap', gap: 1 }}
             >
+              <ContextualHelpButton
+                articleSlug="equipment"
+                labelKey="help_contextual_equipment"
+              />
               <IconButton
                 onClick={() => handleReset(true)}
                 color="primary"

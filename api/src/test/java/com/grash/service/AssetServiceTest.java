@@ -12,6 +12,7 @@ import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.AssetRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.repository.SiteRepository;
 import com.grash.utils.Consts;
 import io.github.bucket4j.Bucket;
@@ -49,6 +50,8 @@ class AssetServiceTest {
 
     @Mock
     private AssetRepository assetRepository;
+    @Mock
+    private MaintenanceTaskListRepository maintenanceTaskListRepository;
     @Mock
     private SiteRepository siteRepository;
     @Mock
@@ -914,7 +917,7 @@ class AssetServiceTest {
 
             Collection<Asset> result = assetService.findByLocationAndUser(5L, user);
 
-            assertSame(assets, result);
+            assertEquals(assets, result);
         }
 
         @Test
@@ -948,7 +951,7 @@ class AssetServiceTest {
 
             Collection<Asset> result = assetService.findByPartAndUser(5L, user);
 
-            assertSame(assets, result);
+            assertEquals(assets, result);
         }
     }
 
@@ -1226,7 +1229,7 @@ class AssetServiceTest {
             when(workOrderService.findByAssetAndCreatedAtBetween(1L, start, end)).thenReturn(Collections.emptyList());
 
             assertEquals(0L, assetService.getMTTR(1L, start, end));
-            verify(laborService, never()).findByWorkOrder(anyLong());
+            verify(laborService, never()).findByWorkOrders(anyCollection());
         }
 
         @Test
@@ -1238,7 +1241,7 @@ class AssetServiceTest {
             labor.setDuration(3600);
             when(workOrderService.findByAssetAndCreatedAtBetween(1L, start, end))
                     .thenReturn(Collections.singletonList(wo));
-            when(laborService.findByWorkOrder(10L)).thenReturn(Collections.singletonList(labor));
+            when(laborService.findByWorkOrders(List.of(10L))).thenReturn(Collections.singletonList(labor));
 
             assertEquals(60L, assetService.getMTTR(1L, start, end));
         }

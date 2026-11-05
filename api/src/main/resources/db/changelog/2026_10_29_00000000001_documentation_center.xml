@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-29-documentation-center" author="qpm">
+        <sql><![CDATA[
+            CREATE SEQUENCE documentation_category_seq START WITH 1 INCREMENT BY 50;
+            CREATE TABLE documentation_category (
+                id BIGINT PRIMARY KEY,
+                company_id BIGINT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_by BIGINT,
+                updated_by BIGINT,
+                locale VARCHAR(8) NOT NULL DEFAULT 'en',
+                title VARCHAR(120) NOT NULL,
+                slug VARCHAR(140) NOT NULL,
+                description VARCHAR(500),
+                icon VARCHAR(60),
+                display_order INTEGER NOT NULL DEFAULT 0,
+                required_permission VARCHAR(60),
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                CONSTRAINT uk_documentation_category_company_slug UNIQUE(company_id, locale, slug)
+            );
+            CREATE INDEX idx_documentation_category_company_order
+                ON documentation_category(company_id, display_order);
+
+            CREATE SEQUENCE documentation_article_seq START WITH 1 INCREMENT BY 50;
+            CREATE TABLE documentation_article (
+                id BIGINT PRIMARY KEY,
+                company_id BIGINT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+                category_id BIGINT NOT NULL REFERENCES documentation_category(id) ON DELETE CASCADE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_by BIGINT,
+                updated_by BIGINT,
+                locale VARCHAR(8) NOT NULL DEFAULT 'en',
+                title VARCHAR(180) NOT NULL,
+                slug VARCHAR(180) NOT NULL,
+                summary VARCHAR(800) NOT NULL,
+                content TEXT NOT NULL,
+                keywords TEXT,
+                display_order INTEGER NOT NULL DEFAULT 0,
+                required_permission VARCHAR(60),
+                status VARCHAR(20) NOT NULL DEFAULT 'DRAFT'
+                    CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+                published_at TIMESTAMP,
+                published_title VARCHAR(180),
+                published_slug VARCHAR(180),
+                published_summary VARCHAR(800),
+                published_content TEXT,
+                published_keywords TEXT,
+                CONSTRAINT uk_documentation_article_company_slug UNIQUE(company_id, locale, slug)
+            );
+            CREATE INDEX idx_documentation_article_company_status_order
+                ON documentation_article(company_id, locale, status, display_order);
+            CREATE INDEX idx_documentation_article_category ON documentation_article(category_id);
+            CREATE UNIQUE INDEX uk_documentation_article_company_published_slug
+                ON documentation_article(company_id, locale, published_slug)
+                WHERE status = 'PUBLISHED' AND published_slug IS NOT NULL;
+
+            CREATE SEQUENCE documentation_asset_seq START WITH 1 INCREMENT BY 50;
+            CREATE TABLE documentation_asset (
+                id BIGINT PRIMARY KEY,
+                company_id BIGINT NOT NULL REFERENCES company(id) ON DELETE CASCADE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_by BIGINT,
+                updated_by BIGINT,
+                public_id VARCHAR(36) NOT NULL UNIQUE,
+                name VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(1000) NOT NULL,
+                content_type VARCHAR(40) NOT NULL CHECK (content_type IN ('image/png', 'image/jpeg', 'image/webp'))
+            );
+            CREATE INDEX idx_documentation_asset_company ON documentation_asset(company_id);
+        ]]></sql>
+        <comment>Forward-only additive schema. Rolling it back would delete tenant documentation.</comment>
+    </changeSet>
+    <changeSet id="2026-10-29-seed-documentation-guides" author="qpm">
+        <comment>Copies the seven existing English and French Help Center guides into each existing tenant as published articles.</comment>
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                tenant RECORD;
+                guide RECORD;
+                category_key BIGINT;
+                article_content TEXT;
+                overview_heading TEXT;
+                instructions_heading TEXT;
+            BEGIN
+                FOR tenant IN SELECT id FROM company LOOP
+                    FOR guide IN
+                        SELECT * FROM (VALUES
+                            ('en','Work Orders','work-orders','Follow work from planning through confirmation.','WORK_ORDERS','Open an order to review its equipment, priority, description, and dates.','Review tasks, parts, and assigned people before starting.','When completing an order, review the summary: elapsed duration, labor time, feedback, and signature if requested.','Confirm only after reviewing it. Completion follows the permissions and rules configured in QPM.','work order, maintenance, confirmation'),
+                            ('fr','Ordres de travail','work-orders','Suivez un travail depuis sa préparation jusqu’à sa confirmation.','WORK_ORDERS','Ouvrez un ordre pour vérifier son équipement, sa priorité, sa description et ses dates.','Consultez les tâches, les pièces et les personnes affectées avant de commencer.','À la clôture, vérifiez le récapitulatif : durée écoulée, temps de main-d’œuvre, retour et signature si demandés.','Confirmez seulement après cette relecture. La clôture suit les droits et les règles configurés dans QPM.','ordre de travail, maintenance, confirmation'),
+                            ('en','Maintenance Requests','maintenance-requests','Describe an issue and follow its handling by the maintenance team.','REQUESTS','Create a request with a clear description and the equipment, if known.','Check its status and information added during handling.','Depending on your permissions, a request may be reviewed and linked to a Work Order.','','request, intervention, maintenance'),
+                            ('fr','Demandes d’intervention','maintenance-requests','Décrivez un problème et suivez son traitement par l’équipe de maintenance.','REQUESTS','Créez une demande avec une description claire et l’équipement concerné, si connu.','Consultez son statut et les informations ajoutées pendant son traitement.','Selon vos droits, une demande peut être examinée puis liée à un ordre de travail.','','demande, intervention, maintenance'),
+                            ('en','Equipment','equipment','Find available equipment information and its maintenance history.','ASSETS','Search the list by equipment name or code.','Open a record to review its details, related Work Orders, and available readings.','Visible sections depend on recorded data and your permissions.','','equipment, asset, history'),
+                            ('fr','Équipements','equipment','Retrouvez les informations disponibles sur un équipement et son historique.','ASSETS','Recherchez par nom ou code d’équipement dans la liste.','Ouvrez la fiche pour consulter les détails, les ordres liés et les relevés disponibles.','Les sections visibles dépendent des données renseignées et de vos autorisations.','','équipement, actif, historique'),
+                            ('en','Parts and Inventory','parts-inventory','Review tracked part references and quantities by store.','PARTS_AND_MULTIPARTS','Search for a part by name or reference.','Check the store, available quantity, and displayed threshold.','Stock changes must follow the process authorized by your organization.','','parts, inventory, stock'),
+                            ('fr','Pièces et inventaire','parts-inventory','Consultez les références et les quantités suivies dans les magasins.','PARTS_AND_MULTIPARTS','Recherchez une pièce par son nom ou sa référence.','Vérifiez le magasin, la quantité disponible et le seuil affiché.','Toute modification de stock doit suivre le processus autorisé de votre organisation.','','pièces, inventaire, stock'),
+                            ('en','Work Order Planning','work-order-planning','Use the calendar view to browse orders by date.','WORK_ORDERS','From Work Orders, choose the calendar view when it is available.','Use the screen filters to narrow results to your scope.','Displayed dates and assignments reflect information recorded in QPM.','','planning, calendar, work orders'),
+                            ('fr','Planning des ordres','work-order-planning','Utilisez la vue calendrier pour parcourir les ordres selon leur date.','WORK_ORDERS','Depuis les ordres de travail, choisissez la vue calendrier lorsque celle-ci est disponible.','Utilisez les filtres de l’écran pour réduire la liste à votre périmètre.','Les dates et affectations affichées reflètent les informations enregistrées dans QPM.','','planning, calendrier, ordres'),
+                            ('en','Profile and Preferences','profile-preferences','Adjust the personal settings available for your account.','','Open your profile from the account menu.','Review your details and available language or display preferences.','Contact an administrator if you need access or a role change.','','profile, preferences, account'),
+                            ('fr','Profil et préférences','profile-preferences','Ajustez les paramètres personnels disponibles pour votre compte.','','Ouvrez votre profil depuis le menu du compte.','Vérifiez vos informations et vos préférences de langue ou d’affichage disponibles.','Pour un accès manquant ou une modification de rôle, contactez un administrateur.','','profil, préférences, compte'),
+                            ('en','Settings','settings','Find company settings and configurable features.','SETTINGS','Visible settings depend on your role and the features enabled for your company.','Before changing a workflow or form, review the impact described on the page.','Configuration changes may affect other users; contact your administrator if you are unsure.','','settings, administration, permissions'),
+                            ('fr','Paramètres','settings','Retrouvez les réglages d’entreprise et les fonctions configurables.','SETTINGS','Les paramètres visibles dépendent de votre rôle et des fonctions activées pour votre entreprise.','Avant de modifier un workflow ou un formulaire, vérifiez les conséquences indiquées sur la page.','Les changements de configuration peuvent affecter d’autres utilisateurs ; contactez votre administrateur en cas de doute.','','paramètres, administration, droits')
+                        ) AS data(locale, title, slug, summary, required_permission, step1, step2, step3, step4, keywords)
+                    LOOP
+                        INSERT INTO documentation_category (
+                            id, company_id, locale, title, slug, description, icon, display_order,
+                            required_permission, active
+                        ) VALUES (
+                            nextval('documentation_category_seq'), tenant.id, guide.locale, guide.title,
+                            guide.slug, guide.summary, 'MenuBook', 0, guide.required_permission, TRUE
+                        ) RETURNING id INTO category_key;
+
+                        overview_heading := CASE WHEN guide.locale = 'fr' THEN 'Présentation' ELSE 'Overview' END;
+                        instructions_heading := CASE WHEN guide.locale = 'fr' THEN 'Instructions' ELSE 'Instructions' END;
+                        article_content := '<h2>' || overview_heading || '</h2><p>' || guide.summary || '</p><h2>' || instructions_heading || '</h2><ol>'
+                            || '<li>' || guide.step1 || '</li>'
+                            || CASE WHEN guide.step2 <> '' THEN '<li>' || guide.step2 || '</li>' ELSE '' END
+                            || CASE WHEN guide.step3 <> '' THEN '<li>' || guide.step3 || '</li>' ELSE '' END
+                            || CASE WHEN guide.step4 <> '' THEN '<li>' || guide.step4 || '</li>' ELSE '' END
+                            || '</ol>';
+
+                        INSERT INTO documentation_article (
+                            id, company_id, category_id, locale, title, slug, summary, content, keywords,
+                            display_order, required_permission, status, published_at,
+                            published_title, published_slug, published_summary, published_content, published_keywords
+                        ) VALUES (
+                            nextval('documentation_article_seq'), tenant.id, category_key, guide.locale,
+                            guide.title, guide.slug, guide.summary, article_content,
+                            replace(guide.keywords, ', ', chr(10)), 0, guide.required_permission,
+                            'PUBLISHED', CURRENT_TIMESTAMP, guide.title, guide.slug, guide.summary,
+                            article_content, replace(guide.keywords, ', ', chr(10))
+                        );
+                    END LOOP;
+                END LOOP;
+            END $$;
+        ]]></sql>
+        <comment>Seeded guides remain editable and tenant-owned. The schema and starter content must be rolled forward, not removed, on deployed databases.</comment>
+    </changeSet>
+</databaseChangeLog>

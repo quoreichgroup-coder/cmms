@@ -12,6 +12,7 @@ import com.grash.dto.license.LicenseEntitlement;
 import com.grash.dto.workOrder.WorkOrderPostDTO;
 import com.grash.dto.workOrder.WorkOrderSendReportDTO;
 import com.grash.dto.workOrder.WorkOrderExecutionTimeDTO;
+import com.grash.dto.workOrder.WorkOrderHistoryMetricsDTO;
 import com.grash.exception.CustomException;
 import com.grash.factory.StorageServiceFactory;
 import com.grash.mapper.PreventiveMaintenanceMapper;
@@ -19,6 +20,10 @@ import com.grash.mapper.WorkOrderMapper;
 import com.grash.factory.MailServiceFactory;
 import com.grash.model.*;
 import com.grash.repository.SiteRepository;
+import com.grash.repository.LaborRepository;
+import com.grash.repository.AdditionalCostRepository;
+import com.grash.repository.PartQuantityRepository;
+import com.grash.repository.WorkOrderPlannedOperationRepository;
 import com.grash.model.abstracts.Cost;
 import com.grash.model.abstracts.WorkOrderBase;
 import com.grash.model.enums.*;
@@ -29,6 +34,7 @@ import com.grash.model.enums.workflow.WFMainCondition;
 import com.grash.repository.FileRepository;
 import com.grash.repository.WorkOrderRepository;
 import com.grash.repository.WorkOrderLifecycleEventRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.MultipartFileImpl;
 import com.grash.utils.PdfReportUtils;
@@ -74,6 +80,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @Slf4j
 public class WorkOrderService {
     private final WorkOrderRepository workOrderRepository;
+    private final MaintenanceTaskListRepository maintenanceTaskListRepository;
     private final WorkOrderLifecycleEventRepository workOrderLifecycleEventRepository;
     private final LocationService locationService;
     private final CustomerService customerService;
@@ -106,6 +113,10 @@ public class WorkOrderService {
     private final StorageServiceFactory storageServiceFactory;
     private final DocumentContextResolver documentContextResolver;
     private final SiteRepository siteRepository;
+    private final LaborRepository laborRepository;
+    private final AdditionalCostRepository additionalCostRepository;
+    private final PartQuantityRepository partQuantityRepository;
+    private final WorkOrderPlannedOperationRepository workOrderPlannedOperationRepository;
     private final Environment environment;
     private final ResourceBundleMessageSource emailMessageSource;
     private TaskService taskService;
@@ -119,10 +130,29 @@ public class WorkOrderService {
 
     @Transactional
     public WorkOrder create(WorkOrder workOrder, Company company) {
+        return create(workOrder, company, null);
+    }
+
+    @Transactional
+    public WorkOrder create(WorkOrder workOrder, Company company, User actor) {
+        return create(workOrder, company, actor, false);
+    }
+
+    /** Creates a generated PM order and applies the PM's already-authorized task-list template. */
+    @Transactional
+    public WorkOrder createFromPreventiveMaintenance(WorkOrder workOrder, Company company) {
+        return create(workOrder, company, null, true);
+    }
+
+    private WorkOrder create(WorkOrder workOrder, Company company, User actor, boolean generatedFromPM) {
         checkUsageBasedLimit(company);
         if (workOrder instanceof WorkOrderPostDTO workOrderPostDTO) {
             workOrder = workOrderMapper.fromPostDto(workOrderPostDTO);
             workOrder.setCustomFieldValues(new ArrayList<>());
+            if (workOrderPostDTO.getMaintenanceTaskListId() != null) {
+                attachTaskListPlan(workOrder, workOrderPostDTO.getMaintenanceTaskListId(), company, actor,
+                        generatedFromPM);
+            }
             if (workOrderPostDTO.getAsset() != null && workOrderPostDTO.getAssetStatus() != null) {
                 Asset asset = assetService.findById(workOrderPostDTO.getAsset().getId()).get();
                 asset.setStatus(workOrderPostDTO.getAssetStatus());
@@ -153,6 +183,99 @@ public class WorkOrderService {
         webhookDispatchService.dispatchWebhook(company, WebhookEvent.NEW_WORK_ORDER, webhookPayload,
                 "newWorkOrder", serializedWorkOrder, null, null, null, null, null);
         return savedWorkOrder;
+    }
+
+    private void attachTaskListPlan(WorkOrder workOrder, Long taskListId, Company company, User actor,
+                                    boolean generatedFromPM) {
+        boolean validActor = actor != null && actor.getRole() != null
+                && actor.getRole().getViewPermissions().contains(PermissionEntity.TASK_LISTS)
+                && actor.getCompany() != null && Objects.equals(actor.getCompany().getId(), company.getId());
+        boolean validGeneratedPlan = generatedFromPM && workOrder.getParentPreventiveMaintenance() != null
+                && workOrder.getParentPreventiveMaintenance().getCompany() != null
+                && Objects.equals(workOrder.getParentPreventiveMaintenance().getCompany().getId(), company.getId())
+                && workOrder.getParentPreventiveMaintenance().getSchedule() != null
+                && workOrder.getParentPreventiveMaintenance().getSchedule().getPlanConfiguration() != null
+                && Objects.equals(taskListId, workOrder.getParentPreventiveMaintenance().getSchedule()
+                        .getPlanConfiguration().getMaintenanceTaskListId());
+        if ((!validActor && !validGeneratedPlan)
+                || company.getSubscription() == null || company.getSubscription().getSubscriptionPlan() == null
+                || !company.getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.PREVENTIVE_MAINTENANCE)) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        MaintenanceTaskList taskList = maintenanceTaskListRepository
+                .findByIdAndCompany_Id(taskListId, company.getId())
+                .orElseThrow(() -> new CustomException("Maintenance task list not found", HttpStatus.NOT_FOUND));
+        if (validActor && !actor.getRole().getViewOtherPermissions().contains(PermissionEntity.TASK_LISTS)
+                && !Objects.equals(actor.getId(), taskList.getCreatedBy())) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (!"ACTIVE".equals(taskList.getStatus())
+                || (taskList.getValidFrom() != null && taskList.getValidFrom().isAfter(today))
+                || (taskList.getValidTo() != null && taskList.getValidTo().isBefore(today))) {
+            throw new CustomException("task_list_not_active_or_valid", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if ("EQUIPMENT".equalsIgnoreCase(taskList.getTaskListType())
+                && taskList.getAsset() != null && (workOrder.getAsset() == null
+                || !Objects.equals(taskList.getAsset().getId(), workOrder.getAsset().getId()))) {
+            throw new CustomException("task_list_object_mismatch", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if ("FUNCTIONAL_LOCATION".equalsIgnoreCase(taskList.getTaskListType()) && taskList.getLocation() != null) {
+            Long taskLocationId = taskList.getLocation() == null ? null : taskList.getLocation().getId();
+            Long orderLocationId = workOrder.getLocation() == null ? null : workOrder.getLocation().getId();
+            Long assetLocationId = workOrder.getAsset() == null || workOrder.getAsset().getLocation() == null
+                    ? null : workOrder.getAsset().getLocation().getId();
+            if (taskLocationId == null || (!Objects.equals(taskLocationId, orderLocationId)
+                    && !Objects.equals(taskLocationId, assetLocationId))) {
+                throw new CustomException("task_list_object_mismatch", HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+        }
+        workOrder.setMaintenanceTaskListId(taskList.getId());
+        workOrder.setMaintenanceTaskListReference(taskList.getGroupCode() + " / " + taskList.getGroupCounter());
+        for (TaskListOperation source : taskList.getOperations()) {
+            WorkOrderPlannedOperation snapshot = new WorkOrderPlannedOperation();
+            snapshot.setWorkOrder(workOrder);
+            snapshot.setCompany(company);
+            snapshot.setOperationNumber(source.getOperationNumber());
+            snapshot.setShortDescription(source.getShortDescription());
+            snapshot.setLongText(source.getLongText());
+            snapshot.setWorkCenter(source.getWorkCenter());
+            snapshot.setControlKey(source.getControlKey());
+            snapshot.setWorkers(source.getWorkers());
+            snapshot.setPlannedWork(source.getPlannedWork());
+            snapshot.setWorkUnit(source.getWorkUnit());
+            snapshot.setDuration(source.getDuration());
+            snapshot.setDurationUnit(source.getDurationUnit());
+            snapshot.setSystemCondition(source.getSystemCondition());
+            snapshot.setOperationOrder(source.getOperationOrder());
+            for (TaskListOperationMaterial sourceMaterial : source.getMaterials()) {
+                WorkOrderPlannedMaterial material = new WorkOrderPlannedMaterial();
+                material.setOperation(snapshot);
+                material.setCompany(company);
+                material.setPartId(sourceMaterial.getPart().getId());
+                material.setPartName(sourceMaterial.getPart().getName());
+                material.setQuantity(sourceMaterial.getQuantity());
+                material.setUnit(sourceMaterial.getUnit());
+                material.setStorageLocation(sourceMaterial.getStorageLocation());
+                material.setEstimatedUnitCost(sourceMaterial.getEstimatedUnitCost());
+                snapshot.getMaterials().add(material);
+            }
+            workOrder.getPlannedOperations().add(snapshot);
+        }
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<com.grash.dto.workOrder.WorkOrderShowDTO.PlannedOperationDTO> getPlannedOperations(
+            Long workOrderId, User user) {
+        WorkOrder workOrder = workOrderRepository.findById(workOrderId)
+                .orElseThrow(() -> new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND));
+        if (!workOrder.canBeViewedBy(user) || !user.canAccessSite(workOrder.getSite())) {
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        }
+        return workOrder.getPlannedOperations().stream()
+                .sorted(Comparator.comparingInt(WorkOrderPlannedOperation::getOperationOrder))
+                .map(workOrderMapper::toPlannedOperationDto)
+                .toList();
     }
 
     private void setWOCustomFields(WorkOrder workOrder, List<CustomFieldValuePostDTO> customFieldValuePostDTOS,
@@ -607,6 +730,61 @@ public class WorkOrderService {
         long laborTimes = laborTimesArray.stream().mapToLong(value -> value).sum();
 
         return Pair.of(laborCost, laborTimes);
+    }
+
+    public Map<Long, WorkOrderHistoryMetricsDTO> getHistoryMetrics(Collection<WorkOrder> workOrders,
+                                                                   boolean includeLaborCost) {
+        List<Long> workOrderIds = workOrders.stream().map(WorkOrder::getId).toList();
+        if (workOrderIds.isEmpty()) return Collections.emptyMap();
+
+        Map<Long, double[]> totals = new HashMap<>();
+        Map<Long, Date> actualStarts = new HashMap<>();
+        workOrderIds.forEach(id -> totals.put(id, new double[4]));
+
+        laborRepository.findByWorkOrder_IdIn(workOrderIds).forEach(labor -> {
+            double[] total = totals.get(labor.getWorkOrder().getId());
+            if (total != null) {
+                total[0] += labor.getDuration();
+                Date startedAt = labor.getStartedAt();
+                if (startedAt != null) actualStarts.merge(labor.getWorkOrder().getId(), startedAt,
+                        (earliest, candidate) -> candidate.before(earliest) ? candidate : earliest);
+                if (labor.isIncludeToTotalTime()) {
+                    total[1] += labor.getHourlyRate() * labor.getDuration() / 3600;
+                }
+            }
+        });
+        partQuantityRepository.findByWorkOrder_IdIn(workOrderIds).forEach(quantity -> {
+            double[] total = totals.get(quantity.getWorkOrder().getId());
+            if (total != null && quantity.getPart() != null) {
+                total[2] += quantity.getQuantity() * quantity.getPart().getCost();
+            }
+        });
+        additionalCostRepository.findByWorkOrder_IdIn(workOrderIds).forEach(cost -> {
+            double[] total = totals.get(cost.getWorkOrder().getId());
+            if (total != null && cost.isIncludeToTotalCost()) total[3] += cost.getCost();
+        });
+
+        return totals.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> {
+                    double[] total = entry.getValue();
+                    double actualTotalCost = total[2] + total[3] + (includeLaborCost ? total[1] : 0);
+                    return new WorkOrderHistoryMetricsDTO(
+                            entry.getKey(), (long) total[0], total[1], total[2], total[3], actualTotalCost,
+                            actualStarts.get(entry.getKey()));
+                }
+        ));
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Map<Long, List<com.grash.dto.workOrder.WorkOrderShowDTO.PlannedOperationDTO>>
+    getPlannedOperationsForHistory(Collection<Long> workOrderIds) {
+        if (workOrderIds == null || workOrderIds.isEmpty()) return Collections.emptyMap();
+        return workOrderPlannedOperationRepository.findByWorkOrder_IdIn(workOrderIds).stream()
+                .sorted(Comparator.comparingInt(WorkOrderPlannedOperation::getOperationOrder))
+                .collect(Collectors.groupingBy(
+                        operation -> operation.getWorkOrder().getId(),
+                        Collectors.mapping(workOrderMapper::toPlannedOperationDto, Collectors.toList())));
     }
 
     public double getAdditionalCost(Collection<WorkOrder> workOrders) {
@@ -1268,7 +1446,7 @@ public class WorkOrderService {
             workOrderReq.setPrimaryUser(primaryUser == null ? user : primaryUser);
         }
         assignmentScopeValidator.validateAndResolve(workOrderReq, user);
-        WorkOrder createdWorkOrder = create(workOrderReq, user.getCompany());
+        WorkOrder createdWorkOrder = create(workOrderReq, user.getCompany(), user);
 
         if (!user.getCompany().isFirstWorkOrderCreated()) {
             user.getCompany().setFirstWorkOrderCreated(true);

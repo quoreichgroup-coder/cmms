@@ -96,6 +96,39 @@ public class LicenseAuthorityService {
     }
 
     @Transactional
+    public Map<String, Object> renew(UUID id, LicenseRenewRequest request) {
+        var records = jdbc.query("""
+                SELECT license_type, status, starts_at, expires_at, maintenance_until
+                FROM license_record WHERE id=? FOR UPDATE
+                """, (rs, row) -> new RenewalRow(rs.getString("license_type"), rs.getString("status"),
+                rs.getTimestamp("starts_at").toInstant(),
+                rs.getTimestamp("expires_at") == null ? null : rs.getTimestamp("expires_at").toInstant(),
+                rs.getTimestamp("maintenance_until") == null ? null : rs.getTimestamp("maintenance_until").toInstant()), id);
+        if (records.isEmpty() || !"ACTIVE".equals(records.get(0).status))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active license not found");
+        RenewalRow license = records.get(0);
+        Instant expiry = request.expiresAt() == null ? license.expiresAt : request.expiresAt();
+        Instant maintenance = request.maintenanceUntil() == null ? license.maintenanceUntil : request.maintenanceUntil();
+        Instant now = Instant.now();
+        if ("SUBSCRIPTION".equals(license.licenseType) &&
+                (expiry == null || !expiry.isAfter(now) || !expiry.isAfter(license.startsAt)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Subscription renewal requires a future expiresAt");
+        if ("PERPETUAL".equals(license.licenseType) && expiry != null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Perpetual licenses cannot have an expiry");
+        if (request.maintenanceUntil() != null && !request.maintenanceUntil().isAfter(now))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "maintenanceUntil must be in the future");
+
+        jdbc.update("UPDATE license_record SET expires_at=?, maintenance_until=? WHERE id=? AND status='ACTIVE'",
+                timestamp(expiry), timestamp(maintenance), id);
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("expiresAt", expiry);
+        details.put("maintenanceUntil", maintenance);
+        logEvent(id, null, "LICENSE_RENEWED", details);
+        return Map.of("id", id, "status", "ACTIVE", "expiresAt", expiry == null ? "" : expiry,
+                "maintenanceUntil", maintenance == null ? "" : maintenance);
+    }
+
+    @Transactional
     public void deactivate(UUID activationId) {
         UUID licenseId = jdbc.query("SELECT license_id FROM license_activation WHERE id=? AND deactivated_at IS NULL",
                 rs -> rs.next() ? rs.getObject(1, UUID.class) : null, activationId);
@@ -233,4 +266,6 @@ public class LicenseAuthorityService {
                               int seatsFull, int seatsLight, String entitlements, Instant startsAt,
                               Instant expiresAt, Instant maintenanceUntil) {}
     private record ActivationRow(UUID id, String environment, Instant deactivatedAt) {}
+    private record RenewalRow(String licenseType, String status, Instant startsAt, Instant expiresAt,
+                              Instant maintenanceUntil) {}
 }

@@ -40,10 +40,62 @@ public class WorkOrderShowDTO extends WorkOrderBaseShowDTO {
     @Schema(description = "Feedback or notes provided upon work order completion")
     private String feedback;
 
+    @Schema(description = "Actual labor duration in seconds; populated by asset work order history")
+    private Long actualLaborSeconds;
+
+    @Schema(description = "Earliest recorded labor start; populated by asset work order history")
+    private Date actualStartAt;
+
+    @Schema(description = "Actual labor cost; populated by asset work order history")
+    private Double actualLaborCost;
+
+    @Schema(description = "Actual part cost; populated by asset work order history")
+    private Double actualPartCost;
+
+    @Schema(description = "Actual additional cost; populated by asset work order history")
+    private Double actualAdditionalCost;
+
+    @Schema(description = "Actual total cost respecting company labor cost preferences; populated by asset work order history")
+    private Double actualTotalCost;
+
     @Schema(description = "Audio description file attached to the work order")
     private FileShowDTO audioDescription;
 
     @Schema(description = "Custom identifier for the work order")
     private String customId;
+
+    private Long maintenanceTaskListId;
+    private String maintenanceTaskListReference;
+    private List<PlannedOperationDTO> plannedOperations = new ArrayList<>();
+
+    @Data
+    @NoArgsConstructor
+    public static class PlannedOperationDTO {
+        private String operationNumber;
+        private String shortDescription;
+        private String longText;
+        private String workCenter;
+        private String controlKey;
+        private java.math.BigDecimal workers;
+        private java.math.BigDecimal plannedWork;
+        private String workUnit;
+        private java.math.BigDecimal duration;
+        private String durationUnit;
+        private String systemCondition;
+        private int operationOrder;
+        private List<PlannedMaterialDTO> materials = new ArrayList<>();
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class PlannedMaterialDTO {
+        private Long partId;
+        private String partCode;
+        private String partName;
+        private java.math.BigDecimal quantity;
+        private String unit;
+        private String storageLocation;
+        private java.math.BigDecimal estimatedUnitCost;
+    }
 
 }

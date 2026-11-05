@@ -1,4 +1,7 @@
+import { approvalManagementFr } from './approvalManagement';
+
 const frJSON = {
+  ...approvalManagementFr,
   show_password: 'Afficher le mot de passe',
   hide_password: 'Masquer le mot de passe',
   generate_password: 'Générer',
@@ -18,7 +21,103 @@ const frJSON = {
   help_center_title: 'Centre d’aide QPM',
   help_center_intro:
     'Des repères courts pour retrouver les principales actions de maintenance.',
-  help_search_placeholder: 'Rechercher dans les guides',
+  help_center_landing_subtitle:
+    'Trouvez des guides, des tutoriels et des réponses pour tirer le meilleur parti de QPM.',
+  help_search_placeholder:
+    'Rechercher dans la documentation, les fonctions ou les sujets…',
+  help_clear_search: 'Effacer la recherche',
+  help_close_navigation: 'Fermer la navigation de la documentation',
+  help_documentation: 'Documentation',
+  help_category_label: 'Guide',
+  help_search_keyboard_hint:
+    'Utilisez ↑ et ↓ pour naviguer · Entrée pour ouvrir · Échap pour fermer',
+  help_guides_available: '{{count}} guides disponibles',
+  help_browse_by_topic: 'Parcourir par sujet',
+  help_topics_intro:
+    'Choisissez un guide pour trouver les étapes et les informations utiles.',
+  help_popular_guides: 'Guides populaires',
+  help_getting_started: 'Bien démarrer',
+  help_getting_started_intro:
+    'Commencez par votre profil, puis découvrez comment QPM organise les opérations de maintenance.',
+  help_article_count_singular: '{{count}} article',
+  help_article_count_plural: '{{count}} articles',
+  help_min_read: 'min de lecture',
+  help_article_overview: 'Présentation',
+  help_article_steps: 'Instructions',
+  help_article_section: 'Section',
+  help_step: 'Étape',
+  help_related_articles: 'Guides associés',
+  help_updated_date: 'Mis à jour le {{date}}',
+  help_breadcrumb: 'Fil d’Ariane de la documentation',
+  help_on_this_page: 'Sur cette page',
+  help_back_to_home: 'Tous les guides',
+  help_no_visible_guides:
+    'Aucun guide n’est disponible avec vos droits actuels.',
+  help_center_management: 'Gestion du centre d’aide',
+  help_center_management_intro:
+    'Créez, relisez et publiez des guides pour votre organisation.',
+  help_categories: 'Catégories',
+  help_articles: 'Articles',
+  help_new_category: 'Nouvelle catégorie',
+  help_edit_category: 'Modifier la catégorie',
+  help_new_article: 'Nouvel article',
+  help_edit_article: 'Modifier l’article',
+  help_category_title: 'Nom de la catégorie',
+  help_icon_name: 'Nom de l’icône',
+  help_icon_helper: 'Identifiant facultatif de l’icône de la catégorie.',
+  help_visible_to_module: 'Limiter la visibilité à un module',
+  help_all_permitted_users: 'Tous les utilisateurs autorisés au centre d’aide',
+  help_use_category_visibility: 'Utiliser la visibilité de la catégorie',
+  help_slug_helper: 'Laissez vide pour créer l’URL à partir du titre.',
+  help_article_content: 'Contenu de l’article',
+  help_editor_placeholder: 'Rédigez des consignes claires, étape par étape…',
+  help_image_upload_hint: 'PNG, JPEG ou WebP · 10 Mo maximum. Stockage privé.',
+  help_keywords_helper: 'Séparez les mots-clés par des virgules.',
+  help_editor_supported_content:
+    'Titres, listes, liens, tableaux et captures sont acceptés.',
+  help_edit_published_note:
+    'Vos modifications sont enregistrées comme brouillon. La version publiée reste visible jusqu’à la publication de la mise à jour.',
+  help_draft_note:
+    'Cet article est un brouillon et n’est pas visible aux utilisateurs.',
+  help_unpublished_changes: 'Modifications non publiées',
+  help_publish_update: 'Publier la mise à jour',
+  help_no_categories: 'Aucune catégorie de documentation pour le moment.',
+  help_no_articles: 'Aucun article ne correspond à ce statut.',
+  help_no_categories_for_article:
+    'Créez une catégorie avant d’ajouter un article.',
+  help_category_saved: 'Catégorie enregistrée.',
+  help_category_restored: 'Catégorie restaurée.',
+  help_article_saved: 'Brouillon enregistré.',
+  help_article_published: 'Article publié.',
+  help_article_archived: 'Article archivé.',
+  help_article_restored: 'Article restauré comme brouillon.',
+  restore: 'Restaurer',
+  help_save_failed: 'Impossible d’enregistrer la documentation.',
+  help_publish_failed: 'Impossible de publier cet article.',
+  help_admin_load_error:
+    'Impossible de charger la documentation. Vérifiez vos droits puis réessayez.',
+  help_category_has_articles:
+    'Archivez ou déplacez ses articles avant d’archiver cette catégorie.',
+  help_article_required_fields:
+    'Choisissez une catégorie et renseignez le titre, le résumé et le contenu.',
+  help_article_preview: 'Aperçu de l’article',
+  help_image_invalid:
+    'Choisissez une image PNG, JPEG ou WebP de moins de 10 Mo.',
+  help_image_uploaded: 'Image ajoutée à l’article.',
+  help_image_upload_failed: 'Impossible de téléverser l’image.',
+  help_image_accessibility_title: 'Décrire cette image',
+  help_image_accessibility_hint:
+    'Rédigez une courte description pour les lecteurs d’écran, ou indiquez que l’image est décorative si elle n’apporte pas d’information.',
+  help_image_alt_text: 'Texte alternatif',
+  help_image_decorative: 'Image décorative',
+  help_edit_image_alt: 'Modifier la description de l’image',
+  help_contextual_work_orders: 'Aide sur les ordres de travail',
+  help_contextual_requests: 'Aide sur les demandes d’intervention',
+  help_contextual_equipment: 'Aide sur les équipements',
+  help_contextual_inventory: 'Aide sur les pièces et l’inventaire',
+  help_contextual_settings: 'Aide sur les paramètres',
+  help_image_upload_note:
+    'Les images sont servies par QPM depuis le stockage configuré.',
   help_permissions_note:
     'Les guides affichés dépendent de vos droits. Si un écran attendu est absent, contactez votre administrateur.',
   help_open_module: 'Ouvrir le module',
@@ -654,8 +753,9 @@ const frJSON = {
   purchase_requisitions: 'Demandes d’achat',
   purchase_requisitions_permission: 'Demandes d’achat',
   purchase_requisition_approval_permission: 'Approuver les demandes d’achat',
+  purchase_order_approval_permission: 'Approuver les bons de commande',
   requisition_approval_access_hint:
-    'Les approbations se traitent ici. Pour approuver la demande en attente d’un autre utilisateur, un administrateur doit accorder Lecture et Voir les autres pour les demandes d’achat, puis Modifier les autres pour Approuver les demandes d’achat dans Paramètres → Rôles. Le demandeur ne peut pas approuver sa propre demande.',
+    'Les approbations se traitent ici. Un administrateur doit accorder Modifier les autres pour Approuver les demandes d’achat dans Paramètres → Rôles. Ce droit affiche ici les demandes en attente des autres utilisateurs; un demandeur ne peut pas approuver sa propre demande.',
   requisition_title: 'Objet de la demande',
   requisition_justification: 'Justification du besoin',
   required_date: 'Date souhaitée',
@@ -699,11 +799,282 @@ const frJSON = {
   requisition_updated: 'Demande d’achat modifiée.',
   requisition_converted: 'Bon de commande créé depuis la demande.',
   requisition_action_failed: 'Impossible de traiter la demande.',
+  approval_no_active_policy:
+    'Une approbation avait été configurée pour ce type de document, mais aucune politique n’est active. Activez une politique dans les paramètres.',
+  approval_no_matching_policy:
+    'Aucune politique active ne correspond au montant et à la devise de cette demande. Vérifiez les conditions d’approbation dans les paramètres.',
+  approval_approver_unavailable:
+    'Aucun approbateur admissible n’est disponible pour cette étape. Vérifiez l’affectation du rôle ou de l’utilisateur et son droit d’approbation.',
+  approval_distinct_approvers:
+    'Chaque niveau doit avoir un approbateur admissible qui peut être affecté à cette étape.',
+  approval_invalid_amount_snapshot:
+    'Le montant de la demande n’a pas pu être calculé. Vérifiez les quantités et les coûts des articles.',
   source_requisition: 'Issue de la demande nº {{id}}',
   requisition_review_note: 'Note de décision',
   rejection_note_required: 'obligatoire pour rejeter',
   requisition_needs_one_line: 'Ajoutez au moins un article demandé.',
   purchase_receipts: 'Réceptions d’achat',
+  task_lists_permission: 'Gammes de maintenance',
+  maintenance_task_lists: 'Gammes de maintenance',
+  maintenance_task_lists_intro:
+    'Définissez des opérations réutilisables et les composants prévus pour les ordres de travail.',
+  task_list_import: 'Importer CSV',
+  task_list_export: 'Exporter CSV',
+  task_list_import_success:
+    '{{importedCounters}} compteurs importés dans {{generatedGroups}} groupes.',
+  task_list_import_error:
+    'Impossible d’importer les gammes. Vérifiez le CSV puis réessayez.',
+  task_list_export_error: 'Impossible d’exporter les gammes. Réessayez.',
+  export_csv: 'Exporter en CSV',
+  purchase_export_failed:
+    'Impossible d’exporter les documents d’achat. Réessayez.',
+  import_csv: 'Importer un CSV',
+  download_csv_template: 'Modèle CSV',
+  purchase_import_failed:
+    'Impossible d’importer les documents d’achat. Vérifiez le modèle puis réessayez.',
+  purchase_requisition_imported:
+    '{{importedRequisitions}} demandes importées comme brouillons. Vérifiez-les puis soumettez-les à l’approbation.',
+  purchase_order_imported:
+    '{{importedPurchaseOrders}} commandes importées et envoyées dans le circuit d’approbation configuré.',
+  task_list_settings_title: 'Paramètres des gammes',
+  task_list_settings_invalid:
+    'Le nombre de techniciens doit être compris entre 0,01 et 999999. Les valeurs de numérotation des opérations doivent être des entiers entre 1 et 999999.',
+  task_list_settings_description:
+    'Définissez les valeurs par défaut et la numérotation automatique des opérations.',
+  task_list_operation_defaults: 'Valeurs par défaut des opérations',
+  task_list_reference_catalogs: 'Postes de travail et clés de commande',
+  task_list_reference_catalogs_help:
+    'Gérez les listes de sélection QPM avec les codes de votre configuration d’usine. Dans SAP, un poste de travail dépend de l’usine et les effets d’une clé de commande restent définis dans le Customizing SAP. QPM conserve le code choisi pour les gammes et une future intégration.',
+  task_list_work_center_catalog: 'Codes des postes de travail',
+  task_list_control_key_catalog: 'Codes des clés de commande',
+  task_list_catalog_one_per_line:
+    'Saisissez un code exact par ligne. Les doublons sont refusés.',
+  task_list_operation_defaults_help:
+    'Ces valeurs préremplissent les nouvelles opérations. Les suggestions de poste de travail issues des gammes existantes restent prioritaires.',
+  task_list_default_workers: 'Nombre de techniciens par défaut',
+  task_list_default_work_unit: 'Unité de travail planifié par défaut',
+  task_list_default_duration_unit: 'Unité de durée par défaut',
+  task_list_operation_numbering: 'Numérotation des opérations',
+  task_list_operation_numbering_help:
+    'Le numéro suivant est attribué automatiquement aux nouvelles opérations. Les numéros existants sont conservés.',
+  task_list_operation_number_start: 'Premier numéro d’opération',
+  task_list_operation_number_increment: 'Incrément de numérotation',
+  task_list_settings_saved: 'Paramètres des gammes enregistrés.',
+  task_list_settings_save_error:
+    'Impossible d’enregistrer les paramètres des gammes.',
+  task_list_settings_load_error:
+    'Impossible de charger les paramètres des gammes.',
+  hours_abbreviation: 'Heures (H)',
+  minutes_abbreviation: 'Minutes (MIN)',
+  seconds_abbreviation: 'Secondes (S)',
+  maintenance_task_list_optional: 'Gamme de maintenance (facultative)',
+  select_maintenance_task_list: 'Sélectionner une gamme active et valide',
+  no_active_task_lists: 'Aucune gamme active et valide n’est disponible.',
+  task_lists_load_error:
+    'Impossible de charger les gammes. Fermez puis rouvrez le formulaire pour réessayer.',
+  task_list_work_order_plan_helper:
+    'Les opérations et composants prévus sont copiés dans cet ordre. Aucun stock n’est réservé ni sorti.',
+  work_order_planned_operations: 'Opérations planifiées',
+  no_planned_operations: 'Aucune opération n’a été copiée depuis cette gamme.',
+  work_order_plan_load_error:
+    'Impossible de charger les opérations planifiées.',
+  work_order_planned_materials: 'Composants planifiés',
+  planned_operation: 'Opération {{number}}',
+  planned_duration: 'Durée',
+  planned_quantity: 'Quantité prévue',
+  create_task_list: 'Créer une gamme de maintenance',
+  edit_maintenance_task_list: 'Modifier la gamme de maintenance',
+  task_list_step_basic: 'Informations générales',
+  task_list_step_operations: 'Opérations',
+  task_list_step_materials: 'Composants',
+  task_list_step_review: 'Vérification',
+  task_list_search_placeholder:
+    'Rechercher un groupe, compteur, libellé ou poste de travail',
+  task_list_results_count: '{{count}} gammes',
+  task_list_group: 'Groupe',
+  task_list_group_code: 'Groupe de gamme',
+  task_list_group_counter: 'Compteur de groupe',
+  task_list_existing_group: 'Ajouter à un groupe existant (facultatif)',
+  task_list_new_group_auto: 'Créer automatiquement un nouveau groupe',
+  task_list_group_code_auto_help:
+    'QPM génère le numéro du groupe et son premier compteur à l’enregistrement. Choisissez un groupe compatible pour ajouter un compteur.',
+  task_list_group_generated_on_save:
+    'Généré automatiquement à l’enregistrement',
+  task_list_group_code_immutable_help:
+    'Le groupe de gamme est attribué à la création et ne peut plus être modifié.',
+  task_list_group_counter_count: '{{count}} compteurs',
+  task_list_groups_load_error:
+    'Impossible de charger les groupes existants. Vous pouvez tout de même créer un nouveau groupe.',
+  task_list_reuse_existing_default:
+    'Réutilisez une valeur existante ou saisissez-en une nouvelle.',
+  task_list_work_center_suggestions:
+    'Les valeurs récurrentes sont proposées; vous pouvez les modifier.',
+  task_list_defaults_load_failed:
+    'Impossible de charger les valeurs par défaut enregistrées. Vous pouvez tout de même saisir les valeurs manuellement.',
+  task_list_copy_from_counter: 'Copier les opérations d’un compteur',
+  task_list_copy_from_counter_help:
+    'Facultatif. Les opérations et composants planifiés sont copiés dans ce nouveau compteur; la source reste inchangée.',
+  task_list_copy_counter_parts_permission:
+    'La copie est désactivée, car votre rôle ne peut pas consulter les pièces. Les composants planifiés ne doivent pas être omis sans avertissement.',
+  task_list_copy_counter_parts_denied:
+    'Ce compteur contient des pièces planifiées hors de votre périmètre de visibilité. Demandez à un administrateur l’accès requis avant de le copier.',
+  task_list_parts_no_match:
+    'Aucune pièce correspondante. Recherchez par code ou description.',
+  task_list_search_parts: 'Rechercher une pièce',
+  task_list_search_parts_hint: 'Rechercher par code, nom ou description',
+  task_list_search_parts_minimum:
+    'Saisissez au moins 2 caractères pour rechercher dans le catalogue.',
+  task_list_parts_search_count: '{{count}} pièce(s) correspondante(s)',
+  task_list_select_part: 'Sélectionner une pièce du catalogue',
+  task_list_part_picker_title: 'Sélectionner un composant prévu',
+  task_list_part_picker_help:
+    'Recherchez dans le catalogue, examinez les résultats puis sélectionnez la pièce pour cette opération.',
+  task_list_no_counter_copy: 'Commencer avec un compteur vide',
+  task_list_group_counters_load_error:
+    'Impossible de charger les compteurs de ce groupe. Vous pouvez continuer avec un compteur vide.',
+  task_list_replace_operations_confirm:
+    'Les opérations et composants planifiés actuels seront remplacés. Voulez-vous continuer ?',
+  task_list_storage_location_from_part:
+    'Proposé depuis la fiche pièce; vous pouvez le modifier.',
+  task_list_group_code_limit_reached:
+    'La limite de numérotation automatique des groupes de gamme est atteinte. Contactez votre administrateur.',
+  task_list_group_not_found:
+    'Le groupe de gamme sélectionné n’est plus disponible.',
+  task_list_group_type_mismatch:
+    'Une gamme ne peut rejoindre qu’un groupe du même type.',
+  task_list_group_object_mismatch:
+    'Une gamme ne peut rejoindre qu’un groupe rattaché au même équipement ou emplacement fonctionnel.',
+  task_list_reference_equipment: 'Équipement',
+  task_list_reference_location: 'Emplacement fonctionnel',
+  task_list_reference_objects_load_error:
+    'Impossible de charger les équipements ou emplacements fonctionnels autorisés. Vérifiez vos droits et réessayez.',
+  task_list_equipment_required:
+    'Sélectionnez un équipement pour une gamme équipement.',
+  task_list_functional_location_required:
+    'Sélectionnez un emplacement fonctionnel pour cette gamme.',
+  task_list_reference_object_not_allowed:
+    'Une gamme générale ne peut pas être liée à un équipement ou emplacement unique.',
+  task_list_reference_object_unavailable:
+    'L’équipement ou l’emplacement fonctionnel sélectionné est indisponible.',
+  task_list_identity_immutable:
+    'Le type et l’objet de référence d’une gamme ne peuvent plus être modifiés après sa création.',
+  task_list_object_mismatch:
+    'Cette gamme est liée à un autre équipement ou emplacement fonctionnel. Choisissez une gamme compatible.',
+  asset_used_by_task_list:
+    'Cet équipement est référencé par une gamme de maintenance et ne peut pas être supprimé.',
+  location_used_by_task_list:
+    'Cet emplacement fonctionnel est référencé par une gamme de maintenance et ne peut pas être supprimé.',
+  task_list_in_use_by_work_order:
+    'Cette gamme est utilisée par un ou plusieurs ordres de travail et ne peut pas être supprimée.',
+  task_list_in_use_by_preventive_maintenance:
+    'Cette gamme est affectée à un plan de maintenance préventive. Retirez cette affectation avant de la supprimer.',
+  task_list_counter_generated_on_save:
+    'Attribué automatiquement à l’enregistrement',
+  task_list_counter_auto_help:
+    'QPM attribue le prochain compteur disponible de ce groupe à l’enregistrement.',
+  task_list_counter_immutable_help:
+    'Ce compteur de gamme est attribué automatiquement et ne peut pas être modifié.',
+  task_list_group_counter_limit_reached:
+    'La limite du compteur automatique de gamme est atteinte. Contactez votre administrateur.',
+  task_list_type: 'Type de gamme',
+  task_list_type_general: 'Générale',
+  task_list_type_equipment: 'Équipement',
+  task_list_type_functional_location: 'Emplacement fonctionnel',
+  task_list_status_active: 'Active',
+  task_list_status_draft: 'Brouillon',
+  task_list_status_inactive: 'Inactive',
+  task_list_operation_count: '{{count}} opérations',
+  task_list_material_count: '{{count}} composants',
+  task_list_validity_open: 'Aucune période de validité définie',
+  task_list_wizard_help:
+    'Définissez les étapes de travail et les composants prévus en quelques étapes.',
+  task_list_invalid_validity:
+    'La fin de validité doit être égale ou postérieure à la date de début.',
+  task_list_operations_title: 'Opérations de maintenance',
+  task_list_operations_help:
+    'Ajoutez et ordonnez les étapes à réaliser par les techniciens.',
+  task_list_operation_number: 'Numéro d’opération',
+  task_list_operation_number_auto_help:
+    'Attribué automatiquement selon les paramètres des gammes.',
+  task_list_draft_without_operations:
+    'Une gamme en brouillon peut être enregistrée avant de définir ses opérations.',
+  short_description: 'Description courte',
+  control_key: 'Clé de commande',
+  system_condition: 'État du système',
+  select_system_condition: 'Choisir une condition',
+  system_condition_not_in_operation: 'À l’arrêt',
+  system_condition_in_operation: 'En fonctionnement',
+  system_condition_legacy_value: 'Valeur existante : {{value}}',
+  planned_work: 'Travail prévu',
+  duration_unit: 'Unité de durée',
+  task_list_technicians: 'Nombre de techniciens',
+  task_list_technicians_count: '{{count}} technicien(s)',
+  task_list_total_labor_work: 'Charge totale de main-d’œuvre (h)',
+  task_list_labor_work_formula:
+    '{{duration}} h × {{workers}} technicien(s) = {{work}} h de travail',
+  task_list_labor_work_manual_help:
+    'Saisissez le travail total. Le calcul automatique est disponible lorsque les unités sont en heures.',
+  task_list_materials_title: 'Composants prévus',
+  task_list_materials_help:
+    'Ce sont des besoins liés à l’opération. Leur ajout ne réserve ni ne consomme le stock.',
+  task_list_materials_permission_limited:
+    'Votre rôle ne permet pas de consulter les pièces. Les composants existants seront conservés.',
+  task_list_manage_role_permissions: 'Gérer les droits du rôle',
+  task_list_parts_load_error:
+    'Impossible de charger les pièces. Réessayez avant d’ajouter des composants.',
+  task_list_add_operation_first:
+    'Ajoutez une opération avant de lui affecter des composants.',
+  add_component: 'Ajouter un composant',
+  required_quantity: 'Quantité requise',
+  estimated_unit_cost: 'Coût unitaire estimé',
+  remove_component: 'Retirer le composant',
+  task_list_review_title: 'Vérifier la gamme',
+  task_list_validation_error:
+    'Complétez les champs obligatoires et corrigez les quantités invalides.',
+  task_list_save_error: 'Impossible d’enregistrer la gamme.',
+  task_list_header_values_invalid: 'Vérifiez la longueur de la description, du type et du poste de travail.',
+  task_list_operation_values_invalid: 'Un ou plusieurs champs d’opération dépassent la longueur autorisée.',
+  task_list_operation_required_fields: 'Chaque opération doit avoir un numéro et une description courte.',
+  task_list_operation_values_must_be_positive: 'Le nombre de techniciens, le travail prévu et la durée doivent être supérieurs à zéro lorsqu’ils sont renseignés.',
+  task_list_material_values_invalid: 'Chaque composant doit avoir une pièce valide et une quantité positive ; le coût estimé ne peut pas être négatif.',
+  task_list_operation_not_found:
+    'Une opération n’appartient plus à cette gamme. Actualisez-la puis réessayez.',
+  task_list_material_not_found:
+    'Un composant affecté n’est plus disponible. Actualisez la gamme puis réessayez.',
+  task_list_duplicate_group_counter: 'Ce groupe et ce compteur existent déjà.',
+  task_list_saved: 'Gamme mise à jour.',
+  task_list_created: 'Gamme créée.',
+  task_list_deleted: 'Gamme supprimée.',
+  task_list_delete_error: 'Impossible de supprimer la gamme.',
+  task_list_search_empty: 'Aucune gamme correspondante',
+  task_list_search_empty_help:
+    'Essayez un autre groupe, compteur, libellé ou poste de travail.',
+  task_list_empty_page_title: 'Aucune gamme de maintenance',
+  task_list_empty_page_help:
+    'Créez une gamme pour définir des opérations et composants réutilisables.',
+  part_reference: 'Pièce nº {{id}}',
+  untitled_operation: 'Opération sans titre',
+  untitled_task_list: 'Gamme sans titre',
+  task_list_operation_no_planning_data:
+    'Aucune estimation de main-d’œuvre ou de durée',
+  task_list_planned_material_disclaimer:
+    'Les composants prévus restent séparés des réservations et sorties de stock.',
+  task_list_discard_confirm: 'Abandonner les modifications non enregistrées ?',
+  task_list_delete_confirm:
+    'Supprimer « {{name}} » ? Cette action est définitive.',
+  task_list_load_error: 'Impossible de charger les gammes.',
+  operation: 'Opération',
+  work_center: 'Poste de travail',
+  valid_from: 'Valide à partir du',
+  valid_to: 'Valide jusqu’au',
+  back: 'Retour',
+  loading: 'Chargement…',
+  no_planned_materials: 'Aucun composant prévu pour cette opération.',
+  storage_location: 'Emplacement de stockage',
+  deleting: 'Suppression…',
+  no_access_task_lists: 'Vous n’avez pas accès aux gammes de maintenance.',
+  task_list_feature_disabled:
+    'La maintenance préventive n’est pas activée pour cette entreprise. Contactez votre administrateur pour l’activer.',
   receiving: 'Réception',
   received: 'Reçu',
   receipt: 'Réception',
@@ -715,6 +1086,10 @@ const frJSON = {
   requisition_from_work_order_parts_notice:
     'Les pièces déjà affectées à cet OT ne sont pas copiées. Leur affectation consomme du stock; ajoutez uniquement les quantités qui restent à acheter.',
   requisition_title_from_work_order: 'Pièces pour {{workOrder}}',
+  purchase_requisition_replenish: 'Demander un réapprovisionnement',
+  requisition_from_low_stock:
+    'Brouillon de réapprovisionnement pour {{part}}. Quantité suggérée : {{quantity}} {{unit}}. Vérifiez-la avant d’enregistrer ou de soumettre.',
+  requisition_title_from_part: 'Réapprovisionnement : {{part}}',
   request_parts: 'Demander des pièces',
   next_action: 'Prochaine action',
   delivery_overdue: 'Livraison en retard',
@@ -738,7 +1113,12 @@ const frJSON = {
   create_purchase_order: 'Créer le bon',
   save_draft: 'Enregistrer le brouillon',
   purchase_orders: 'Bons de commande',
+  purchase_order_categories: 'Catégories de bons de commande',
   purchase_orders_to_receive: 'À réceptionner',
+  receipt_status_filter: 'État de réception',
+  receipt_filter_all: 'Tous les reliquats',
+  receipt_filter_not_started: 'Non commencée',
+  receipt_filter_partial: 'Partiellement reçue',
   all_purchase_orders: 'Tous les bons de commande',
   remaining_to_receive: 'Reste à réceptionner',
   meters: 'Compteurs',
@@ -778,6 +1158,11 @@ const frJSON = {
   sidebar_sap_technical_categories: 'Catégories',
   sidebar_sap_documents: 'Documents',
   sidebar_sap_settings: 'Paramètres',
+  maintenance_management: 'Gestion de la maintenance',
+  materials_management: 'Gestion des articles et des stocks',
+  procurement: 'Approvisionnement',
+  reports_analytics: 'Rapports et analyses',
+  administration: 'Administration',
   //request
   cancelled: 'Annulé',
   reject: 'Rejeter',
@@ -1013,7 +1398,6 @@ const frJSON = {
   no_asset_related_part: 'Aucun équipement lié à cette pièce',
   no_file_found: 'Aucun fichier trouvé',
   no_wo_found: 'Aucun bon de travail trouvé',
-  workers: 'Travailleurs',
   Parts_and_Inventory: 'Pièces & Inventaire',
   //purchase order
   po_edit_failure: "Le bon de commande n'a pas pu être modifié",
@@ -1024,8 +1408,20 @@ const frJSON = {
   ordered_quantity_by_unit: 'Quantité commandée par unité',
   unit_unspecified: 'unité non précisée',
   estimated_total_cost: 'Coût total estimé',
+  purchase_cost_snapshot_help:
+    'Coût estimé enregistré à la création de la ligne ; ce montant ne remplace pas un devis fournisseur.',
+  purchase_cost_snapshot_missing: 'Coût estimé non enregistré pour cette ligne',
   purchase_order_cost_estimate_note:
     'Estimation basée sur les coûts actuels des pièces ; le prix fournisseur peut différer.',
+  agreed_unit_price: 'Prix unitaire convenu',
+  enter_supplier_price: 'Saisissez le prix convenu avec le fournisseur',
+  company_currency: 'Devise de l’entreprise',
+  purchase_order_agreed_total: 'Total convenu',
+  purchase_order_agreed_total_note:
+    'Calculé à partir des prix unitaires convenus avec le fournisseur.',
+  purchase_price_updated: 'Prix fournisseur mis à jour',
+  purchase_price_update_failed:
+    'Le prix fournisseur n’a pas pu être mis à jour',
   shipping_to: 'Expédition à',
   shipping_address: 'Adresse de livraison',
   po_details: 'Détails du bon de commande',
@@ -1063,6 +1459,8 @@ const frJSON = {
   po_create_partial_failure:
     'Le bon de commande a été créé, mais l’enregistrement des articles ou l’approbation a échoué. Vérifiez-le et terminez l’étape manquante.',
   approve_while_submitting: 'Approuver lors de la soumission',
+  purchase_order_approve_on_submit_hint:
+    'L’approbation autorise la commande. Le stock est mis à jour uniquement lors de l’enregistrement d’une réception.',
   purchase_order_approval_confirmation_title:
     "Confirmer l'approbation du bon d'achat",
   purchase_order_approval_confirmation_body:
@@ -1269,6 +1667,8 @@ const frJSON = {
   category_edit_failure: "La catégorie n'a pas pu être modifiée",
   category_delete_success: 'La catégorie a été supprimée avec succès',
   category_delete_failure: "La catégorie n'a pas pu être supprimée",
+  purchase_order_category_in_use:
+    'Cette catégorie est associée à un ou plusieurs bons de commande et ne peut pas être supprimée.',
   timers: 'Minuteries',
   costs: 'Coûts',
   add_category: 'Ajouter une nouvelle catégorie',
@@ -1285,6 +1685,14 @@ const frJSON = {
   //settings
   general_settings: 'Paramètres généraux',
   document_templates: 'Modèles de documents',
+  document_access_history: 'Historique des accès aux documents',
+  document_access_history_description:
+    'Consultez qui a ouvert les PDF archivés et si le téléchargement a réussi.',
+  document_access_date: 'Date d’accès',
+  document_access_document: 'Document',
+  document_access_actor: 'Ouvert par',
+  document_access_success: 'Téléchargé',
+  document_access_failed: 'Échec du téléchargement',
   document_templates_description:
     'Gérez les modèles versionnés de rapports d’ordres de travail et de demandes de maintenance.',
   document_templates_search: 'Rechercher un modèle',
@@ -1338,7 +1746,9 @@ const frJSON = {
   document_template_selected_fields_count: '{{count}} champs',
   document_template_preview_title: 'Aperçu du modèle',
   document_template_preview_help:
-    'Saisissez l’identifiant d’un ordre de travail pour prévisualiser « {{name}} ». Le brouillon est utilisé s’il existe, sinon la version publiée actuelle. Aucun document ne sera archivé.',
+    'Saisissez l’identifiant de l’enregistrement à utiliser pour prévisualiser « {{name}} ». Une PR/PO peut être saisie sous la forme PR-123 ou PO-123. Le brouillon est utilisé s’il existe; aucun document ne sera archivé.',
+  document_template_preview_pr_po_id_help:
+    'Utilisez le numéro affiché sur la fiche, par exemple PR-123 ou PO-123.',
   document_template_preview_work_order_required:
     'Saisissez un identifiant d’ordre de travail valide.',
   work_order_number: 'Identifiant de l’ordre de travail',
@@ -1383,6 +1793,32 @@ const frJSON = {
   document_template_canvas_move_up: 'Monter',
   document_template_canvas_move_down: 'Descendre',
   document_field_workOrder_customId: 'Identifiant de l’ordre de travail',
+  document_field_purchaseOrder_number: 'Numéro du bon de commande',
+  document_field_purchaseOrder_name: 'Nom de la commande',
+  document_field_purchaseOrder_status: 'Statut d’approbation',
+  document_field_purchaseOrder_vendor: 'Fournisseur',
+  document_field_purchaseOrder_category: 'Catégorie de commande',
+  document_field_purchaseOrder_shippingDueDate: 'Date de livraison prévue',
+  document_field_purchaseOrder_shipTo: 'Destinataire',
+  document_field_purchaseOrder_shippingAddress: 'Adresse de livraison',
+  document_field_purchaseOrder_shippingCity: 'Ville de livraison',
+  document_field_purchaseOrder_shippingState: 'Région de livraison',
+  document_field_purchaseOrder_shippingZipCode: 'Code postal de livraison',
+  document_field_purchaseOrder_shippingPhone: 'Téléphone de livraison',
+  document_field_purchaseOrder_shippingFax: 'Fax de livraison',
+  document_field_purchaseOrder_terms: 'Conditions',
+  document_field_purchaseOrder_notes: 'Notes',
+  document_field_purchaseOrder_requestedBy: 'Demandé par',
+  document_field_purchaseOrder_date: 'Date de commande',
+  document_field_purchaseOrder_lines: 'Articles commandés',
+  document_field_purchaseRequisition_number: 'Numéro de demande d’achat',
+  document_field_purchaseRequisition_title: 'Titre',
+  document_field_purchaseRequisition_status: 'Statut d’approbation',
+  document_field_purchaseRequisition_justification: 'Justification',
+  document_field_purchaseRequisition_requiredDate: 'Date de besoin',
+  document_field_purchaseRequisition_requester: 'Demandeur',
+  document_field_purchaseRequisition_createdDate: 'Créée le',
+  document_field_purchaseRequisition_lines: 'Articles demandés',
   document_field_workOrder_title: 'Intitulé de l’ordre de travail',
   document_field_workOrder_description: 'Description',
   document_field_workOrder_status: 'Statut',
@@ -1725,7 +2161,6 @@ const frJSON = {
   task_list_requires_operation:
     'Ajoutez au moins une opération à cette liste avant de l’enregistrer.',
   operation_number: 'Opération {{number}}',
-  operations: 'Opérations',
   general_task_list: 'Liste générale réutilisable',
   confirm_delete_checklist: 'Voulez-vous vraiment supprimer cette Checklist?',
   upgrade_checklist: 'Veuillez mettre à niveau pour utiliser les Checklists',
@@ -1752,6 +2187,27 @@ const frJSON = {
   pm_plan_configuration: 'Stratégie de maintenance et cycles',
   pm_plan_configuration_help:
     'Choisissez une récurrence standard, des packages de tâches à intervalles différents ou un plan déclenché par plusieurs compteurs.',
+  pm_maintenance_task_list: 'Opérations et composants planifiés',
+  pm_task_list_none: 'Aucun modèle d’opérations',
+  pm_maintenance_task_list_help:
+    'Associez facultativement une liste de tâches de maintenance active à chaque ordre généré par ce plan. Les composants restent des besoins planifiés et ne sont pas considérés comme consommés.',
+  pm_task_lists_load_error:
+    'Impossible de charger les listes de tâches de maintenance. Vérifiez vos droits puis réessayez.',
+  pm_task_lists_none_available:
+    'Aucune liste active ne correspond à l’équipement ou à l’emplacement fonctionnel de ce plan. Les listes générales sont disponibles pour tous les plans. Créez ou activez une liste dans Maintenance préventive → Listes de tâches, associez le bon objet, puis actualisez cette liste.',
+  pm_task_lists_checking_asset_location:
+    'Vérification de l’emplacement de l’équipement pour trouver les gammes compatibles…',
+  pm_task_lists_asset_location_error:
+    'Impossible de vérifier l’emplacement de l’équipement. Le lien enregistré vers la gamme est conservé ; réessayez avant de choisir une gamme liée à un emplacement fonctionnel.',
+  pm_task_list_incompatible_preserved:
+    'La gamme liée est inactive, hors de sa période de validité ou incompatible avec ce plan. Le lien est conservé ; choisissez une gamme compatible ou retirez explicitement le lien avant d’enregistrer.',
+  pm_task_list_unavailable_preserved:
+    'La gamme enregistrée est introuvable. Le lien a été conservé ; retirez-le ou choisissez une autre gamme pour continuer.',
+  pm_task_list_access_denied_preserved:
+    'Votre compte ne peut pas consulter la gamme enregistrée. Le lien a été conservé ; demandez un accès à un administrateur ou retirez le lien pour continuer.',
+  pm_task_list_clear_unavailable: 'Retirer le lien de gamme',
+  pm_task_list_load_error:
+    'Une erreur temporaire empêche de vérifier la gamme enregistrée. Le lien a été conservé ; réessayez pour continuer.',
   pm_plan_mode: 'Type de plan',
   task_without_name: 'Tâche sans nom',
   pm_plan_mode_single: 'Plan standard',
@@ -2860,9 +3316,9 @@ const frJSON = {
     'Reliez les événements de maintenance QPM aux outils déjà utilisés par vos équipes, de la notification à une mise à jour contrôlée de QPM.',
   integration_hub_security_note:
     'QPM ne stocke pas ici les identifiants des outils externes. Les clés API héritent des droits du compte qui les crée et ne possèdent pas de scopes propres. N’utilisez pas une clé administrateur dans un flux externe.',
-  integration_external_workflows: 'Automatisations externes',
+  integration_external_workflows: 'Automatisations et connecteurs ERP',
   integration_external_workflows_description:
-    'Commencez avec des guides utilisant les webhooks QPM et l’API existante.',
+    'Utilisez les webhooks QPM pour vos automatisations. Les connecteurs ERP apparaîtront ici lorsque leur intégration serveur sécurisée sera disponible.',
   integration_recipes_title: 'Recettes de flux maintenance',
   integration_recipes_description:
     'Choisissez un événement QPM réel, puis configurez sa destination dans votre outil externe.',
@@ -2890,6 +3346,13 @@ const frJSON = {
   integration_sap_title: 'SAP EAM / PM',
   integration_sap_description:
     'Un pilote SAP peut commencer par la lecture et l’aperçu via le middleware de votre entreprise; QPM ne propose pas encore de connecteur direct.',
+  integration_sage300_title: 'Sage 300 ERP',
+  integration_sage300_description:
+    'Le paramétrage des achats et la synchronisation ne sont pas encore disponibles. La configuration Sage sera gérée ici dans les paramètres, lorsque le connecteur serveur sécurisé sera prêt.',
+  integration_sage300_prerequisites_title: 'À préparer avant le paramétrage',
+  integration_sage300_prerequisites:
+    'Adresse du Web API Sage · base société · compte technique autorisé au Web API et aux achats. Les identifiants devront être stockés dans un coffre de secrets côté serveur.',
+  integration_sage300_docs: 'Consulter la documentation du SDK Web API Sage 300',
   integration_calendar_title: 'Microsoft et Google Calendar',
   integration_calendar_description:
     'La publication dans un calendrier nécessite OAuth, un stockage serveur des jetons et une gestion de synchronisation.',
@@ -3046,6 +3509,50 @@ const frJSON = {
     'Gérer les entrepreneurs et fournisseurs externes avec lesquels votre organisation travaille',
   workflows_settings_description:
     'Créer et gérer des flux de travail automatisés',
+  pr_approval_workflow: 'Approbation des demandes d’achat',
+  pr_approval_workflow_description:
+    'Configurez les niveaux séquentiels d’approbation des demandes d’achat. Chaque approbateur doit déjà avoir le droit d’approbation des demandes.',
+  pr_approval_workflow_info:
+    'Chaque niveau est attribué à un utilisateur et traité dans l’ordre. Une modification s’applique aux nouvelles soumissions; les demandes en attente conservent leur circuit assigné. Une liste vide conserve la file d’approbation partagée actuelle.',
+  pr_approval_managed_externally:
+    'Des politiques d’approbation ont été activées pour cette société. Cet ancien éditeur est désactivé ; gérez les politiques PR dans Paramètres → Gestion des approbations. Les demandes déjà soumises conservent leur circuit.',
+  pr_approval_config_saved: 'Circuit d’approbation enregistré',
+  pr_approval_config_failed:
+    'Impossible d’enregistrer le circuit d’approbation',
+  pr_approval_config_version: 'Version de configuration {{version}}',
+  pr_approval_policy_title: 'Gérer les politiques d’approbation',
+  pr_approval_policy_description:
+    'Configurez les règles PR et PO et consultez les validations réelles dans la gestion des approbations.',
+  pr_approval_levels_title: 'Niveaux d’approbation',
+  pr_approval_levels_description:
+    'Les approbateurs interviennent dans l’ordre affiché. Vous pouvez réorganiser les niveaux avec les flèches.',
+  pr_approval_levels_count: '{{count}} / {{max}} niveaux',
+  pr_approval_level_order: 'Étape {{current}} sur {{total}}',
+  pr_approval_unassigned: 'Approbateur à définir',
+  pr_approval_select_approver: 'Sélectionnez un approbateur',
+  pr_approval_select_approver_hint:
+    'Choisissez la personne responsable de ce niveau.',
+  pr_approval_unassigned_levels:
+    '{{count}} niveau(x) sans approbateur. Complétez la sélection avant l’enregistrement.',
+  pr_approval_no_users:
+    'Aucun utilisateur disponible pour configurer les approbations.',
+  workflows_load_failed:
+    'Les workflows n’ont pas pu être chargés. Vérifiez la connexion puis réessayez.',
+  workflow_lookup_load_failed:
+    'Impossible de charger les options de ce champ. Fermez puis rouvrez la liste pour réessayer.',
+  workflows_empty_title: 'Aucun workflow configuré',
+  workflows_empty_description:
+    'Créez un workflow pour automatiser les actions liées aux demandes, aux ordres de travail ou aux achats.',
+  pr_approval_empty_title: 'Aucun niveau d’approbation configuré',
+  pr_approval_empty_description:
+    'Les demandes utiliseront la file d’approbation partagée actuelle. Ajoutez un niveau pour attribuer les approbations à des personnes précises.',
+  approval_level: 'Niveau',
+  approver: 'Approbateur',
+  your_approval: 'À votre approbation',
+  waiting_for_approver: 'En attente de l’approbateur assigné',
+  add_approval_level: 'Ajouter un niveau',
+  move_up: 'Monter',
+  move_down: 'Descendre',
   request_portals_settings_description:
     'Créer, gérer et modifier tous les portails de demandes de votre organisation.',
   set_preferences: 'Définir les préférences',
@@ -3724,6 +4231,10 @@ const frJSON = {
   document_table_column_description: 'Description',
   document_table_column_quantity: 'Quantité',
   document_table_column_unit: 'Unité',
+  document_table_column_site: 'Site',
+  document_table_column_unitPrice: 'Prix unitaire',
+  document_table_column_currency: 'Devise',
+  document_table_column_lineTotal: 'Total ligne',
   document_template_scope: 'Disponibilité du modèle',
   document_template_scope_company: 'Tous les sites de l’entreprise',
   document_template_scope_site: 'Un seul site',
@@ -3731,7 +4242,61 @@ const frJSON = {
     'Un modèle associé à un site est proposé uniquement pour les rapports de ce site.',
   document_template_site_required: 'Sélectionnez un site pour ce modèle.',
   document_template_no_sites: 'Créez un site avant d’affecter ce modèle.',
-  document_template_site_missing: 'Aucun site affecté'
+  document_template_site_missing: 'Aucun site affecté',
+  document_view: 'Voir le document',
+  document_download: 'Télécharger le document',
+  document_print: 'Imprimer le document',
+  document_open_new_tab: 'Ouvrir dans un nouvel onglet',
+  document_preview_title: 'Aperçu du document',
+  document_preview_error:
+    'Impossible d’afficher ce document. Essayez de l’ouvrir dans un nouvel onglet.',
+  document_preview_secure_note:
+    'Le document est chargé depuis son URL de fichier autorisée.',
+  document_metadata_name: 'Nom du fichier',
+  document_metadata_id: 'Identifiant du fichier',
+  asset_history_search_placeholder: 'Rechercher des ordres de travail',
+  asset_history_filter_status: 'Filtrer par statut',
+  asset_history_all_statuses: 'Tous les statuts',
+  asset_history_no_matching_orders: 'Aucun ordre ne correspond à ces filtres.',
+  asset_history_pagination: 'Pages de l’historique des ordres',
+  asset_history_order_type: 'Type d’ordre',
+  asset_history_planned_start: 'Début planifié',
+  asset_history_actual_start: 'Début réel',
+  asset_history_completed: 'Terminé le',
+  asset_history_planned_hours: 'Heures prévues',
+  asset_history_work_center: 'Poste de travail',
+  asset_history_planned_cost: 'Coût estimé des matériaux',
+  asset_history_related_notification: 'Demande liée',
+  asset_history_actual_hours: 'Heures réelles de main-d’œuvre',
+  asset_history_actual_cost: 'Coût réel total',
+  asset_history_preventive: 'Maintenance préventive',
+  asset_history_corrective: 'Maintenance corrective',
+  data_not_available: 'Non disponible',
+  no_preventive_plans_for_location:
+    'Aucun plan de maintenance préventive n’est associé à cet emplacement.',
+  no_requests_for_location:
+    'Aucune demande de maintenance n’est liée à cet emplacement.',
+  next_due: 'Prochaine échéance',
+  duplicate_operation: 'Dupliquer l’opération',
+  procurement_print: 'Imprimer / PDF',
+  procurement_print_help:
+    'Prévisualisez un modèle publié, puis émettez un PDF traçable. Les copies émises restent réimprimables ci-dessous.',
+  procurement_print_no_template:
+    'Aucun modèle publié. Dans Paramètres → Documents, publiez le modèle PR/PO; les brouillons ne sont pas proposés ici.',
+  procurement_issue_pdf: 'Émettre le PDF',
+  procurement_reprint_pdf: 'Ouvrir / imprimer',
+  procurement_issue_requires_approval:
+    'Vous pouvez prévisualiser et réimprimer ce document. L’émission officielle exige le droit correspondant; un bon de commande doit également être approuvé.',
+  procurement_template_pricing_notice:
+    'Les prix unitaires fournisseur et la devise ne sont pas encore enregistrés sur les lignes de PO. N’ajoutez pas de total commercial au modèle : seuls les articles et quantités sont disponibles.',
+  document_field_purchaseOrder_requisition: 'Demande(s) d’achat d’origine',
+  document_field_purchaseOrder_vendorAddress: 'Adresse du fournisseur',
+  document_field_purchaseOrder_vendorPhone: 'Téléphone du fournisseur',
+  document_field_purchaseOrder_vendorEmail: 'E-mail du fournisseur',
+  document_field_purchaseRequisition_sourceWorkOrder: 'Ordre de travail source',
+  document_field_purchaseOrder_approvalHistory: 'Historique des approbations',
+  document_field_purchaseRequisition_approvalHistory:
+    'Historique des approbations'
 };
 
 export default frJSON;

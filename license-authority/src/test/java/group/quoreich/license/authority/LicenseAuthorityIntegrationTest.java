@@ -100,6 +100,23 @@ class LicenseAuthorityIntegrationTest {
     }
 
     @Test
+    void expiredSubscriptionCanBeRenewedAndActivatedAgain() {
+        var request = licenseRequest("SUBSCRIPTION");
+        request.put("startsAt", Instant.now().minusSeconds(7200).toString());
+        request.put("expiresAt", Instant.now().minusSeconds(3600).toString());
+        JsonNode expired = issue(request);
+        assertEquals(HttpStatus.FORBIDDEN, activate(expired, "f".repeat(64), "PREPRODUCTION").getStatusCode());
+
+        Instant newExpiry = Instant.now().plusSeconds(86400L * 45);
+        var renewal = Map.of("expiresAt", newExpiry.toString(), "maintenanceUntil", newExpiry.toString());
+        var renewed = admin(HttpMethod.POST, "/admin/licenses/" + expired.path("id").asText() + "/renew", renewal);
+        assertEquals(HttpStatus.OK, renewed.getStatusCode());
+        assertEquals(HttpStatus.OK, activate(expired, "f".repeat(64), "PREPRODUCTION").getStatusCode());
+        JsonNode events = admin(HttpMethod.GET, "/admin/licenses/" + expired.path("id").asText() + "/events", null).getBody();
+        assertTrue(events.toString().contains("LICENSE_RENEWED"));
+    }
+
+    @Test
     void invalidFingerprintIsRejected() {
         JsonNode license = issue("PERPETUAL");
         assertEquals(HttpStatus.BAD_REQUEST,
@@ -168,7 +185,11 @@ class LicenseAuthorityIntegrationTest {
     }
 
     private JsonNode issue(String type) {
-        var response = admin(HttpMethod.POST, "/admin/licenses", licenseRequest(type));
+        return issue(licenseRequest(type));
+    }
+
+    private JsonNode issue(Map<String, Object> request) {
+        var response = admin(HttpMethod.POST, "/admin/licenses", request);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         return response.getBody();

@@ -16,4 +16,7 @@ public class WorkOrderPostDTO extends WorkOrder {
     private AssetStatus assetStatus;
 
     private List<CustomFieldValuePostDTO> customFields = new ArrayList<>();
+
+    /** Optional source for planned operations; absent for existing/mobile clients. */
+    private Long maintenanceTaskListId;
 }

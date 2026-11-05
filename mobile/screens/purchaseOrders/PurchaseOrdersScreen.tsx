@@ -42,9 +42,12 @@ export default function PurchaseOrdersScreen({
   const theme = useAppTheme();
   const dispatch = useDispatch();
   const isFocused = useIsFocused();
-  const { hasViewPermission, hasFeature } = useAuth();
+  const { hasViewPermission, hasCreatePermission, hasFeature } = useAuth();
   const canView =
     hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
+    hasFeature(PlanFeature.PURCHASE_ORDER);
+  const canCreate =
+    hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) &&
     hasFeature(PlanFeature.PURCHASE_ORDER);
   const { getFormattedDate, getUserNameById } = React.useContext(
     CompanySettingsContext
@@ -59,6 +62,7 @@ export default function PurchaseOrdersScreen({
   const [showReceivingQueue, setShowReceivingQueue] = React.useState(false);
   const [queueSearch, setQueueSearch] = React.useState('');
   const [activeQueueSearch, setActiveQueueSearch] = React.useState('');
+  const [receiptState, setReceiptState] = React.useState<'ALL' | 'NOT_STARTED' | 'PARTIAL'>('ALL');
   const [loadingMore, setLoadingMore] = React.useState(false);
   const currentRequest = React.useRef(0);
   const pagingInProgress = React.useRef(false);
@@ -70,9 +74,7 @@ export default function PurchaseOrdersScreen({
     pagingInProgress.current = false;
     try {
       if (showReceivingQueue) {
-        await dispatch(
-          getPurchaseOrdersToReceive(0, PAGE_SIZE, activeQueueSearch)
-        );
+          await dispatch(getPurchaseOrdersToReceive(0, PAGE_SIZE, activeQueueSearch, receiptState));
       } else {
         await dispatch(getPurchaseOrders(EMPTY_CRITERIA));
       }
@@ -84,7 +86,7 @@ export default function PurchaseOrdersScreen({
         setRefreshing(false);
       }
     }
-  }, [activeQueueSearch, dispatch, showReceivingQueue]);
+  }, [activeQueueSearch, dispatch, receiptState, showReceivingQueue]);
 
   React.useEffect(() => {
     if (canView && isFocused) void loadFirstPage();
@@ -111,7 +113,8 @@ export default function PurchaseOrdersScreen({
             getMorePurchaseOrdersToReceive(
               purchaseOrders.number + 1,
               PAGE_SIZE,
-              activeQueueSearch
+              activeQueueSearch,
+              receiptState
             )
           );
         } else {
@@ -133,6 +136,7 @@ export default function PurchaseOrdersScreen({
       loadingGet,
       loadingMore,
       activeQueueSearch,
+      receiptState,
       purchaseOrders.last,
       purchaseOrders.number,
       showReceivingQueue
@@ -334,6 +338,15 @@ export default function PurchaseOrdersScreen({
         >
           {t('purchase_orders_read_only_note')}
         </Text>
+        {canCreate && (
+          <Button
+            mode="contained"
+            icon="plus"
+            onPress={() => navigation.navigate('CreatePurchaseOrder')}
+          >
+            {t('create_purchase_order')}
+          </Button>
+        )}
         <Button
           mode={showReceivingQueue ? 'contained' : 'outlined'}
           compact
@@ -348,6 +361,7 @@ export default function PurchaseOrdersScreen({
             : t('purchase_orders_to_receive')}
         </Button>
         {showReceivingQueue && (
+          <>
           <View style={styles.searchRow}>
             <TextInput
               mode="outlined"
@@ -377,6 +391,19 @@ export default function PurchaseOrdersScreen({
               {t('search')}
             </Button>
           </View>
+          <View style={styles.filterRow} accessibilityLabel={t('receipt_status_filter')}>
+            {(['ALL', 'NOT_STARTED', 'PARTIAL'] as const).map((state) => (
+              <Button
+                key={state}
+                compact
+                mode={receiptState === state ? 'contained-tonal' : 'text'}
+                onPress={() => setReceiptState(state)}
+              >
+                {t(`receipt_filter_${state.toLowerCase()}`)}
+              </Button>
+            ))}
+          </View>
+          </>
         )}
       </View>
       <FlatList
@@ -446,6 +473,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', padding: 20 },
   queueControls: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   searchInput: { flex: 1 },
   note: { marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
   listContent: {

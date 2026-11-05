@@ -4,6 +4,6 @@ import { PermissionEntity, Role } from '../../../models/owns/role';
 export function canRespondToPurchaseOrders(role?: Role | null): boolean {
   return (
     role?.roleType === 'ROLE_CLIENT' &&
-    role.editOtherPermissions.includes(PermissionEntity.PURCHASE_ORDERS)
+    role.editOtherPermissions.includes(PermissionEntity.PURCHASE_ORDER_APPROVAL)
   );
 }

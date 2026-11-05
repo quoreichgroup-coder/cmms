@@ -19,6 +19,7 @@ interface PropsType {
   onOpen?: () => void;
   onChange: (event: any, values: { label: string; value: string }[]) => void;
   loading?: boolean;
+  helperText?: string;
   //   defaultValue: any;
   //   variant?: 'outlined' | any;
 }
@@ -52,7 +53,7 @@ export default (props: PropsType) => {
           label={t(props.label)}
           placeholder={t(props.placeholder || props.label)}
           error={props.error}
-          helperText={props.error && props.errorMessage}
+          helperText={props.error ? props.errorMessage : props.helperText ? t(props.helperText) : undefined}
         />
       )}
     />

@@ -17,6 +17,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
@@ -80,6 +84,57 @@ public class PartController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public Collection<PartMiniDTO> getMini(@Parameter(hidden = true) @CurrentUser User user) {
         return partService.getMini(user).stream().map(partMapper::toMiniDto).collect(Collectors.toList());
+    }
+
+    /** Small, server-filtered value help for operation material selection. */
+    @GetMapping("/mini/search")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public Page<PartMiniDTO> searchMini(@RequestParam(defaultValue = "") String query,
+                                        @RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "25") int size,
+                                        @Parameter(hidden = true) @CurrentUser User user) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 50);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "name"));
+        String term = query == null ? "" : query.trim();
+        if (term.length() < 2) {
+            return Page.empty(pageable);
+        }
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setPageNum(safePage);
+        criteria.setPageSize(safeSize);
+        criteria.setSortField("name");
+        criteria.setDirection(Sort.Direction.ASC);
+        java.util.List<com.grash.advancedsearch.FilterField> alternatives = new java.util.ArrayList<>(java.util.List.of(
+                        com.grash.advancedsearch.FilterField.builder().field("name").value(term).operation("contains").build(),
+                        com.grash.advancedsearch.FilterField.builder().field("description").value(term).operation("contains").build()));
+        if (term.chars().allMatch(Character::isDigit)) {
+            try {
+                alternatives.add(com.grash.advancedsearch.FilterField.builder()
+                        .field("id").value(Long.parseLong(term)).operation("eq").build());
+            } catch (NumberFormatException ignored) {
+                // An oversized numeric search term can still match a barcode or name.
+            }
+        }
+        criteria.getFilterFields().add(com.grash.advancedsearch.FilterField.builder()
+                .field("barcode").value(term).operation("contains")
+                .alternatives(alternatives)
+                .build());
+        SearchCriteria scopedCriteria = partService.getSearchCriteria(user, criteria);
+        return partService.findBySearchCriteria(scopedCriteria).map(partMapper::toMiniDto);
+    }
+
+    @GetMapping("/mini/selected")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public Collection<PartMiniDTO> getSelectedMini(@RequestParam List<Long> ids,
+                                                     @Parameter(hidden = true) @CurrentUser User user) {
+        if (ids == null || ids.isEmpty() || ids.size() > 100) return java.util.List.of();
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setPageSize(ids.size());
+        criteria.setSortField("name");
+        criteria.filterIds(ids);
+        return partService.findBySearchCriteria(partService.getSearchCriteria(user, criteria)).stream()
+                .map(partMapper::toMiniDto).collect(Collectors.toList());
     }
 
     @DeleteMapping("/{id}")

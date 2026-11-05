@@ -18,6 +18,7 @@ import {
   CardActionArea,
   Chip,
   Grid,
+  Link as MuiLink,
   Stack,
   Typography
 } from '@mui/material';
@@ -72,6 +73,13 @@ const providerCards: Array<{
     id: 'sap-eam',
     titleKey: 'integration_sap_title',
     descriptionKey: 'integration_sap_description',
+    Icon: BusinessOutlined,
+    available: false
+  },
+  {
+    id: 'sage-300',
+    titleKey: 'integration_sage300_title',
+    descriptionKey: 'integration_sage300_description',
     Icon: BusinessOutlined,
     available: false
   },
@@ -222,6 +230,24 @@ function Connectors() {
                     <Typography variant="body2" color="text.secondary">
                       {t(descriptionKey)}
                     </Typography>
+                    {id === 'sage-300' && (
+                      <Alert severity="info" sx={{ mt: 1, py: 0.25 }}>
+                        <Typography variant="caption" component="div">
+                          {t('integration_sage300_prerequisites_title')}
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          {t('integration_sage300_prerequisites')}
+                        </Typography>
+                        <MuiLink
+                          href="https://github.com/SageNADev/Sage300-SDK"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="caption"
+                        >
+                          {t('integration_sage300_docs')}
+                        </MuiLink>
+                      </Alert>
+                    )}
                   </Box>
                   {available ? (
                     <Button

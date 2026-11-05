@@ -82,6 +82,23 @@
       const activations=document.createElement('button'); activations.type='button'; activations.className='secondary'; activations.textContent='Activations';
       activations.onclick=async()=>{try{const values=await api(`/admin/licenses/${encodeURIComponent(item.id)}/activations`); const box=document.createElement('div'); box.className='notice'; for(const a of values){const line=document.createElement('div');line.className='actions';addText(line,'span',`${a.environment} · ${a.fingerprint} · ${a.active?'active':'désactivée'}`,'meta');if(a.active){const d=document.createElement('button');d.type='button';d.className='danger';d.textContent='Libérer';d.onclick=async()=>{try{await api(`/admin/licenses/activations/${encodeURIComponent(a.id)}/deactivate`,{method:'POST'});message('Activation libérée.');await showLicenses();}catch(e){message(e.message,true)}};line.append(d)}box.append(line)}row.append(box)}catch(e){message(e.message,true)}};
       buttons.append(activations);
+      if(item.status==='ACTIVE'){
+        const renew=document.createElement('button');renew.type='button';renew.className='secondary';renew.textContent='Renouveler';
+        renew.onclick=async()=>{
+          const expiry=item.licenseType==='SUBSCRIPTION'
+            ? prompt('Nouvelle échéance abonnement (ISO 8601 UTC, ex. 2027-10-29T00:00:00Z)', item.expiresAt||'')
+            : null;
+          if(item.licenseType==='SUBSCRIPTION'&&!expiry)return;
+          const maintenance=prompt('Fin de maintenance (ISO 8601 UTC). Laisser vide pour conserver la date actuelle.', item.maintenanceUntil||'');
+          if(maintenance===null)return;
+          try{
+            await api(`/admin/licenses/${encodeURIComponent(item.id)}/renew`,{method:'POST',body:JSON.stringify({expiresAt:expiry||null,maintenanceUntil:maintenance||null})});
+            message('Licence renouvelée. Le serveur client peut actualiser sa licence depuis Paramètres > Licence.');
+            await showLicenses();
+          }catch(e){message(e.message,true)}
+        };
+        buttons.append(renew);
+      }
       if(item.status==='ACTIVE'){const revoke=document.createElement('button');revoke.type='button';revoke.className='danger';revoke.textContent='Révoquer';revoke.onclick=async()=>{if(!confirm('Révoquer cette licence ?'))return;try{await api(`/admin/licenses/${encodeURIComponent(item.id)}/revoke`,{method:'POST'});message('Licence révoquée.');await showLicenses();}catch(e){message(e.message,true)}};buttons.append(revoke)}
       row.append(buttons); root.append(row);
     }

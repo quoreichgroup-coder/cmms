@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+ <changeSet id="2026-10-28-procurement-approval-policies" author="qpm">
+  <validCheckSum>9:1ea4d47b91e9a1b68afb940483f3c171</validCheckSum>
+  <sql><![CDATA[
+   CREATE TABLE procurement_approval_policy (
+    id BIGINT PRIMARY KEY, company_id BIGINT NOT NULL REFERENCES company(id),
+    version BIGINT NOT NULL DEFAULT 0, name VARCHAR(160) NOT NULL, description VARCHAR(1000),
+    document_type VARCHAR(2) NOT NULL CHECK (document_type IN ('PR','PO')),
+    status VARCHAR(12) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','ACTIVE','INACTIVE')),
+    priority INTEGER NOT NULL DEFAULT 100, conditions TEXT NOT NULL DEFAULT '[]',
+    levels TEXT NOT NULL DEFAULT '[]', replaces_policy_id BIGINT, activated_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT, updated_by BIGINT
+   );
+   CREATE UNIQUE INDEX uk_proc_approval_active_priority ON procurement_approval_policy(company_id,document_type,priority) WHERE status='ACTIVE';
+   CREATE SEQUENCE procurement_approval_policy_seq START WITH 1 INCREMENT BY 50;
+   CREATE TABLE procurement_approval_instance (
+    id BIGINT PRIMARY KEY, company_id BIGINT NOT NULL REFERENCES company(id),
+    version BIGINT NOT NULL DEFAULT 0, document_type VARCHAR(2) NOT NULL, document_id BIGINT NOT NULL,
+    document_name VARCHAR(200) NOT NULL, policy_id BIGINT NOT NULL REFERENCES procurement_approval_policy(id),
+    policy_version BIGINT NOT NULL, policy_name VARCHAR(160) NOT NULL, requester_id BIGINT,
+    steps TEXT NOT NULL, current_step INTEGER NOT NULL DEFAULT 0,
+    estimated_net_amount NUMERIC(19,4), currency VARCHAR(3),
+    status VARCHAR(12) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT, updated_by BIGINT,
+    CONSTRAINT uk_proc_approval_document UNIQUE(company_id,document_type,document_id)
+   );
+   CREATE SEQUENCE procurement_approval_instance_seq START WITH 1 INCREMENT BY 50;
+   CREATE TABLE procurement_approval_event (
+    id BIGINT PRIMARY KEY, company_id BIGINT NOT NULL REFERENCES company(id), instance_id BIGINT,
+    document_id BIGINT, document_type VARCHAR(2), document_name VARCHAR(200),
+    policy_id BIGINT, policy_version BIGINT NOT NULL, policy_name VARCHAR(160),
+    level_number INTEGER, level_name VARCHAR(120), actor_id BIGINT, actor_name VARCHAR(200),
+    action VARCHAR(24) NOT NULL, comment VARCHAR(1000),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT, updated_by BIGINT,
+    CONSTRAINT uk_proc_approval_event_step UNIQUE(instance_id,level_number)
+   );
+   CREATE INDEX idx_proc_approval_event_company_date ON procurement_approval_event(company_id,created_at);
+   CREATE SEQUENCE procurement_approval_event_seq START WITH 1 INCREMENT BY 50;
+  ]]></sql>
+ </changeSet>
+ <changeSet id="2026-10-29-procurement-approval-priority-index" author="qpm">
+  <sql><![CDATA[
+   ALTER TABLE procurement_approval_policy
+    ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 100;
+   ALTER TABLE procurement_approval_policy
+    ADD COLUMN IF NOT EXISTS conditions TEXT NOT NULL DEFAULT '[]';
+   ALTER TABLE procurement_approval_instance
+    ADD COLUMN IF NOT EXISTS estimated_net_amount NUMERIC(19,4);
+   ALTER TABLE procurement_approval_instance
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(3);
+   CREATE UNIQUE INDEX IF NOT EXISTS uk_proc_approval_active_priority
+    ON procurement_approval_policy(company_id,document_type,priority)
+    WHERE status='ACTIVE';
+   DROP INDEX IF EXISTS uk_proc_approval_active;
+  ]]></sql>
+ </changeSet>
+</databaseChangeLog>

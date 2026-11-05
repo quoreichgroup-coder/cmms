@@ -15,7 +15,13 @@ export default function MoreEntitiesScreen({
 }: RootTabScreenProps<'MoreEntities'>) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { hasViewPermission, hasFeature, user } = useAuth();
+  const {
+    hasViewPermission,
+    hasViewOtherPermission,
+    hasCreatePermission,
+    hasFeature,
+    user
+  } = useAuth();
   const hasResourcePlanningLicense = useLicenseEntitlement('RESOURCE_PLANNING');
   const entities: {
     label: string;
@@ -66,6 +72,27 @@ export default function MoreEntitiesScreen({
       visible:
         hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
         hasFeature(PlanFeature.PURCHASE_ORDER)
+    },
+    {
+      label: 'create_purchase_order',
+      icon: 'cart-plus',
+      link: 'CreatePurchaseOrder',
+      visible:
+        hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) &&
+        hasFeature(PlanFeature.PURCHASE_ORDER)
+    },
+    {
+      label: 'purchase_requisitions',
+      icon: 'clipboard-text-outline',
+      link: 'PurchaseRequisitions',
+      visible:
+        hasFeature(PlanFeature.PURCHASE_ORDER) &&
+        (hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) ||
+          user.role.editOtherPermissions.includes(
+            PermissionEntity.PURCHASE_REQUISITIONS
+          ) ||
+          (hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+            hasViewOtherPermission(PermissionEntity.PURCHASE_REQUISITIONS)))
     },
     {
       label: 'meters',

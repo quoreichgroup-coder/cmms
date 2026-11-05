@@ -4,9 +4,11 @@ import com.grash.model.Site;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface SiteRepository extends JpaRepository<Site, Long> {
     List<Site> findByCompany_IdOrderByNameAsc(Long companyId);
+    Optional<Site> findByIdAndCompany_Id(Long id, Long companyId);
     boolean existsByCompany_IdAndCodeIgnoreCase(Long companyId, String code);
     boolean existsByCompany_IdAndCodeIgnoreCaseAndIdNot(Long companyId, String code, Long id);
 }

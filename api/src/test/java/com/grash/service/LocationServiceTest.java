@@ -12,6 +12,7 @@ import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.LocationRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.utils.Consts;
 import io.github.bucket4j.Bucket;
 import jakarta.persistence.EntityManager;
@@ -49,6 +50,8 @@ class LocationServiceTest {
 
     @Mock
     private LocationRepository locationRepository;
+    @Mock
+    private MaintenanceTaskListRepository maintenanceTaskListRepository;
     @Mock
     private UserService userService;
     @Mock

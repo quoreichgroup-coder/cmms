@@ -17,6 +17,7 @@ import com.grash.model.enums.PortalFieldType;
 import com.grash.model.enums.RoleType;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.LocationRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.security.ClientIpResolver;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
@@ -41,6 +42,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @RequiredArgsConstructor
 public class LocationService {
     private final LocationRepository locationRepository;
+    private final MaintenanceTaskListRepository maintenanceTaskListRepository;
     private final UserService userService;
     private final CustomerService customerService;
     private final MessageSource messageSource;
@@ -452,6 +454,9 @@ public class LocationService {
         if (optionalLocation.isPresent()) {
             Location savedLocation = optionalLocation.get();
             if (savedLocation.canBeDeletedBy(user)) {
+                if (maintenanceTaskListRepository.existsByLocation_IdAndCompany_Id(id, user.getCompany().getId())) {
+                    throw new CustomException("location_used_by_task_list", HttpStatus.CONFLICT);
+                }
                 locationRepository.deleteById(id);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Location not found", HttpStatus.NOT_FOUND);

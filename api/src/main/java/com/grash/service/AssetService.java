@@ -19,6 +19,7 @@ import com.grash.model.enums.PortalFieldType;
 import com.grash.model.enums.RoleType;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.repository.AssetRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.repository.SiteRepository;
 import com.grash.utils.Helper;
 import com.grash.utils.Sanitizer;
@@ -47,6 +48,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @RequiredArgsConstructor
 public class AssetService {
     private final AssetRepository assetRepository;
+    private final MaintenanceTaskListRepository maintenanceTaskListRepository;
     private final SiteRepository siteRepository;
     private LocationService locationService;
     private final AssetCategoryService assetCategoryService;
@@ -505,6 +507,9 @@ public class AssetService {
         if (optionalAsset.isPresent()) {
             Asset savedAsset = optionalAsset.get();
             if (savedAsset.canBeDeletedBy(user)) {
+                if (maintenanceTaskListRepository.existsByAsset_IdAndCompany_Id(id, user.getCompany().getId())) {
+                    throw new CustomException("asset_used_by_task_list", HttpStatus.CONFLICT);
+                }
                 delete(id);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Asset not found", HttpStatus.NOT_FOUND);
@@ -764,11 +769,10 @@ public class AssetService {
 
     public long getMTTR(Long assetId, Date start, Date end) {
         Collection<WorkOrder> workOrders = workOrderService.findByAssetAndCreatedAtBetween(assetId, start, end);
-        List<Labor> labors = new ArrayList<>();
-        for (WorkOrder workOrder : workOrders) {
-            labors.addAll(laborService.findByWorkOrder(workOrder.getId()));
-        }
-        return workOrders.isEmpty() ? 0 : (Labor.getTotalWorkDuration(labors) / 60) / workOrders.size();
+        if (workOrders.isEmpty()) return 0L;
+        List<Long> workOrderIds = workOrders.stream().map(WorkOrder::getId).toList();
+        List<Labor> labors = laborService.findByWorkOrders(workOrderIds);
+        return (Labor.getTotalWorkDuration(labors) / 60) / workOrders.size();
     }
 
     public long getDowntime(Long assetId, Date start, Date end) {

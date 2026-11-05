@@ -18,6 +18,7 @@ import java.util.Optional;
 import jakarta.persistence.LockModeType;
 
 public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, JpaSpecificationExecutor<WorkOrder> {
+    long countByMaintenanceTaskListIdAndCompany_Id(Long maintenanceTaskListId, Long companyId);
     boolean existsBySite_Id(Long siteId);
     Collection<WorkOrder> findByCompany_Id(Long id);
 

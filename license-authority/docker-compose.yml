@@ -20,6 +20,9 @@ services:
     # the protected .env; the service still runs unprivileged.
     user: "${LICENSE_UID:-10001}:${LICENSE_GID:-10001}"
     restart: unless-stopped
+    networks:
+      - default
+      - license-internal
     depends_on:
       license-db:
         condition: service_healthy
@@ -38,3 +41,8 @@ services:
 
 volumes:
   license_data:
+
+networks:
+  license-internal:
+    external: true
+    name: atlas-license-internal

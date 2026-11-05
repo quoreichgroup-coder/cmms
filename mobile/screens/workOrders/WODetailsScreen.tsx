@@ -143,6 +143,7 @@ export default function WODetailsScreen({
   const { t } = useTranslation();
   const {
     hasEditPermission,
+    hasCreatePermission,
     user,
     companySettings,
     hasFeature,
@@ -1803,6 +1804,25 @@ export default function WODetailsScreen({
                     )}
                   </View>
                 )}
+                {workOrder?.status !== 'COMPLETE' &&
+                  hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+                  hasFeature(PlanFeature.PURCHASE_ORDER) && (
+                    <View style={surfaceCardStyle}>
+                      <Button
+                        icon="clipboard-plus-outline"
+                        mode="outlined"
+                        onPress={() =>
+                          navigation.navigate('PurchaseRequisitions', {
+                            sourceWorkOrderId: id,
+                            sourceWorkOrderName:
+                              workOrder?.customId ?? workOrder?.title
+                          })
+                        }
+                      >
+                        {t('purchase_requisition_from_work_order')}
+                      </Button>
+                    </View>
+                  )}
                 {!generalPreferences.simplifiedWorkOrder && (
                   <View>
                     <View style={surfaceCardStyle}>

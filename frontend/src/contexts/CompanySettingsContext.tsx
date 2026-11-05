@@ -30,6 +30,7 @@ type CompanySettingsContext = {
     defaultShape: { [key: string]: any }
   ) => [Array<IField>, { [key: string]: any }];
   getFormattedCurrency: (amount: number | string) => string;
+  getCurrencyCode: () => string;
   requestSubscriptionChange: () => void;
 };
 
@@ -245,6 +246,7 @@ ${company.name}
         getUserNameById,
         getWOFieldsAndShapes,
         getFormattedCurrency,
+      getCurrencyCode: () => generalPreferences?.currency?.code || '',
         requestSubscriptionChange
       }}
     >

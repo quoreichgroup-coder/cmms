@@ -2624,7 +2624,7 @@ test('server URL accepts host or API path and rejects invalid configuration', as
   const withoutExpoExtra = mobileRuntime({ apiUrl: null }).load('config.ts');
   assert.equal(
     await withoutExpoExtra.getApiUrl(),
-    'https://169-58-86-7.sslip.io/api/'
+    'https://eam.quoreichgroup.bf/api/'
   );
   for (const url of [
     '',

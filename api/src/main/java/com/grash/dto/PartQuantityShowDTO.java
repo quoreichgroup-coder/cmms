@@ -3,6 +3,7 @@ package com.grash.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -19,4 +20,10 @@ public class PartQuantityShowDTO extends AuditShowDTO {
     private Long purchaseRequisitionId;
     private double receivedQuantity;
     private double remainingToReceive;
+    private BigDecimal purchaseUnitCostSnapshot;
+    private String purchaseCurrencySnapshot;
+    private BigDecimal purchaseUnitPrice;
+    private String purchasePriceCurrency;
+    private Long siteId;
+    private String siteName;
 }

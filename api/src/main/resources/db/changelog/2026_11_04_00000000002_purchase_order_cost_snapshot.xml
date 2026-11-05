@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="2026-11-04-purchase-order-cost-snapshot" author="qpm">
+        <addColumn tableName="part_quantity">
+            <column name="purchase_unit_cost_snapshot" type="NUMERIC(19,4)"/>
+            <column name="purchase_currency_snapshot" type="VARCHAR(3)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

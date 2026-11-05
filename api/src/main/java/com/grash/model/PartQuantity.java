@@ -10,8 +10,10 @@ import org.hibernate.annotations.OnDeleteAction;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 @Entity
 @Data
@@ -23,6 +25,20 @@ public class PartQuantity extends CompanyAudit {
     @Min(value = 0L, message = "The value must be positive")
     @Schema(description = "Quantity of parts", requiredMode = Schema.RequiredMode.REQUIRED)
     private double quantity;
+
+    /** Purchase cost captured when a PO line is created; inventory cost can change independently. */
+    @Column(precision = 19, scale = 4)
+    private BigDecimal purchaseUnitCostSnapshot;
+
+    @Column(length = 3)
+    private String purchaseCurrencySnapshot;
+
+    /** Supplier-agreed unit price captured on the purchase order line. */
+    @Column(precision = 19, scale = 4)
+    private BigDecimal purchaseUnitPrice;
+
+    @Column(length = 3)
+    private String purchasePriceCurrency;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @NotNull
@@ -40,11 +56,20 @@ public class PartQuantity extends CompanyAudit {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private WorkOrder workOrder;
 
+    /** Procurement delivery destination; independent from the PO shipping address. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    private Site site;
+
     @Schema(description = "Indicates whether this is a demo record")
     private boolean isDemo;
 
     public double getCost() {
-        return quantity * part.getCost();
+        double unitCost = purchaseOrder != null && purchaseUnitPrice != null
+                ? purchaseUnitPrice.doubleValue()
+                : purchaseOrder != null && purchaseUnitCostSnapshot != null
+                    ? purchaseUnitCostSnapshot.doubleValue() : part.getCost();
+        return quantity * unitCost;
     }
 
     public PartQuantity(Part part, WorkOrder workOrder, PurchaseOrder purchaseOrder, double quantity) {

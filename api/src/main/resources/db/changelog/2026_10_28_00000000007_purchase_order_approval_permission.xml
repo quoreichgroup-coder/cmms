@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-10-28-purchase-order-approval-permission" author="qpm">
+        <!-- PermissionEntity uses ordinals; 21 is append-only after TASK_LISTS (20).
+             Preserve existing approvers: before this permission, PO approval required PO edit-other. -->
+        <sql>
+            INSERT INTO role_edit_other_permissions (role_id, edit_other_permissions)
+            SELECT role_id, 21
+            FROM role_edit_other_permissions
+            WHERE edit_other_permissions = 7
+            ON CONFLICT DO NOTHING
+        </sql>
+    </changeSet>
+</databaseChangeLog>

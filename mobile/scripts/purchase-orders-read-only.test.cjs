@@ -24,7 +24,7 @@ test('mobile purchase orders are reachable only with the existing view permissio
   );
   assert.match(
     navigation,
-    /canViewPurchaseOrders\s*&&\s*\(\s*<Stack\.Screen\s+name="PurchaseOrders"/
+    /canViewPurchaseOrders\s*&&\s*\(\s*<>\s*<Stack\.Screen\s+name="PurchaseOrders"/
   );
   assert.match(screen, /hasFeature\(PlanFeature\.PURCHASE_ORDER\)/);
 });

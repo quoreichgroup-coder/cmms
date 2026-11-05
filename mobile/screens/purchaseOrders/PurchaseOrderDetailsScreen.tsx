@@ -9,10 +9,12 @@ import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import { PlanFeature } from '../../models/subscriptionPlan';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import ApprovalSummaryCard, { type ApprovalSummary } from '../../components/ApprovalSummaryCard';
 import { useAppTheme } from '../../custom-theme';
 import { CompanySettingsContext } from '../../contexts/CompanySettingsContext';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../utils/api';
+import ProcurementDocumentActions from '../../components/ProcurementDocumentActions';
 
 interface Receipt {
   id: number;
@@ -32,11 +34,11 @@ export default function PurchaseOrderDetailsScreen({
   route
 }: RootStackScreenProps<'PurchaseOrderDetails'>) {
   const { id } = route.params;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useAppTheme();
-  const { hasViewPermission, hasFeature, user } = useAuth();
+  const { hasViewPermission, hasDeletePermission, hasEditPermission, hasFeature, user } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
-  const { getFormattedDate, getFormattedCurrency } = useContext(
+  const { getFormattedDate } = useContext(
     CompanySettingsContext
   );
   const canView =
@@ -54,6 +56,17 @@ export default function PurchaseOrderDetailsScreen({
   const [receiptReference, setReceiptReference] = useState('');
   const [receiptQuantities, setReceiptQuantities] = useState<Record<number, string>>({});
   const [currentReceiptKey, setCurrentReceiptKey] = useState('');
+  const [responseDecision, setResponseDecision] = useState<boolean | null>(null);
+  const [responding, setResponding] = useState(false);
+  const [approvalComment, setApprovalComment] = useState('');
+  const [approvalSummary, setApprovalSummary] = useState<ApprovalSummary | null>(null);
+  const [approvalSummaryLoading, setApprovalSummaryLoading] = useState(false);
+  const [approvalSummaryLoaded, setApprovalSummaryLoaded] = useState(false);
+  const [approvalSummaryError, setApprovalSummaryError] = useState('');
+  const [responseError, setResponseError] = useState('');
+  const approvalSummaryRequest = useRef(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadPurchaseOrder = useCallback(async () => {
     const currentRequestId = ++requestId.current;
@@ -78,6 +91,122 @@ export default function PurchaseOrderDetailsScreen({
   const canViewReceipts = Boolean(
     user?.role?.viewPermissions?.includes(PermissionEntity.PURCHASE_RECEIPTS)
   );
+  const canRespond = Boolean(
+    user?.role?.roleType === 'ROLE_CLIENT' &&
+      user.role.editOtherPermissions?.includes(PermissionEntity.PURCHASE_ORDER_APPROVAL) &&
+      hasFeature(PlanFeature.PURCHASE_ORDER)
+  );
+  const canDelete = Boolean(
+    purchaseOrder &&
+      purchaseOrder.status !== 'APPROVED' &&
+      hasDeletePermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder) &&
+      hasFeature(PlanFeature.PURCHASE_ORDER) &&
+      !(purchaseOrder.partQuantities ?? []).some(
+        (line) => line.purchaseRequisitionId || (line.receivedQuantity ?? 0) > 0
+      )
+  );
+
+  const respondToPurchaseOrder = async () => {
+    if (
+      responseDecision === null || responding ||
+      !approvalSummaryLoaded || approvalSummaryLoading || approvalSummaryError ||
+      (approvalSummary && !approvalSummary.canDecide)
+    ) return;
+    if (!responseDecision && approvalSummary && !approvalComment.trim()) {
+      setResponseError(t('purchase_requisition_rejection_note_required'));
+      return;
+    }
+    const approved = responseDecision;
+    setResponding(true);
+    setResponseError('');
+    try {
+      const params = new URLSearchParams({ approved: String(approved) });
+      if (approvalComment.trim()) params.set('comment', approvalComment.trim());
+      const result = await api.patch<PurchaseOrder>(
+        `purchase-orders/${id}/respond?${params.toString()}`,
+        {}
+      );
+      setResponseDecision(null);
+      setApprovalComment('');
+      setApprovalSummary(null);
+      setApprovalSummaryLoaded(false);
+      await loadPurchaseOrder();
+      showSnackBar(
+        t(
+          approved && result.status === 'PENDING'
+            ? 'ap_intermediate_saved'
+            : approved
+              ? 'purchase_order_approved'
+              : 'purchase_order_rejected'
+        ),
+        'success'
+      );
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, t('purchase_order_response_failed'))), 'error');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  const loadApprovalSummary = useCallback(async () => {
+    const request = ++approvalSummaryRequest.current;
+    setApprovalSummaryLoading(true);
+    setApprovalSummaryLoaded(false);
+    setApprovalSummaryError('');
+    try {
+      const summary = await api.get<ApprovalSummary | undefined>(
+        `approval-management/documents/PO/${id}`
+      );
+      if (request === approvalSummaryRequest.current) {
+        setApprovalSummary(summary ?? null);
+        setApprovalSummaryLoaded(true);
+      }
+    } catch (error) {
+      if (request === approvalSummaryRequest.current) {
+        setApprovalSummaryError(
+          getErrorMessage(error, t('approval_summary_load_error'))
+        );
+      }
+    } finally {
+      if (request === approvalSummaryRequest.current) {
+        setApprovalSummaryLoading(false);
+      }
+    }
+  }, [id, t]);
+
+  const openResponseDecision = (approved: boolean) => {
+    setApprovalComment('');
+    setResponseError('');
+    setApprovalSummary(null);
+    setResponseDecision(approved);
+    void loadApprovalSummary();
+  };
+
+  const closeResponseDecision = () => {
+    if (responding) return;
+    approvalSummaryRequest.current += 1;
+    setResponseDecision(null);
+    setApprovalComment('');
+    setApprovalSummary(null);
+    setApprovalSummaryLoaded(false);
+    setApprovalSummaryError('');
+    setResponseError('');
+  };
+
+  const deletePurchaseOrder = async () => {
+    if (!canDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await api.deletes(`purchase-orders/${id}`);
+      setDeleteDialogOpen(false);
+      showSnackBar(t('purchase_order_deleted'), 'success');
+      navigation.goBack();
+    } catch (error) {
+      showSnackBar(getErrorMessage(error, t('purchase_order_delete_failed')), 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const loadReceipts = useCallback(async () => {
     if (!purchaseOrder?.receivingWorkflowEnabled || !canViewReceipts) {
@@ -129,7 +258,7 @@ export default function PurchaseOrderDetailsScreen({
       await loadPurchaseOrder();
       showSnackBar(t('receipt_saved'), 'success');
     } catch (error) {
-      showSnackBar(getErrorMessage(error, t('receipt_save_failed')), 'error');
+      showSnackBar(t(getErrorMessage(error, t('receipt_save_failed'))), 'error');
     } finally {
       setReceiptSaving(false);
     }
@@ -218,12 +347,27 @@ export default function PurchaseOrderDetailsScreen({
   }, new Map());
   const hasCompleteCost =
     partQuantities.length > 0 &&
-    partQuantities.every((line) => Number.isFinite(line.part?.cost));
-  // Match the Web grid: this is an estimate using each part's current unit cost.
+    partQuantities.every((line) => Number.isFinite(line.purchaseUnitCostSnapshot)
+      && Boolean(line.purchaseCurrencySnapshot));
+  const hasCompleteSupplierPrice = partQuantities.length > 0 &&
+    partQuantities.every((line) => Number.isFinite(line.purchaseUnitPrice)
+      && line.purchaseUnitPrice! >= 0 && Boolean(line.purchasePriceCurrency)
+      && line.purchasePriceCurrency === partQuantities[0].purchasePriceCurrency);
   const totalCost = partQuantities.reduce(
-    (total, line) => total + line.part.cost * line.quantity,
+    (total, line) => total + (line.purchaseUnitCostSnapshot ?? 0) * line.quantity,
     0
   );
+  const totalSupplierPrice = partQuantities.reduce(
+    (total, line) => total + (line.purchaseUnitPrice ?? 0) * line.quantity,
+    0
+  );
+  const formatPurchasePrice = (amount: number, currency: string) => {
+    try {
+      return new Intl.NumberFormat(i18n.language, { style: 'currency', currency }).format(amount);
+    } catch {
+      return `${amount.toLocaleString(i18n.language)} ${currency}`;
+    }
+  };
 
   return (
     <ScrollView
@@ -259,6 +403,27 @@ export default function PurchaseOrderDetailsScreen({
               {t(purchaseOrder.status.toLowerCase())}
             </Chip>
           </View>
+          {purchaseOrder.status === 'PENDING' && canRespond && (
+            <View style={styles.responseActions}>
+              <Button mode="outlined" icon="close" onPress={() => openResponseDecision(false)}>
+                {t('reject')}
+              </Button>
+              <Button mode="contained" icon="check" onPress={() => openResponseDecision(true)}>
+                {t('approve')}
+              </Button>
+            </View>
+          )}
+          <ProcurementDocumentActions kind="purchase-orders" sourceId={purchaseOrder.id} issueDisabled={purchaseOrder.status !== 'APPROVED' || !hasEditPermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder)} />
+          {canDelete && (
+            <Button
+              mode="outlined"
+              icon="delete-outline"
+              textColor={theme.colors.error}
+              onPress={() => setDeleteDialogOpen(true)}
+            >
+              {t('delete_purchase_order')}
+            </Button>
+          )}
           <Divider />
           {renderField(t('id'), purchaseOrder.id)}
           {renderField(t('category'), purchaseOrder.category?.name)}
@@ -316,7 +481,7 @@ export default function PurchaseOrderDetailsScreen({
                 variant="labelMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                {t('total_cost')}
+                {t('estimated_total_cost')}
               </Text>
               <Text
                 variant="titleMedium"
@@ -324,7 +489,7 @@ export default function PurchaseOrderDetailsScreen({
                 numberOfLines={2}
               >
                 {hasCompleteCost
-                  ? getFormattedCurrency(totalCost)
+                  ? formatPurchasePrice(totalCost, partQuantities[0].purchaseCurrencySnapshot!)
                   : t('no_data')}
               </Text>
               {hasCompleteCost && (
@@ -335,6 +500,19 @@ export default function PurchaseOrderDetailsScreen({
                   {t('purchase_order_cost_estimate_note')}
                 </Text>
               )}
+            </View>
+            <View style={styles.summaryItem}>
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('agreed_purchase_total')}
+              </Text>
+              <Text variant="titleMedium" style={{ color: theme.colors.onSurface }} numberOfLines={2}>
+                {hasCompleteSupplierPrice
+                  ? formatPurchasePrice(totalSupplierPrice, partQuantities[0].purchasePriceCurrency!)
+                  : t('supplier_price_incomplete')}
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('purchase_order_agreed_total_note')}
+              </Text>
             </View>
           </View>
         </Card.Content>
@@ -356,6 +534,11 @@ export default function PurchaseOrderDetailsScreen({
                   <Text variant="bodyMedium" style={styles.partName}>
                     {line.part?.name || t('part')}
                   </Text>
+                  {line.siteName ? (
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {t('site')}: {line.siteName}
+                    </Text>
+                  ) : null}
                   <Text
                     variant="bodyMedium"
                     style={{ color: theme.colors.onSurfaceVariant }}
@@ -363,6 +546,21 @@ export default function PurchaseOrderDetailsScreen({
                     {t('purchase_order_quantity')}: {line.quantity}
                     {line.part?.unit ? ` ${line.part.unit}` : ''}
                   </Text>
+                  {line.purchaseUnitPrice != null && line.purchasePriceCurrency ? (
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {t('agreed_unit_price')}: {formatPurchasePrice(line.purchaseUnitPrice, line.purchasePriceCurrency)}
+                      {line.part?.unit ? ` / ${line.part.unit}` : ''}
+                    </Text>
+                  ) : (
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {t('supplier_price_unavailable')}
+                    </Text>
+                  )}
+                  {line.purchaseUnitPrice != null && line.purchasePriceCurrency && (
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {t('line_total')}: {formatPurchasePrice(line.purchaseUnitPrice * line.quantity, line.purchasePriceCurrency)}
+                    </Text>
+                  )}
                   {purchaseOrder.receivingWorkflowEnabled && canViewReceipts && (
                     <Text
                       variant="bodySmall"
@@ -435,6 +633,80 @@ export default function PurchaseOrderDetailsScreen({
       )}
 
       <Portal>
+        <Dialog
+          visible={deleteDialogOpen}
+          onDismiss={() => !deleting && setDeleteDialogOpen(false)}
+        >
+          <Dialog.Title>{t('delete_purchase_order')}</Dialog.Title>
+          <Dialog.Content>
+            <Text>{t('confirm_delete_purchase_order', { name: purchaseOrder.name })}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogOpen(false)} disabled={deleting}>{t('cancel')}</Button>
+            <Button onPress={() => void deletePurchaseOrder()} loading={deleting} disabled={deleting} textColor={theme.colors.error}>{t('delete')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={responseDecision !== null} onDismiss={closeResponseDecision}>
+          <Dialog.Title>{t(responseDecision ? 'approve' : 'reject')} · {purchaseOrder.name}</Dialog.Title>
+          <Dialog.Content>
+            {approvalSummaryLoading && <Text accessibilityRole="progressbar">{t('loading')}</Text>}
+            {!!approvalSummaryError && (
+              <View style={{ marginBottom: 12 }}>
+                <Text accessibilityRole="alert" style={{ color: theme.colors.error }}>
+                  {approvalSummaryError}
+                </Text>
+                <Button onPress={() => void loadApprovalSummary()} disabled={approvalSummaryLoading || responding}>
+                  {t('retry')}
+                </Button>
+              </View>
+            )}
+            {approvalSummary && (
+              <ApprovalSummaryCard
+                summary={approvalSummary}
+                amountLabel="approval_amount"
+              />
+            )}
+            <Text>
+              {responseDecision
+                ? t(
+                    purchaseOrder.receivingWorkflowEnabled
+                      ? 'approval_does_not_receive_stock'
+                      : 'purchase_order_approval_effect_hint'
+                  )
+                : t('confirm_reject_purchase_order')}
+            </Text>
+            {responseDecision === false && approvalSummary && (
+              <TextInput
+                mode="outlined"
+                label={t('purchase_order_approval_comment')}
+                value={approvalComment}
+                onChangeText={(value) => { setApprovalComment(value); setResponseError(''); }}
+                multiline
+                maxLength={1000}
+                error={Boolean(responseError)}
+                style={{ marginTop: 12 }}
+              />
+            )}
+            {!!responseError && (
+              <Text accessibilityRole="alert" style={{ color: theme.colors.error, marginTop: 8 }}>
+                {responseError}
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={closeResponseDecision} disabled={responding}>{t('cancel')}</Button>
+            <Button
+              onPress={() => void respondToPurchaseOrder()}
+              loading={responding}
+              disabled={
+                responding || approvalSummaryLoading || !approvalSummaryLoaded ||
+                Boolean(approvalSummaryError) || Boolean(approvalSummary && !approvalSummary.canDecide)
+              }
+            >
+              {t('confirm')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog visible={receiptOpen} onDismiss={() => !receiptSaving && setReceiptOpen(false)}>
           <Dialog.Title>{t('record_receipt')}</Dialog.Title>
           <Dialog.ScrollArea>
@@ -561,6 +833,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', padding: 20 },
   content: { padding: 16, paddingBottom: 40, gap: 12 },
   cardContent: { gap: 12 },
+  responseActions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 8 },
   heading: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   headingText: { flex: 1, gap: 4 },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },

@@ -382,8 +382,7 @@ class PartServiceTest {
         void updatesExistingPart() {
             Part saved = buildPart(1L);
             PartPatchDTO dto = buildPatchDTO();
-            when(partRepository.existsById(1L)).thenReturn(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(saved);
             when(partRepository.saveAndFlush(saved)).thenReturn(saved);
             stubShowDto();
@@ -398,7 +397,7 @@ class PartServiceTest {
 
         @Test
         void notFound_throwsNotFound() {
-            when(partRepository.existsById(1L)).thenReturn(false);
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.update(1L, buildPatchDTO(), company));
@@ -413,8 +412,7 @@ class PartServiceTest {
             patched.setQuantity(5);
             PartPatchDTO dto = buildPatchDTO();
             dto.setQuantity(5);
-            when(partRepository.existsById(1L)).thenReturn(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(patched);
             when(partRepository.saveAndFlush(patched)).thenReturn(patched);
             stubShowDto();
@@ -430,8 +428,7 @@ class PartServiceTest {
         void noQuantityChange_doesNotDispatchQuantityWebhook() {
             Part saved = buildPart(1L);
             PartPatchDTO dto = buildPatchDTO();
-            when(partRepository.existsById(1L)).thenReturn(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(saved);
             when(partRepository.saveAndFlush(saved)).thenReturn(saved);
             stubShowDto();
@@ -447,8 +444,7 @@ class PartServiceTest {
             Part saved = buildPart(1L);
             PartPatchDTO dto = buildPatchDTO();
             dto.setCustomFields(new ArrayList<>(Collections.singletonList(new CustomFieldValuePostDTO())));
-            when(partRepository.existsById(1L)).thenReturn(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(saved);
             when(partRepository.saveAndFlush(saved)).thenReturn(saved);
             stubShowDto();
@@ -470,8 +466,8 @@ class PartServiceTest {
             User assigned = buildUser(5L);
             patched.setAssignedTo(new ArrayList<>(Collections.singletonList(assigned)));
             PartPatchDTO dto = buildPatchDTO();
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
-            when(partRepository.existsById(1L)).thenReturn(true);
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(patched);
             when(partRepository.saveAndFlush(patched)).thenReturn(patched);
             Workflow workflow = new Workflow();
@@ -490,7 +486,7 @@ class PartServiceTest {
 
         @Test
         void notFound_throwsNotFound() {
-            when(partRepository.findById(1L)).thenReturn(Optional.empty());
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.patch(1L, buildPatchDTO(), user));
@@ -503,7 +499,7 @@ class PartServiceTest {
             user.setRole(restrictedRole());
             Part saved = buildPart(1L);
             saved.setCreatedBy(999L);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.patch(1L, buildPatchDTO(), user));
@@ -516,7 +512,7 @@ class PartServiceTest {
             Part saved = buildPart(1L);
             PartPatchDTO dto = buildPatchDTO();
             dto.setBarcode("BAR");
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
             when(partRepository.findByBarcodeAndCompany_Id("BAR", 1L)).thenReturn(Optional.of(buildPart(2L)));
 
             CustomException ex = assertThrows(CustomException.class, () -> partService.patch(1L, dto, user));
@@ -530,9 +526,9 @@ class PartServiceTest {
             PartPatchDTO dto = buildPatchDTO();
             dto.setBarcode("BAR");
             Part samePart = buildPart(1L);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
             when(partRepository.findByBarcodeAndCompany_Id("BAR", 1L)).thenReturn(Optional.of(samePart));
-            when(partRepository.existsById(1L)).thenReturn(true);
+            when(partRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(saved));
             when(partMapper.updatePart(saved, dto)).thenReturn(saved);
             when(partRepository.saveAndFlush(saved)).thenReturn(saved);
             stubShowDto();
@@ -550,7 +546,7 @@ class PartServiceTest {
 
         @Test
         void notFound_throwsNotFound() {
-            when(partRepository.findById(1L)).thenReturn(Optional.empty());
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.restock(1L, new PartRestockDTO(), user));
@@ -563,7 +559,7 @@ class PartServiceTest {
             user.setRole(restrictedRole());
             Part saved = buildPart(1L);
             saved.setCreatedBy(999L);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.restock(1L, new PartRestockDTO(), user));
@@ -577,7 +573,7 @@ class PartServiceTest {
             PartRestockDTO dto = new PartRestockDTO();
             dto.setQuantity(5);
             dto.setDescription("Restock");
-            when(partRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
             when(partRepository.save(saved)).thenReturn(saved);
             stubShowDto();
 
@@ -595,7 +591,7 @@ class PartServiceTest {
         void nonStock_returnsEarly() {
             Part part = buildPart(1L);
             part.setNonStock(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
 
             PartRestockDTO dto = new PartRestockDTO();
             dto.setQuantity(5);
@@ -610,7 +606,7 @@ class PartServiceTest {
         void increasesQuantityAndCreatesTransaction() {
             Part part = buildPart(1L);
             part.setQuantity(3);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
             when(partRepository.save(part)).thenReturn(part);
             stubShowDto();
 
@@ -634,7 +630,7 @@ class PartServiceTest {
         void nonStock_returnsEarly() {
             Part part = buildPart(1L);
             part.setNonStock(true);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
 
             partService.consumePart(1L, 5, buildWorkOrder(), Locale.ENGLISH, false);
 
@@ -647,7 +643,7 @@ class PartServiceTest {
         void insufficientStock_throwsNotAcceptable() {
             Part part = buildPart(1L);
             part.setQuantity(5);
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> partService.consumePart(1L, 10, buildWorkOrder(), Locale.ENGLISH, false));
@@ -660,7 +656,7 @@ class PartServiceTest {
             Part part = buildPart(1L);
             part.setQuantity(10);
             WorkOrder wo = buildWorkOrder();
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
             when(partRepository.save(part)).thenReturn(part);
             stubShowDto();
 
@@ -680,7 +676,7 @@ class PartServiceTest {
             part.setQuantity(10);
             part.setMinQuantity(20);
             WorkOrder wo = buildWorkOrder();
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
             when(partRepository.save(part)).thenReturn(part);
             when(licenseService.hasEntitlement(LicenseEntitlement.LOW_STOCK_ALERTS)).thenReturn(true);
             Role settingsRole = buildRole(new HashSet<>(Collections.singletonList(PermissionEntity.SETTINGS)),
@@ -707,7 +703,7 @@ class PartServiceTest {
             PartTransaction transaction = new PartTransaction(part, wo, 2);
             transaction.setId(3L);
             transaction.setCreatedAt(new Date(0L));
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
             when(partTransactionService.findByWorkOrderAndPart(10L, 1L))
                     .thenReturn(Collections.singletonList(transaction));
 
@@ -725,7 +721,7 @@ class PartServiceTest {
             PartTransaction transaction = new PartTransaction(part, wo, 2);
             transaction.setId(3L);
             transaction.setCreatedAt(new Date(0L));
-            when(partRepository.findById(1L)).thenReturn(Optional.of(part));
+            when(partRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(part));
             when(partTransactionService.findByWorkOrderAndPart(10L, 1L))
                     .thenReturn(Collections.singletonList(transaction));
             when(partRepository.save(part)).thenReturn(part);
@@ -820,7 +816,7 @@ class PartServiceTest {
             List<Part> parts = Collections.singletonList(buildPart(1L));
             when(partRepository.findByCompany_Id(1L)).thenReturn(parts);
 
-            assertSame(parts, partService.getMini(user));
+            assertEquals(parts, partService.getMini(user));
         }
     }
 
@@ -884,7 +880,7 @@ class PartServiceTest {
         void withoutFilters_buildsNullSpecification() {
             SearchCriteria criteria = new SearchCriteria();
             Page<Part> page = new PageImpl<>(Collections.singletonList(buildPart(1L)));
-            when(partRepository.findAll((Specification<Part>) isNull(), any(Pageable.class))).thenReturn(page);
+            when(partRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
             Page<Part> result = partService.findBySearchCriteria(criteria);
 

@@ -15,6 +15,8 @@ export interface PurchaseRequisitionLine {
   quantity: number;
   orderedQuantity: number;
   notes?: string;
+  siteId?: number | null;
+  siteName?: string | null;
 }
 
 export interface PurchaseRequisition {
@@ -30,5 +32,10 @@ export interface PurchaseRequisition {
   decisionById?: number;
   decisionAt?: string;
   decisionNote?: string;
+  approvalStep?: number;
+  approvalLevelCount?: number;
+  approvalConfigVersion?: number;
+  currentApproverId?: number;
+  approvalHistory?: string;
   lines: PurchaseRequisitionLine[];
 }

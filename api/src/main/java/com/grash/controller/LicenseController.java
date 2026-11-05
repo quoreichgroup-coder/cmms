@@ -31,6 +31,13 @@ public class LicenseController {
     public LicensingState getValidity(HttpServletRequest req) {
         return licenseService.getLicensingState();
     }
+
+    @PostMapping("/refresh")
+    @PreAuthorize("isAuthenticated()")
+    public LicensingState refresh(@CurrentUser User user) {
+        requireOwner(user);
+        return licenseService.refreshQuoreichLicense();
+    }
     public record ActivationRequest(@NotBlank @Size(max = 256) String licenseKey) { }
 
     @GetMapping("/activation-config")

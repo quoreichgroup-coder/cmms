@@ -35,5 +35,6 @@ public class PurchaseRequisitionCreateRequest {
         private Double quantity;
         @Size(max = 2000)
         private String notes;
+        private Long siteId;
     }
 }

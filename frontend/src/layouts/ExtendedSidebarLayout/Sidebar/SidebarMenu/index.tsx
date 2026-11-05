@@ -341,6 +341,50 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const daysPassed = dayjs().diff(dayjs(company.createdAt), 'day');
   const daysLeft = TRIAL_DAYS - daysPassed;
   const subscription = company?.subscription;
+  const superAccountMenuItems = [
+    'work_orders',
+    'maintenance_dashboard',
+    'Statistics',
+    'requests',
+    'preventive_maintenance'
+  ];
+
+  const filterMenuItem = (item: MenuItem): MenuItem | undefined => {
+    const hasPermission = item.permission
+      ? hasViewPermission(item.permission) ||
+        (item.createPermission ? hasCreatePermission(item.createPermission) : false) ||
+        (item.editOtherPermission
+          ? user?.role?.editOtherPermissions?.includes(item.editOtherPermission)
+          : false) ||
+        (item.permissionFallback ? hasViewPermission(item.permissionFallback) : false)
+      : true;
+    const hasFeatureEnabled = item.planFeature ? hasFeature(item.planFeature) : true;
+    const visibleInConfiguration = user.uiConfiguration && item.uiConfigKey
+      ? user.uiConfiguration[item.uiConfigKey]
+      : true;
+    if (!hasPermission || !hasFeatureEnabled || !visibleInConfiguration) return undefined;
+
+    if (item.items) {
+      const children = item.items
+        .map(filterMenuItem)
+        .filter((child): child is MenuItem => Boolean(child));
+      if (!children.length) return undefined;
+      return { ...item, items: children };
+    }
+    return item;
+  };
+
+  const visibleMenuSections = menuItems
+    .map((section) => {
+      const scopedItems = user.superAccountRelations.length
+        ? section.items.filter((item) => superAccountMenuItems.includes(item.name))
+        : section.items;
+      const items = scopedItems
+        .map(filterMenuItem)
+        .filter((item): item is MenuItem => Boolean(item));
+      return { ...section, items };
+    })
+    .filter((section) => section.items.length > 0);
 
   useEffect(() => {
     if (user.id && user.role.roleType === 'ROLE_CLIENT') {
@@ -393,62 +437,17 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
           </Stack>
         )}
       <>
-        {(user.superAccountRelations.length
-          ? [
-              {
-                ...menuItems[0],
-                items: menuItems[0].items.filter((item) =>
-                  [
-                    'work_orders',
-                    'maintenance_dashboard',
-                    'Statistics',
-                    'requests',
-                    'preventive_maintenance'
-                  ].includes(item.name)
-                )
-              }
-            ]
-          : menuItems
-        )
-          .map((section, index) => {
-            const sectionClone = { ...section };
-            sectionClone.items = sectionClone.items.filter((item) => {
-              const hasPermission = item.permission
-                ? hasViewPermission(item.permission) ||
-                  (item.createPermission
-                    ? hasCreatePermission(item.createPermission)
-                    : false) ||
-                  (item.permissionFallback
-                    ? hasViewPermission(item.permissionFallback)
-                    : false)
-                : true;
-              const featured = item.planFeature
-                ? hasFeature(item.planFeature)
-                : true;
-
-              const inUiConfig: boolean = user.uiConfiguration
-                ? item.uiConfigKey
-                  ? user.uiConfiguration[item.uiConfigKey]
-                  : true
-                : true;
-
-              return hasPermission && featured && inUiConfig;
-            });
-            if (index === 0) {
-              //ownItems
-              sectionClone.items = sectionClone.items.map((item) => {
-                if (item.name === 'work_orders') {
-                  item.badge = urgentCount > 0 ? urgentCount.toString() : null;
-                } else if (item.name === 'requests') {
-                  item.badge =
-                    pendingCount > 0 ? pendingCount.toString() : null;
-                }
-                return item;
-              });
+        {visibleMenuSections.map((section) => {
+          const itemsWithBadges = section.items.map((item) => {
+            if (item.name === 'work_orders') {
+              return { ...item, badge: urgentCount > 0 ? urgentCount.toString() : null };
             }
-            return sectionClone;
-          })
-          .map((section) => (
+            if (item.name === 'requests') {
+              return { ...item, badge: pendingCount > 0 ? pendingCount.toString() : null };
+            }
+            return item;
+          });
+          return (
             <MenuWrapper key={section.heading}>
               <List
                 component="div"
@@ -461,14 +460,15 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
                 }
               >
                 {renderSidebarMenuItems({
-                  items: section.items,
+                  items: itemsWithBadges,
                   path: location.pathname,
                   collapsed: sidebarCollapsed,
                   inPopover: forceExpanded
                 })}
               </List>
             </MenuWrapper>
-          ))}
+          );
+        })}
       </>
     </>
   );

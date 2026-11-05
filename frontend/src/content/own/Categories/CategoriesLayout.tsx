@@ -38,6 +38,7 @@ import Category from '../../../models/owns/category';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../../../models/owns/role';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
+import { getErrorMessage } from '../../../utils/api';
 
 const IconButtonWrapper = styled(IconButton)(
   ({ theme }) => `
@@ -63,10 +64,13 @@ interface CategoriesLayoutProps {
   children?: ReactNode;
   tabIndex: number;
   basePath: string;
+  navigationBasePath?: string;
+  settingsMode?: boolean;
 }
 
 function CategoriesLayout(props: CategoriesLayoutProps) {
-  const { children, tabIndex, basePath } = props;
+  const { children, tabIndex, basePath, navigationBasePath, settingsMode } =
+    props;
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const [openAddCategoryModal, setOpenAddCategoryModal] =
@@ -105,7 +109,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
     }
   };
   useEffect(() => {
-    setTitle(t('categories'));
+    setTitle(t(settingsMode ? 'purchase_order_categories' : 'categories'));
     if (hasViewPermission(PermissionEntity.CATEGORIES))
       dispatch(getCategories(basePath));
   }, []);
@@ -126,9 +130,9 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
     showSnackBar(t('category_delete_success'), 'success');
   };
   const onDeleteFailure = (err) =>
-    showSnackBar(t('category_delete_failure'), 'error');
+    showSnackBar(t(getErrorMessage(err, 'category_delete_failure')), 'error');
 
-  const tabs = [
+  const categoryTabs = [
     { value: '', label: t('work_orders') },
     { value: 'asset', label: t('assets') },
     { value: 'meter', label: t('meters') },
@@ -137,6 +141,14 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
     { value: 'part', label: t('parts') },
     { value: 'purchase-order', label: t('purchase_orders') }
   ];
+  const tabs = settingsMode
+    ? [
+        {
+          value: 'purchase-order-categories',
+          label: t('purchase_order_categories')
+        }
+      ]
+    : categoryTabs;
   const renderModal = () => (
     <Dialog
       fullWidth
@@ -368,10 +380,10 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
   if (hasViewPermission(PermissionEntity.CATEGORIES))
     return (
       <MultipleTabsLayout
-        basePath="/app/categories"
+        basePath={navigationBasePath || '/app/categories'}
         tabs={tabs}
         tabIndex={tabIndex}
-        title={t('categories')}
+        title={t(settingsMode ? 'purchase_order_categories' : 'categories')}
         action={
           hasCreatePermission(PermissionEntity.CATEGORIES)
             ? handleOpenAdd

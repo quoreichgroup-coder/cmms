@@ -15,6 +15,16 @@ utilityModule.filename = sourcePath;
 utilityModule.paths = Module._nodeModulePaths(path.dirname(sourcePath));
 utilityModule._compile(compiled, sourcePath);
 const { parsePMPlanConfiguration, validatePMPlanConfiguration } = utilityModule.exports;
+const taskListOptionsPath = path.resolve(__dirname, '../src/utils/maintenanceTaskListOptions.ts');
+const taskListOptionsCompiled = ts.transpileModule(
+  fs.readFileSync(taskListOptionsPath, 'utf8'),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2019 } }
+).outputText;
+const taskListOptionsModule = new Module(taskListOptionsPath, module);
+taskListOptionsModule.filename = taskListOptionsPath;
+taskListOptionsModule.paths = Module._nodeModulePaths(path.dirname(taskListOptionsPath));
+taskListOptionsModule._compile(taskListOptionsCompiled, taskListOptionsPath);
+const { getCompatibleMaintenanceTaskLists } = taskListOptionsModule.exports;
 
 const validStrategy = {
   mode: 'STRATEGY',
@@ -75,5 +85,46 @@ test('validates counter interval, reference, end reading and task selection', ()
 
 test('parses a plan configuration from the form value', () => {
   assert.deepEqual(parsePMPlanConfiguration(JSON.stringify(validStrategy)), validStrategy);
+  assert.equal(parsePMPlanConfiguration(JSON.stringify({
+    mode: 'SINGLE',
+    maintenanceTaskListId: 481
+  })).maintenanceTaskListId, 481);
   assert.throws(() => parsePMPlanConfiguration('{broken'), SyntaxError);
+});
+
+test('filters PM task-list choices by status, validity, and SAP reference object', () => {
+  const options = [
+    { id: 1, taskListType: 'GENERAL', status: 'ACTIVE', validFrom: '2026-01-01', validTo: null },
+    { id: 2, taskListType: 'EQUIPMENT', status: 'ACTIVE', assetId: 42 },
+    { id: 3, taskListType: 'FUNCTIONAL_LOCATION', status: 'ACTIVE', locationId: 9 },
+    { id: 4, taskListType: 'FUNCTIONAL_LOCATION', status: 'ACTIVE', locationId: 12 },
+    { id: 5, taskListType: 'GENERAL', status: 'DRAFT' },
+    { id: 6, taskListType: 'GENERAL', status: 'ACTIVE', validTo: '2026-10-29' },
+    { id: 7, taskListType: 'GENERAL', status: 'ACTIVE', validFrom: '2026-10-31' }
+  ];
+
+  const result = getCompatibleMaintenanceTaskLists(options, {
+    assetId: 42,
+    assetLocationId: 9,
+    locationId: null,
+    today: '2026-10-30'
+  });
+
+  assert.deepEqual(result.map(({ id }) => id), [1, 2, 3]);
+});
+
+test('functional-location task lists match the plan location or the selected equipment location', () => {
+  const options = [
+    { id: 8, taskListType: 'FUNCTIONAL_LOCATION', status: 'ACTIVE', locationId: 9 },
+    { id: 9, taskListType: 'FUNCTIONAL_LOCATION', status: 'ACTIVE', locationId: 12 }
+  ];
+
+  const result = getCompatibleMaintenanceTaskLists(options, {
+    assetId: 42,
+    assetLocationId: 9,
+    locationId: 12,
+    today: '2026-10-30'
+  });
+
+  assert.deepEqual(result.map(({ id }) => id), [8, 9]);
 });

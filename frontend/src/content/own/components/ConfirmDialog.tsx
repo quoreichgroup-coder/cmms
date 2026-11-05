@@ -2,6 +2,7 @@ import {
   Avatar,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   Slide,
   styled,
@@ -54,13 +55,15 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   confirmText: string;
   question: string;
+  loading?: boolean;
 }
 export default function ConfirmDialog({
   open,
   onCancel,
   onConfirm,
   confirmText,
-  question
+  question,
+  loading = false
 }: ConfirmDialogProps) {
   const { t }: { t: any } = useTranslation();
 
@@ -71,14 +74,16 @@ export default function ConfirmDialog({
       fullWidth
       TransitionComponent={Transition}
       keepMounted
-      onClose={onCancel}
+      onClose={() => {
+        if (!loading) onCancel();
+      }}
     >
       <Box
         display="flex"
         alignItems="center"
         justifyContent="center"
         flexDirection="column"
-        p={5}
+        p={{ xs: 2.5, sm: 5 }}
       >
         <AvatarError>
           <CloseIcon />
@@ -87,30 +92,42 @@ export default function ConfirmDialog({
         <Typography
           align="center"
           sx={{
-            py: 4,
-            px: 6
+            py: { xs: 2.5, sm: 4 },
+            px: { xs: 1, sm: 6 },
+            fontSize: { xs: '1.35rem', sm: '2rem' },
+            overflowWrap: 'anywhere'
           }}
           variant="h3"
         >
           {question}
         </Typography>
 
-        <Box>
+        <Box
+          display="flex"
+          flexDirection={{ xs: 'column-reverse', sm: 'row' }}
+          width={{ xs: '100%', sm: 'auto' }}
+          gap={1}
+        >
           <Button
             variant="text"
             size="large"
             sx={{
-              mx: 1
+              minHeight: 44,
+              width: { xs: '100%', sm: 'auto' }
             }}
             onClick={onCancel}
+            disabled={loading}
           >
             {t('cancel')}
           </Button>
           <ButtonError
             onClick={onConfirm}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
             size="large"
             sx={{
-              mx: 1,
+              minHeight: 44,
+              width: { xs: '100%', sm: 'auto' },
               px: 3
             }}
             variant="contained"

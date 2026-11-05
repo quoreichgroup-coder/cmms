@@ -12,23 +12,24 @@ const french = fs.readFileSync('src/i18n/translations/fr.ts', 'utf8');
 test('purchase order response reports server-confirmed success and failure', () => {
   assert.match(
     component,
-    /await dispatch\(respondPurchaseOrder\(purchaseOrder\.id, approved\)\)/
+    /await dispatch\(respondPurchaseOrder\(purchaseOrder\.id, approved, approvalComment\)\)/
   );
   assert.match(
     component,
-    /showSnackBar\(\s*t\(approved \? 'purchase_order_approved' : 'purchase_order_rejected'\),\s*'success'\s*\)/
+    /showSnackBar\(\s*t\(approved && result\.status === 'PENDING' \? 'ap_intermediate_saved' : approved \? 'purchase_order_approved' : 'purchase_order_rejected'\),\s*'success'\s*\)/
   );
   assert.match(
     component,
-    /catch \(error\) \{\s*showSnackBar\(getErrorMessage\(error\), 'error'\)/
+    /catch \(error\) \{\s*approvalState\.reload\(\);\s*showSnackBar\(t\(getErrorMessage\(error\)\), 'error'\)/
   );
 });
 
 test('response actions cannot be submitted again while the request is pending', () => {
   assert.equal(
     (component.match(/disabled=\{approving \|\| cancelling\}/g) || []).length,
-    3
+    2
   );
+  assert.match(component, /if \(approving \|\| cancelling\) return false/);
 });
 
 test('purchase order approval requires explicit confirmation before the API call', () => {
@@ -47,17 +48,18 @@ test('purchase order approval requires explicit confirmation before the API call
   );
 });
 
-test('approve-on-submit explains that current approval posts all lines to stock', () => {
+test('approve-on-submit explains that stock changes on receipt', () => {
   const createForm = fs.readFileSync(
     'src/content/own/PurchaseOrders/Create.tsx',
     'utf8'
   );
   assert.match(
     createForm,
-    /name: 'approveOnSubmit',[\s\S]*?helperText: t\('purchase_order_approval_effect_hint'\)/
+    /name: 'approveOnSubmit',[\s\S]*?helperText: t\('purchase_order_approve_on_submit_hint'\)/
   );
   assert.match(createForm, /canRespondToPurchaseOrders\(user\?\.role\)/);
   for (const translation of [english, french]) {
+    assert.match(translation, /purchase_order_approve_on_submit_hint:/);
     assert.match(translation, /purchase_order_approval_effect_hint:/);
     assert.match(translation, /purchase_order_approval_confirmation_title:/);
     assert.match(translation, /purchase_order_approval_confirmation_body:/);

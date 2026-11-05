@@ -16,6 +16,15 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("SELECT s from Schedule s where s.preventiveMaintenance.company.id = :x ")
     Collection<Schedule> findByCompany_Id(@Param("x") Long id);
 
+    @Query(value = "SELECT COUNT(*) FROM schedule s " +
+            "JOIN preventive_maintenance pm ON pm.id = s.preventive_maintenance_id " +
+            "WHERE pm.company_id = :companyId AND s.plan_configuration IS NOT NULL " +
+            "AND (CASE WHEN BTRIM(s.plan_configuration) = '' THEN '{}'::jsonb " +
+            "ELSE s.plan_configuration::jsonb END) ->> 'maintenanceTaskListId' = CAST(:taskListId AS text)",
+            nativeQuery = true)
+    long countUsingMaintenanceTaskList(@Param("companyId") Long companyId,
+                                       @Param("taskListId") Long taskListId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Collection<Schedule> findByMeter_IdAndTriggerTypeAndDisabledFalseOrderById(Long meterId,
                                                                                 ScheduleTriggerType triggerType);

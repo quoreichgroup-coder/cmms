@@ -6,10 +6,10 @@ This optional Compose profile provisions Prometheus, Grafana and node-exporter. 
 
 1. Create a strong `GRAFANA_ADMIN_PASSWORD` entry in the root `.env` file (do not commit it).
 2. Start the profile with `docker compose --profile monitoring up -d --build api prometheus grafana node-exporter`.
-3. Open Grafana through an SSH tunnel: `ssh -L 3001:127.0.0.1:3001 user@server`, then visit `http://127.0.0.1:3001`. Sign in with `GRAFANA_ADMIN_USER` (default `admin`) and the private password from `.env`.
-4. Open the provisioned dashboard **QPM → QPM · Santé et performances**. Prometheus itself is at `http://127.0.0.1:9090`, also via an SSH tunnel.
+3. Open Grafana at `https://169-58-86-7.sslip.io/grafana/`. Sign in with `GRAFANA_ADMIN_USER` (default `admin`) and the private password from `.env`.
+4. Open the provisioned dashboard **QPM → QPM · Santé et performances**. Grafana queries Prometheus over the internal Compose network. The Prometheus web interface stays restricted to localhost at `http://127.0.0.1:9090` and can be reached through an SSH tunnel; it is not publicly exposed.
 
-Both monitoring ports bind to loopback only. The API metrics endpoint uses port 8081 on the internal Compose network; Nginx and Caddy do not route to it. Prometheus alert rules are evaluated and visible in Prometheus; email/chat delivery requires configuring Alertmanager separately.
+Grafana binds its port to loopback for local access, and Caddy serves it under `/grafana/` with Grafana authentication. Prometheus binds to loopback and is not routed publicly. The API metrics endpoint uses port 8081 on the internal Compose network; Nginx does not route to it. Prometheus alert rules are evaluated and visible in Prometheus; email/chat delivery requires configuring Alertmanager separately.
 
 ## Controlled read-only load probe
 

@@ -24,6 +24,7 @@ import com.grash.model.enums.*;
 import com.grash.dto.workOrder.WorkOrderMiniDTO;
 
 import com.grash.repository.PreventiveMaintenanceRepository;
+import com.grash.repository.MaintenanceTaskListRepository;
 import com.grash.repository.PreventiveMaintenanceCallAnalyticsRow;
 import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
 import com.grash.repository.PreventiveMaintenanceCallRescheduleRepository;
@@ -92,6 +93,7 @@ public class PreventiveMaintenanceService {
     private final TaskBaseService taskBaseService;
     private final MeterService meterService;
     private final SiteRepository siteRepository;
+    private final MaintenanceTaskListRepository maintenanceTaskListRepository;
 
 
     @Transactional
@@ -129,7 +131,8 @@ public class PreventiveMaintenanceService {
                         preventiveMaintenancePost.getPlanConfiguration(), user.getCompany(), user);
         validatePlanConfiguration(planConfiguration, user.getCompany(),
                 preventiveMaintenancePost.getTriggerType() == null ? ScheduleTriggerType.CALENDAR : preventiveMaintenancePost.getTriggerType(),
-                preventiveMaintenancePost.getAsset() == null ? null : preventiveMaintenancePost.getAsset().getId());
+                preventiveMaintenancePost.getAsset() == null ? null : preventiveMaintenancePost.getAsset().getId(),
+                preventiveMaintenancePost.getLocation() == null ? null : preventiveMaintenancePost.getLocation().getId(), user);
 
         Schedule schedule = savedPM.getSchedule();
         ScheduleTriggerType triggerType = preventiveMaintenancePost.getTriggerType() == null
@@ -192,7 +195,10 @@ public class PreventiveMaintenanceService {
                                     : preventiveMaintenance.getTriggerType(),
                             preventiveMaintenance.getAsset() == null
                                     ? savedPreventiveMaintenance.getAsset() == null ? null : savedPreventiveMaintenance.getAsset().getId()
-                                    : preventiveMaintenance.getAsset().getId());
+                                    : preventiveMaintenance.getAsset().getId(),
+                            preventiveMaintenance.getLocation() == null
+                                    ? savedPreventiveMaintenance.getLocation() == null ? null : savedPreventiveMaintenance.getLocation().getId()
+                                    : preventiveMaintenance.getLocation().getId(), user);
                     validatePlanTaskReferences(
                             preventiveMaintenance.getPlanConfiguration(),
                             taskService.findByPreventiveMaintenance(savedPreventiveMaintenance.getId())
@@ -272,11 +278,53 @@ public class PreventiveMaintenanceService {
     }
 
     private void validatePlanConfiguration(PreventiveMaintenancePlanConfiguration configuration, Company company,
-                                           ScheduleTriggerType triggerType, Long assetId) {
+                                           ScheduleTriggerType triggerType, Long assetId, Long locationId, User actor) {
         PreventiveMaintenancePlanPolicy.validate(configuration).ifPresent(message -> {
             throw new CustomException(message, HttpStatus.BAD_REQUEST);
         });
-        if (configuration == null || configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.SINGLE) return;
+        if (configuration == null) return;
+        if (configuration.getMaintenanceTaskListId() != null) {
+            if (actor == null || actor.getRole() == null
+                    || !actor.getRole().getViewPermissions().contains(PermissionEntity.TASK_LISTS)) {
+                throw new CustomException("Access denied to maintenance task lists", HttpStatus.FORBIDDEN);
+            }
+            var taskList = maintenanceTaskListRepository
+                    .findByIdAndCompany_Id(configuration.getMaintenanceTaskListId(), company.getId())
+                    .orElseThrow(() -> new CustomException("Maintenance task list not found", HttpStatus.NOT_FOUND));
+            if (!actor.getRole().getViewOtherPermissions().contains(PermissionEntity.TASK_LISTS)
+                    && !Objects.equals(actor.getId(), taskList.getCreatedBy())) {
+                throw new CustomException("Access denied to maintenance task list", HttpStatus.FORBIDDEN);
+            }
+            if (!"ACTIVE".equals(taskList.getStatus())) {
+                throw new CustomException("Selected maintenance task list must be active", HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+            if (taskList.getValidFrom() != null && taskList.getValidFrom().isAfter(java.time.LocalDate.now())
+                    || taskList.getValidTo() != null && taskList.getValidTo().isBefore(java.time.LocalDate.now())) {
+                throw new CustomException("Selected maintenance task list is outside its validity dates", HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+            if ("EQUIPMENT".equalsIgnoreCase(taskList.getTaskListType()) && taskList.getAsset() != null
+                    && !Objects.equals(assetId, taskList.getAsset().getId())) {
+                throw new CustomException("Selected maintenance task list belongs to another equipment", HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+            if ("FUNCTIONAL_LOCATION".equalsIgnoreCase(taskList.getTaskListType()) && taskList.getLocation() != null) {
+                Long taskLocationId = taskList.getLocation().getId();
+                boolean locationMatches = Objects.equals(locationId, taskLocationId);
+                if (!locationMatches && assetId != null) {
+                    Long assetLocationId = em.createQuery(
+                                    "select a.location.id from Asset a where a.id = :assetId and a.company.id = :companyId",
+                                    Long.class)
+                            .setParameter("assetId", assetId)
+                            .setParameter("companyId", company.getId())
+                            .getResultStream().findFirst().orElse(null);
+                    locationMatches = Objects.equals(assetLocationId, taskLocationId);
+                }
+                if (!locationMatches) {
+                    throw new CustomException("Selected maintenance task list belongs to another functional location",
+                            HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+            }
+        }
+        if (configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.SINGLE) return;
         List<Long> taskBaseIds = configuration.getMode() == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY
                 ? configuration.getPackages().stream().flatMap(item -> item.getTaskBaseIds().stream()).distinct().toList()
                 : configuration.getCycles().stream().flatMap(item -> item.getTaskBaseIds().stream()).distinct().toList();
@@ -816,6 +864,11 @@ public class PreventiveMaintenanceService {
     public WorkOrder createWorkOrderFromPreventiveMaintenance(PreventiveMaintenance preventiveMaintenance,
                                                                Collection<Long> taskBaseIds) {
         WorkOrderPostDTO workOrder = workOrderService.getWorkOrderFromWorkOrderBase(preventiveMaintenance);
+        if (preventiveMaintenance.getSchedule() != null
+                && preventiveMaintenance.getSchedule().getPlanConfiguration() != null) {
+            workOrder.setMaintenanceTaskListId(
+                    preventiveMaintenance.getSchedule().getPlanConfiguration().getMaintenanceTaskListId());
+        }
         workOrder.getCustomFields().removeIf(customFieldValue -> !workOrder.getCustomFieldValues()
                 .stream().filter(customFieldValue1 -> customFieldValue1.getCustomField().getId().equals(customFieldValue.getId()))
                 .findFirst().get().getCustomField().isCopyOnRepeat());
@@ -828,7 +881,8 @@ public class PreventiveMaintenanceService {
             workOrder.setDueDate(Helper.incrementDays(new Date(), schedule.getDueDateDelay()));
         }
 
-        WorkOrder savedWorkOrder = workOrderService.create(workOrder, preventiveMaintenance.getCompany());
+        WorkOrder savedWorkOrder = workOrderService.createFromPreventiveMaintenance(workOrder,
+                preventiveMaintenance.getCompany());
 
         tasks.stream()
                 .filter(task -> taskBaseIds == null || taskBaseIds.contains(task.getTaskBase().getId()))

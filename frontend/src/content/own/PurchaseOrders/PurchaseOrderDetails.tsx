@@ -30,7 +30,7 @@ import PurchaseOrder from '../../../models/owns/purchaseOrder';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
-import { editPartQuantity } from '../../../slices/partQuantity';
+import { editPartPurchasePrice, editPartQuantity } from '../../../slices/partQuantity';
 import { useDispatch } from '../../../store';
 import PartQuantitiesList from '../components/PartQuantitiesList';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
@@ -44,8 +44,10 @@ import Alert from '@mui/material/Alert';
 import { canRespondToPurchaseOrders } from './purchaseOrderPermissions';
 import { PurchaseOrderReceipt } from '../../../models/owns/purchaseOrderReceipt';
 import api from '../../../utils/api';
+import ApprovalProgress, { useApprovalSummary } from '../ApprovalManagement/ApprovalProgress';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import { useMediaQuery } from '@mui/material';
+import ProcurementDocumentModal from '../components/ProcurementDocumentModal';
 
 interface PurchaseOrderDetailsProps {
   purchaseOrder: PurchaseOrder;
@@ -67,6 +69,8 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
   const [approving, setApproving] = useState<boolean>(false);
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalComment, setApprovalComment] = useState('');
+  const approvalState = useApprovalSummary('PO', purchaseOrder.id, purchaseOrder);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [receiptSubmitting, setReceiptSubmitting] = useState(false);
   const [receiptReference, setReceiptReference] = useState('');
@@ -141,7 +145,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
       onReceiptCreated();
       showSnackBar(t('receipt_saved'), 'success');
     } catch (error) {
-      showSnackBar(getErrorMessage(error), 'error');
+      showSnackBar(t(getErrorMessage(error)), 'error');
     } finally {
       setReceiptSubmitting(false);
     }
@@ -167,6 +171,13 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     () => debounce(onPartQuantityChange, 1500),
     []
   );
+  const onPurchasePriceChange = (value: string, line: PartQuantityMiniDTO) => {
+    const amount = Number(value);
+    if (value === '' || !Number.isFinite(amount) || amount < 0) return;
+    dispatch(editPartPurchasePrice(purchaseOrder.id, line.id, amount))
+      .then(() => showSnackBar(t('purchase_price_updated', 'Supplier price updated'), 'success'))
+      .catch((err) => showSnackBar(t(getErrorMessage(err, 'purchase_price_update_failed')), 'error'));
+  };
   const onRespond = async (approved: boolean): Promise<boolean> => {
     if (approving || cancelling) return false;
     if (approved) {
@@ -175,14 +186,16 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
       setCancelling(true);
     }
     try {
-      await dispatch(respondPurchaseOrder(purchaseOrder.id, approved));
+      const result = await dispatch(respondPurchaseOrder(purchaseOrder.id, approved, approvalComment));
+      approvalState.reload();
       showSnackBar(
-        t(approved ? 'purchase_order_approved' : 'purchase_order_rejected'),
+        t(approved && result.status === 'PENDING' ? 'ap_intermediate_saved' : approved ? 'purchase_order_approved' : 'purchase_order_rejected'),
         'success'
       );
       return true;
     } catch (error) {
-      showSnackBar(getErrorMessage(error), 'error');
+      approvalState.reload();
+      showSnackBar(t(getErrorMessage(error)), 'error');
       return false;
     } finally {
       setApproving(false);
@@ -292,10 +305,12 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
         item
         xs={12}
         display="flex"
-        flexDirection="row"
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
         justifyContent="space-between"
+        gap={1.5}
       >
-        <Box>
+        <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
           <Typography variant="h2">{purchaseOrder?.name}</Typography>
           <Typography variant="h6">{purchaseOrder?.shippingAddress}</Typography>
           <Typography variant="h6">{t(purchaseOrder?.status)}</Typography>
@@ -303,8 +318,9 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             <Chip size="small" sx={{ mt: 1 }} color={receiptProgressKey === 'receipt_complete' ? 'success' : receiptProgressKey === 'receipt_partial' ? 'warning' : 'default'} label={t(receiptProgressKey)} />
           )}
         </Box>
-        <Box>
-          {hasEditPermission(
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, width: { xs: '100%', sm: 'auto' } }}>
+          <ProcurementDocumentModal kind="purchase-orders" sourceId={purchaseOrder.id} issueDisabled={purchaseOrder.status !== 'APPROVED' || !hasEditPermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder)} />
+          {approvalState.ready && !approvalState.summary && purchaseOrder.status !== 'APPROVED' && hasEditPermission(
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
@@ -312,7 +328,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
-          {purchaseOrder.status !== 'APPROVED' && hasDeletePermission(
+          {approvalState.ready && !approvalState.summary && purchaseOrder.status !== 'APPROVED' && hasDeletePermission(
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
@@ -323,8 +339,10 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
         </Box>
       </Grid>
       <Divider />
+      <Box sx={{ my: 2 }}><ApprovalProgress state={approvalState} type="PO" documentId={purchaseOrder.id} /></Box>
+      {approvalState.summary && purchaseOrder.status === 'PENDING' && approvalState.summary.canDecide && <TextField fullWidth multiline minRows={2} label={t('ap_comment')} value={approvalComment} inputProps={{ maxLength: 1000 }} onChange={event => setApprovalComment(event.target.value)} sx={{ my: 2 }} />}
       {purchaseOrder.status === 'PENDING' &&
-        canRespondToPurchaseOrders(user?.role) && (
+        canRespondToPurchaseOrders(user?.role) && approvalState.ready && (!approvalState.summary || approvalState.summary.canDecide) && (
           <>
             <Grid
               item
@@ -344,7 +362,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
                   )
                 }
                 onClick={() => onRespond(false)}
-                disabled={approving || cancelling}
+                disabled={approving || cancelling || Boolean(approvalState.summary && !approvalComment.trim())}
                 variant="outlined"
               >
                 {t('reject')}
@@ -521,12 +539,17 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             <PartQuantitiesList
               partQuantities={partQuantities}
               disabled={
+                !approvalState.ready || Boolean(approvalState.summary) ||
                 !hasEditPermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder) ||
                 purchaseOrder.status !== 'PENDING'
               }
               deleteDisabled={partQuantities.length === 1}
               onChange={debouncedPartQuantityChange}
+              purchaseUnitPriceInput
+              purchasePriceCommitOnBlur
+              onPurchasePriceChange={onPurchasePriceChange}
               showReceiptProgress={purchaseOrder.receivingWorkflowEnabled && canViewReceipts}
+              showPurchaseCostSnapshot
             />
           </Stack>
         )}

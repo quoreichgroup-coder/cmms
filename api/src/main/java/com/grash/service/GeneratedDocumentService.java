@@ -13,8 +13,11 @@ import com.grash.model.Company;
 import com.grash.model.User;
 import com.grash.model.WorkOrder;
 import com.grash.model.Request;
+import com.grash.model.PurchaseOrder;
+import com.grash.model.PurchaseRequisition;
 import com.grash.model.abstracts.WorkOrderBase;
 import com.grash.repository.GeneratedDocumentRepository;
+import com.grash.repository.GeneratedDocumentAccessEventRepository;
 import lombok.RequiredArgsConstructor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +26,9 @@ import com.grash.model.DocumentTemplateVersion;
 import com.grash.model.enums.DocumentTemplateStatus;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.repository.DocumentTemplateRepository;
+import com.grash.repository.PurchaseOrderRepository;
+import com.grash.repository.PurchaseRequisitionRepository;
+import com.grash.repository.PartQuantityRepository;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,6 +40,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -107,7 +114,43 @@ public class GeneratedDocumentService {
             new ReportFieldDefinitionDTO("company.phone", "report.field.company.phone", "organization", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("company.email", "report.field.company.email", "organization", "string", false, false, "workOrderInformation")
     );
+    private static final List<ReportFieldDefinitionDTO> PROCUREMENT_FIELDS = List.of(
+            new ReportFieldDefinitionDTO("purchaseOrder.number", "report.field.purchaseOrder.number", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.name", "report.field.purchaseOrder.name", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.status", "report.field.purchaseOrder.status", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.vendor", "report.field.purchaseOrder.vendor", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.vendorAddress", "report.field.purchaseOrder.vendorAddress", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.vendorPhone", "report.field.purchaseOrder.vendorPhone", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.vendorEmail", "report.field.purchaseOrder.vendorEmail", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.category", "report.field.purchaseOrder.category", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingDueDate", "report.field.purchaseOrder.shippingDueDate", "purchaseOrder", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shipTo", "report.field.purchaseOrder.shipTo", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingAddress", "report.field.purchaseOrder.shippingAddress", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingCity", "report.field.purchaseOrder.shippingCity", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingState", "report.field.purchaseOrder.shippingState", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingZipCode", "report.field.purchaseOrder.shippingZipCode", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingPhone", "report.field.purchaseOrder.shippingPhone", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.shippingFax", "report.field.purchaseOrder.shippingFax", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.terms", "report.field.purchaseOrder.terms", "purchaseOrder", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.notes", "report.field.purchaseOrder.notes", "purchaseOrder", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.requestedBy", "report.field.purchaseOrder.requestedBy", "purchaseOrder", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.requisition", "report.field.purchaseOrder.requisition", "purchaseOrder", "string", true, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.date", "report.field.purchaseOrder.date", "purchaseOrder", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseOrder.lines", "report.field.purchaseOrder.lines", "purchaseOrder", "table", true, false, "parts"),
+            new ReportFieldDefinitionDTO("purchaseOrder.approvalHistory", "report.field.purchaseOrder.approvalHistory", "purchaseOrder", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.number", "report.field.purchaseRequisition.number", "purchaseRequisition", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.title", "report.field.purchaseRequisition.title", "purchaseRequisition", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.status", "report.field.purchaseRequisition.status", "purchaseRequisition", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.justification", "report.field.purchaseRequisition.justification", "purchaseRequisition", "text", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.requiredDate", "report.field.purchaseRequisition.requiredDate", "purchaseRequisition", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.requester", "report.field.purchaseRequisition.requester", "purchaseRequisition", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.sourceWorkOrder", "report.field.purchaseRequisition.sourceWorkOrder", "purchaseRequisition", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.createdDate", "report.field.purchaseRequisition.createdDate", "purchaseRequisition", "date", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.lines", "report.field.purchaseRequisition.lines", "purchaseRequisition", "table", true, false, "parts"),
+            new ReportFieldDefinitionDTO("purchaseRequisition.approvalHistory", "report.field.purchaseRequisition.approvalHistory", "purchaseRequisition", "text", false, false, "workOrderInformation")
+    );
     private final GeneratedDocumentRepository repository;
+    private final GeneratedDocumentAccessEventRepository accessEventRepository;
     private final WorkOrderService workOrderService;
     private final StorageServiceFactory storageServiceFactory;
     private final DocumentContextResolver documentContextResolver;
@@ -115,6 +158,11 @@ public class GeneratedDocumentService {
     private final RequestReportDataProvider requestReportDataProvider;
     private final RequestService requestService;
     private final DocumentTemplateRepository templateRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final PurchaseRequisitionRepository purchaseRequisitionRepository;
+    private final PartQuantityRepository partQuantityRepository;
+    private final ProcurementSiteService procurementSiteService;
+    private final PurchaseOrderPolicyService purchaseOrderPolicyService;
     private final ReportTemplateConfigurationValidator templateValidator;
     private final PdfmeTemplateConfigurationValidator pdfmeValidator;
     private final PdfmeRendererClient pdfmeRendererClient;
@@ -326,6 +374,28 @@ public class GeneratedDocumentService {
     }
 
     @Transactional(readOnly = true)
+    public byte[] previewProcurementDocumentTemplate(Long templateId, Long sourceId, String provider, User user) {
+        ensureCanManageTemplates(user, false);
+        DocumentTemplate template = findCompanyTemplate(templateId, user)
+                .filter(item -> item.getStatus() != DocumentTemplateStatus.ARCHIVED)
+                .filter(item -> provider.equals(item.getDocumentType().getProviderCode()))
+                .orElseThrow(() -> new CustomException("Document template not found", HttpStatus.NOT_FOUND));
+        DocumentTemplateVersion version = template.getDraftVersion() != null
+                ? template.getDraftVersion() : requirePublishedVersion(template);
+        if ("PURCHASE_ORDER".equals(provider)) {
+            PurchaseOrder po = findAuthorizedPurchaseOrder(sourceId, user);
+            if (!po.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+            requireTemplateSite(template, null);
+            return renderTemplate(template, version, po, user).pdf();
+        }
+        PurchaseRequisition pr = findAuthorizedPurchaseRequisition(sourceId, user);
+        if (!pr.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        com.grash.model.Site site = pr.getSourceWorkOrder() == null ? null : pr.getSourceWorkOrder().getSite();
+        requireTemplateSite(template, site);
+        return renderTemplate(template, version, pr, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
     public List<GeneratedDocumentDTO> listRequestReports(Long requestId, User user) {
         Request request = findAuthorizedCompanyRequest(requestId, user);
         if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
@@ -363,6 +433,131 @@ public class GeneratedDocumentService {
         if (!workOrder.canBeViewedBy(user))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         return listPublishedTemplatesForType(user, "WORK_ORDER", workOrder.getSite());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublishedReportTemplateOptionDTO> listPublishedPurchaseOrderTemplates(Long id, User user) {
+        PurchaseOrder po = findAuthorizedPurchaseOrder(id, user);
+        if (!po.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return listPublishedTemplatesForType(user, "PURCHASE_ORDER", null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublishedReportTemplateOptionDTO> listPublishedPurchaseRequisitionTemplates(Long id, User user) {
+        PurchaseRequisition pr = findAuthorizedPurchaseRequisition(id, user);
+        if (!pr.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return listPublishedTemplatesForType(user, "PURCHASE_REQUISITION", pr.getSourceWorkOrder() == null ? null : pr.getSourceWorkOrder().getSite());
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewPurchaseOrder(Long id, Long templateId, User user) {
+        PurchaseOrder po = findAuthorizedPurchaseOrder(id, user);
+        if (!po.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "PURCHASE_ORDER", null);
+        return renderTemplate(template, requirePublishedVersion(template), po, user).pdf();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] previewPurchaseRequisition(Long id, Long templateId, User user) {
+        PurchaseRequisition pr = findAuthorizedPurchaseRequisition(id, user);
+        if (!pr.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "PURCHASE_REQUISITION", pr.getSourceWorkOrder() == null ? null : pr.getSourceWorkOrder().getSite());
+        return renderTemplate(template, requirePublishedVersion(template), pr, user).pdf();
+    }
+
+    @Transactional
+    public GeneratedDocumentDTO issuePurchaseOrder(Long id, Long templateId, User user) {
+        PurchaseOrder po = findAuthorizedPurchaseOrderForUpdate(id, user);
+        if (!po.canBeEditedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (po.getStatus() != com.grash.model.enums.ApprovalStatus.APPROVED)
+            throw new CustomException("A purchase order must be approved before official issue", HttpStatus.CONFLICT);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "PURCHASE_ORDER", null);
+        RenderedTemplate rendered = renderTemplate(template, requirePublishedVersion(template), po, user);
+        return persistProcurementDocument(po.getCompany(), null, "PURCHASE_ORDER", id, "PURCHASE_ORDER_FORM",
+                "PurchaseOrder-" + id + "-" + UUID.randomUUID() + ".pdf", "purchase-orders", rendered, template, user);
+    }
+
+    @Transactional
+    public GeneratedDocumentDTO issuePurchaseRequisition(Long id, Long templateId, User user) {
+        PurchaseRequisition pr = findAuthorizedPurchaseRequisition(id, user);
+        if (!pr.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (!pr.canEdit(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (pr.getStatus() == com.grash.model.enums.PurchaseRequisitionStatus.CANCELLED
+                || pr.getStatus() == com.grash.model.enums.PurchaseRequisitionStatus.REJECTED)
+            throw new CustomException("This requisition cannot be issued", HttpStatus.CONFLICT);
+        DocumentTemplate template = findPublishedTemplate(templateId, user, "PURCHASE_REQUISITION",
+                pr.getSourceWorkOrder() == null ? null : pr.getSourceWorkOrder().getSite());
+        RenderedTemplate rendered = renderTemplate(template, requirePublishedVersion(template), pr, user);
+        return persistProcurementDocument(pr.getCompany(), pr.getSourceWorkOrder() == null ? null : pr.getSourceWorkOrder().getSite(),
+                "PURCHASE_REQUISITION", id, "PURCHASE_REQUISITION_FORM",
+                "PurchaseRequisition-" + id + "-" + UUID.randomUUID() + ".pdf", "purchase-requisitions", rendered, template, user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GeneratedDocumentDTO> listPurchaseOrderDocuments(Long id, User user) {
+        PurchaseOrder po = findAuthorizedPurchaseOrder(id, user);
+        if (!po.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return repository.findByCompany_IdAndSourceTypeAndSourceIdOrderByIssuedAtDesc(user.getCompany().getId(), "PURCHASE_ORDER", id)
+                .stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GeneratedDocumentDTO> listPurchaseRequisitionDocuments(Long id, User user) {
+        PurchaseRequisition pr = findAuthorizedPurchaseRequisition(id, user);
+        if (!pr.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return repository.findByCompany_IdAndSourceTypeAndSourceIdOrderByIssuedAtDesc(user.getCompany().getId(), "PURCHASE_REQUISITION", id)
+                .stream().map(this::toDto).toList();
+    }
+
+    private GeneratedDocumentDTO persistProcurementDocument(Company company, com.grash.model.Site site, String sourceType,
+            Long sourceId, String documentType, String fileName, String folder, RenderedTemplate rendered,
+            DocumentTemplate template, User user) {
+        String path = storageServiceFactory.getStorageService().upload(rendered.pdf(), fileName,
+                "issued-documents/" + company.getId() + "/" + folder);
+        DocumentTemplateVersion version = requirePublishedVersion(template);
+        GeneratedDocument document = new GeneratedDocument();
+        document.setDocumentType(documentType); document.setCompany(company); document.setSourceType(sourceType);
+        document.setSourceId(sourceId); document.setSite(site); document.setFileName(fileName);
+        document.setStoragePath(path); document.setSha256(sha256(rendered.pdf()));
+        document.setLocale(rendered.context().language().name());
+        document.setTemplateVersion("template-" + template.getId() + "-v" + version.getVersionNumber());
+        document.setTemplateVersionEntity(version); document.setRenderSnapshot(rendered.snapshot());
+        document.setIssuedAt(new Date()); document.setIssuedBy(user.getId());
+        return toDto(repository.save(document));
+    }
+
+    private PurchaseOrder findAuthorizedPurchaseOrder(Long id, User user) {
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        if (user.getCompany() == null) throw new CustomException("Purchase order not found", HttpStatus.NOT_FOUND);
+        PurchaseOrder order = purchaseOrderRepository.findByIdAndCompany_Id(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Purchase order not found", HttpStatus.NOT_FOUND));
+        requirePurchaseOrderSites(order, user);
+        return order;
+    }
+
+    private PurchaseOrder findAuthorizedPurchaseOrderForUpdate(Long id, User user) {
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        if (user.getCompany() == null) throw new CustomException("Purchase order not found", HttpStatus.NOT_FOUND);
+        PurchaseOrder order = purchaseOrderRepository.findByIdForUpdateAndCompany(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Purchase order not found", HttpStatus.NOT_FOUND));
+        requirePurchaseOrderSites(order, user);
+        return order;
+    }
+
+    private PurchaseRequisition findAuthorizedPurchaseRequisition(Long id, User user) {
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        if (user.getCompany() == null) throw new CustomException("Purchase requisition not found", HttpStatus.NOT_FOUND);
+        PurchaseRequisition requisition = purchaseRequisitionRepository.findWithLinesByIdAndCompany(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("Purchase requisition not found", HttpStatus.NOT_FOUND));
+        if (requisition.getLines().stream().anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        return requisition;
+    }
+
+    private void requirePurchaseOrderSites(PurchaseOrder order, User user) {
+        if (partQuantityRepository.findByPurchaseOrder_Id(order.getId()).stream()
+                .anyMatch(line -> !procurementSiteService.canAccessSite(user, line.getSite())))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
     }
 
     private List<PublishedReportTemplateOptionDTO> listPublishedTemplatesForType(User user, String typeCode, com.grash.model.Site site) {
@@ -446,13 +641,13 @@ public class GeneratedDocumentService {
     }
 
     private RenderedTemplate renderTemplate(DocumentTemplate template, DocumentTemplateVersion version,
-                                            WorkOrderBase source, User user) {
+                                            Object source, User user) {
         if (PdfmeTemplateConfigurationValidator.isPdfme(version.getConfiguration())) {
             if (!(source instanceof WorkOrder) || !"WORK_ORDER".equals(template.getDocumentType().getProviderCode()))
                 throw new CustomException("PDFME is currently supported for Work Orders only", HttpStatus.BAD_REQUEST);
             JsonNode pdfme = pdfmeValidator.validate(version.getConfiguration(),
                     template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
-            DocumentContextResolver.DocumentContext pdfmeContext = documentContextResolver.resolve(source);
+            DocumentContextResolver.DocumentContext pdfmeContext = resolveDocumentContext(source);
             java.util.LinkedHashSet<String> bindings = new java.util.LinkedHashSet<>(pdfmeValidator.dataBindings(pdfme));
             Map<String, Object> resolved = providerRegistry.require("WORK_ORDER").resolve(source, pdfmeContext, bindings);
             byte[] pdf = pdfmeRendererClient.render(pdfme, List.of(toPdfmeInput(pdfme, resolved, pdfmeContext)));
@@ -462,13 +657,16 @@ public class GeneratedDocumentService {
         }
         JsonNode configuration = templateValidator.validate(version.getConfiguration(),
                 template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
-        DocumentContextResolver.DocumentContext context = documentContextResolver.resolve(source);
+        DocumentContextResolver.DocumentContext context = resolveDocumentContext(source);
         java.util.LinkedHashSet<String> selectedFields = new java.util.LinkedHashSet<>(
                 templateValidator.visibleFields(configuration));
         Map<String, Object> values = providerRegistry.require(template.getDocumentType().getProviderCode())
                 .resolve(source, context, selectedFields);
-        List<ReportFieldDefinitionDTO> fieldDefinitions = "REQUEST".equals(template.getDocumentType().getProviderCode())
-                ? REQUEST_REPORT_FIELDS : WORK_ORDER_REPORT_FIELDS;
+        List<ReportFieldDefinitionDTO> fieldDefinitions = switch (template.getDocumentType().getProviderCode()) {
+            case "REQUEST" -> REQUEST_REPORT_FIELDS;
+            case "PURCHASE_ORDER", "PURCHASE_REQUISITION" -> PROCUREMENT_FIELDS;
+            default -> WORK_ORDER_REPORT_FIELDS;
+        };
         java.util.Locale locale = context.locale() == null ? java.util.Locale.ROOT : context.locale();
         List<ConfigurableWorkOrderReportRenderer.ReportBlock> blocks = new java.util.ArrayList<>();
         if ("2.0".equals(configuration.path("schemaVersion").asText())) {
@@ -499,15 +697,19 @@ public class GeneratedDocumentService {
                         String defaultLabel = messageSource.getMessage(definition.labelKey(), null, field, locale);
                         String label = templateValidator.fieldLabel(configuration, field, defaultLabel);
                         ConfigurableWorkOrderReportRenderer.ReportRow row = new ConfigurableWorkOrderReportRenderer.ReportRow(
-                                field, label, printable(values.get(field)));
+                                field, label, printableField(values.get(field), definition, locale, context.timeZone(), context.dateFormat()));
+                        boolean approvalHistory = isApprovalHistoryField(field);
+                        String approvalTitle = context.language() == com.grash.model.enums.Language.FR
+                                ? "Annexe — Historique des approbations" : "Appendix — Approval history";
                         blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
                                 "workOrder.signature".equals(field) ? "SIGNATURE" : "FIELD", row, null,
-                                sectionTitle, columns, section.path("id").asText(), componentId,
+                                approvalHistory ? approvalTitle : sectionTitle, approvalHistory ? 1 : columns,
+                                approvalHistory ? "approval-history" : section.path("id").asText(), componentId,
                                 fontSize, bold, alignment, accentTone,
-                                section.path("pageBreakBefore").asBoolean(false),
+                                approvalHistory || section.path("pageBreakBefore").asBoolean(false),
                                 item.path("hideIfEmpty").asBoolean(false),
-                                item.path("fullWidth").asBoolean(false),
-                                section.path("keepTogether").asBoolean(false)));
+                                approvalHistory || item.path("fullWidth").asBoolean(false),
+                                approvalHistory ? false : section.path("keepTogether").asBoolean(false)));
                     }
                 }
             }
@@ -525,9 +727,18 @@ public class GeneratedDocumentService {
                     String defaultLabel = messageSource.getMessage(definition.labelKey(), null, field, locale);
                     String label = customLabel(customLabels, field, defaultLabel);
                     ConfigurableWorkOrderReportRenderer.ReportRow row =
-                            new ConfigurableWorkOrderReportRenderer.ReportRow(field, label, printable(values.get(field)));
-                    blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
-                            "workOrder.signature".equals(field) ? "SIGNATURE" : "FIELD", row, null));
+                            new ConfigurableWorkOrderReportRenderer.ReportRow(field, label,
+                                    printableField(values.get(field), definition, locale, context.timeZone(), context.dateFormat()));
+                    if (isApprovalHistoryField(field)) {
+                        String title = context.language() == com.grash.model.enums.Language.FR
+                                ? "Annexe — Historique des approbations" : "Appendix — Approval history";
+                        blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock("FIELD", row, null,
+                                title, 1, "approval-history", field, null, false, "LEFT", false,
+                                true, false, true, false));
+                    } else {
+                        blocks.add(new ConfigurableWorkOrderReportRenderer.ReportBlock(
+                                "workOrder.signature".equals(field) ? "SIGNATURE" : "FIELD", row, null));
+                    }
                 }
             }
         }
@@ -538,6 +749,14 @@ public class GeneratedDocumentService {
         String snapshot = createTemplateSnapshot(context, configuration, values,
                 template.getId(), version.getId(), version.getVersionNumber());
         return new RenderedTemplate(pdf, context, snapshot);
+    }
+
+    private DocumentContextResolver.DocumentContext resolveDocumentContext(Object source) {
+        if (source instanceof WorkOrderBase workOrderBase) return documentContextResolver.resolve(workOrderBase);
+        if (source instanceof PurchaseOrder purchaseOrder) return documentContextResolver.resolve(purchaseOrder.getCompany(), null);
+        if (source instanceof PurchaseRequisition requisition) return documentContextResolver.resolve(
+                requisition.getCompany(), requisition.getSourceWorkOrder() == null ? null : requisition.getSourceWorkOrder().getSite());
+        throw new CustomException("Unsupported document source", HttpStatus.BAD_REQUEST);
     }
 
     private Map<String, Object> toPdfmeInput(JsonNode template, Map<String, Object> resolved,
@@ -650,7 +869,6 @@ public class GeneratedDocumentService {
                 user.getCompany().getId(), "WORK_ORDER", workOrderId).stream().map(this::toDto).toList();
     }
 
-    @Transactional(readOnly = true)
     public DownloadedDocument download(Long id, User user) {
         GeneratedDocument document = repository.findById(id)
                 .orElseThrow(() -> new CustomException("Document not found", HttpStatus.NOT_FOUND));
@@ -663,11 +881,40 @@ public class GeneratedDocumentService {
         } else if ("REQUEST".equals(document.getSourceType())) {
             Request request = findAuthorizedCompanyRequest(document.getSourceId(), user);
             if (!request.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        } else if ("PURCHASE_ORDER".equals(document.getSourceType())) {
+            PurchaseOrder purchaseOrder = findAuthorizedPurchaseOrder(document.getSourceId(), user);
+            if (!purchaseOrder.canBeViewedBy(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        } else if ("PURCHASE_REQUISITION".equals(document.getSourceType())) {
+            PurchaseRequisition requisition = findAuthorizedPurchaseRequisition(document.getSourceId(), user);
+            if (!requisition.canView(user)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         } else {
             throw new CustomException("Document source is not supported", HttpStatus.FORBIDDEN);
         }
-        byte[] data = storageServiceFactory.getStorageService().download(document.getStoragePath());
+        byte[] data;
+        try {
+            data = storageServiceFactory.getStorageService().download(document.getStoragePath());
+        } catch (RuntimeException exception) {
+            recordDocumentAccess(document, user, "FAILED");
+            throw exception;
+        }
+        recordDocumentAccess(document, user, "SUCCESS");
         return new DownloadedDocument(document.getFileName(), data);
+    }
+
+    private void recordDocumentAccess(GeneratedDocument document, User user, String outcome) {
+        var event = new com.grash.model.GeneratedDocumentAccessEvent();
+        event.setCompany(document.getCompany());
+        event.setGeneratedDocumentId(document.getId());
+        event.setSourceType(document.getSourceType());
+        event.setSourceId(document.getSourceId());
+        event.setActorId(user.getId());
+        String actorName = java.util.Arrays.stream(new String[]{user.getFirstName(), user.getLastName()})
+                .filter(value -> value != null && !value.isBlank())
+                .collect(java.util.stream.Collectors.joining(" "));
+        if (actorName.isBlank()) actorName = Objects.toString(user.getUsername(), "Unknown user");
+        event.setActorName(actorName.length() > 200 ? actorName.substring(0, 200) : actorName);
+        event.setOutcome(outcome);
+        accessEventRepository.save(event);
     }
 
     private GeneratedDocumentDTO toDto(GeneratedDocument document) {
@@ -763,10 +1010,43 @@ public class GeneratedDocumentService {
         throw new CustomException("Unsupported report value type", HttpStatus.BAD_REQUEST);
     }
 
+    private String printableField(Object value, ReportFieldDefinitionDTO definition, java.util.Locale locale,
+                                   String timeZone, com.grash.model.enums.DateFormat dateFormat) {
+        if (value == null) return "";
+        if (definition != null && "date".equals(definition.dataType()))
+            return formatDate(value, locale, timeZone, dateFormat);
+        return printable(value);
+    }
+
+    private String formatDate(Object value, java.util.Locale locale, String timeZone,
+                              com.grash.model.enums.DateFormat dateFormat) {
+        if (!(value instanceof String string) || string.isBlank()) return "";
+        try {
+            java.time.ZoneId zone;
+            try { zone = java.time.ZoneId.of(timeZone == null ? "UTC" : timeZone); }
+            catch (java.time.DateTimeException ignored) { zone = java.time.ZoneOffset.UTC; }
+            java.time.LocalDate date;
+            try { date = java.time.Instant.parse(string).atZone(zone).toLocalDate(); }
+            catch (java.time.format.DateTimeParseException ignored) { date = java.time.LocalDate.parse(string); }
+            String pattern = dateFormat == com.grash.model.enums.DateFormat.DDMMYY ? "dd/MM/yyyy" : "MM/dd/yyyy";
+            return date.format(java.time.format.DateTimeFormatter.ofPattern(pattern,
+                    locale == null ? java.util.Locale.ROOT : locale));
+        } catch (java.time.DateTimeException exception) {
+            throw new CustomException("Invalid date value in report", HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private boolean isTableField(String field) {
         return "workOrder.executionTasks".equals(field)
                 || "workOrder.laborTimeEntries".equals(field)
-                || "workOrder.materialsUsed".equals(field);
+                || "workOrder.materialsUsed".equals(field)
+                || "purchaseOrder.lines".equals(field)
+                || "purchaseRequisition.lines".equals(field);
+    }
+
+    private boolean isApprovalHistoryField(String field) {
+        return "purchaseOrder.approvalHistory".equals(field)
+                || "purchaseRequisition.approvalHistory".equals(field);
     }
 
     private ConfigurableWorkOrderReportRenderer.ReportTable reportTable(
@@ -799,6 +1079,18 @@ public class GeneratedDocumentService {
                 headers = french ? List.of("Pièce", "Description", "Quantité", "Unité")
                         : List.of("Part", "Description", "Quantity", "Unit");
                 columns = List.of("part", "description", "quantity", "unit");
+            }
+            case "purchaseOrder.lines" -> {
+                title = french ? "Articles du bon de commande" : "Purchase order items";
+                headers = french ? List.of("Article", "Description", "Quantité", "Unité", "Prix unitaire", "Devise", "Total ligne", "Site")
+                        : List.of("Item", "Description", "Quantity", "Unit", "Unit price", "Currency", "Line total", "Site");
+                columns = List.of("part", "description", "quantity", "unit", "unitPrice", "currency", "lineTotal", "site");
+            }
+            case "purchaseRequisition.lines" -> {
+                title = french ? "Articles demandés" : "Requested items";
+                headers = french ? List.of("Article", "Description", "Quantité", "Unité", "Notes", "Site")
+                        : List.of("Item", "Description", "Quantity", "Unit", "Notes", "Site");
+                columns = List.of("part", "description", "quantity", "unit", "notes", "site");
             }
             default -> throw new CustomException("Unsupported report table", HttpStatus.BAD_REQUEST);
         }

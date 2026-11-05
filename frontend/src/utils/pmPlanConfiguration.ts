@@ -3,6 +3,7 @@ export type PMPlanMode = 'SINGLE' | 'STRATEGY' | 'MULTI_COUNTER';
 export interface PMPlanConfiguration {
   mode: PMPlanMode;
   combination?: 'OR' | 'AND';
+  maintenanceTaskListId?: number | null;
   packages?: Array<{
     code: string;
     name: string;

@@ -75,6 +75,8 @@ import SelectTasksOrChecklistModal from '../screens/modals/SelectTasksOrChecklis
 import PartsScreen from '../screens/parts/PartsScreen';
 import PurchaseOrdersScreen from '../screens/purchaseOrders/PurchaseOrdersScreen';
 import PurchaseOrderDetailsScreen from '../screens/purchaseOrders/PurchaseOrderDetailsScreen';
+import CreatePurchaseOrderScreen from '../screens/purchaseOrders/CreatePurchaseOrderScreen';
+import PurchaseRequisitionsScreen from '../screens/purchaseRequisitions/PurchaseRequisitionsScreen';
 import VendorsAndCustomersScreen from '../screens/vendorsCustomers';
 import PeopleAndTeamsScreen from '../screens/peopleTeams';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -212,6 +214,8 @@ function RootNavigator() {
   const { t } = useTranslation();
   const {
     hasViewPermission,
+    hasViewOtherPermission,
+    hasCreatePermission,
     hasFeature,
     user,
     userSettings,
@@ -227,6 +231,17 @@ function RootNavigator() {
   const canViewPurchaseOrders =
     hasViewPermission(PermissionEntity.PURCHASE_ORDERS) &&
     hasFeature(PlanFeature.PURCHASE_ORDER);
+  const canCreatePurchaseOrders =
+    hasCreatePermission(PermissionEntity.PURCHASE_ORDERS) &&
+    hasFeature(PlanFeature.PURCHASE_ORDER);
+  const canUsePurchaseRequisitions =
+    hasFeature(PlanFeature.PURCHASE_ORDER) &&
+    (hasCreatePermission(PermissionEntity.PURCHASE_REQUISITIONS) ||
+      user.role.editOtherPermissions.includes(
+        PermissionEntity.PURCHASE_REQUISITIONS
+      ) ||
+      (hasViewPermission(PermissionEntity.PURCHASE_REQUISITIONS) &&
+        hasViewOtherPermission(PermissionEntity.PURCHASE_REQUISITIONS)));
 
   React.useEffect(() => {
     if (!user) return;
@@ -384,6 +399,20 @@ function RootNavigator() {
             options={{ title: t('purchase_order_details') }}
           />
         </>
+      )}
+      {canCreatePurchaseOrders && (
+        <Stack.Screen
+          name="CreatePurchaseOrder"
+          component={CreatePurchaseOrderScreen}
+          options={{ title: t('new_po') }}
+        />
+      )}
+      {canUsePurchaseRequisitions && (
+        <Stack.Screen
+          name="PurchaseRequisitions"
+          component={PurchaseRequisitionsScreen}
+          options={{ title: t('purchase_requisitions') }}
+        />
       )}
       <Stack.Screen
         name="PartDetails"

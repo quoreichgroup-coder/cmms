@@ -15,10 +15,10 @@ import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
 import MoveToInboxOutlinedIcon from '@mui/icons-material/MoveToInboxOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
+import BuildCircleOutlinedIcon from '@mui/icons-material/BuildCircleOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
-import { IS_LOCALHOST } from '../../../../config';
 import { UiConfiguration } from '../../../../models/owns/uiConfiguration';
 
 export interface MenuItem {
@@ -29,9 +29,9 @@ export interface MenuItem {
   permission?: PermissionEntity;
   permissionFallback?: PermissionEntity;
   createPermission?: PermissionEntity;
+  editOtherPermission?: PermissionEntity;
   planFeature?: PlanFeature;
   uiConfigKey?: keyof Omit<UiConfiguration, 'id'>;
-
   items?: MenuItem[];
   name: string;
 }
@@ -44,7 +44,7 @@ export interface MenuItems {
 
 const ownMenuItems: MenuItems[] = [
   {
-    heading: '',
+    heading: 'maintenance_management',
     items: [
       {
         name: 'maintenance_dashboard',
@@ -53,11 +53,19 @@ const ownMenuItems: MenuItems[] = [
         permission: PermissionEntity.ANALYTICS,
         planFeature: PlanFeature.ANALYTICS
       },
+      { name: 'work_orders', link: '/app/work-orders', icon: AssignmentOutlinedIcon },
       {
-        name: 'work_orders',
-        link: '/app/work-orders',
-        icon: AssignmentOutlinedIcon
-      },
+        name: 'requests',
+        link: '/app/requests',
+        icon: MoveToInboxOutlinedIcon,
+        permission: PermissionEntity.REQUESTS,
+        uiConfigKey: 'requests'
+      }
+    ]
+  },
+  {
+    heading: 'preventive_maintenance',
+    items: [
       {
         name: 'preventive_maintenance',
         link: '/app/preventive-maintenances',
@@ -65,96 +73,18 @@ const ownMenuItems: MenuItems[] = [
         permission: PermissionEntity.PREVENTIVE_MAINTENANCES
       },
       {
-        name: 'Statistics',
-        icon: InsertChartOutlinedIcon,
-        permission: PermissionEntity.ANALYTICS,
-        planFeature: PlanFeature.ANALYTICS,
-        items: [
-          {
-            name: 'capacity_planned_vs_allocated',
-            link: '/app/analytics/capacity',
-            icon: InsertChartOutlinedIcon
-          },
-          {
-            name: 'preventive_maintenance_analytics',
-            link: '/app/analytics/preventive-maintenance',
-            icon: PendingActionsOutlinedIcon
-          },
-          {
-            name: 'work_orders',
-            icon: AssignmentOutlinedIcon,
-            items: [
-              {
-                name: 'status_report',
-                link: '/app/analytics/work-orders/status'
-              },
-              {
-                name: 'wo_analysis',
-                link: '/app/analytics/work-orders/analysis'
-              },
-              {
-                name: 'wo_aging',
-                link: '/app/analytics/work-orders/aging'
-              },
-              {
-                name: 'time_and_cost',
-                link: '/app/analytics/work-orders/time-cost'
-              }
-            ]
-          },
-          {
-            name: 'assets',
-            icon: Inventory2OutlinedIcon,
-            items: [
-              {
-                name: 'reliability_dashboard',
-                link: '/app/analytics/assets/reliability'
-              },
-              {
-                name: 'total_maintenance_cost',
-                link: '/app/analytics/assets/cost'
-              }
-              // {
-              //   name: 'useful_life',
-              //   link: '/app/analytics/assets/useful-life'
-              // }
-            ]
-          },
-          {
-            name: 'parts',
-            icon: HandymanOutlinedIcon,
-            items: [
-              {
-                name: 'parts_consumption',
-                link: '/app/analytics/parts/consumption'
-              }
-            ]
-          },
-          {
-            name: 'requests',
-            icon: MoveToInboxOutlinedIcon,
-            items: [
-              {
-                name: 'requests_analysis',
-                link: '/app/analytics/requests/analysis'
-              }
-            ]
-          }
-        ]
-      },
-      {
-        name: 'requests',
-        link: '/app/requests',
-        icon: MoveToInboxOutlinedIcon,
-        permission: PermissionEntity.REQUESTS,
-        uiConfigKey: 'requests'
-      },
-      {
-        name: 'assets',
-        link: '/app/assets',
-        icon: Inventory2OutlinedIcon,
-        permission: PermissionEntity.ASSETS
-      },
+        name: 'maintenance_task_lists',
+        link: '/app/task-lists',
+        icon: BuildCircleOutlinedIcon,
+        permission: PermissionEntity.TASK_LISTS,
+        planFeature: PlanFeature.PREVENTIVE_MAINTENANCE
+      }
+    ]
+  },
+  {
+    heading: 'asset_management',
+    items: [
+      { name: 'assets', link: '/app/assets', icon: Inventory2OutlinedIcon, permission: PermissionEntity.ASSETS },
       {
         name: 'locations',
         link: '/app/locations',
@@ -163,27 +93,40 @@ const ownMenuItems: MenuItems[] = [
         uiConfigKey: 'locations'
       },
       {
+        name: 'meters',
+        link: '/app/meters',
+        icon: SpeedOutlinedIcon,
+        permission: PermissionEntity.METERS,
+        planFeature: PlanFeature.METER,
+        uiConfigKey: 'meters'
+      }
+    ]
+  },
+  {
+    heading: 'materials_management',
+    items: [
+      {
         name: 'parts_and_inventory',
         link: '/app/inventory',
         icon: HandymanOutlinedIcon,
         permission: PermissionEntity.PARTS_AND_MULTIPARTS,
         items: [
-          {
-            name: 'parts',
-            link: '/app/inventory/parts'
-          },
-          {
-            name: 'sets_of_parts',
-            link: '/app/inventory/sets'
-          }
+          { name: 'parts', link: '/app/inventory/parts' },
+          { name: 'sets_of_parts', link: '/app/inventory/sets' }
         ]
-      },
+      }
+    ]
+  },
+  {
+    heading: 'procurement',
+    items: [
       {
         name: 'purchase_requisitions',
         link: '/app/purchase-requisitions',
         icon: PlaylistAddCheckOutlinedIcon,
         permission: PermissionEntity.PURCHASE_REQUISITIONS,
         createPermission: PermissionEntity.PURCHASE_REQUISITIONS,
+        editOtherPermission: PermissionEntity.PURCHASE_REQUISITION_APPROVAL,
         planFeature: PlanFeature.PURCHASE_ORDER
       },
       {
@@ -192,29 +135,63 @@ const ownMenuItems: MenuItems[] = [
         icon: ReceiptOutlinedIcon,
         permission: PermissionEntity.PURCHASE_ORDERS,
         planFeature: PlanFeature.PURCHASE_ORDER
-      },
+      }
+    ]
+  },
+  {
+    heading: 'reports_analytics',
+    items: [
       {
-        name: 'meters',
-        link: '/app/meters',
-        icon: SpeedOutlinedIcon,
-        permission: PermissionEntity.METERS,
-        planFeature: PlanFeature.METER,
-        uiConfigKey: 'meters'
-      },
+        name: 'Statistics',
+        icon: InsertChartOutlinedIcon,
+        permission: PermissionEntity.ANALYTICS,
+        planFeature: PlanFeature.ANALYTICS,
+        items: [
+          { name: 'capacity_planned_vs_allocated', link: '/app/analytics/capacity', icon: InsertChartOutlinedIcon },
+          { name: 'preventive_maintenance_analytics', link: '/app/analytics/preventive-maintenance', icon: PendingActionsOutlinedIcon },
+          {
+            name: 'work_orders',
+            icon: AssignmentOutlinedIcon,
+            items: [
+              { name: 'status_report', link: '/app/analytics/work-orders/status' },
+              { name: 'wo_analysis', link: '/app/analytics/work-orders/analysis' },
+              { name: 'wo_aging', link: '/app/analytics/work-orders/aging' },
+              { name: 'time_and_cost', link: '/app/analytics/work-orders/time-cost' }
+            ]
+          },
+          {
+            name: 'assets',
+            icon: Inventory2OutlinedIcon,
+            items: [
+              { name: 'reliability_dashboard', link: '/app/analytics/assets/reliability' },
+              { name: 'total_maintenance_cost', link: '/app/analytics/assets/cost' }
+            ]
+          },
+          {
+            name: 'parts',
+            icon: HandymanOutlinedIcon,
+            items: [{ name: 'parts_consumption', link: '/app/analytics/parts/consumption' }]
+          },
+          {
+            name: 'requests',
+            icon: MoveToInboxOutlinedIcon,
+            items: [{ name: 'requests_analysis', link: '/app/analytics/requests/analysis' }]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    heading: 'administration',
+    items: [
       {
         name: 'people_teams',
         link: '/app/people-teams',
         icon: PeopleOutlineIcon,
         permission: PermissionEntity.PEOPLE_AND_TEAMS,
         items: [
-          {
-            name: 'people',
-            link: '/app/people-teams/people'
-          },
-          {
-            name: 'teams',
-            link: '/app/people-teams/teams'
-          }
+          { name: 'people', link: '/app/people-teams/people' },
+          { name: 'teams', link: '/app/people-teams/teams' }
         ]
       },
       {
@@ -224,29 +201,12 @@ const ownMenuItems: MenuItems[] = [
         permission: PermissionEntity.VENDORS_AND_CUSTOMERS,
         uiConfigKey: 'vendorsAndCustomers',
         items: [
-          {
-            name: 'vendors',
-            link: '/app/vendors-customers/vendors'
-          },
-          {
-            name: 'customers',
-            link: '/app/vendors-customers/customers'
-          }
+          { name: 'vendors', link: '/app/vendors-customers/vendors' },
+          { name: 'customers', link: '/app/vendors-customers/customers' }
         ]
       },
-      {
-        name: 'categories',
-        link: '/app/categories',
-        icon: CategoryOutlinedIcon,
-        permission: PermissionEntity.CATEGORIES
-      },
-      {
-        name: 'files',
-        link: '/app/files',
-        icon: AttachFileOutlinedIcon,
-        permission: PermissionEntity.FILES,
-        planFeature: PlanFeature.FILE
-      },
+      { name: 'categories', link: '/app/categories', icon: CategoryOutlinedIcon, permission: PermissionEntity.CATEGORIES },
+      { name: 'files', link: '/app/files', icon: AttachFileOutlinedIcon, permission: PermissionEntity.FILES, planFeature: PlanFeature.FILE },
       {
         name: 'report_management',
         link: '/app/settings/documents',
@@ -254,12 +214,7 @@ const ownMenuItems: MenuItems[] = [
         permission: PermissionEntity.DOCUMENT_TEMPLATES,
         permissionFallback: PermissionEntity.SETTINGS
       },
-      {
-        name: 'settings',
-        link: '/app/settings',
-        icon: SettingsOutlinedIcon,
-        permission: PermissionEntity.SETTINGS
-      }
+      { name: 'settings', link: '/app/settings', icon: SettingsOutlinedIcon, permission: PermissionEntity.SETTINGS }
     ]
   }
 ];

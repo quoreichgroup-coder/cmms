@@ -1,3 +1,13 @@
-169-58-86-7.sslip.io {
+eam.quoreichgroup.bf {
 	reverse_proxy nginx:80
+}
+
+169-58-86-7.sslip.io {
+	redir /grafana /grafana/ 308
+	handle /grafana/* {
+		reverse_proxy grafana:3000
+	}
+	handle {
+		reverse_proxy nginx:80
+	}
 }

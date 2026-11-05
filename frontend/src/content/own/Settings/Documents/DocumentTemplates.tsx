@@ -196,8 +196,27 @@ const initialRequestFields = [
   'company.registeredAddress',
   'company.registrationNumber'
 ];
+const purchaseOrderFields = [
+  'purchaseOrder.number', 'purchaseOrder.name', 'purchaseOrder.status',
+  'purchaseOrder.vendor', 'purchaseOrder.vendorAddress', 'purchaseOrder.vendorPhone', 'purchaseOrder.vendorEmail',
+  'purchaseOrder.category', 'purchaseOrder.date',
+  'purchaseOrder.shippingDueDate', 'purchaseOrder.shipTo', 'purchaseOrder.shippingAddress',
+  'purchaseOrder.shippingCity', 'purchaseOrder.shippingState', 'purchaseOrder.shippingZipCode',
+  'purchaseOrder.shippingPhone', 'purchaseOrder.terms', 'purchaseOrder.notes',
+  'purchaseOrder.requestedBy', 'purchaseOrder.requisition', 'purchaseOrder.approvalHistory', 'purchaseOrder.lines', 'company.legalName',
+  'company.registeredAddress', 'company.phone', 'company.email'
+];
+const purchaseRequisitionFields = [
+  'purchaseRequisition.number', 'purchaseRequisition.title', 'purchaseRequisition.status',
+  'purchaseRequisition.justification', 'purchaseRequisition.requiredDate',
+  'purchaseRequisition.requester', 'purchaseRequisition.sourceWorkOrder', 'purchaseRequisition.createdDate',
+  'purchaseRequisition.approvalHistory', 'purchaseRequisition.lines', 'company.legalName', 'company.registeredAddress',
+  'company.phone', 'company.email'
+];
 const fieldsForType = (providerCode: string) =>
-  providerCode === 'REQUEST' ? requestFields : workOrderFields;
+  providerCode === 'REQUEST' ? requestFields :
+    providerCode === 'PURCHASE_ORDER' ? purchaseOrderFields :
+      providerCode === 'PURCHASE_REQUISITION' ? purchaseRequisitionFields : workOrderFields;
 
 const fieldTranslationKey = (field: string) =>
   `document_field_${field.replace(/\./g, '_')}`;
@@ -213,10 +232,13 @@ const emptyConfiguration = (
   provider: documentType.providerCode,
   style: 'CLASSIC',
   page: { size: 'A4', orientation: 'LANDSCAPE', marginMm: 10 },
-  visibleFields:
-    documentType.providerCode === 'REQUEST'
-      ? initialRequestFields
-      : initialFields,
+  visibleFields: documentType.providerCode === 'REQUEST'
+    ? initialRequestFields
+    : documentType.providerCode === 'PURCHASE_ORDER'
+      ? ['purchaseOrder.number', 'purchaseOrder.vendor', 'purchaseOrder.shippingDueDate', 'purchaseOrder.lines', 'company.legalName']
+      : documentType.providerCode === 'PURCHASE_REQUISITION'
+        ? ['purchaseRequisition.number', 'purchaseRequisition.title', 'purchaseRequisition.status', 'purchaseRequisition.requiredDate', 'purchaseRequisition.lines', 'company.legalName']
+        : initialFields,
   fieldLabels: {},
   options: { showPageNumbers: true, repeatTableHeader: true }
 });
@@ -325,7 +347,7 @@ function DocumentTemplates() {
     () =>
       types.filter(
         (type) =>
-          type.active && ['WORK_ORDER', 'REQUEST'].includes(type.providerCode)
+          type.active && ['WORK_ORDER', 'REQUEST', 'PURCHASE_ORDER', 'PURCHASE_REQUISITION'].includes(type.providerCode)
       ),
     [types]
   );
@@ -637,7 +659,13 @@ function DocumentTemplates() {
 
   const previewPublishedTemplate = async () => {
     const target = previewTarget;
-    const sourceId = Number(previewWorkOrderId);
+    const sourceReference = previewWorkOrderId.trim();
+    const procurementPrefix = target?.providerCode === 'PURCHASE_REQUISITION'
+      ? /^PR\s*[-#:]?\s*/i
+      : target?.providerCode === 'PURCHASE_ORDER'
+        ? /^PO\s*[-#:]?\s*/i
+        : null;
+    const sourceId = Number(procurementPrefix ? sourceReference.replace(procurementPrefix, '') : sourceReference);
     if (!target || !Number.isSafeInteger(sourceId) || sourceId <= 0) {
       setPreviewError(t('document_template_preview_work_order_required'));
       return;
@@ -648,7 +676,9 @@ function DocumentTemplates() {
     setPreviewError('');
     try {
       const response = await api.post<Response>(
-        target.providerCode === 'REQUEST'
+        ['PURCHASE_ORDER', 'PURCHASE_REQUISITION'].includes(target.providerCode)
+          ? `document-templates/${target.id}/preview-procurement-pdf?sourceId=${encodeURIComponent(sourceId)}&providerCode=${encodeURIComponent(target.providerCode)}`
+          : target.providerCode === 'REQUEST'
           ? `document-templates/${
               target.id
             }/preview-request-pdf?requestId=${encodeURIComponent(sourceId)}`
@@ -758,6 +788,32 @@ function DocumentTemplates() {
   ) => {
     setSaving(true);
     try {
+      // Procurement templates must show their document number, status and line table.
+      // Older drafts were created without the required status field, which made them
+      // impossible to publish and therefore invisible in PR/PO print menus.
+      const draftConfiguration = template.draftConfiguration as any;
+      const requiredFields = template.providerCode === 'PURCHASE_ORDER'
+        ? ['purchaseOrder.number', 'purchaseOrder.status', 'purchaseOrder.lines']
+        : template.providerCode === 'PURCHASE_REQUISITION'
+          ? ['purchaseRequisition.number', 'purchaseRequisition.status', 'purchaseRequisition.lines']
+          : [];
+      if (draftConfiguration?.schemaVersion === '1.0' && requiredFields.length) {
+        const visibleFields = Array.isArray(draftConfiguration.visibleFields)
+          ? draftConfiguration.visibleFields
+          : [];
+        const nextVisibleFields = [...visibleFields, ...requiredFields.filter((field) => !visibleFields.includes(field))];
+        if (nextVisibleFields.length !== visibleFields.length) {
+          await api.put(`document-templates/${template.id}`, {
+            documentTypeCode: template.documentTypeCode,
+            code: template.code,
+            name: template.name,
+            description: template.description || null,
+            defaultScope: template.defaultScope || 'COMPANY',
+            siteId: template.siteId || null,
+            configuration: { ...draftConfiguration, visibleFields: nextVisibleFields }
+          });
+        }
+      }
       await api.post(
         `document-templates/${template.id}/publish?makeDefault=${makeDefault}`,
         {}
@@ -1458,6 +1514,11 @@ function DocumentTemplates() {
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
             {formError && <Alert severity="error">{formError}</Alert>}
+            {configuration?.provider === 'PURCHASE_ORDER' && (
+              <Alert severity="info">
+                {t('procurement_template_pricing_notice')}
+              </Alert>
+            )}
             <Tabs
               value={editorSection}
               onChange={(_, value) => setEditorSection(value)}
@@ -2013,14 +2074,21 @@ function DocumentTemplates() {
             <TextField
               autoFocus
               fullWidth
-              type="number"
+              type={['PURCHASE_ORDER', 'PURCHASE_REQUISITION'].includes(previewTarget?.providerCode || '') ? 'text' : 'number'}
               label={
                 previewTarget?.providerCode === 'REQUEST'
                   ? t('maintenance_request_number')
-                  : t('work_order_number')
+                  : previewTarget?.providerCode === 'PURCHASE_ORDER'
+                    ? t('purchase_order_number', 'Purchase Order ID')
+                    : previewTarget?.providerCode === 'PURCHASE_REQUISITION'
+                      ? t('purchase_requisition_number', 'Purchase Requisition ID')
+                      : t('work_order_number')
               }
               value={previewWorkOrderId}
               onChange={(event) => setPreviewWorkOrderId(event.target.value)}
+              helperText={['PURCHASE_ORDER', 'PURCHASE_REQUISITION'].includes(previewTarget?.providerCode || '')
+                ? t('document_template_preview_pr_po_id_help')
+                : undefined}
               inputProps={{ min: 1, inputMode: 'numeric' }}
             />
           </Stack>

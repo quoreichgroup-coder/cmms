@@ -45,10 +45,14 @@ public class ConfigurableWorkOrderReportRenderer {
         context.setVariable("orientation", orientation);
         context.setVariable("marginMm", margin);
         context.setVariable("blocks", blocks);
-        boolean requestReport = "REQUEST".equals(configuration.path("documentType").asText());
+        String documentType = configuration.path("documentType").asText();
+        boolean requestReport = "REQUEST".equals(documentType);
+        boolean purchaseOrder = "PURCHASE_ORDER".equals(documentType);
+        boolean purchaseRequisition = "PURCHASE_REQUISITION".equals(documentType);
         boolean french = companyContext.language() != null
                 && "FR".equalsIgnoreCase(companyContext.language().name());
         context.setVariable("requestReport", requestReport);
+        context.setVariable("procurementReport", purchaseOrder || purchaseRequisition);
         context.setVariable("french", french);
         boolean signaturePlacedInLayout = "2.0".equals(configuration.path("schemaVersion").asText())
                 && blocks.stream().anyMatch(block -> "SIGNATURE".equals(block.type()));
@@ -63,7 +67,8 @@ public class ConfigurableWorkOrderReportRenderer {
         ReportRow signature = blocks.stream()
                 .filter(block -> "workOrder.signature".equals(blockKey(block)))
                 .map(ReportBlock::row).filter(java.util.Objects::nonNull).findFirst().orElse(null);
-        context.setVariable("showWorkOrderSignatures", !requestReport && !signaturePlacedInLayout);
+        context.setVariable("showWorkOrderSignatures", !requestReport && !purchaseOrder
+                && !purchaseRequisition && !signaturePlacedInLayout);
         context.setVariable("signatureLabel", signature == null
                 ? (french ? "Signature du technicien" : "Technician signature") : signature.label());
         context.setVariable("signatureDataUri", signature == null ? null : signature.value());
@@ -89,13 +94,19 @@ public class ConfigurableWorkOrderReportRenderer {
         String style = configuration.path("style").asText("CLASSIC");
         context.setVariable("styleClass", "COMPACT".equals(style) ? "compact"
                 : "MODERN".equals(style) ? "modern" : "classic");
-        context.setVariable("reportTitle", requestReport
+        context.setVariable("reportTitle", purchaseOrder
+                ? (french ? "Bon de commande" : "Purchase Order") : purchaseRequisition
+                ? (french ? "Demande d’achat" : "Purchase Requisition") : requestReport
                 ? (french ? "Rapport de demande de maintenance" : "Maintenance Request")
                 : (french ? "Carte de travail" : "Work Order Job Card"));
-        context.setVariable("reportKicker", requestReport
+        context.setVariable("reportKicker", purchaseOrder
+                ? (french ? "ACHATS · BON DE COMMANDE" : "PROCUREMENT · PURCHASE ORDER") : purchaseRequisition
+                ? (french ? "ACHATS · DEMANDE D’ACHAT" : "PROCUREMENT · PURCHASE REQUISITION") : requestReport
                 ? (french ? "DEMANDE DE MAINTENANCE" : "MAINTENANCE REQUEST")
                 : (french ? "ORDRE DE TRAVAIL" : "MAINTENANCE WORK ORDER"));
-        context.setVariable("reportSubtitle", french
+        context.setVariable("reportSubtitle", purchaseOrder
+                ? (french ? "Commande fournisseur" : "Supplier order") : purchaseRequisition
+                ? (french ? "Demande interne d’approvisionnement" : "Internal procurement request") : french
                 ? (requestReport ? "Demande de maintenance" : "Fiche d’intervention et de confirmation")
                 : (requestReport ? "Maintenance request" : "Maintenance work and execution record"));
         String html = templateEngine.process("work-order-template-report.html", context);
@@ -106,20 +117,21 @@ public class ConfigurableWorkOrderReportRenderer {
                 ? addPageNumbers(output.toByteArray(), margin, french) : output.toByteArray();
     }
 
-    private List<ReportSection> semanticSections(List<ReportBlock> blocks, boolean requestReport, boolean french) {
+    List<ReportSection> semanticSections(List<ReportBlock> blocks, boolean requestReport, boolean french) {
         List<ReportSection> sections = new ArrayList<>();
         for (ReportBlock block : blocks) {
             String key = blockKey(block);
-            String sectionKey = sectionKey(key, requestReport);
+            String sectionKey = isApprovalHistoryField(key) ? "approvalHistory" : sectionKey(key, requestReport);
             if (sections.isEmpty() || !sections.get(sections.size() - 1).key().equals(sectionKey)) {
-                sections.add(new ReportSection(sectionKey, sectionTitle(sectionKey, french), new ArrayList<>(), 1));
+                sections.add(new ReportSection(sectionKey, sectionTitle(sectionKey, french), new ArrayList<>(), 1,
+                        "approvalHistory".equals(sectionKey), false));
             }
             sections.get(sections.size() - 1).blocks().add(block);
         }
         return sections;
     }
 
-    private List<ReportSection> layoutSections(List<ReportBlock> blocks, boolean french) {
+    List<ReportSection> layoutSections(List<ReportBlock> blocks, boolean french) {
         List<ReportSection> sections = new ArrayList<>();
         for (ReportBlock block : blocks) {
             String title = block.sectionTitle() == null || block.sectionTitle().isBlank()
@@ -140,8 +152,15 @@ public class ConfigurableWorkOrderReportRenderer {
         return block.row() == null ? "" : block.row().key();
     }
 
+    private boolean isApprovalHistoryField(String field) {
+        return "purchaseOrder.approvalHistory".equals(field)
+                || "purchaseRequisition.approvalHistory".equals(field);
+    }
+
     private String sectionKey(String field, boolean requestReport) {
         if (field.startsWith("company.")) return "company";
+        if (field.startsWith("purchaseOrder.")) return "purchaseOrder";
+        if (field.startsWith("purchaseRequisition.")) return "purchaseRequisition";
         if (requestReport) {
             if (field.startsWith("asset.") || field.startsWith("location.") || field.equals("site.name"))
                 return "equipment";
@@ -163,6 +182,7 @@ public class ConfigurableWorkOrderReportRenderer {
 
     private String sectionTitle(String key, boolean french) {
         return switch (key) {
+            case "approvalHistory" -> french ? "Annexe — Historique des approbations" : "Appendix — Approval history";
             case "company" -> french ? "Entreprise" : "Company";
             case "identification" -> french ? "Identification de l’ordre de travail" : "Work Order identification";
             case "equipment" -> french ? "Équipement et localisation fonctionnelle" : "Equipment and functional location";
@@ -174,6 +194,8 @@ public class ConfigurableWorkOrderReportRenderer {
             case "executionNotes" -> french ? "Notes d’exécution" : "Execution notes";
             case "completion" -> french ? "Confirmation de fin d’intervention" : "Completion confirmation";
             case "request" -> french ? "Demande de maintenance" : "Maintenance request";
+            case "purchaseOrder" -> french ? "Bon de commande" : "Purchase order details";
+            case "purchaseRequisition" -> french ? "Demande d’achat" : "Purchase requisition details";
             default -> french ? "Informations" : "Details";
         };
     }

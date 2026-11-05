@@ -187,6 +187,13 @@ export const editPartQuantity =
       );
   };
 
+export const editPartPurchasePrice =
+  (rootId: number, id: number, purchaseUnitPrice: number): AppThunk =>
+  async (dispatch) => {
+    const partQuantity = await api.patch<PartQuantity>(`${basePath}/${id}`, { purchaseUnitPrice });
+    dispatch(slice.actions.editPOPartQuantity({ purchaseOrderId: rootId, id, partQuantity }));
+  };
+
 export const deletePartQuantity =
   (id: number): AppThunk =>
   async (dispatch) => {

@@ -1,5 +1,6 @@
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -20,15 +21,20 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { useEffect, useMemo, useState } from 'react';
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { getMetersMini } from '../../../slices/meter';
 import { useDispatch, useSelector } from '../../../store';
 import { validatePMPlanConfiguration } from '../../../utils/pmPlanConfiguration';
+import { getCompatibleMaintenanceTaskLists } from '../../../utils/maintenanceTaskListOptions';
+import type { MaintenanceTaskListOption } from '../../../utils/maintenanceTaskListOptions';
+import api from '../../../utils/api';
 
 type PlanConfig = {
   mode: 'SINGLE' | 'STRATEGY' | 'MULTI_COUNTER';
   combination?: 'OR' | 'AND';
+  maintenanceTaskListId?: number | null;
   packages?: Array<{
     code: string;
     name: string;
@@ -72,6 +78,7 @@ const readConfiguration = (raw?: string): PlanConfig => {
         ? value.mode
         : 'SINGLE',
       combination: value.combination === 'AND' ? 'AND' : 'OR',
+      maintenanceTaskListId: Number(value.maintenanceTaskListId) || null,
       packages: Array.isArray(value.packages)
         ? value.packages.map((item: any) => ({
             code: item.code ?? '',
@@ -138,6 +145,54 @@ const PMPlanConfigurationEditor = ({
   );
   const configurationError = validatePMPlanConfiguration(configuration);
   const [pendingMode, setPendingMode] = useState<PlanConfig['mode'] | null>(null);
+  const [taskLists, setTaskLists] = useState<MaintenanceTaskListOption[]>([]);
+  const [taskListsLoading, setTaskListsLoading] = useState(false);
+  const [taskListsError, setTaskListsError] = useState(false);
+  const [taskListsRetry, setTaskListsRetry] = useState(0);
+  const [selectedTaskListUnavailable, setSelectedTaskListUnavailable] = useState(false);
+  const [selectedTaskListAccessDenied, setSelectedTaskListAccessDenied] = useState(false);
+  const [selectedTaskListLoadError, setSelectedTaskListLoadError] = useState(false);
+  const planAssetId = Number(values.asset?.value ?? values.asset?.id) || null;
+  const planLocationId = Number(values.location?.value ?? values.location?.id) || null;
+  const [planAssetLocationId, setPlanAssetLocationId] = useState<number | null>(null);
+  const [planAssetLocationResolvedFor, setPlanAssetLocationResolvedFor] = useState<number | null>(null);
+  const [planAssetLocationLoading, setPlanAssetLocationLoading] = useState(false);
+  const [planAssetLocationError, setPlanAssetLocationError] = useState(false);
+  const [planAssetLocationRetry, setPlanAssetLocationRetry] = useState(0);
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const selectableTaskLists = useMemo(() => getCompatibleMaintenanceTaskLists(taskLists, {
+    assetId: planAssetId,
+    assetLocationId: planAssetLocationResolvedFor === planAssetId ? planAssetLocationId : null,
+    locationId: planLocationId,
+    today: todayString
+  }), [taskLists, planAssetId, planLocationId, planAssetLocationId,
+    planAssetLocationResolvedFor, todayString]);
+  const selectableTaskListIds = useMemo(
+    () => new Set(selectableTaskLists.map((item) => item.id)),
+    [selectableTaskLists]
+  );
+  const selectedTaskListOption = taskLists.find(
+    (item) => item.id === configuration.maintenanceTaskListId
+  ) ?? null;
+  const assetLocationUnresolved = Boolean(planAssetId)
+    && (planAssetLocationLoading || planAssetLocationError
+      || planAssetLocationResolvedFor !== planAssetId);
+  const selectedTaskListIncompatible = Boolean(
+    configuration.maintenanceTaskListId
+      && selectedTaskListOption
+      && !taskListsLoading
+      && !taskListsError
+      && !assetLocationUnresolved
+      && !selectableTaskListIds.has(selectedTaskListOption.id)
+  );
+  const taskListOptions = useMemo(() => {
+    if (!selectedTaskListOption
+      || selectableTaskLists.some((item) => item.id === selectedTaskListOption.id)) {
+      return selectableTaskLists;
+    }
+    return [...selectableTaskLists, selectedTaskListOption];
+  }, [selectedTaskListOption, selectableTaskLists]);
   const selectedTaskIds = useMemo(
     () => new Set(selectedTasks.map((task: { id: number }) => task.id)),
     [selectedTasks]
@@ -153,14 +208,123 @@ const PMPlanConfigurationEditor = ({
   );
 
   useEffect(() => {
+    if (!planAssetId) {
+      setPlanAssetLocationId(null);
+      setPlanAssetLocationResolvedFor(null);
+      setPlanAssetLocationLoading(false);
+      setPlanAssetLocationError(false);
+      return;
+    }
+    let active = true;
+    setPlanAssetLocationLoading(true);
+    setPlanAssetLocationError(false);
+    api.get<{ location?: { id?: number } | null }>(`assets/${planAssetId}`)
+      .then((asset) => {
+        if (active) setPlanAssetLocationId(Number(asset.location?.id) || null);
+      })
+      .catch(() => {
+        if (active) {
+          setPlanAssetLocationId(null);
+          setPlanAssetLocationError(true);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setPlanAssetLocationResolvedFor(planAssetId);
+          setPlanAssetLocationLoading(false);
+        }
+      });
+    return () => { active = false; };
+  }, [planAssetId, planAssetLocationRetry]);
+
+  useEffect(() => {
+    let active = true;
+    setTaskListsLoading(true);
+    setTaskListsError(false);
+    const loadAllTaskLists = async () => {
+      const all: MaintenanceTaskListOption[] = [];
+      const loadPage = (pageNumber: number) => api.get<{
+        content?: MaintenanceTaskListOption[];
+        totalPages?: number;
+      }>(`maintenance-task-lists/options?query=&page=${pageNumber}&size=100`);
+
+      // The API caps page size at 100. Load the first page to learn the count,
+      // then fetch small batches so large catalogs stay responsive.
+      const firstPage = await loadPage(0);
+      if (!active) return;
+      all.push(...(firstPage.content ?? []));
+      const totalPages = Math.max(firstPage.totalPages ?? 1, 1);
+      const batchSize = 5;
+      for (let pageStart = 1; pageStart < totalPages; pageStart += batchSize) {
+        if (!active) return;
+        const pageNumbers = Array.from(
+          { length: Math.min(batchSize, totalPages - pageStart) },
+          (_, index) => pageStart + index
+        );
+        const pages = await Promise.all(pageNumbers.map(loadPage));
+        pages.forEach((page) => all.push(...(page.content ?? [])));
+        if (!active) return;
+      }
+
+      if (active) {
+        const unique = Array.from(new Map(all.map((item) => [item.id, item])).values());
+        setTaskLists(unique.filter((item) => item.status === 'ACTIVE'));
+      }
+    };
+
+    loadAllTaskLists().catch(() => {
+      if (active) setTaskListsError(true);
+    }).finally(() => {
+      if (active) setTaskListsLoading(false);
+    });
+    return () => { active = false; };
+  }, [taskListsRetry]);
+
+  useEffect(() => {
+    const selectedId = configuration.maintenanceTaskListId;
+    if (!selectedId || taskLists.some((item) => item.id === selectedId)) {
+      setSelectedTaskListUnavailable(false);
+      setSelectedTaskListAccessDenied(false);
+      setSelectedTaskListLoadError(false);
+      return;
+    }
+    let active = true;
+    setSelectedTaskListUnavailable(false);
+    setSelectedTaskListAccessDenied(false);
+    setSelectedTaskListLoadError(false);
+    api.get<MaintenanceTaskListOption>(`maintenance-task-lists/${selectedId}`)
+      .then((item) => {
+        if (!active) return;
+        setSelectedTaskListUnavailable(false);
+        setSelectedTaskListAccessDenied(false);
+        setSelectedTaskListLoadError(false);
+        setTaskLists((current) => [...current, item]);
+      })
+      .catch((error) => {
+        if (!active) return;
+        const status = Number((error as any)?.status);
+        if (status === 403) setSelectedTaskListAccessDenied(true);
+        else if (status === 404) setSelectedTaskListUnavailable(true);
+        else setSelectedTaskListLoadError(true);
+      });
+    return () => { active = false; };
+  }, [configuration.maintenanceTaskListId, taskLists]);
+
+  useEffect(() => {
     if (configuration.mode === 'MULTI_COUNTER' && !meters.length)
       dispatch(getMetersMini());
   }, [configuration.mode, dispatch, meters.length]);
 
-  const commit = (next: PlanConfig) => {
+  const commit = useCallback((next: PlanConfig) => {
+    const updated = {
+      ...next,
+      maintenanceTaskListId: next.maintenanceTaskListId === undefined
+        ? configuration.maintenanceTaskListId ?? null
+        : next.maintenanceTaskListId
+    };
     setFieldValue(
       'planConfigurationJson',
-      JSON.stringify(next, null, 2),
+      JSON.stringify(updated, null, 2),
       false
     );
     if (next.mode === 'MULTI_COUNTER') {
@@ -185,7 +349,7 @@ const PMPlanConfigurationEditor = ({
         setFieldValue('meterEndValue', firstCycle.endValue ?? null, false);
       }
     }
-  };
+  }, [configuration, setFieldValue, availableMeters, meterTriggerOption]);
 
   const switchMode = (mode: PlanConfig['mode']) => {
     if (mode === 'SINGLE') return commit({ mode });
@@ -261,6 +425,99 @@ const PMPlanConfigurationEditor = ({
             {t('pm_plan_configuration_help')}
           </Typography>
         </Box>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'flex-start' }}>
+          <Autocomplete<MaintenanceTaskListOption, false, false, false>
+            fullWidth
+            options={taskListOptions}
+            value={selectedTaskListOption}
+            loading={taskListsLoading}
+            disabled={taskListsLoading || taskListsError || planAssetLocationLoading}
+            getOptionLabel={(item) => `${item.groupCode} / ${item.groupCounter} — ${item.description}`}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            getOptionDisabled={(option) => !selectableTaskListIds.has(option.id)}
+            noOptionsText={t('pm_task_lists_none_available')}
+            onChange={(_, taskList) => {
+              commit({ ...configuration, maintenanceTaskListId: taskList?.id ?? null });
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t('pm_maintenance_task_list')}
+                placeholder={t('pm_task_list_none')}
+                helperText={taskListsLoading
+                  ? t('loading')
+                  : taskListsError
+                    ? t('pm_task_lists_load_error')
+                    : planAssetLocationError
+                      ? t('pm_task_lists_asset_location_error')
+                      : planAssetLocationLoading
+                      ? t('pm_task_lists_checking_asset_location')
+                      : selectableTaskLists.length
+                        ? t('pm_maintenance_task_list_help')
+                        : t('pm_task_lists_none_available')}
+              />
+            )}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<RefreshOutlinedIcon />}
+            disabled={taskListsLoading || planAssetLocationLoading}
+            onClick={() => {
+              setTaskListsRetry((value) => value + 1);
+              if (planAssetId) setPlanAssetLocationRetry((value) => value + 1);
+            }}
+            sx={{ whiteSpace: 'nowrap', mt: { xs: 0, sm: 1 } }}
+          >
+            {t('refresh')}
+          </Button>
+        </Stack>
+        {(selectedTaskListUnavailable || selectedTaskListAccessDenied || selectedTaskListIncompatible)
+          && configuration.maintenanceTaskListId && (
+          <Alert
+            severity="warning"
+            action={(
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  setSelectedTaskListUnavailable(false);
+                  setSelectedTaskListAccessDenied(false);
+                  commit({ ...configuration, maintenanceTaskListId: null });
+                }}
+              >
+                {t('pm_task_list_clear_unavailable')}
+              </Button>
+            )}
+          >
+            {selectedTaskListAccessDenied
+              ? t('pm_task_list_access_denied_preserved')
+              : selectedTaskListUnavailable
+                ? t('pm_task_list_unavailable_preserved')
+                : t('pm_task_list_incompatible_preserved')}
+          </Alert>
+        )}
+        {selectedTaskListLoadError && configuration.maintenanceTaskListId && (
+          <Alert
+            severity="error"
+            action={(
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  setTaskListsRetry((value) => value + 1);
+                  if (planAssetId) setPlanAssetLocationRetry((value) => value + 1);
+                }}
+              >
+                {t('retry')}
+              </Button>
+            )}
+          >
+            {t('pm_task_list_load_error')}
+          </Alert>
+        )}
+        {planAssetLocationError && (
+          <Alert severity="warning">{t('pm_task_lists_asset_location_error')}</Alert>
+        )}
         <FormControl fullWidth>
           <FormHelperText id="pm-plan-mode-label" sx={{ ml: 0, mt: 0, mb: 1 }}>
             {t('pm_plan_mode')}

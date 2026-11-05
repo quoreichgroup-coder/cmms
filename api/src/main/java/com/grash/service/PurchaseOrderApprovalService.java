@@ -40,9 +40,21 @@ public class PurchaseOrderApprovalService {
     private final PartMapper partMapper;
     private final WebhookDispatchService webhookDispatchService;
     private final PurchaseRequisitionRepository purchaseRequisitionRepository;
+    private final ProcurementApprovalService procurementApprovals;
 
     @Transactional
     public PurchaseOrder respond(Long id, Long companyId, boolean approved) {
+        return respond(id, companyId, approved, null, null);
+    }
+
+    @Transactional
+    public PurchaseOrder respond(Long id, Long companyId, boolean approved, com.grash.model.User actor, String comment) {
+        return respond(id, companyId, approved, actor, comment, false);
+    }
+
+    @Transactional
+    public PurchaseOrder respond(Long id, Long companyId, boolean approved, com.grash.model.User actor,
+                                 String comment, boolean allowExplicitSubmitApproval) {
         PurchaseOrder purchaseOrder = purchaseOrderService.findByIdForUpdateAndCompany(id, companyId)
                 .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
         if (purchaseOrder.getStatus() == ApprovalStatus.REJECTED && !approved) {
@@ -51,12 +63,22 @@ public class PurchaseOrderApprovalService {
         if (purchaseOrder.getStatus() != ApprovalStatus.PENDING) {
             throw new CustomException("Only a pending purchase order can be decided", HttpStatus.CONFLICT);
         }
+        Boolean terminal = procurementApprovals.decide("PO", id, companyId, actor, approved, comment);
+        // A central policy always applies its own self-approval prohibition. For legacy POs,
+        // permit self-approval only through the explicit create-form action guarded by the
+        // caller's dedicated PO approval permission.
+        if (terminal == null && actor != null && actor.getId() != null
+                && actor.getId().equals(purchaseOrder.getCreatedBy()) && !allowExplicitSubmitApproval) {
+            throw new CustomException("approval_not_assigned", HttpStatus.FORBIDDEN);
+        }
+        if (Boolean.FALSE.equals(terminal)) return purchaseOrder;
 
         Collection<PartQuantity> quantities = partQuantityService.findByPurchaseOrder(purchaseOrder.getId())
                 .stream()
                 .sorted(Comparator.comparing(quantity -> quantity.getPart().getId()))
                 .toList();
         if (approved) {
+            // Receiving-enabled POs change stock on receipt; legacy POs still receive stock at final approval.
             if (!purchaseOrder.isReceivingWorkflowEnabled()) for (PartQuantity quantity : quantities) {
                 if (!Double.isFinite(quantity.getQuantity()) || quantity.getQuantity() <= 0) {
                     throw new CustomException("Purchase order contains an invalid part quantity",
@@ -68,7 +90,11 @@ public class PurchaseOrderApprovalService {
                     continue;
                 }
                 double previousQuantity = part.getQuantity();
-                part.setQuantity(previousQuantity + quantity.getQuantity());
+                double resultingQuantity = previousQuantity + quantity.getQuantity();
+                if (!Double.isFinite(previousQuantity) || !Double.isFinite(resultingQuantity)) {
+                    throw new CustomException("procurement_inventory_quantity_overflow", HttpStatus.CONFLICT);
+                }
+                part.setQuantity(resultingQuantity);
                 partRepository.save(part);
                 dispatchPartQuantityChangeWebhookAfterCommit(part, previousQuantity, part.getQuantity(),
                         quantity, purchaseOrder, purchaseOrder.getCompany());

@@ -28,7 +28,7 @@ Une build de développement Android séparée peut être créée avec `npm run b
 
 ```sh
 npm run build:dev-apk
-adb install -r dist/QPM-1.0.59-dev.apk
+adb install -r dist/QPM-1.0.60-dev.apk
 ```
 
 On peut aussi transférer le fichier sur le téléphone puis l’ouvrir pour l’installer. Après cette installation initiale, les changements TypeScript/JavaScript et UI se rechargent depuis Metro, sans reconstruire ni retélécharger d’APK.
@@ -55,9 +55,9 @@ Expo Go n’est pas un substitut direct pour ce projet : QPM s’appuie sur des 
 
 ## Installer sur Android
 
-L’APK de production 1.0.59 est disponible dans `dist/QPM-1.0.59.apk` (version Android `versionCode` 42), signé avec le certificat QPM existant. Pour le rechargement UI continu, créez et installez une build Dev selon les étapes ci-dessus. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md), et le parcours de validation est dans [`../docs/GUIDE-TEST-VISUEL-MOBILE.md`](../docs/GUIDE-TEST-VISUEL-MOBILE.md).
+L’APK de production 1.0.60 est disponible dans `dist/QPM-1.0.60.apk` (version Android `versionCode` 43), signé avec le certificat QPM existant et configuré pour `https://eam.quoreichgroup.bf/api`. Pour le rechargement UI continu, créez et installez une build Dev selon les étapes ci-dessus. Le guide détaillé se trouve dans [INSTALLER-APK.md](INSTALLER-APK.md), et le parcours de validation est dans [`../docs/GUIDE-TEST-VISUEL-MOBILE.md`](../docs/GUIDE-TEST-VISUEL-MOBILE.md).
 
-L’APK utilise par défaut `https://169-58-86-7.sslip.io/api/`. Le certificat HTTPS est émis et renouvelé automatiquement par Caddy. Si une ancienne adresse personnalisée est conservée après la mise à jour, ouvrez **Serveur personnalisé** depuis l’écran de connexion et choisissez **Réinitialiser**. Connectez-vous avec un compte utilisateur de l’entreprise ; le superadmin de plateforme est un compte technique et le parcours mobile client ne l’accepte pas. Les taps de notification ouvrent maintenant leur ressource après le démarrage et la restauration de session. La réception des push demande encore les credentials Firebase de l’entreprise. Au premier démarrage, le propriétaire de l’entreprise peut saisir la clé de licence depuis **Réglages → Licence de l’entreprise**.
+L’APK utilise par défaut `https://eam.quoreichgroup.bf/api/`. Le certificat HTTPS est émis et renouvelé automatiquement par Caddy. Si une ancienne adresse personnalisée est conservée après la mise à jour, ouvrez **Serveur personnalisé** depuis l’écran de connexion et choisissez **Réinitialiser**. Connectez-vous avec un compte utilisateur de l’entreprise ; le superadmin de plateforme est un compte technique et le parcours mobile client ne l’accepte pas. Les taps de notification ouvrent maintenant leur ressource après le démarrage et la restauration de session. La réception des push demande encore les credentials Firebase de l’entreprise. Au premier démarrage, le propriétaire de l’entreprise peut saisir la clé de licence depuis **Réglages → Licence de l’entreprise**.
 
 ## Reconstruire localement
 
@@ -84,7 +84,7 @@ Sans configuration Firebase propre à l’environnement, les notifications push 
 
 ## Préparer un build iOS
 
-La configuration Expo est déjà liée au projet QPM EAS `fbfaa721-adb1-463a-8757-3e256cf7337a` (`@qrchs-team/qpm`); `app.config.ts` utilise cet identifiant par défaut. Ne relancez pas `eas init`/`eas project:init`, car cela pourrait créer ou lier un projet différent. Vérification locale le 20 octobre : `npx expo config --type public --json` résout le bon identifiant, le slug `qpm`, la version `1.0.59`, le bundle iOS `com.cmms.atlas` et les runtime versions Android/iOS `1.0.59`. La configuration iOS source porte `buildNumber` 13, tandis que `eas.json` utilise `appVersionSource: remote`; EAS est donc la source du numéro de build des versions cloud et le profil `production` l’incrémente. Un IPA signé nécessite une session Expo active et les identifiants Apple Developer valides. L’IPA 1.0.59 reste à construire; les credentials Apple ne sont pas configurés/vérifiés dans cette validation.
+La configuration Expo est déjà liée au projet QPM EAS `fbfaa721-adb1-463a-8757-3e256cf7337a` (`@qrchs-team/qpm`); `app.config.ts` utilise cet identifiant par défaut. Ne relancez pas `eas init`/`eas project:init`, car cela pourrait créer ou lier un projet différent. Vérification locale le 29 octobre : `npx expo config --type public --json` résout le bon identifiant, le slug `qpm`, la version `1.0.60`, le bundle iOS `com.cmms.atlas`, le `buildNumber` source iOS `14` et les runtime versions Android/iOS `1.0.60`. `eas.json` définit `appVersionSource: remote` : le numéro des builds cloud vient de l’état EAS distant et le profil `production` l’incrémente. Cet état distant n’a pas été interrogé dans cette session. Un IPA signé nécessite macOS/Xcode ou EAS, une session Expo active et les identifiants Apple Developer valides. L’IPA 1.0.60 reste à construire; les credentials Apple ne sont pas configurés/vérifiés dans cette validation.
 
 Depuis un Mac avec Xcode ou depuis EAS Build :
 

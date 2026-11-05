@@ -75,6 +75,7 @@ import * as React from 'react';
 import RequestStatusChip from './RequestStatusChip';
 import { findVisibleRequestFieldConfiguration } from './requestFormFields';
 import ContentState from '../components/ContentState';
+import ContextualHelpButton from '../HelpCenter/ContextualHelpButton';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof Request>([
   'title',
@@ -684,6 +685,10 @@ function Requests() {
                 }
               }}
             >
+              <ContextualHelpButton
+                articleSlug="maintenance-requests"
+                labelKey="help_contextual_requests"
+              />
               <EnumFilter
                 filterFields={criteria.filterFields}
                 onChange={onFilterChange}

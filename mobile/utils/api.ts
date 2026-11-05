@@ -221,6 +221,15 @@ async function patch<T>(
   });
 }
 
+async function put<T>(url: string, data: object, options?: Options) {
+  const currentApiUrl = await getApiUrl();
+  return api<T>(currentApiUrl + url, {
+    ...options,
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+}
+
 async function deletes<T>(url, options?: Options) {
   const currentApiUrl = await getApiUrl();
   return api<T>(currentApiUrl + url, { ...options, method: 'DELETE' });
@@ -287,4 +296,4 @@ export const isNetworkError = (error: any): boolean => {
   );
 };
 
-export default { get, patch, post, deletes, getErrorMessage, isNetworkError };
+export default { get, patch, put, post, deletes, getErrorMessage, isNetworkError };
