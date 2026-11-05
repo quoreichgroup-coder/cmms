@@ -337,3 +337,4 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 - La requête dédiée d’impression utilise maintenant un `@Query` ordonné par `line.id ASC`, en plus de l’EntityGraph. À défaut d’une colonne de position métier, l’ordre des lignes reste stable entre rendus.
 - Les tests documentaires et d’accès passent (**17 tests, 0 échec**). Image API mise à jour et déployée : `atlas-cmms-backend:local`, digest `5a3821e42540e17a31fa12f304cb1f7ffbf7a577f15dd65f8f73f8aab5a43446`. Spring démarre, aucun changeset ne s’exécute, API/Web HTTP 200; le schedule 252 n’est pas recréé.
+- Contrôle DB read-only après les derniers redémarrages : le schedule 252 reste à **4 WO, dernier `WO000028`**; aucun WO de rattrapage supplémentaire.
