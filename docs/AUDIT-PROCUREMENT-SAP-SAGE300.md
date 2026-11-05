@@ -321,3 +321,8 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - **Régression mobile après déploiement Web** : `test:mobile-regression` passe (55 scripts), dont `procurement-approval-mobile`; tests Jest onboarding et disponibilité passent (5 + 5). Aucun code mobile n’a changé et l’APK v1.0.60 conserve son SHA-256 vérifié.
 - **Contrôle impression et droits** : `GeneratedDocumentControllerTest`, `GeneratedDocumentAccessEventServiceTest`, `ReportTemplateConfigurationValidatorTest` et `ProcurementDocumentDataProviderTest` passent (31 tests, zéro échec). La lecture publique du bundle ne remplace pas la recette d’un modèle PR/PO publié avec un compte métier autorisé.
 - **Migration de site vérifiée sur PostgreSQL déployé** : une requête en lecture seule confirme le changeset `2026-11-05-procurement-line-sites` dans `databasechangelog` (1 ligne). Cette preuve actualise l'état résumé en tête du backlog; elle ne remplace pas les parcours PR/PO authentifiés.
+
+### Test PostgreSQL/Testcontainers débloqué — 5 novembre 2026, 13:49 UTC
+
+- Avec Docker autorisé dans cette reprise, `MAVEN_OPTS='-Xmx1024m -XX:MaxMetaspaceSize=384m' mvn -o -Dmaven.compiler.useIncrementalCompilation=false -Dtest=ProcurementApprovalMigrationIntegrationTest test` réussit (**7 tests, 0 échec, 0 erreur**) sur PostgreSQL 16 jetable.
+- Le lot couvre maintenant notamment la migration sites (backfill OT→PR→PO et refus de suppression référencée), les politiques d’approbation, snapshots de prix fournisseur, audit documentaire et l’outbox durable (`FOR UPDATE SKIP LOCKED`). Il actualise les notes antérieures qui signalaient le socket Docker indisponible; aucun changement applicatif n’était nécessaire.
