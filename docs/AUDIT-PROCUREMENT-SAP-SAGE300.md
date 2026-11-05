@@ -341,5 +341,5 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 ### Historique des réceptions PO — 5 novembre 2026, 14:16 UTC
 
-- **Optimisation lecture** : l’historique des réceptions chargeait chaque réception puis ses lignes, les lignes PO, articles et utilisateurs par accès différé. La requête de liste charge maintenant ces relations dans un EntityGraph et trie les égalités d’horodatage par identifiant décroissant. Le DTO et les contrôles d’accès restent inchangés.
-- `PurchaseOrderReceiptInventoryTest` et `PurchaseOrderApprovalGovernedInventoryTest` passent (**8 tests, 0 échec**). La tentative simultanée du test Testcontainers n’a pas pu démarrer car le socket Docker n’est pas accessible dans ce processus; ce test devra être relancé dans un environnement Docker autorisé. `git diff --check` passe.
+- **Optimisation lecture** : l’historique des réceptions charge maintenant les lignes PO, articles et utilisateurs avec un EntityGraph, puis trie les égalités d’horodatage par identifiant décroissant. Le rejeu idempotent d’une réception réutilise le même graphe pour construire sa réponse sans chargements différés répétés. Le DTO et les contrôles d’accès restent inchangés.
+- `PurchaseOrderReceiptInventoryTest` et `PurchaseOrderApprovalGovernedInventoryTest` passent après les deux changements (**8 tests, 0 échec**). La tentative simultanée du test Testcontainers n’a pas pu démarrer car le socket Docker n’est pas accessible dans ce processus; ce test devra être relancé dans un environnement Docker autorisé. `git diff --check` passe.

@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface PurchaseOrderReceiptRepository extends JpaRepository<PurchaseOrderReceipt, Long> {
     boolean existsByPurchaseOrder_Id(Long purchaseOrderId);
 
+    @EntityGraph(attributePaths = {"lines.partQuantity.part", "receivedBy", "purchaseOrder"})
     Optional<PurchaseOrderReceipt> findByPurchaseOrder_IdAndIdempotencyKey(Long purchaseOrderId, String key);
 
     @EntityGraph(attributePaths = {"lines.partQuantity.part", "receivedBy", "purchaseOrder"})
