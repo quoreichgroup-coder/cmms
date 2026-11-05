@@ -298,3 +298,10 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - Le build CRA hôte puis le build Docker réussissent avec `QPM_LOW_MEMORY_BUILD=1`, `GENERATE_SOURCEMAP=false` et Terser séquentiel. Le build Web conserve deux avertissements de mise en forme préexistants dans `Settings/Features/TaskLists` et un avis sur la taille du bundle.
 - Images reconstruites, sans déploiement à ce stade : API `atlas-cmms-backend:local`, digest `b788765b287e98d45db3d78b0d70fa72bebcb0be7b2431fe1d5e5261b47c1d5d`; Web `atlas-cmms-frontend:local`, digest `785cabbeba830d68bc8ef241c0bf1c315402f23f80b452690cef7df97aa1e36d`.
 - Validation finale : typecheck Web, ESLint PO et 8 tests API ciblés réussis. La page du site et le health-check API servis avant déploiement répondent HTTP 200. `mobile/QPM-1.0.60.apk` est inchangé (SHA-256 `0caa3274ec3faf991c1b2fcbe82d0fdf4bed62b8f46e4aaa7323af9eec4c2172`).
+
+### Déploiement et smoke test — 5 novembre 2026, 12:55 UTC
+
+- Commit `32e20b25` poussé sur `origin/projet`; images reconstruites et conteneurs API/Web remplacés par leurs digests listés ci-dessus.
+- Frontend public et API `/api/health-check` répondent HTTP 200 après le démarrage. Liquibase n'a appliqué aucun nouveau changeset (885 déjà exécutés). Aucun nouveau conteneur mobile/APK n'a été produit; la version v1.0.60 est conservée.
+- Le démarrage API confirme « Not restoring weekly schedule 252 because no valid occurrence remains before its end date »; aucun rattrapage supplémentaire n'a été déclenché par ce redémarrage.
+- Reste à faire : recette visuelle authentifiée du Procurement; lifecycle d'annulation/retour PO; politique de purge et endpoint autorisé pour le smoke test webhook; validation métier des WO000026–WO000028; accès Sage 300 de recette.
