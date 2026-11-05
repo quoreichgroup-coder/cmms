@@ -232,9 +232,9 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - **Déploiement VPS non confirmé** : la requête GitHub Actions pour ce SHA retourne zéro exécution et les marqueurs `deployed-backend` / `deployed-frontend` ne sont pas présents. Le push du code est confirmé, mais aucun déploiement distant ne doit être annoncé tant qu'un run réussi et ses marqueurs ne sont pas observés.
 - Restent au backlog : recette visuelle responsive authentifiée, cycle d'annulation/retour des PO, webhooks PO durables et prérequis de connexion Sage 300.
 
-### Déploiement direct et rétablissement API — 5 novembre 2026, 06:29 UTC
+### Déploiement direct et rétablissement API — 5 novembre 2026, 06:38 UTC
 
-- Le frontend et l'API ont été redémarrés dans le stack Docker actif après le build local. Le frontend répond HTTP 200 sur `https://eam.quoreichgroup.bf/` et le contrôle interne de l'API `http://api:8080/health-check` répond `{"success":true,"message":"Service is up and running"}`.
+- Le frontend et l'API ont été redémarrés dans le stack Docker actif après le build local. Le frontend répond HTTP 200 sur `https://eam.quoreichgroup.bf/`; l'API répond HTTP 200 sur `https://eam.quoreichgroup.bf/api/health-check` et le contrôle interne `http://api:8080/health-check` répond `{"success":true,"message":"Service is up and running"}`.
 - Le premier démarrage API a échoué pendant la restauration du schedule Quartz 252 : le job durable existait sans trigger. `ApplicationInitializer` isole les erreurs par schedule pour maintenir l'API disponible; `ScheduleService.ensureWorkOrderScheduled` remplace le job orphelin avant de reconstruire son trigger. Au redémarrage final, Quartz a rétabli le schedule 252 et journalisé la génération de l'ordre de travail planifié `WO000026` (à vérifier fonctionnellement par l'équipe métier).
 - Image API finale reconstruite et déployée (`sha256:ec30bbf8ca1d011f5aa48f2789fc106e614ca8c67ecc513ee81d86c7c2ffbcf5`); compilation Maven réussie. `ScheduleServiceTest` passe (63 tests, 0 échec). La suite backend complète (2 402 tests) avait également passé avant ces correctifs.
 - Le code GitHub Actions n'a toujours pas de run correspondant au SHA poussé; ce déploiement direct Docker est donc documenté séparément et ne dépend pas d'un succès CI.
