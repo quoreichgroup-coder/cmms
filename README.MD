@@ -8,6 +8,12 @@ ideal for IT managers or developers looking to implement solutions that keep the
 smoothly.
 Think of it like **Jira for technicians**.
 
+## MVP scope
+
+The release scope and acceptance criteria for the complete QPM project are maintained in [docs/MVP-PROJET-QPM.md](docs/MVP-PROJET-QPM.md). Specialized maintenance and mobile details remain in their linked scope documents.
+
+The QPM visual identity reference is documented in [docs/CHARTE-VISUELLE-QPM.md](docs/CHARTE-VISUELLE-QPM.md).
+
 **Example industries**
 
 - Facilities Managers (buildings, property, real estate)

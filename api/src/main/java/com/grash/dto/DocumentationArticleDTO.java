@@ -35,7 +35,8 @@ public record DocumentationArticleDTO(Long id, String locale, Long categoryId, S
                 : Arrays.stream(keywords.split("\\n")).map(String::trim).filter(value -> !value.isEmpty()).toList();
         return new DocumentationArticleDTO(article.getId(), article.getLocale(), article.getCategory().getId(),
                 article.getCategory().getTitle(), title, slug, summary, content, keywordList, status,
-                article.getRequiredPermission(), article.getDisplayOrder(), article.getUpdatedAt(),
+                article.getRequiredPermission(), article.getDisplayOrder(),
+                includeDraftState ? article.getUpdatedAt() : article.getPublishedAt(),
                 article.getPublishedAt(), article.getCreatedBy(), includeDraftState && hasDraftChanges);
     }
 }

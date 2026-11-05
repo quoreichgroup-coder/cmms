@@ -1,16 +1,18 @@
 # Périmètre MVP mobile QPM — décision de passage au Web
 
+> Ce document détaille les parcours et la recette mobile. Pour tout le projet, le périmètre de référence est [`MVP-PROJET-QPM.md`](MVP-PROJET-QPM.md); les éléments de backlog mobile qui ne sont pas nécessaires à ses critères de sortie restent post-MVP.
+
 **Backlog UI/UX complémentaire :** la navigation flottante Scan, la séparation Home/Stats et l’audit des cartes sont cadrés dans [`FINAL-UIUX-MAINTENANCE-BACKLOG.md`](FINAL-UIUX-MAINTENANCE-BACKLOG.md). Ils ne sont pas déclarés implémentés par les correctifs d’accessibilité recensés ci-dessous.
 
-**Révision :** 27 octobre 2026
+**Révision :** 5 novembre 2026
 **Cible :** pilote mobile de maintenance minière sur convoyeur
-**Règle :** poursuivre les backlogs Mobile et Web en parallèle; la recette du pilote Mobile reste un critère de validation terrain et ne bloque pas les améliorations Web. Le Web existant reste la surface de planification et d’administration qui n’est pas disponible dans l’app mobile.
+**Règle :** seuls les défauts qui bloquent les critères du MVP global restent dans le périmètre actif; les autres améliorations Mobile et Web restent au backlog post-MVP. Le Web existant reste la surface de planification et d’administration qui n’est pas disponible dans l’app mobile.
 
 ## Décision proposée
 
 QPM a assez de fondations mobiles pour entrer en validation de bout en bout, mais le MVP n’est pas encore accepté comme prêt pour le terrain. Les sources montrent les écrans et interactions, et les tests automatisés couvrent plusieurs garde-fous; ils ne prouvent ni l’accès stable à l’API de test, ni le rendu Android/iOS réel, ni l’exactitude d’une intervention enregistrée dans une installation représentative.
 
-Le prochain jalon reste une validation opérationnelle sur téléphone de l’APK 1.0.59, avec une entreprise, un utilisateur technicien et un utilisateur responsable de test. L’archive du 20 octobre est signée, versionCode 42, et inclut le code Mobile courant; elle n’a pas encore été installée/testée sur un appareil physique. La refonte Web est en parallèle dans `frontend/`; elle ne nécessite pas de recréer le Web existant.
+L’APK 1.0.60 (versionCode 43) est disponible dans `mobile/dist/` et dans le répertoire `mobile/`; les artefacts présents ont été générés le 5 novembre 2026. Leur installation sur appareil physique, la vérification de signature avec `apksigner` et le test opérationnel restent à faire. Le code de configuration mobile déclare bien la version 1.0.60/versionCode 43; cela ne prouve pas à lui seul que chaque appareil ou API de préproduction est compatible. Le Web existant reste la surface de planification et d’administration qui n’est pas disponible dans l’app mobile.
 
 ## Périmètre inclus
 
@@ -1222,3 +1224,10 @@ Test ciblé vérifie les chaînes vides/blanches, des payloads valides y compris
 Le pager horizontal conservait son défilement en pixels lorsque la largeur de la fenêtre changeait, par exemple lors d’une rotation ou d’un redimensionnement en mode multi-fenêtre. À partir de la deuxième page, la vue pouvait alors rester entre deux diapositives tandis que l’indicateur affichait toujours l’ancienne sélection. Le pager se réaligne maintenant sans animation sur la diapositive active après un changement de largeur; la navigation normale garde son animation.
 
 Un helper borne l’index de page et calcule son offset; une régression vérifie les largeurs avant/après rotation, les index hors limites et le branchement du recalage à la largeur de fenêtre. Vérification sur émulateur/appareil à compléter; aucun appel API, préférence, APK ou règle métier ne change.
+
+## Revalidation du pilote mobile — 5 novembre 2026
+
+- `npm run test:mobile-regression` : **55/55** tests passent; onboarding **5/5**, disponibilité des shifts **5/5** et `tsc --noEmit --pretty false` passent également.
+- Nouveau build Android du 5 novembre : `mobile/QPM-1.0.60.apk` (également dans `mobile/dist/`) fait 106 008 360 octets; son archive ZIP et ses CRC sont valides (1 530 entrées, manifeste Android présent), SHA-256 `f1538365b8f2ff2f146e33e487055d051177ee1da45c6e7a187e55ba5909e404`. Le build release Gradle est réussi avec le keystore local déjà présent; installation réelle sur appareil non vérifiée.
+- Suite mobile après build : régressions **55/55**, onboarding **5/5**, disponibilité shifts **5/5**; TypeScript passe. Un premier contrôle combiné avait appelé un script de contraste qui n’existe pas dans le package mobile; les suites mobiles valides ont ensuite été exécutées explicitement.
+- L’environnement ne fournit pas `apksigner`, `aapt` ni `adb`; signature, identifiants/version extraits du manifeste, installation et lancement sur appareil ne sont donc pas vérifiés dans cette passe. Ces preuves restent requises, ainsi que le test sur instance de recette et les vérifications Android/iOS physiques.

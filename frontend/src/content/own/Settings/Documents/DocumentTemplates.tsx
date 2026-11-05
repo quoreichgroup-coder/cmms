@@ -667,7 +667,7 @@ function DocumentTemplates() {
         : null;
     const sourceId = Number(procurementPrefix ? sourceReference.replace(procurementPrefix, '') : sourceReference);
     if (!target || !Number.isSafeInteger(sourceId) || sourceId <= 0) {
-      setPreviewError(t('document_template_preview_work_order_required'));
+      setPreviewError(t('document_template_preview_record_id_required'));
       return;
     }
     const previewWindow = window.open('about:blank', '_blank');

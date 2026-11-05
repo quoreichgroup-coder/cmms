@@ -119,6 +119,8 @@ const locale = {
     'Guides are shown according to your permissions. If you expect a screen that is missing, contact your administrator.',
   help_open_module: 'Open module',
   help_no_results: 'No guides match this search.',
+  help_filter_category: 'Filter by category',
+  help_all_categories: 'All categories',
   help_results_count_singular: '{{count}} guide available',
   help_results_count_plural: '{{count}} guides available',
   help_work_orders_title: 'Work Orders',
@@ -705,6 +707,8 @@ const locale = {
     'Imported {{importedCounters}} counters in {{generatedGroups}} groups.',
   task_list_import_error:
     'Could not import task lists. Check the CSV and retry.',
+  task_list_import_row_error:
+    'The CSV contains invalid data on row {{row}}. Correct that row and retry.',
   task_list_export_error: 'Could not export task lists. Please try again.',
   export_csv: 'Export CSV',
   purchase_export_failed: 'Could not export purchase documents. Please retry.',
@@ -1576,6 +1580,7 @@ const locale = {
     'Enter the record ID to preview “{{name}}”. You can enter a PR/PO as PR-123 or PO-123. The draft is used when available; no document will be archived.',
   document_template_preview_pr_po_id_help:
     'Use the number shown on the record, for example PR-123 or PO-123.',
+  document_template_preview_record_id_required: 'Enter a valid document ID.',
   document_template_preview_work_order_required: 'Enter a valid Work Order ID.',
   work_order_number: 'Work Order ID',
   maintenance_request_number: 'Maintenance Request ID',

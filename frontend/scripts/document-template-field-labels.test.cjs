@@ -67,6 +67,16 @@ test('every configurable PR and PO report field has French and English labels', 
   }
 });
 
+test('document preview validation uses a source-neutral ID message in French and English', () => {
+  const english = loadLocale('i18n/translations/en.ts');
+  const french = loadLocale('i18n/translations/fr.ts');
+
+  assert.match(english.document_template_preview_record_id_required, /document ID/i);
+  assert.match(french.document_template_preview_record_id_required, /identifiant de document/i);
+  assert.match(english.document_template_preview_work_order_required, /Work Order ID/i);
+  assert.match(french.document_template_preview_work_order_required, /ordre de travail/i);
+});
+
 test('report editor navigation and accessible reorder actions are localized', () => {
   const english = loadLocale('i18n/translations/en.ts');
   const french = loadLocale('i18n/translations/fr.ts');

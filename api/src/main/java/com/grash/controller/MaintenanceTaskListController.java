@@ -150,6 +150,7 @@ public class MaintenanceTaskListController {
                             printer.printRecord(list.groupCode(), list.groupCounter(), list.description(), list.taskListType(),
                                     value(list.assetId()), value(list.locationId()), value(list.workCenter()), value(list.validFrom()),
                                     value(list.validTo()), list.status(), operation == null ? "" : operation.operationNumber(),
+                                    operation == null ? "" : value(operation.operationOrder()),
                                     operation == null ? "" : operation.shortDescription(), operation == null ? "" : value(operation.longText()),
                                     operation == null ? "" : value(operation.workCenter()), operation == null ? "" : value(operation.controlKey()),
                                     operation == null ? "" : value(operation.workers()), operation == null ? "" : value(operation.plannedWork()),
@@ -178,7 +179,9 @@ public class MaintenanceTaskListController {
         int rowNumber = 1;
         try (CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader().withIgnoreEmptyLines(true)
                 .parse(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            if (!parser.getHeaderMap().keySet().containsAll(Arrays.asList(CSV_COLUMNS))) throw new CustomException("task_list_import_headers_invalid", HttpStatus.BAD_REQUEST);
+            List<String> requiredHeaders = Arrays.stream(CSV_COLUMNS)
+                    .filter(column -> !"operationOrder".equals(column)).toList();
+            if (!parser.getHeaderMap().keySet().containsAll(requiredHeaders)) throw new CustomException("task_list_import_headers_invalid", HttpStatus.BAD_REQUEST);
             for (CSVRecord row : parser) {
                 rowNumber++;
                 if (rowNumber > 5001) throw new CustomException("task_list_import_row_limit_exceeded", HttpStatus.BAD_REQUEST);
@@ -196,7 +199,7 @@ public class MaintenanceTaskListController {
                         continue;
                     }
                     ImportOperation operation = counter.operations.computeIfAbsent(operationNumber,
-                            ignored -> new ImportOperation(row));
+                            ignored -> new ImportOperation(row, counter.operations.size()));
                     operation.assertSame(row);
                     String partId = optional(row, "partId");
                     if (!partId.isBlank()) operation.materials.add(new MaintenanceTaskListDTO.MaterialDTO(null,
@@ -214,7 +217,9 @@ public class MaintenanceTaskListController {
         for (Map.Entry<String, TreeMap<String, ImportCounter>> group : groups.entrySet()) {
             for (ImportCounter counter : group.getValue().values()) {
                 ImportHeader header = counter.header;
-                List<MaintenanceTaskListDTO.OperationDTO> operations = counter.operations.values().stream().map(ImportOperation::toDto).toList();
+                List<MaintenanceTaskListDTO.OperationDTO> operations = counter.operations.values().stream()
+                        .sorted(Comparator.comparingInt(operation -> operation.order))
+                        .map(ImportOperation::toDto).toList();
                 String existingGroup = generatedGroups.get(group.getKey());
                 MaintenanceTaskListDTO dto = new MaintenanceTaskListDTO(null, null, null, existingGroup,
                         header.description, header.type, header.assetId, header.locationId, header.workCenter,
@@ -227,9 +232,11 @@ public class MaintenanceTaskListController {
         return ResponseEntity.ok(Map.of("importedCounters", imported, "generatedGroups", generatedGroups.size()));
     }
 
-    private static final String[] CSV_COLUMNS = {"groupCode", "groupCounter", "description", "taskListType", "assetId", "locationId", "workCenter", "validFrom", "validTo", "status", "operationNumber", "shortDescription", "longText", "operationWorkCenter", "controlKey", "workers", "plannedWork", "workUnit", "duration", "durationUnit", "systemCondition", "partId", "quantity", "unit", "storageLocation", "estimatedUnitCost"};
+    private static final String[] CSV_COLUMNS = {"groupCode", "groupCounter", "description", "taskListType", "assetId", "locationId", "workCenter", "validFrom", "validTo", "status", "operationNumber", "operationOrder", "shortDescription", "longText", "operationWorkCenter", "controlKey", "workers", "plannedWork", "workUnit", "duration", "durationUnit", "systemCondition", "partId", "quantity", "unit", "storageLocation", "estimatedUnitCost"};
     private static String value(Object value) { return value == null ? "" : value.toString(); }
-    private static String optional(CSVRecord row, String key) { return row.get(key) == null ? "" : row.get(key).trim(); }
+    private static String optional(CSVRecord row, String key) {
+        return !row.isMapped(key) || row.get(key) == null ? "" : row.get(key).trim();
+    }
     private static String required(CSVRecord row, String key) { String value = optional(row, key); if (value.isBlank()) throw new IllegalArgumentException(key + "_required"); return value; }
     private static BigDecimal decimal(String value) { return new BigDecimal(value); }
     private static BigDecimal decimalOrNull(String value) { return value.isBlank() ? null : decimal(value); }
@@ -260,15 +267,17 @@ public class MaintenanceTaskListController {
     }
     private static final class ImportOperation {
         final String number, description, longText, workCenter, controlKey, workUnit, durationUnit, systemCondition;
-        final BigDecimal workers, plannedWork, duration; final List<MaintenanceTaskListDTO.MaterialDTO> materials = new ArrayList<>();
-        ImportOperation(CSVRecord row) {
+        final BigDecimal workers, plannedWork, duration; final int order; final List<MaintenanceTaskListDTO.MaterialDTO> materials = new ArrayList<>();
+        ImportOperation(CSVRecord row, int legacyOrder) {
             number = required(row,"operationNumber"); description = required(row,"shortDescription"); longText = optional(row,"longText");
+            order = operationOrder(row, legacyOrder);
             workCenter = optional(row,"operationWorkCenter"); controlKey = optional(row,"controlKey"); workers = decimalOrNull(optional(row,"workers"));
             plannedWork = decimalOrNull(optional(row,"plannedWork")); workUnit = optional(row,"workUnit"); duration = decimalOrNull(optional(row,"duration"));
             durationUnit = optional(row,"durationUnit"); systemCondition = optional(row,"systemCondition");
         }
         void assertSame(CSVRecord row) {
-            if (!description.equals(required(row, "shortDescription"))
+            if (order != operationOrder(row, order)
+                    || !description.equals(required(row, "shortDescription"))
                     || !Objects.equals(longText, optional(row, "longText"))
                     || !workCenter.equals(optional(row, "operationWorkCenter"))
                     || !controlKey.equals(optional(row, "controlKey"))
@@ -284,7 +293,13 @@ public class MaintenanceTaskListController {
         private static boolean sameDecimal(BigDecimal left, BigDecimal right) {
             return left == null ? right == null : right != null && left.compareTo(right) == 0;
         }
-        MaintenanceTaskListDTO.OperationDTO toDto() { return new MaintenanceTaskListDTO.OperationDTO(null, number, description, longText, workCenter, controlKey, workers, plannedWork, workUnit, duration, durationUnit, systemCondition, operationsOrder(), materials); }
-        int operationsOrder() { return 0; }
+        MaintenanceTaskListDTO.OperationDTO toDto() { return new MaintenanceTaskListDTO.OperationDTO(null, number, description, longText, workCenter, controlKey, workers, plannedWork, workUnit, duration, durationUnit, systemCondition, order, materials); }
+    }
+    private static int operationOrder(CSVRecord row, int fallback) {
+        String value = optional(row, "operationOrder");
+        if (value.isBlank()) return fallback;
+        int order = Integer.parseInt(value);
+        if (order < 0) throw new IllegalArgumentException("operation_order_invalid");
+        return order;
     }
 }

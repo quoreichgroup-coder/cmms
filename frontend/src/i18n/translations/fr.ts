@@ -122,6 +122,8 @@ const frJSON = {
     'Les guides affichés dépendent de vos droits. Si un écran attendu est absent, contactez votre administrateur.',
   help_open_module: 'Ouvrir le module',
   help_no_results: 'Aucun guide ne correspond à cette recherche.',
+  help_filter_category: 'Filtrer par catégorie',
+  help_all_categories: 'Toutes les catégories',
   help_results_count_singular: '{{count}} guide disponible',
   help_results_count_plural: '{{count}} guides disponibles',
   help_work_orders_title: 'Ordres de travail',
@@ -824,6 +826,8 @@ const frJSON = {
     '{{importedCounters}} compteurs importés dans {{generatedGroups}} groupes.',
   task_list_import_error:
     'Impossible d’importer les gammes. Vérifiez le CSV puis réessayez.',
+  task_list_import_row_error:
+    'Le CSV contient des données invalides à la ligne {{row}}. Corrigez cette ligne puis réessayez.',
   task_list_export_error: 'Impossible d’exporter les gammes. Réessayez.',
   export_csv: 'Exporter en CSV',
   purchase_export_failed:
@@ -1749,6 +1753,8 @@ const frJSON = {
     'Saisissez l’identifiant de l’enregistrement à utiliser pour prévisualiser « {{name}} ». Une PR/PO peut être saisie sous la forme PR-123 ou PO-123. Le brouillon est utilisé s’il existe; aucun document ne sera archivé.',
   document_template_preview_pr_po_id_help:
     'Utilisez le numéro affiché sur la fiche, par exemple PR-123 ou PO-123.',
+  document_template_preview_record_id_required:
+    'Saisissez un identifiant de document valide.',
   document_template_preview_work_order_required:
     'Saisissez un identifiant d’ordre de travail valide.',
   work_order_number: 'Identifiant de l’ordre de travail',

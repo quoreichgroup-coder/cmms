@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = @UniqueConstraint(name = "uk_documentation_category_company_slug",
                 columnNames = {"company_id", "locale", "slug"}),
         indexes = @Index(name = "idx_documentation_category_company_order",
-                columnList = "company_id, locale, display_order"))
+                columnList = "company_id, display_order"))
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)

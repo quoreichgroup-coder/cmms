@@ -11,7 +11,7 @@ const english = read('../src/i18n/translations/en.ts');
 const french = read('../src/i18n/translations/fr.ts');
 
 test('help center exposes one semantic page heading and announces result counts', () => {
-  assert.match(helpCenter, /variant="h3"\s+component="h1"/);
+  assert.match(helpCenter, /variant="h1"\s+component="h1"/);
   assert.match(helpCenter, /role="status"/);
   assert.match(helpCenter, /aria-live="polite"/);
   assert.match(helpCenter, /help_results_count_singular/);

@@ -1,12 +1,13 @@
 /** Shared QPM visual identity tokens. Operational status colors stay separate. */
 export const qpmBrandTokens = {
-  primary: '#4B5FE8',
+  primary: '#0062DB',
+  accent: '#FF8A51',
   canvas: '#F4F6FD'
 } as const;
 
 /** Repeatable chart series colors; workflow and priority colors remain semantic. */
 export const qpmAnalyticsTokens = [
-  '#4B5FE8',
+  qpmBrandTokens.primary,
   '#6941C6',
   '#0086C9',
   '#0E9384',
@@ -25,7 +26,7 @@ export const qpmNavigationTokens = {
   // Strong enough to read as an intentional hover surface on the white rail,
   // while keeping dark navigation labels comfortably above WCAG AA contrast.
   hover: '#C7D2FE',
-  active: '#4B5FE8',
+  active: qpmBrandTokens.primary,
   activeText: '#FFFFFF'
 } as const;
 

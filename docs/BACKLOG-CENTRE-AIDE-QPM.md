@@ -23,7 +23,7 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 
 #### HCP-01 — Vérifier le frontend et corriger les erreurs de compilation
 
-**Statut :** typecheck ciblé réussi; build CRA complet reste à confirmer. Deux builds (dont un sans sourcemaps) ont quitté prématurément avec le message « process exited too early », probablement par manque mémoire; une troisième tentative à heap limité a été interrompue après plusieurs minutes sans progrès visible. La machine n’avait qu’environ 2,4 Go de mémoire disponible au démarrage. **Dépendances :** aucune.
+**Statut :** typecheck global et build CRA basse mémoire réussis le 5 novembre 2026; tests de routes et d’accessibilité ciblés réussis. La recette navigateur authentifiée et les cas visuels restent ouverts. **Dépendances :** instance de recette et comptes autorisés pour la validation des parcours.
 
 - Exécuter le typecheck et le build de production Web dans l’environnement du dépôt.
 - Corriger les erreurs introduites par le Centre d’aide sans retoucher les modules QPM hors périmètre.
@@ -33,6 +33,8 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 **Acceptation :** typecheck et build réussissent; la page d’accueil, une URL d’article, une liste vide et les deux routes d’administration/consultation fonctionnent sans erreur console critique.
 
 **Vérifications partielles du 29 octobre 2026 :** le typecheck TypeScript ciblé (avec le `tsconfig` du projet et les fichiers d’environnement globaux) passe. Le build de production n’a pas été validé; relancer dans un environnement disposant de davantage de mémoire avant livraison.
+
+**Vérification du 5 novembre 2026 :** le typecheck TypeScript global, ESLint ciblé, la parité des 122 clés de traduction FR/EN, la compilation Maven backend, le parsing XML du changelog, sa présence dans `master.xml` et `git diff --check` passent. Les tests frontend de routes, recherche, accessibilité, modèles et émission documentaire passent aussi (7/7 suites). Un build de production CRA avec `QPM_LOW_MEMORY_BUILD=1`, sourcemaps désactivées et heap Node à 2 560 Mo a réussi après environ cinq minutes. La compilation ne signale pas d’erreur ESLint; l’avertissement restant concerne la taille importante du bundle (un chunk annoncé à environ 2,3 Mo gzip). Le navigateur authentifié et les routes de consultation/administration restent à recetter.
 
 #### HCP-02 — Valider la migration documentaire sans risque pour les données
 
@@ -58,7 +60,7 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 
 #### HCP-04 — Fermer l’accès non autorisé aux images documentaires
 
-**Statut :** garde-fous d’accès implémentés dans l’arbre de travail; recette négative/positive à faire avant production. **Dépendances :** HCP-03 pour la recette.
+**Statut :** garde-fous d’accès implémentés et tests unitaires backend ciblés réussis (image accessible via un article visible, refus si seuls des articles restreints la référencent, refus interentreprise); recette HTTP/navigateur positive et négative encore requise avant production. **Dépendances :** HCP-03 pour la recette.
 
 - `GET /documentation/assets/{assetId}` exige maintenant une session et limite la lecture à l’entreprise de l’utilisateur; un administrateur documentaire peut lire les ressources de sa société, et un lecteur doit avoir au moins un article publié visible qui référence l’image.
 - Le frontend récupère les images avec l’en-tête d’authentification puis les affiche avec des URL Blob locales; celles de la page publique sont révoquées au changement d’article, celles de l’éditeur au démontage du composant. La réponse API utilise `Cache-Control: private, no-store`.
@@ -68,11 +70,13 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 
 **Acceptation :** une image d’un article restreint ne peut pas être récupérée par un utilisateur non autorisé, même avec son URL; les lecteurs autorisés continuent de voir l’image.
 
+**Vérification locale du 5 novembre 2026 :** `DocumentationServiceAssetAccessTest` passe (3/3). Ces tests valident la règle d’autorisation du service; ils ne remplacent pas la vérification de la réponse HTTP et du chargement authentifié des images dans le navigateur.
+
 ### P1 — Compléter l’expérience documentaire
 
 #### HCP-05 — Fiabiliser la recherche et la découverte
 
-**Statut :** à faire. **Dépendances :** HCP-01 à HCP-04.
+**Statut :** recherche instantanée côté interface améliorée : correspondance multi-termes sans tenir compte des accents, filtre catégorie, classement, surlignage et extrait du corps. La recherche PostgreSQL serveur, l’extraction d’extraits côté serveur et le contrôle de volumétrie restent à faire. **Dépendances :** HCP-01 à HCP-04.
 
 - Indexer les champs publiés pertinents avec la recherche plein texte PostgreSQL, en respectant entreprise, langue, statut et permissions.
 - Ajouter classement, extraits de correspondance et surlignage sûr des termes; éviter de transférer tous les contenus à chaque recherche si le volume augmente.
@@ -80,6 +84,8 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 - Vérifier que les brouillons et articles cachés ne sont jamais présents dans les résultats ni les extraits.
 
 **Acceptation :** recherche réactive sur titre, mots-clés, résumé et corps; résultats correctement classés et autorisés; clavier et état vide utilisables.
+
+**Mise à jour du 5 novembre 2026 :** les articles affichés restent ceux filtrés par l’API selon entreprise, langue, statut et permissions; la recherche locale ne voit que cette liste. Le filtre de catégorie utilise les catégories présentes dans cette liste. Typecheck ciblé, ESLint ciblé et `git diff --check` réussis. Aucun changement API, schéma ou migration.
 
 #### HCP-06 — Enregistrer l’avis sur les articles
 
@@ -105,7 +111,7 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 
 #### HCP-08 — Améliorer la gestion des images
 
-**Statut :** description alternative demandée après ajout, modifiable pour une image sélectionnée, image décorative prise en charge, et agrandissement des images descriptives utilisable au clavier; optimisation, annotations et recette restent à faire. **Dépendances :** HCP-04.
+**Statut :** description alternative demandée après ajout, modifiable pour une image sélectionnée, image décorative prise en charge, et agrandissement des images descriptives utilisable au clavier; optimisation, annotations et recette restent à faire. Le dernier contrôle TypeScript/ESLint de ce changement n’a pas rendu de résultat dans l’environnement courant. **Dépendances :** HCP-04.
 
 - Rendre le texte alternatif éditable et requis ou explicitement décoratif; préserver légende et dimensions utiles.
 - Vérifier limites de taille, signature réelle du fichier, noms sûrs, stockage privé, erreur de fournisseur, cache et suppression contrôlée des objets orphelins.
@@ -133,12 +139,14 @@ Les priorités P0 sont des critères de sortie avant toute annonce de disponibil
 
 #### HCP-10 — Structurer les contenus et compléter le bilingue
 
-**Statut :** à faire. **Dépendances :** HCP-03.
+**Statut :** audit statique des sept thèmes bilingues et de leurs routes rédigé dans `docs/CENTRE-AIDE-QPM-VALIDATION-CONTENU.md`; validation métier des procédures et relecture linguistique restent à faire en préproduction. **Dépendances :** HCP-03.
 
 - Faire relire les sept guides migrés contre l’interface et les workflows réellement disponibles dans QPM; corriger les formulations génériques et chemins de navigation non vérifiés.
 - Maintenir les versions FR/EN liées ou clairement identifiables, avec indication lorsqu’une traduction est absente ou obsolète.
 - Ajouter les catégories et guides des modules réellement disponibles, en évitant de documenter des fonctions non livrées.
 - Définir qui rédige, qui révise, qui publie et la convention de date de mise à jour.
+
+**Mise à jour du 5 novembre 2026 :** l’audit du dépôt confirme les routes principales, les vues conditionnelles et les champs configurables. Il n’a pas modifié le contenu du changelog, car son état d’application n’est pas établi; aucune migration n’a été lancée. Les étapes métier doivent être relues dans QPM sur préproduction avant publication.
 
 **Acceptation :** parcours documentés reproductibles dans la version actuelle de QPM, contenu français et anglais cohérent et articles focalisés sur une tâche.
 

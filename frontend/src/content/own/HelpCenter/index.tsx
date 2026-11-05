@@ -20,14 +20,18 @@ import {
   DialogTitle,
   Divider,
   Drawer,
+  FormControl,
   IconButton,
+  InputLabel,
   InputAdornment,
   InputBase,
   Link,
   List,
   ListItemButton,
   ListItemText,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Typography,
   useMediaQuery,
@@ -58,6 +62,7 @@ import useAuth from '../../../hooks/useAuth';
 import { useBrand } from '../../../hooks/useBrand';
 import { hydrateAuthorizedImages } from './authorizedImages';
 import { normalizeHelpSearch } from './normalizeHelpSearch';
+import { getSearchExcerpt, Highlight } from './searchPresentation';
 
 type Guide = {
   id: string;
@@ -104,34 +109,6 @@ const readNavigationState = (): Record<string, boolean> => {
   }
 };
 
-const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const Highlight = ({ text, query }: { text: string; query: string }) => {
-  const terms = query.trim().split(/\s+/).filter(Boolean);
-  if (!terms.length) return <>{text}</>;
-  const expression = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'ig');
-  return (
-    <>
-      {text.split(expression).map((part, index) =>
-        terms.some(
-          (term) => part.toLocaleLowerCase() === term.toLocaleLowerCase()
-        ) ? (
-          <Box
-            component="mark"
-            key={`${part}-${index}`}
-            sx={{ bgcolor: 'primary.light', color: 'text.primary', px: 0.15 }}
-          >
-            {part}
-          </Box>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
-};
-
 export default function HelpCenter() {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage?.toLowerCase().startsWith('fr')
@@ -145,6 +122,7 @@ export default function HelpCenter() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
   const isTablet = useMediaQuery(theme.breakpoints.up('md'));
   const [query, setQuery] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
   const [activeSuggestion, setActiveSuggestion] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openCategories, setOpenCategories] =
@@ -162,6 +140,11 @@ export default function HelpCenter() {
     DocumentationArticle[] | null
   >(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSearchCategory('');
+    setActiveSuggestion(0);
+  }, [locale]);
 
   useEffect(() => {
     let mounted = true;
@@ -327,24 +310,36 @@ export default function HelpCenter() {
     visibleGuides.find((guide) => guide.id === slug) ??
     visibleGuides.find((guide) => guide.id === guideSlugAliases[slug ?? '']);
   const normalizedQuery = normalizeHelpSearch(query.trim());
+  const queryTerms = normalizedQuery.split(/\s+/).filter(Boolean);
   const filteredGuides = visibleGuides
+    .filter(
+      (guide) =>
+        !searchCategory ||
+        (guide.categoryTitle ?? guide.title) === searchCategory
+    )
     .filter((guide) => {
       const searchable = normalizeHelpSearch(
         `${guide.title} ${guide.summary} ${guide.steps.join(' ')} ${
           guide.categoryTitle ?? ''
         } ${guide.keywords.join(' ')}`
       );
-      return searchable.includes(normalizedQuery);
+      return queryTerms.every((term) => searchable.includes(term));
     })
     .sort((first, second) => {
       const score = (guide: Guide) => {
         const title = normalizeHelpSearch(guide.title);
         const summary = normalizeHelpSearch(guide.summary);
         const keywords = normalizeHelpSearch(guide.keywords.join(' '));
-        if (title.includes(normalizedQuery)) return 3;
-        if (keywords.includes(normalizedQuery)) return 2;
-        if (summary.includes(normalizedQuery)) return 1;
-        return 0;
+        const titleMatches = queryTerms.filter((term) =>
+          title.includes(term)
+        ).length;
+        const keywordMatches = queryTerms.filter((term) =>
+          keywords.includes(term)
+        ).length;
+        const summaryMatches = queryTerms.filter((term) =>
+          summary.includes(term)
+        ).length;
+        return titleMatches * 3 + keywordMatches * 2 + summaryMatches;
       };
       return score(second) - score(first);
     });
@@ -534,7 +529,7 @@ export default function HelpCenter() {
           inputProps={{
             'aria-label': t('help_search_placeholder'),
             role: 'combobox',
-            'aria-expanded': Boolean(suggestions.length),
+            'aria-expanded': Boolean(query.trim()),
             'aria-controls': `${searchId}-results`,
             'aria-activedescendant': suggestions[activeSuggestion]
               ? `${searchId}-result-${suggestions[activeSuggestion].id}`
@@ -548,7 +543,10 @@ export default function HelpCenter() {
           <IconButton
             size="small"
             aria-label={t('help_clear_search')}
-            onClick={() => setQuery('')}
+            onClick={() => {
+              setQuery('');
+              setSearchCategory('');
+            }}
           >
             <CloseOutlinedIcon fontSize="small" />
           </IconButton>
@@ -567,68 +565,153 @@ export default function HelpCenter() {
         )}
       </Paper>
       {query.trim() && (
-        <Paper
-          id={`${searchId}-results`}
-          role="listbox"
-          elevation={4}
+        <Box
+          role="status"
+          aria-live="polite"
+          sx={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: 0
+          }}
+        >
+          {t(
+            filteredGuides.length === 1
+              ? 'help_results_count_singular'
+              : 'help_results_count_plural',
+            { count: filteredGuides.length }
+          )}
+        </Box>
+      )}
+      {query.trim() && (
+        <Box
           sx={{
             position: 'absolute',
             zIndex: theme.zIndex.modal + 1,
             top: 'calc(100% + 8px)',
             left: 0,
-            right: 0,
-            maxHeight: 360,
-            overflowY: 'auto',
-            p: 0.75,
-            border: 1,
-            borderColor: 'divider'
+            right: 0
           }}
         >
-          {suggestions.length ? (
-            suggestions.map((guide, index) => (
-              <ListItemButton
-                key={guide.id}
-                id={`${searchId}-result-${guide.id}`}
-                role="option"
-                aria-selected={activeSuggestion === index}
-                onMouseEnter={() => setActiveSuggestion(index)}
-                onClick={() => goToGuide(guide.id)}
-                sx={{ borderRadius: 1.5, gap: 1.25, alignItems: 'flex-start' }}
-              >
-                <Box sx={{ color: 'primary.main', mt: 0.25 }}>{guide.icon}</Box>
-                <ListItemText
-                  primary={<Highlight text={guide.title} query={query} />}
-                  secondary={
-                    <>
-                      <Typography
-                        component="span"
-                        variant="caption"
-                        color="primary.main"
-                        sx={{ display: 'block', mb: 0.25 }}
-                      >
-                        {guide.categoryTitle ?? t('help_category_label')}
-                      </Typography>
-                      <Highlight text={guide.summary} query={query} />
-                    </>
-                  }
-                  primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }}
-                />
-                <ArrowForwardOutlinedIcon fontSize="small" color="action" />
-              </ListItemButton>
-            ))
-          ) : (
-            <Typography role="status" color="text.secondary" sx={{ p: 2 }}>
-              {t('help_no_results')}
-            </Typography>
-          )}
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ px: 1.5, py: 0.75, display: 'block' }}
+          <Paper
+            elevation={4}
+            sx={{ p: 1, mb: 0.75, border: 1, borderColor: 'divider' }}
           >
-            {t('help_search_keyboard_hint')}
-          </Typography>
-        </Paper>
+            <FormControl fullWidth size="small">
+              <InputLabel id={`${searchId}-category-label`}>
+                {t('help_filter_category')}
+              </InputLabel>
+              <Select
+                labelId={`${searchId}-category-label`}
+                value={searchCategory}
+                label={t('help_filter_category')}
+                onChange={(event) => {
+                  setSearchCategory(event.target.value);
+                  setActiveSuggestion(0);
+                }}
+              >
+                <MenuItem value="">{t('help_all_categories')}</MenuItem>
+                {navigationGroups.map((category) => (
+                  <MenuItem key={category.key} value={category.title}>
+                    {category.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Paper>
+          <Paper
+            id={`${searchId}-results`}
+            role="listbox"
+            elevation={4}
+            sx={{
+              maxHeight: 320,
+              overflowY: 'auto',
+              p: 0.75,
+              border: 1,
+              borderColor: 'divider'
+            }}
+          >
+            {suggestions.length ? (
+              suggestions.map((guide, index) => (
+                <ListItemButton
+                  key={guide.id}
+                  id={`${searchId}-result-${guide.id}`}
+                  role="option"
+                  aria-selected={activeSuggestion === index}
+                  onMouseEnter={() => setActiveSuggestion(index)}
+                  onClick={() => goToGuide(guide.id)}
+                  sx={{
+                    borderRadius: 1.5,
+                    gap: 1.25,
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <Box sx={{ color: 'primary.main', mt: 0.25 }}>
+                    {guide.icon}
+                  </Box>
+                  <ListItemText
+                    primary={<Highlight text={guide.title} query={query} />}
+                    secondary={
+                      <>
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="primary.main"
+                          sx={{ display: 'block', mb: 0.25 }}
+                        >
+                          {guide.categoryTitle ?? t('help_category_label')}
+                        </Typography>
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          <Highlight text={guide.summary} query={query} />
+                        </Typography>
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block', mt: 0.25 }}
+                        >
+                          <Highlight
+                            text={getSearchExcerpt(
+                              guide.steps.join(' '),
+                              query
+                            )}
+                            query={query}
+                          />
+                        </Typography>
+                      </>
+                    }
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      variant: 'body2'
+                    }}
+                  />
+                  <ArrowForwardOutlinedIcon fontSize="small" color="action" />
+                </ListItemButton>
+              ))
+            ) : (
+              <Typography role="status" color="text.secondary" sx={{ p: 2 }}>
+                {t('help_no_results')}
+              </Typography>
+            )}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ px: 1.5, py: 0.75, display: 'block' }}
+            >
+              {t('help_search_keyboard_hint')}
+            </Typography>
+          </Paper>
+        </Box>
       )}
     </Box>
   );
@@ -1293,55 +1376,69 @@ export default function HelpCenter() {
                       }}
                     />
                   ) : (
-                    <Stack spacing={2.5}>
+                    <Box
+                      component="ol"
+                      sx={{
+                        listStyle: 'none',
+                        m: 0,
+                        p: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2.5
+                      }}
+                    >
                       {activeGuide.steps.map((step, index) => (
                         <Box
-                          component="section"
-                          id={`step-${index + 1}`}
+                          component="li"
                           key={`${activeGuide.id}-step-${index}`}
                         >
-                          <Stack
-                            direction="row"
-                            spacing={1.5}
-                            alignItems="flex-start"
-                          >
-                            <Box
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                flexShrink: 0,
-                                borderRadius: '50%',
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                color: 'primary.main',
-                                display: 'grid',
-                                placeItems: 'center',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                mt: 0.25
-                              }}
+                          <Box component="section" id={`step-${index + 1}`}>
+                            <Stack
+                              direction="row"
+                              spacing={1.5}
+                              alignItems="flex-start"
                             >
-                              {index + 1}
-                            </Box>
-                            <Box>
-                              <Typography
-                                variant="subtitle1"
-                                component="h3"
-                                fontWeight={700}
-                                sx={{ mb: 0.5 }}
+                              <Box
+                                sx={{
+                                  width: 28,
+                                  height: 28,
+                                  flexShrink: 0,
+                                  borderRadius: '50%',
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.1
+                                  ),
+                                  color: 'primary.main',
+                                  display: 'grid',
+                                  placeItems: 'center',
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  mt: 0.25
+                                }}
                               >
-                                {t('help_step')} {index + 1}
-                              </Typography>
-                              <Typography
-                                color="text.secondary"
-                                sx={{ lineHeight: 1.75 }}
-                              >
-                                {step}
-                              </Typography>
-                            </Box>
-                          </Stack>
+                                {index + 1}
+                              </Box>
+                              <Box>
+                                <Typography
+                                  variant="subtitle1"
+                                  component="h3"
+                                  fontWeight={700}
+                                  sx={{ mb: 0.5 }}
+                                >
+                                  {t('help_step')} {index + 1}
+                                </Typography>
+                                <Typography
+                                  color="text.secondary"
+                                  sx={{ lineHeight: 1.75 }}
+                                >
+                                  {step}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
                         </Box>
                       ))}
-                    </Stack>
+                    </Box>
                   )}
                 </Box>
                 <Box component="section" id="related">

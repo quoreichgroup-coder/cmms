@@ -142,13 +142,15 @@ label={t('task_list_default_duration_unit')} value={values.defaultDurationUnit}
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth multiline minRows={5} maxRows={12}
+                <TextField fullWidth multiline
+                  minRows={5} maxRows={12}
                   label={t('task_list_work_center_catalog')} value={values.workCenterCatalog}
                   helperText={t('task_list_catalog_one_per_line')}
                   onChange={(event) => update('workCenterCatalog', event.target.value)} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth multiline minRows={5} maxRows={12}
+                <TextField fullWidth multiline
+                  minRows={5} maxRows={12}
                   label={t('task_list_control_key_catalog')} value={values.controlKeyCatalog}
                   helperText={t('task_list_catalog_one_per_line')}
                   onChange={(event) => update('controlKeyCatalog', event.target.value)} />

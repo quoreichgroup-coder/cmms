@@ -1,7 +1,8 @@
 /** QPM semantic palette. Keep status meaning stable across appearance modes. */
 export const qpmDesignTokens = {
   light: {
-    brandPrimary: '#4B5FE8',
+    brandPrimary: '#0062DB',
+    brandAccent: '#FF8A51',
     onPrimary: '#FFFFFF',
     brandLogo: '#4055DD',
     brandHeader: '#4B5FE8',
@@ -53,6 +54,7 @@ export const qpmDesignTokens = {
   },
   dark: {
     brandPrimary: '#AAB5FF',
+    brandAccent: '#FF8A51',
     onPrimary: '#172044',
     brandLogo: '#AAB5FF',
     brandHeader: '#172347',

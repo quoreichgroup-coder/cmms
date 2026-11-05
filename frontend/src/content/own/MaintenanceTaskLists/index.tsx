@@ -362,9 +362,15 @@ function MaintenanceTaskLists() {
         'task_list_operation_values_must_be_positive',
         'task_list_material_values_invalid'
       ]);
-      showSnackBar(validationErrors.has(message)
-        ? t(message)
-        : getErrorMessage(error, 'task_list_import_error'), 'error');
+      const invalidRow = typeof message === 'string'
+        ? /^task_list_import_invalid_row_(\d+)_/.exec(message)
+        : null;
+      const userMessage = invalidRow
+        ? t('task_list_import_row_error', { row: invalidRow[1] })
+        : validationErrors.has(message)
+          ? t(message)
+          : getErrorMessage(error, 'task_list_import_error');
+      showSnackBar(userMessage, 'error');
     } finally {
       setTransferring(false);
       if (importFileRef.current) importFileRef.current.value = '';

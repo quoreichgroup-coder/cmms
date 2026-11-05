@@ -10,6 +10,7 @@ import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
 import { useTranslation } from 'react-i18next';
 import api, { getErrorMessage } from '../../../utils/api';
 import { isPdfContentType } from '../../../utils/documentResponse';
+import { runSingleFlight } from '../../../utils/runSingleFlight';
 
 type Kind = 'purchase-orders' | 'purchase-requisitions';
 interface Doc { id: number; fileName: string; issuedAt: string; sha256: string }
@@ -24,7 +25,9 @@ export default function ProcurementDocumentModal({ kind, sourceId, disabled = fa
   const [selected, setSelected] = useState<number | ''>('');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [error, setError] = useState('');
+  const [issuedMessage, setIssuedMessage] = useState('');
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const seq = useRef(0);
@@ -57,45 +60,66 @@ export default function ProcurementDocumentModal({ kind, sourceId, disabled = fa
   };
   const preview = async () => {
     if (selected === '') return;
-    const tab = window.open('about:blank', '_blank'); if (tab) tab.opener = null;
-    setBusy(true); setError('');
-    try { const response = await api.post<Response>(`${base}/${sourceId}/documents/preview/${selected}`, null, { raw: true }); await openPdf(response, true, undefined, tab); }
-    catch (e) { tab?.close(); setError(getErrorMessage(e, t('work_order_report_preview_error'))); }
-    finally { setBusy(false); }
+    await runSingleFlight(busyRef, async () => {
+      const tab = window.open('about:blank', '_blank'); if (tab) tab.opener = null;
+      setBusy(true); setError('');
+      try { const response = await api.post<Response>(`${base}/${sourceId}/documents/preview/${selected}`, null, { raw: true }); await openPdf(response, true, undefined, tab); }
+      catch (e) { tab?.close(); setError(getErrorMessage(e, t('work_order_report_preview_error'))); }
+      finally { setBusy(false); }
+    });
   };
   const issue = async () => {
-    if (selected === '') return;
-    setBusy(true); setError('');
-    try {
-      const created = await api.post<Doc>(`${base}/${sourceId}/documents/issue/${selected}`, null);
-      await load();
-      const response = await api.get<Response>(`documents/${created.id}/download`, { raw: true });
-      await openPdf(response, false, created.fileName);
-    } catch (e) { setError(getErrorMessage(e, t('issued_document_issue_error'))); }
-    finally { setBusy(false); }
+    if (selected === '' || issueDisabled) return;
+    await runSingleFlight(busyRef, async () => {
+      setBusy(true); setError(''); setIssuedMessage('');
+      try {
+        let created: Doc;
+        try {
+          created = await api.post<Doc>(`${base}/${sourceId}/documents/issue/${selected}`, null);
+        } catch (e) {
+          setError(getErrorMessage(e, t('issued_document_issue_error')));
+          return;
+        }
+        setIssuedMessage(t('issued_document_saved'));
+        await load();
+        try {
+          const response = await api.get<Response>(`documents/${created.id}/download`, { raw: true });
+          await openPdf(response, false, created.fileName);
+        } catch (e) {
+          setError(getErrorMessage(e, t('issued_document_download_error')));
+        }
+      } finally {
+        setBusy(false);
+      }
+    });
   };
   const download = async (doc: Doc) => {
-    setBusy(true); setError('');
-    try { const response = await api.get<Response>(`documents/${doc.id}/download`, { raw: true }); if (!isPdfContentType(response.headers.get('content-type'))) throw new Error('invalid_document_content_type'); const blob = await response.blob(); if (!blob.size) throw new Error('empty_document'); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = doc.fileName; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60_000); }
-    catch (e) { setError(getErrorMessage(e, t('issued_document_download_error'))); }
-    finally { setBusy(false); }
+    await runSingleFlight(busyRef, async () => {
+      setBusy(true); setError('');
+      try { const response = await api.get<Response>(`documents/${doc.id}/download`, { raw: true }); if (!isPdfContentType(response.headers.get('content-type'))) throw new Error('invalid_document_content_type'); const blob = await response.blob(); if (!blob.size) throw new Error('empty_document'); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = doc.fileName; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60_000); }
+      catch (e) { setError(getErrorMessage(e, t('issued_document_download_error'))); }
+      finally { setBusy(false); }
+    });
   };
   const openIssuedPdf = async (doc: Doc) => {
-    const tab = window.open('about:blank', '_blank'); if (tab) tab.opener = null;
-    setBusy(true); setError('');
-    try { const response = await api.get<Response>(`documents/${doc.id}/download`, { raw: true }); await openPdf(response, true, doc.fileName, tab); }
-    catch (e) { tab?.close(); setError(getErrorMessage(e, t('issued_document_download_error'))); }
-    finally { setBusy(false); }
+    await runSingleFlight(busyRef, async () => {
+      const tab = window.open('about:blank', '_blank'); if (tab) tab.opener = null;
+      setBusy(true); setError('');
+      try { const response = await api.get<Response>(`documents/${doc.id}/download`, { raw: true }); await openPdf(response, true, doc.fileName, tab); }
+      catch (e) { tab?.close(); setError(getErrorMessage(e, t('issued_document_download_error'))); }
+      finally { setBusy(false); }
+    });
   };
 
   return <>
-    <Button size="small" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'center' } }} startIcon={<PrintOutlinedIcon />} disabled={disabled} onClick={() => setOpen(true)}>{t('procurement_print', 'Print / PDF')}</Button>
+    <Button size="small" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'center' } }} startIcon={<PrintOutlinedIcon />} disabled={disabled} onClick={() => { setIssuedMessage(''); setError(''); setOpen(true); }}>{t('procurement_print', 'Print / PDF')}</Button>
     <Dialog open={open} onClose={() => !busy && setOpen(false)} fullScreen={fullScreen} fullWidth maxWidth="sm">
       <DialogTitle>{kind === 'purchase-orders' ? t('purchase_order', 'Purchase order') : t('purchase_requisition', 'Purchase requisition')} · {t('procurement_print', 'Print / PDF')}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">{t('procurement_print_help', 'Preview a published template, then issue a traceable PDF. Reprints remain available below.')}</Typography>
           {error && <Alert severity="error">{error}</Alert>}
+          {issuedMessage && <Alert severity="success">{issuedMessage}</Alert>}
           {issueDisabled && <Alert severity="info">{t('procurement_issue_requires_approval')}</Alert>}
           {loading ? <CircularProgress size={24} /> : templates.length ? <Select fullWidth size="small" value={selected} onChange={(event) => setSelected(Number(event.target.value))} aria-label={t('document_template')}>
             {templates.map((template) => <MenuItem key={template.id} value={template.id}>{template.name} · v{template.versionNumber}{template.isDefault ? ` · ${t('default')}` : ''}</MenuItem>)}
