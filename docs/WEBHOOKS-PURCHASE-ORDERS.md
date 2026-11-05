@@ -2,6 +2,8 @@
 
 Cette note décrit les événements PO durables actuellement émis par QPM. Elle reflète l’implémentation et ne s’applique pas aux événements d’autres modules, qui utilisent encore leur chemin de livraison distinct.
 
+Les trois événements PO de ce contrat sont sélectionnables dans **Settings → Integrations → Webhooks**. `WORK_ORDER_OVERDUE` reste dans le type historique de l’API mais n’est pas proposé dans le formulaire, car aucun dispatch correspondant n’est implémenté.
+
 ## Événements
 
 | `X-Webhook-Event` | Déclencheur | Champs d’événement |
