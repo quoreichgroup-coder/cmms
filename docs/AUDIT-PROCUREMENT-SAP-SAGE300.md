@@ -332,3 +332,8 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - Le fournisseur de données d’impression utilisait une requête PO sans graphe de relations, puis lisait pour chaque ligne article, site et PR source en lazy loading. Une requête dédiée annotée `@EntityGraph` charge maintenant `part`, `site` et `requisitionLine.requisition` ensemble, sans modifier les recherches/lectures PO hors impression.
 - `ProcurementDocumentDataProviderTest`, `GeneratedDocumentServiceTest` et `GeneratedDocumentControllerTest` passent (**48 tests, 0 échec**); un test protège les chemins du graphe de chargement.
 - Image API reconstruite et déployée : `atlas-cmms-backend:local`, digest `0e5fade68c1d97944a96a78c7f8bf9ee30fbfe4c1ee3bdb58b3cde1443bc9488`. Spring/Hibernate démarrent, Liquibase reste à 885 changesets sans nouveau changeset, l’API et le frontend répondent HTTP 200. Le log confirme encore l’absence de trigger futur pour le schedule 252.
+
+### Ordre d’impression PO déterministe — 5 novembre 2026, 14:05 UTC
+
+- La requête dédiée d’impression utilise maintenant un `@Query` ordonné par `line.id ASC`, en plus de l’EntityGraph. À défaut d’une colonne de position métier, l’ordre des lignes reste stable entre rendus.
+- Les tests documentaires et d’accès passent (**17 tests, 0 échec**). Image API mise à jour et déployée : `atlas-cmms-backend:local`, digest `5a3821e42540e17a31fa12f304cb1f7ffbf7a577f15dd65f8f73f8aab5a43446`. Spring démarre, aucun changeset ne s’exécute, API/Web HTTP 200; le schedule 252 n’est pas recréé.

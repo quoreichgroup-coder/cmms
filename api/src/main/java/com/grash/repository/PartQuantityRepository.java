@@ -3,6 +3,8 @@ package com.grash.repository;
 import com.grash.model.PartQuantity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -20,7 +22,8 @@ public interface PartQuantityRepository extends JpaRepository<PartQuantity, Long
     Collection<PartQuantity> findByPurchaseOrder_Id(Long id);
 
     @EntityGraph(attributePaths = {"part", "site", "requisitionLine.requisition"})
-    Collection<PartQuantity> findForDocumentByPurchaseOrder_Id(Long id);
+    @Query("select line from PartQuantity line where line.purchaseOrder.id = :purchaseOrderId order by line.id asc")
+    Collection<PartQuantity> findDocumentLinesByPurchaseOrderId(@Param("purchaseOrderId") Long purchaseOrderId);
 
     boolean existsBySite_Id(Long siteId);
 

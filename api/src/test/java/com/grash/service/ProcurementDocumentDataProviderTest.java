@@ -26,10 +26,13 @@ class ProcurementDocumentDataProviderTest {
     @Test
     void purchaseOrderPrintQueryFetchesLazyLineBindingsTogether() throws Exception {
         EntityGraph graph = PartQuantityRepository.class
-                .getMethod("findForDocumentByPurchaseOrder_Id", Long.class)
+                .getMethod("findDocumentLinesByPurchaseOrderId", Long.class)
                 .getAnnotation(EntityGraph.class);
         assertNotNull(graph);
         assertArrayEquals(new String[]{"part", "site", "requisitionLine.requisition"}, graph.attributePaths());
+        String query = PartQuantityRepository.class.getMethod("findDocumentLinesByPurchaseOrderId", Long.class)
+                .getAnnotation(org.springframework.data.jpa.repository.Query.class).value();
+        assertTrue(query.contains("order by line.id asc"));
     }
 
     @Test
@@ -39,7 +42,7 @@ class ProcurementDocumentDataProviderTest {
         PurchaseOrder po = new PurchaseOrder(); po.setId(70L); po.setName("Commande pompe");
         Part part = new Part(); part.setName("Joint mécanique"); part.setDescription("Série 55"); part.setUnit("pcs"); part.setCost(987654.0);
         PartQuantity line = new PartQuantity(); line.setPart(part); line.setQuantity(3.0);
-        when(repository.findForDocumentByPurchaseOrder_Id(70L)).thenReturn(List.of(line));
+        when(repository.findDocumentLinesByPurchaseOrderId(70L)).thenReturn(List.of(line));
 
         var values = provider.resolve(po, context, Set.of("purchaseOrder.number", "purchaseOrder.lines", "company.legalName"));
         assertEquals("PO-70", values.get("purchaseOrder.number"));
@@ -54,7 +57,7 @@ class ProcurementDocumentDataProviderTest {
         assertFalse(row.toString().contains("987654"));
         assertEquals("", row.get("unitPrice"));
         assertEquals("", row.get("lineTotal"));
-        verify(repository).findForDocumentByPurchaseOrder_Id(70L);
+        verify(repository).findDocumentLinesByPurchaseOrderId(70L);
     }
 
     @Test
@@ -67,7 +70,7 @@ class ProcurementDocumentDataProviderTest {
         Site receivingSite = new Site(); receivingSite.setName("Atelier Nord"); line.setSite(receivingSite);
         line.setPurchaseUnitPrice(new java.math.BigDecimal("125.5000"));
         line.setPurchasePriceCurrency("XOF");
-        when(repository.findForDocumentByPurchaseOrder_Id(71L)).thenReturn(List.of(line));
+        when(repository.findDocumentLinesByPurchaseOrderId(71L)).thenReturn(List.of(line));
 
         var values = provider.resolve(po, context, Set.of("purchaseOrder.lines"));
         var row = (java.util.Map<?, ?>) ((List<?>) values.get("purchaseOrder.lines")).get(0);
@@ -93,7 +96,7 @@ class ProcurementDocumentDataProviderTest {
         PurchaseRequisition requisition = new PurchaseRequisition(); requisition.setId(31L);
         PurchaseRequisitionLine requestedLine = new PurchaseRequisitionLine(); requestedLine.setRequisition(requisition);
         PartQuantity orderLine = new PartQuantity(); orderLine.setRequisitionLine(requestedLine);
-        when(repository.findForDocumentByPurchaseOrder_Id(71L)).thenReturn(List.of(orderLine));
+        when(repository.findDocumentLinesByPurchaseOrderId(71L)).thenReturn(List.of(orderLine));
 
         var values = provider.resolve(po, context, Set.of("purchaseOrder.requisition"));
         assertEquals("PR-31", values.get("purchaseOrder.requisition"));

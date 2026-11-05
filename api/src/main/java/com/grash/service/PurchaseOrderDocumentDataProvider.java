@@ -38,7 +38,7 @@ public class PurchaseOrderDocumentDataProvider implements DocumentDataProvider {
         if (!(source instanceof PurchaseOrder po)) throw new CustomException("Purchase order required", HttpStatus.BAD_REQUEST);
         validate(requestedFields);
         Collection<PartQuantity> orderLines = requestedFields.contains(LINES) || requestedFields.contains("purchaseOrder.requisition")
-                ? lines.findForDocumentByPurchaseOrder_Id(po.getId()) : List.of();
+                ? lines.findDocumentLinesByPurchaseOrderId(po.getId()) : List.of();
         Map<String,Object> out = new LinkedHashMap<>();
         for (String key : requestedFields) out.put(key, switch (key) {
             case "purchaseOrder.number" -> po.getId() == null ? null : "PO-" + po.getId();
