@@ -39,6 +39,7 @@ public class PurchaseOrderApprovalService {
     private final PartRepository partRepository;
     private final PartMapper partMapper;
     private final WebhookDispatchService webhookDispatchService;
+    private final PurchaseOrderWebhookService purchaseOrderWebhookService;
     private final PurchaseRequisitionRepository purchaseRequisitionRepository;
     private final ProcurementApprovalService procurementApprovals;
 
@@ -103,8 +104,11 @@ public class PurchaseOrderApprovalService {
             releaseRequisitionQuantities(quantities, companyId);
         }
 
+        ApprovalStatus previousStatus = purchaseOrder.getStatus();
         purchaseOrder.setStatus(approved ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED);
-        return purchaseOrderService.save(purchaseOrder);
+        PurchaseOrder saved = purchaseOrderService.save(purchaseOrder);
+        purchaseOrderWebhookService.statusChanged(saved, previousStatus);
+        return saved;
     }
 
     private void releaseRequisitionQuantities(Collection<PartQuantity> quantities, Long companyId) {

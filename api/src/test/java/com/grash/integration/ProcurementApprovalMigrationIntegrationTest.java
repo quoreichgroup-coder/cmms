@@ -138,4 +138,25 @@ class ProcurementApprovalMigrationIntegrationTest {
         }
         assertEquals("23503", assertThrows(SQLException.class, () -> sql("DELETE FROM site WHERE id=5")).getSQLState());
     }
+
+    @Test void purchaseOrderWebhookOutboxMigrationCreatesClaimablePersistentEvents() throws Exception {
+        var liquibase = new Liquibase("db/changelog/2026_11_05_00000000002_purchase_order_webhook_outbox.xml",
+                new DirectoryResourceAccessor(Path.of("src/main/resources")), new JdbcConnection(connection));
+        liquibase.update(new Contexts(), new LabelExpression());
+        connection.setAutoCommit(true);
+
+        try (var statement = connection.prepareStatement("INSERT INTO webhook_outbox_event " +
+                "(event_key,company_id,event_type,payload,serialized_payload,endpoint_ids,status,attempts,created_at,next_attempt_at) " +
+                "VALUES (?::uuid,1,'NEW_PURCHASE_ORDER','{}','{}','[5]','PENDING',0,now(),now())")) {
+            statement.setString(1, java.util.UUID.randomUUID().toString());
+            assertEquals(1, statement.executeUpdate());
+        }
+        try (var statement = connection.prepareStatement("SELECT id FROM webhook_outbox_event " +
+                "WHERE status='PENDING' AND next_attempt_at <= now() " +
+                "ORDER BY created_at LIMIT 25 FOR UPDATE SKIP LOCKED");
+             var results = statement.executeQuery()) {
+            assertTrue(results.next());
+            assertTrue(results.getLong("id") > 0);
+        }
+    }
 }

@@ -345,4 +345,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_11_05_00000000001_procurement_line_sites.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_11_05_00000000002_purchase_order_webhook_outbox.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

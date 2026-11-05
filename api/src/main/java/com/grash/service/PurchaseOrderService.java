@@ -31,6 +31,7 @@ public class PurchaseOrderService {
     private final EntityManager em;
     private final ProcurementApprovalService procurementApprovals;
     private final ProcurementSiteService procurementSiteService;
+    private final PurchaseOrderWebhookService purchaseOrderWebhookService;
 
     @Transactional
     public PurchaseOrder create(PurchaseOrder purchaseOrder) {
@@ -40,6 +41,7 @@ public class PurchaseOrderService {
         Sanitizer.sanitizePurchaseOrder(purchaseOrder);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
         em.refresh(savedPurchaseOrder);
+        purchaseOrderWebhookService.created(savedPurchaseOrder);
         return savedPurchaseOrder;
     }
 
@@ -59,6 +61,7 @@ public class PurchaseOrderService {
         Sanitizer.sanitizePurchaseOrder(updatedPurchaseOrder);
         updatedPurchaseOrder = purchaseOrderRepository.saveAndFlush(updatedPurchaseOrder);
         em.refresh(updatedPurchaseOrder);
+        purchaseOrderWebhookService.changed(updatedPurchaseOrder);
         return updatedPurchaseOrder;
     }
 

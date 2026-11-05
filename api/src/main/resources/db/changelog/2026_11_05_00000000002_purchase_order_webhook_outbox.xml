@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="2026-11-05-purchase-order-webhook-outbox" author="qpm">
+        <createTable tableName="webhook_outbox_event">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_webhook_outbox_event" nullable="false"/>
+            </column>
+            <column name="event_key" type="UUID">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_webhook_outbox_event_key"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="serialized_payload" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="endpoint_ids" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(16)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempts" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="next_attempt_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="claimed_at" type="TIMESTAMP"/>
+            <column name="delivered_at" type="TIMESTAMP"/>
+            <column name="last_error" type="VARCHAR(128)"/>
+        </createTable>
+        <createIndex tableName="webhook_outbox_event" indexName="idx_webhook_outbox_due">
+            <column name="status"/>
+            <column name="next_attempt_at"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="webhook_outbox_event" indexName="idx_webhook_outbox_company">
+            <column name="company_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="webhook_outbox_event" indexName="idx_webhook_outbox_claimed">
+            <column name="status"/>
+            <column name="claimed_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

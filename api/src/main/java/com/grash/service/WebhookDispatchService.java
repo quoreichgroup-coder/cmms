@@ -1,10 +1,12 @@
 package com.grash.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.grash.dto.license.LicenseEntitlement;
 import com.grash.exception.CustomException;
 import com.grash.model.Company;
 import com.grash.model.WebhookEndpoint;
+import com.grash.model.WebhookOutboxEvent;
 import com.grash.model.WorkOrderCategory;
 import com.grash.model.enums.AssetStatus;
 import com.grash.model.enums.PlanFeatures;
@@ -124,7 +126,73 @@ public class WebhookDispatchService {
         }
     }
 
+    /** Synchronous delivery used by the persistent PO outbox worker. */
+    public void dispatchOutboxEvent(WebhookOutboxEvent outboxEvent) {
+        Company company = companyRepository.findByIdWithSubscription(outboxEvent.getCompanyId()).orElse(null);
+        if (company == null) return;
+        if (!(licenseService.hasEntitlement(LicenseEntitlement.WEBHOOK)
+                && company.getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.WEBHOOK))) {
+            return;
+        }
+
+        Set<Long> subscribedEndpointIds = readEndpointIds(outboxEvent.getEndpointIds());
+        List<WebhookEndpoint> endpoints = webhookEndpointRepository
+                .findByCompanyIdAndEnabled(company.getId(), true).stream()
+                .filter(endpoint -> endpoint.getEvent() == outboxEvent.getEventType())
+                .filter(endpoint -> subscribedEndpointIds.contains(endpoint.getId()))
+                .toList();
+        if (endpoints.isEmpty()) return;
+
+        Map<String, Object> basePayload = readPayload(outboxEvent.getPayload());
+        Map<String, Object> serializedPayload = readPayload(outboxEvent.getSerializedPayload());
+        basePayload.put("occurredAt", outboxEvent.getCreatedAt());
+        basePayload.put("companyId", company.getId());
+        boolean failed = false;
+        for (WebhookEndpoint endpoint : endpoints) {
+            try {
+                Map<String, Object> endpointPayload = new HashMap<>(basePayload);
+                endpointPayload.put("purchaseOrder", endpoint.isSerialize() ? serializedPayload : null);
+                String deliveryId = outboxEvent.getEventKey() + "-" + endpoint.getId();
+                sendWebhook(endpoint, outboxEvent.getEventType(), endpointPayload, deliveryId);
+                endpoint.setLastTriggeredAt(new Date());
+                webhookEndpointRepository.save(endpoint);
+            } catch (Exception exception) {
+                failed = true;
+                log.warn("PO webhook delivery failed (outboxId={}, endpointId={}, event={}, cause={})",
+                        outboxEvent.getId(), endpoint.getId(), outboxEvent.getEventType(),
+                        rootCause(exception).getClass().getSimpleName());
+            }
+        }
+        if (failed) throw new IllegalStateException("One or more PO webhook deliveries failed");
+    }
+
+    private Map<String, Object> readPayload(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Invalid persisted webhook payload", exception);
+        }
+    }
+
+    private Set<Long> readEndpointIds(String json) {
+        try {
+            return new HashSet<>(objectMapper.readValue(json, new TypeReference<List<Long>>() {}));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Invalid persisted webhook endpoint list", exception);
+        }
+    }
+
+    private Throwable rootCause(Throwable failure) {
+        Throwable cause = failure;
+        while (cause.getCause() != null && cause.getCause() != cause) cause = cause.getCause();
+        return cause;
+    }
+
     private void sendWebhook(WebhookEndpoint endpoint, WebhookEvent eventType, Object payload) {
+        sendWebhook(endpoint, eventType, payload, UUID.randomUUID().toString());
+    }
+
+    private void sendWebhook(WebhookEndpoint endpoint, WebhookEvent eventType, Object payload, String deliveryId) {
         try {
             WebhookUrlValidator.validate(endpoint.getUrl());
             String jsonPayload = objectMapper.writeValueAsString(payload);
@@ -135,7 +203,7 @@ public class WebhookDispatchService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Webhook-Signature", signature);
             headers.set("X-Webhook-Timestamp", timestamp);
-            headers.set("X-Webhook-Id", UUID.randomUUID().toString());
+            headers.set("X-Webhook-Id", deliveryId);
             headers.set("X-Webhook-Event", eventType.name());
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
