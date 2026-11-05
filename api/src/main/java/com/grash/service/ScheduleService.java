@@ -269,6 +269,12 @@ public class ScheduleService {
                 }
                 return;
             }
+            // A previous run may have left the durable job behind after its trigger was removed.
+            // Quartz rejects scheduling the same job key again, so replace that orphan before rebuilding it.
+            JobKey jobKey = new JobKey("wo-job-" + schedule.getId(), "wo-group");
+            if (scheduler.checkExists(jobKey)) {
+                scheduler.deleteJob(jobKey);
+            }
             scheduleWorkOrder(schedule);
         } catch (SchedulerException e) {
             throw new CustomException("Error checking quartz trigger for schedule " + schedule.getId(),

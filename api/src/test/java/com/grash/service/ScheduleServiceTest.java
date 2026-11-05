@@ -1060,5 +1060,19 @@ class ScheduleServiceTest {
             assertEquals(1, scheduledCount());
             verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
         }
+
+        @Test
+        void replacesOrphanedDurableJobWhenTriggerIsMissing() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            TriggerKey triggerKey = new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group");
+            JobKey jobKey = new JobKey("wo-job-" + SCHEDULE_ID, "wo-group");
+            when(scheduler.checkExists(triggerKey)).thenReturn(false);
+            when(scheduler.checkExists(jobKey)).thenReturn(true);
+
+            scheduleService.ensureWorkOrderScheduled(schedule);
+
+            verify(scheduler).deleteJob(jobKey);
+            verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
+        }
     }
 }
