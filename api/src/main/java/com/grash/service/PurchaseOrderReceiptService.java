@@ -159,7 +159,7 @@ public class PurchaseOrderReceiptService {
 
     @Transactional(readOnly = true)
     public List<PurchaseOrderReceiptShowDTO> list(Long purchaseOrderId) {
-        return receiptRepository.findByPurchaseOrder_IdOrderByReceivedAtDesc(purchaseOrderId)
+        return receiptRepository.findByPurchaseOrderIdForDisplay(purchaseOrderId)
                 .stream().map(this::show).toList();
     }
 
