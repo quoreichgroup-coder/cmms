@@ -590,7 +590,7 @@ class PreventiveMaintenanceServiceTest {
         @Test
         void getById_found() {
             PreventiveMaintenance pm = buildPM(1L);
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
 
             PreventiveMaintenance result = preventiveMaintenanceService.getById(1L, user);
 
@@ -599,7 +599,7 @@ class PreventiveMaintenanceServiceTest {
 
         @Test
         void getById_notFound_throwsNotFound() {
-            when(preventiveMaintenanceRepository.findById(99L)).thenReturn(Optional.empty());
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(99L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.getById(99L, user));
@@ -626,7 +626,7 @@ class PreventiveMaintenanceServiceTest {
             restrictedUser.setSuperAccountRelations(new ArrayList<>());
             restrictedUser.setUserSettings(new UserSettings());
 
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.getById(1L, restrictedUser));
@@ -640,7 +640,7 @@ class PreventiveMaintenanceServiceTest {
         @Test
         void deleteById_success() {
             PreventiveMaintenance pm = buildPM(1L);
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
 
             preventiveMaintenanceService.deleteByIdAndUser(1L, user);
 
@@ -650,7 +650,7 @@ class PreventiveMaintenanceServiceTest {
 
         @Test
         void deleteById_notFound_throwsNotFound() {
-            when(preventiveMaintenanceRepository.findById(99L)).thenReturn(Optional.empty());
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(99L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.deleteByIdAndUser(99L, user));
@@ -676,7 +676,7 @@ class PreventiveMaintenanceServiceTest {
             restrictedUser.setSuperAccountRelations(new ArrayList<>());
             restrictedUser.setUserSettings(new UserSettings());
 
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.deleteByIdAndUser(1L, restrictedUser));
@@ -706,15 +706,15 @@ class PreventiveMaintenanceServiceTest {
                     .build();
             pm.setCreatedBy(1L);
             user.setRole(triggerRole);
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
             when(workOrderService.getWorkOrderFromWorkOrderBase(pm)).thenReturn(new WorkOrderPostDTO());
-            when(workOrderService.create(any(), eq(company))).thenReturn(wo);
+            when(workOrderService.createFromPreventiveMaintenance(any(), eq(company))).thenReturn(wo);
             when(taskService.findByPreventiveMaintenance(1L)).thenReturn(Collections.emptyList());
 
             WorkOrder result = preventiveMaintenanceService.triggerWorkOrder(1L, user);
 
             assertNotNull(result);
-            verify(workOrderService).create(any(), eq(company));
+            verify(workOrderService).createFromPreventiveMaintenance(any(), eq(company));
         }
 
         @Test
@@ -743,7 +743,7 @@ class PreventiveMaintenanceServiceTest {
             role.setCreatePermissions(new HashSet<>(Arrays.asList(
                     PermissionEntity.WORK_ORDERS,
                     PermissionEntity.PREVENTIVE_MAINTENANCES)));
-            when(preventiveMaintenanceRepository.findById(99L)).thenReturn(Optional.empty());
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(99L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.triggerWorkOrder(99L, user));
@@ -770,7 +770,7 @@ class PreventiveMaintenanceServiceTest {
             restrictedUser.setSuperAccountRelations(new ArrayList<>());
             restrictedUser.setUserSettings(new UserSettings());
 
-            when(preventiveMaintenanceRepository.findById(1L)).thenReturn(Optional.of(pm));
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.triggerWorkOrder(1L, restrictedUser));
@@ -801,8 +801,9 @@ class PreventiveMaintenanceServiceTest {
         void getRecentWorkOrders_notFound_throwsNotFound() {
             when(preventiveMaintenanceRepository.findByIdAndCompany_Id(99L, 1L)).thenReturn(Optional.empty());
 
-            assertThrows(NoSuchElementException.class,
+            CustomException ex = assertThrows(CustomException.class,
                     () -> preventiveMaintenanceService.getRecentWorkOrders(99L, user));
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
         }
     }
 
@@ -992,7 +993,7 @@ class PreventiveMaintenanceServiceTest {
             WorkOrder savedWO = new WorkOrder();
             savedWO.setId(20L);
             when(workOrderService.getWorkOrderFromWorkOrderBase(pm)).thenReturn(woPostDTO);
-            when(workOrderService.create(any(), eq(company))).thenReturn(savedWO);
+            when(workOrderService.createFromPreventiveMaintenance(any(), eq(company))).thenReturn(savedWO);
 
             Task task = new Task();
             task.setId(1L);
@@ -1015,13 +1016,13 @@ class PreventiveMaintenanceServiceTest {
             WorkOrder savedWO = new WorkOrder();
             savedWO.setId(20L);
             when(workOrderService.getWorkOrderFromWorkOrderBase(pm)).thenReturn(woPostDTO);
-            when(workOrderService.create(any(), eq(company))).thenReturn(savedWO);
+            when(workOrderService.createFromPreventiveMaintenance(any(), eq(company))).thenReturn(savedWO);
             when(taskService.findByPreventiveMaintenance(1L)).thenReturn(Collections.emptyList());
 
             WorkOrder result = preventiveMaintenanceService.createWorkOrderFromPreventiveMaintenance(pm);
 
             assertNotNull(result);
-            verify(workOrderService).create(any(), eq(company));
+            verify(workOrderService).createFromPreventiveMaintenance(any(), eq(company));
         }
     }
 }

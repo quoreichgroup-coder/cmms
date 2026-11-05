@@ -47,7 +47,10 @@ class CsvFileGeneratorTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(messageSource.getMessage(anyString(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(messageSource.getMessage(anyString(), any(), any()))
+                .thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(messageSource.getMessage(anyString(), isNull(), anyString(), any(Locale.class)))
+                .thenAnswer(inv -> inv.getArgument(2));
     }
 
     private StringWriter createWriter() {

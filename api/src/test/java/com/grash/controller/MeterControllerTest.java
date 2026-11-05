@@ -427,7 +427,7 @@ class MeterControllerTest extends AbstractControllerTest {
         @Test
         void getMini_returnsCollection() throws Exception {
             mockCurrentUser(clientUser);
-            when(meterService.findByCompany(1L)).thenReturn(Collections.singletonList(meter));
+            when(meterService.findVisibleByCompany(clientUser)).thenReturn(Collections.singletonList(meter));
             mockMiniMapping();
 
             mockMvc.perform(get("/meters/mini"))

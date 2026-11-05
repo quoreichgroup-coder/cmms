@@ -86,6 +86,7 @@ class UserControllerTest extends AbstractControllerTest {
         clientUser.setRole(clientRole);
         clientUser.setEnabled(true);
         clientUser.setCompany(company);
+        clientUser.setAllSitesAccess(true);
 
         Role restrictedRole = Role.builder()
                 .id(3L)
@@ -448,7 +449,7 @@ class UserControllerTest extends AbstractControllerTest {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
             when(userService.findByIdAndCompany(1L, 1L)).thenReturn(Optional.of(clientUser));
-            when(userService.update(eq(1L), any(UserPatchDTO.class))).thenReturn(clientUser);
+            when(userService.update(eq(1L), any(UserPatchDTO.class), eq(clientUser))).thenReturn(clientUser);
             when(userMapper.toResponseDto(clientUser)).thenReturn(userResponseDto);
 
             mockMvc.perform(patch("/users/1")
@@ -463,7 +464,7 @@ class UserControllerTest extends AbstractControllerTest {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
             when(userService.findByIdAndCompany(4L, 1L)).thenReturn(Optional.of(targetUser));
-            when(userService.update(eq(4L), any(UserPatchDTO.class))).thenReturn(targetUser);
+            when(userService.update(eq(4L), any(UserPatchDTO.class), eq(clientUser))).thenReturn(targetUser);
             when(userMapper.toResponseDto(targetUser)).thenReturn(userResponseDto);
 
             mockMvc.perform(patch("/users/4")
@@ -489,6 +490,7 @@ class UserControllerTest extends AbstractControllerTest {
         void patchRole_returnsUserResponseDTO() throws Exception {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
+            when(userService.findByIdAndCompany(4L, 1L)).thenReturn(Optional.of(targetUser));
             when(userService.patchUserRole(4L, 2L, clientUser)).thenReturn(targetUser);
             when(userMapper.toResponseDto(targetUser)).thenReturn(userResponseDto);
 
@@ -501,6 +503,7 @@ class UserControllerTest extends AbstractControllerTest {
         void disable_returnsUserResponseDTO() throws Exception {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
+            when(userService.findByIdAndCompany(4L, 1L)).thenReturn(Optional.of(targetUser));
             when(userService.disableUser(4L, clientUser)).thenReturn(targetUser);
             when(userMapper.toResponseDto(targetUser)).thenReturn(userResponseDto);
 
@@ -526,6 +529,7 @@ class UserControllerTest extends AbstractControllerTest {
         void softDelete_returnsUserResponseDTO() throws Exception {
             setCurrentUser(clientUser);
             when(userService.whoami(any())).thenReturn(clientUser);
+            when(userService.findByIdAndCompany(4L, 1L)).thenReturn(Optional.of(targetUser));
             when(userService.softDeleteUser(4L, clientUser)).thenReturn(targetUser);
             when(userMapper.toResponseDto(targetUser)).thenReturn(userResponseDto);
 

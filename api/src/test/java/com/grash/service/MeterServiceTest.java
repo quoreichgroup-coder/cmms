@@ -96,6 +96,11 @@ class MeterServiceTest {
         restrictedRole = restrictedRole();
 
         user = buildUser(1L);
+        Asset asset = new Asset();
+        asset.setId(1L);
+        asset.setCompany(company);
+        lenient().when(assetService.findByIdAndCompany(1L, company.getId()))
+                .thenReturn(Optional.of(asset));
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────

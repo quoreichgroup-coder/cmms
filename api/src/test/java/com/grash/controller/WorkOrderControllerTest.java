@@ -92,6 +92,9 @@ class WorkOrderControllerTest extends AbstractControllerTest {
         clientUser.setRole(clientRole);
         clientUser.setEnabled(true);
         clientUser.setUserSettings(new UserSettings());
+        Company company = new Company();
+        company.setId(1L);
+        clientUser.setCompany(company);
 
         Role nonClientRole = Role.builder()
                 .id(2L)
@@ -733,9 +736,12 @@ class WorkOrderControllerTest extends AbstractControllerTest {
             when(userService.whoami(any())).thenReturn(clientUser);
             Part part = new Part();
             part.setId(1L);
+            part.setCreatedBy(clientUser.getId());
             when(partService.findById(1L)).thenReturn(Optional.of(part));
             WorkOrder wo = new WorkOrder();
             wo.setId(1L);
+            wo.setCompany(clientUser.getCompany());
+            wo.setCreatedBy(clientUser.getId());
             when(workOrderService.getWorkOrdersByPart(1L)).thenReturn(Collections.singletonList(wo));
             when(workOrderMapper.toShowDto(wo)).thenReturn(showDto);
 

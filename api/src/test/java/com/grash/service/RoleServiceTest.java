@@ -15,6 +15,7 @@ import com.grash.model.enums.PlanFeatures;
 import com.grash.model.enums.RoleCode;
 import com.grash.model.enums.RoleType;
 import com.grash.repository.RoleRepository;
+import com.grash.repository.UserRepository;
 import com.grash.utils.Helper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +46,10 @@ class RoleServiceTest {
     private CompanySettingsService companySettingsService;
     @Mock
     private LicenseService licenseService;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private CompanyConfigurationAuditService configurationAuditService;
 
     private Role adminRole;
     private Role customRole;
@@ -58,6 +63,7 @@ class RoleServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userRepository.findByRole_Id(anyLong())).thenReturn(Collections.emptyList());
         adminRole = Role.builder()
                 .id(1L)
                 .name("Administrator")
@@ -95,7 +101,8 @@ class RoleServiceTest {
                 .viewPermissions(new HashSet<>(Collections.singleton(PermissionEntity.SETTINGS)))
                 .createPermissions(new HashSet<>(Collections.singleton(PermissionEntity.WORK_ORDERS)))
                 .viewOtherPermissions(new HashSet<>(Collections.singleton(PermissionEntity.WORK_ORDERS)))
-                .editOtherPermissions(new HashSet<>(Collections.singleton(PermissionEntity.WORK_ORDERS)))
+                .editOtherPermissions(new HashSet<>(Arrays.asList(
+                        PermissionEntity.SETTINGS, PermissionEntity.WORK_ORDERS)))
                 .deleteOtherPermissions(new HashSet<>(Collections.singleton(PermissionEntity.WORK_ORDERS)))
                 .build();
 
