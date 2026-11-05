@@ -231,3 +231,10 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - **Commit poussé** sur `projet` : `212e8547a629d0b4d3d4a223a70fd216f776dd70`. L'APK v1.0.60 et ses copies locales (`mobile/` et `mobile/dist/`) ont le même SHA-256 `0caa3274ec3faf991c1b2fcbe82d0fdf4bed62b8f46e4aaa7323af9eec4c2172`. Le binaire de 101,1 Mo reste local et hors Git, GitHub refusant les blobs de plus de 100 Mo.
 - **Déploiement VPS non confirmé** : la requête GitHub Actions pour ce SHA retourne zéro exécution et les marqueurs `deployed-backend` / `deployed-frontend` ne sont pas présents. Le push du code est confirmé, mais aucun déploiement distant ne doit être annoncé tant qu'un run réussi et ses marqueurs ne sont pas observés.
 - Restent au backlog : recette visuelle responsive authentifiée, cycle d'annulation/retour des PO, webhooks PO durables et prérequis de connexion Sage 300.
+
+### Déploiement direct et rétablissement API — 5 novembre 2026, 06:29 UTC
+
+- Le frontend et l'API ont été redémarrés dans le stack Docker actif après le build local. Le frontend répond HTTP 200 sur `https://eam.quoreichgroup.bf/` et le contrôle interne de l'API `http://api:8080/health-check` répond `{"success":true,"message":"Service is up and running"}`.
+- Le premier démarrage API a échoué pendant la restauration du schedule Quartz 252. `ApplicationInitializer` isole désormais cette erreur, la journalise et continue la restauration des autres schedules afin qu'une donnée de planification isolée ne mette pas toute l'API hors ligne. L'API et Quartz ont ensuite démarré; le schedule 252 reste à diagnostiquer et restaurer.
+- Image API reconstruite; compilation Maven réussie. La suite backend complète (2 402 tests) avait passé avant ce correctif de résilience; aucune suite n'a été relancée pour ce changement de boucle d'initialisation.
+- Le code GitHub Actions n'a toujours pas de run correspondant au SHA poussé; ce déploiement direct Docker est donc documenté séparément et ne dépend pas d'un succès CI.

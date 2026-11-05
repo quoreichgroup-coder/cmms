@@ -46,7 +46,16 @@ public class ApplicationInitializer implements SmartInitializingSingleton {
             roleService.updateDefaultRoles();
 
             if (!cloudVersion) {
-                scheduleService.findActive().forEach(scheduleService::ensureWorkOrderScheduled);
+                // One legacy or malformed schedule must not prevent the whole API from starting.
+                // Keep the failure visible so the affected schedule can be corrected independently.
+                scheduleService.findActive().forEach(schedule -> {
+                    try {
+                        scheduleService.ensureWorkOrderScheduled(schedule);
+                    } catch (Exception e) {
+                        log.error("Unable to restore preventive-maintenance schedule {} during startup; " +
+                                "continuing with remaining schedules", schedule.getId(), e);
+                    }
+                });
                 scheduleService.recoverDeferredOccurrences();
             }
 
