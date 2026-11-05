@@ -305,3 +305,9 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - Frontend public et API `/api/health-check` répondent HTTP 200 après le démarrage. Liquibase n'a appliqué aucun nouveau changeset (885 déjà exécutés). Aucun nouveau conteneur mobile/APK n'a été produit; la version v1.0.60 est conservée.
 - Le démarrage API confirme « Not restoring weekly schedule 252 because no valid occurrence remains before its end date »; aucun rattrapage supplémentaire n'a été déclenché par ce redémarrage.
 - Reste à faire : recette visuelle authentifiée du Procurement; lifecycle d'annulation/retour PO; politique de purge et endpoint autorisé pour le smoke test webhook; validation métier des WO000026–WO000028; accès Sage 300 de recette.
+
+### Découverte UI des webhooks PO — 5 novembre 2026, 13:05 UTC
+
+- La vérification rétrospective des parcours d'import et des intégrations a révélé que les abonnements PO étaient masqués dans Settings malgré le dispatch API opérationnel (`NEW_PURCHASE_ORDER`, `PURCHASE_ORDER_CHANGE`, `PURCHASE_ORDER_STATUS_CHANGE`). Une exclusion frontend historique n'avait pas été retirée avec l'ajout de l'outbox.
+- Le sélecteur expose maintenant les trois événements PO; `WORK_ORDER_OVERDUE` reste masqué, car son enum n'a toujours aucun dispatch backend. Le test Connectors vérifie les dispatchs PO et protège cet état incomplet.
+- Tests Connectors (5/5), documents Procurement (22/22) et champs modèles d'impression (5/5) passent. ESLint ciblé et typecheck Web passent. Une tentative de build Web hôte a terminé prématurément par manque de mémoire; le build Docker avec le réglage faible mémoire reste à valider avant de déployer le frontend.

@@ -25,13 +25,9 @@ export const WEBHOOK_EVENTS = [
   'WORK_REQUEST_STATUS_CHANGE'
 ] as const;
 
-// These names exist in the API enum but have no dispatch call in the current
-// backend. Keep them in the DTO type for existing configurations, but do not
-// offer new subscriptions that can never be triggered.
+// Keep enum values that the backend does not yet emit for compatibility with
+// existing subscriptions, but do not offer new subscriptions for them.
 const WEBHOOK_EVENTS_WITHOUT_DISPATCH = new Set<WebhookEvent>([
-  'NEW_PURCHASE_ORDER',
-  'PURCHASE_ORDER_CHANGE',
-  'PURCHASE_ORDER_STATUS_CHANGE',
   'WORK_ORDER_OVERDUE'
 ]);
 

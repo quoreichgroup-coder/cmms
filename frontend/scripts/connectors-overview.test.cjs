@@ -101,7 +101,7 @@ test('maintenance recipes only reference real webhook event identifiers', () => 
   assert.match(page, /\/app\/settings\/integrations\/webhooks/);
 });
 
-test('webhook creation only offers event types currently dispatched by the API', () => {
+test('webhook creation offers dispatched purchase order events and hides overdue until implemented', () => {
   const model = fs.readFileSync(
     path.join(root, 'src/models/owns/webhookEndpoint.ts'),
     'utf8'
@@ -112,20 +112,20 @@ test('webhook creation only offers event types currently dispatched by the API',
   );
   const backendRoot = path.join(root, '../api/src/main/java/com/grash');
   const backend = readSourceTree(backendRoot, '.java').join('\n');
+  const unimplementedEvents = model.match(
+    /WEBHOOK_EVENTS_WITHOUT_DISPATCH[\s\S]*?new Set<WebhookEvent>\(\[([\s\S]*?)\]\)/
+  )?.[1] ?? '';
 
   for (const event of [
     'NEW_PURCHASE_ORDER',
     'PURCHASE_ORDER_CHANGE',
-    'PURCHASE_ORDER_STATUS_CHANGE',
-    'WORK_ORDER_OVERDUE'
+    'PURCHASE_ORDER_STATUS_CHANGE'
   ]) {
     assert.match(model, new RegExp(`'${event}'`));
-    assert.match(backend, new RegExp(`\\b${event}\\b`));
-    assert.doesNotMatch(
-      backend,
-      new RegExp(`WebhookEvent\\.${event}\\b`),
-      `${event} is declared but currently has no backend dispatch call`
-    );
+    assert.match(backend, new RegExp(`WebhookEvent\\.${event}\\b`));
+    assert.doesNotMatch(unimplementedEvents, new RegExp(`'${event}'`));
   }
+  assert.match(unimplementedEvents, /'WORK_ORDER_OVERDUE'/);
+  assert.doesNotMatch(backend, /WebhookEvent\.WORK_ORDER_OVERDUE\b/);
   assert.match(page, /CONFIGURABLE_WEBHOOK_EVENTS\.map/);
 });
