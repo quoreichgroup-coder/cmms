@@ -326,3 +326,9 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 - Avec Docker autorisé dans cette reprise, `MAVEN_OPTS='-Xmx1024m -XX:MaxMetaspaceSize=384m' mvn -o -Dmaven.compiler.useIncrementalCompilation=false -Dtest=ProcurementApprovalMigrationIntegrationTest test` réussit (**7 tests, 0 échec, 0 erreur**) sur PostgreSQL 16 jetable.
 - Le lot couvre maintenant notamment la migration sites (backfill OT→PR→PO et refus de suppression référencée), les politiques d’approbation, snapshots de prix fournisseur, audit documentaire et l’outbox durable (`FOR UPDATE SKIP LOCKED`). Il actualise les notes antérieures qui signalaient le socket Docker indisponible; aucun changement applicatif n’était nécessaire.
+
+### Impression PO et chargement des lignes — 5 novembre 2026, 13:59 UTC
+
+- Le fournisseur de données d’impression utilisait une requête PO sans graphe de relations, puis lisait pour chaque ligne article, site et PR source en lazy loading. Une requête dédiée annotée `@EntityGraph` charge maintenant `part`, `site` et `requisitionLine.requisition` ensemble, sans modifier les recherches/lectures PO hors impression.
+- `ProcurementDocumentDataProviderTest`, `GeneratedDocumentServiceTest` et `GeneratedDocumentControllerTest` passent (**48 tests, 0 échec**); un test protège les chemins du graphe de chargement.
+- Image API reconstruite et déployée : `atlas-cmms-backend:local`, digest `0e5fade68c1d97944a96a78c7f8bf9ee30fbfe4c1ee3bdb58b3cde1443bc9488`. Spring/Hibernate démarrent, Liquibase reste à 885 changesets sans nouveau changeset, l’API et le frontend répondent HTTP 200. Le log confirme encore l’absence de trigger futur pour le schedule 252.

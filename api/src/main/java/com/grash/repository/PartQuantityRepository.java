@@ -19,6 +19,9 @@ public interface PartQuantityRepository extends JpaRepository<PartQuantity, Long
 
     Collection<PartQuantity> findByPurchaseOrder_Id(Long id);
 
+    @EntityGraph(attributePaths = {"part", "site", "requisitionLine.requisition"})
+    Collection<PartQuantity> findForDocumentByPurchaseOrder_Id(Long id);
+
     boolean existsBySite_Id(Long siteId);
 
     void deleteByCompany_IdAndIsDemoTrue(Long companyId);
