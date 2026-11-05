@@ -280,3 +280,8 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 - `docs/WEBHOOKS-PURCHASE-ORDERS.md` documente les trois événements, le snapshot envoyé, la signature HMAC, les identifiants stables, les répétitions possibles, le traitement des réponses HTTP et les paramètres de retry à partir du comportement présent dans le code.
 - Le smoke test vers une URL externe autorisée et la décision de rétention/purge restent à faire; aucune livraison de test n’a été envoyée à un système externe.
+
+### Recette responsive publique — 5 novembre 2026, 11:52 UTC
+
+- Captures headless de la page de connexion publique à 375×812, 768×1024 et 1440×900. Les champs restent dans le viewport horizontal; en mobile, le contenu se poursuit par défilement vertical. Aucun débordement horizontal évident sur les trois largeurs.
+- Verdict global **inconclusif** pour le module Procurement : il n’y a pas de baseline visuelle versionnée et Chrome DevTools MCP ne démarre pas (X server absent). Les captures headless ne couvrent que la connexion publique, sans authentification de compte réel; les écrans d’approbation/PO, leurs appels API et l’accessibilité axe restent à vérifier avec un compte de recette.
