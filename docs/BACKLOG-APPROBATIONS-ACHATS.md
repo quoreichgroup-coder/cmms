@@ -1,6 +1,6 @@
 # PROC-14 — Approbations PR / PO : V1 légère et responsive
 
-Date : 28 octobre–5 novembre 2026. Statut : **V1 implémentée; régressions ciblées backend/web/mobile passées; la dernière migration sites PR/PO n'a pas été appliquée à PostgreSQL dans cet environnement. Recette visuelle authentifiée et parcours de bout en bout en environnement QPM restent à valider.** Les résultats initiaux PostgreSQL/Testcontainers de la migration des politiques (29 octobre) restent valides; ils ne couvrent pas les changements de schéma ultérieurs décrits dans l'audit Procurement. Priorité proposée : P1 dans le chantier Procurement. Ce document précise et étend PROC-14 aux PO; il ne crée pas un chantier concurrent.
+Date : 28 octobre–5 novembre 2026. Statut : **V1 implémentée; régressions ciblées backend/web/mobile passées; la migration PostgreSQL des sites PR/PO est appliquée (changeset `2026-11-05-procurement-line-sites` vérifié dans `databasechangelog`). Recette visuelle authentifiée et parcours de bout en bout avec compte métier restent à valider.** Les tests initiaux Testcontainers (29 octobre) couvraient la migration des politiques; l'application effective du changeset site a été confirmée sur la base déployée le 5 novembre. Priorité proposée : P1 dans le chantier Procurement. Ce document précise et étend PROC-14 aux PO; il ne crée pas un chantier concurrent.
 
 ## 1. Capacité attendue
 
