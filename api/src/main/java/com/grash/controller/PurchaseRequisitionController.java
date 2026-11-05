@@ -77,6 +77,7 @@ public class PurchaseRequisitionController {
     private final ObjectMapper objectMapper;
     private final com.grash.service.ProcurementApprovalService procurementApprovals;
     private final ProcurementSiteService procurementSiteService;
+    private final com.grash.service.PurchaseOrderNotificationService purchaseOrderNotificationService;
 
     @GetMapping("/approval-config")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
@@ -542,9 +543,11 @@ public class PurchaseRequisitionController {
             partQuantityService.create(orderLine);
         }
         var convertedLines = partQuantityService.findByPurchaseOrder(order.getId());
+        java.math.BigDecimal estimatedAmount = com.grash.service.ProcurementApprovalService
+                .estimatePurchaseOrderAmount(convertedLines);
+        String currency = user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode();
         procurementApprovals.start("PO", order.getId(), order.getName(), order.getCreatedBy(), order.getCompany(),
-                com.grash.service.ProcurementApprovalService.estimatePurchaseOrderAmount(convertedLines),
-                user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
+                estimatedAmount, currency);
         boolean remaining = requisition.getLines().stream()
                 .anyMatch(line -> line.getOrderedQuantity() + 1e-9 < line.getQuantity());
         requisition.setStatus(remaining ? PurchaseRequisitionStatus.PARTIALLY_ORDERED : PurchaseRequisitionStatus.ORDERED);
@@ -558,17 +561,19 @@ public class PurchaseRequisitionController {
                         && workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.APPROVE
                         && workflow.getAction().getPurchaseOrderAction() != PurchaseOrderAction.REJECT)
                 .forEach(workflow -> workflowService.runPurchaseOrder(workflow, createdOrder));
-        return purchaseOrderService.findByIdAndCompany_Id(order.getId(), user.getCompany().getId())
+        PurchaseOrderShowDTO result = purchaseOrderService.findByIdAndCompany_Id(order.getId(), user.getCompany().getId())
                 .map(saved -> {
-                    PurchaseOrderShowDTO result = purchaseOrderMapper.toShowDto(saved);
-                    result.setPartQuantities(partQuantityService.findByPurchaseOrder(saved.getId()).stream()
+                    PurchaseOrderShowDTO dto = purchaseOrderMapper.toShowDto(saved);
+                    dto.setPartQuantities(partQuantityService.findByPurchaseOrder(saved.getId()).stream()
                             .map(line -> {
-                                var dto = partQuantityMapper.toShowDto(line);
-                                dto.setRemainingToReceive(line.getQuantity());
-                                return dto;
+                                var lineDto = partQuantityMapper.toShowDto(line);
+                                lineDto.setRemainingToReceive(line.getQuantity());
+                                return lineDto;
                             }).collect(Collectors.toList()));
-                    return result;
+                    return dto;
                 }).orElseThrow(() -> new CustomException("Created purchase order not found", HttpStatus.INTERNAL_SERVER_ERROR));
+        purchaseOrderNotificationService.notifyCreatedAfterCommit(result, user, estimatedAmount, currency);
+        return result;
     }
 
     @DeleteMapping("/{id}")

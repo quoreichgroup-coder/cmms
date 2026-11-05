@@ -10,7 +10,6 @@ import com.grash.dto.SuccessResponse;
 import com.grash.exception.CustomException;
 import com.grash.mapper.PartQuantityMapper;
 import com.grash.mapper.PurchaseOrderMapper;
-import com.grash.factory.MailServiceFactory;
 import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.workflow.WFMainCondition;
@@ -20,8 +19,6 @@ import com.grash.utils.Helper;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,8 +27,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.commons.csv.CSVFormat;
@@ -62,7 +57,6 @@ import java.time.ZoneOffset;
 @RequestMapping("/purchase-orders")
 @Tag(name = "Purchase Orders", description = "Operations on purchase orders")
 @RequiredArgsConstructor
-@Slf4j
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
@@ -72,8 +66,7 @@ public class PurchaseOrderController {
     private final MessageSource messageSource;
     private final PartQuantityMapper partQuantityMapper;
     private final PurchaseOrderMapper purchaseOrderMapper;
-    private final MailServiceFactory mailServiceFactory;
-    private final NotificationService notificationService;
+    private final PurchaseOrderNotificationService purchaseOrderNotificationService;
     private final WorkflowService workflowService;
     private final VendorService vendorService;
     private final PurchaseOrderCategoryService purchaseOrderCategoryService;
@@ -82,9 +75,6 @@ public class PurchaseOrderController {
     private final PurchaseOrderReceiptService purchaseOrderReceiptService;
     private final ProcurementApprovalService procurementApprovalService;
     private final ProcurementSiteService procurementSiteService;
-
-    @Value("${frontend.url}")
-    private String frontendUrl;
 
     @PostMapping("/search")
     @PreAuthorize("permitAll()")
@@ -190,31 +180,12 @@ public class PurchaseOrderController {
             PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(savedPurchaseOrder));
             var savedLines = partQuantityService.findByPurchaseOrder(savedPurchaseOrder.getId());
             java.math.BigDecimal estimatedAmount = ProcurementApprovalService.estimatePurchaseOrderAmount(savedLines);
+            String currency = user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode();
             procurementApprovalService.start("PO", savedPurchaseOrder.getId(), savedPurchaseOrder.getName(),
-                    savedPurchaseOrder.getCreatedBy(), savedPurchaseOrder.getCompany(),
-                    estimatedAmount,
-                    user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
+                    savedPurchaseOrder.getCreatedBy(), savedPurchaseOrder.getCompany(), estimatedAmount, currency);
             runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, savedPurchaseOrder,
                     user.getCompany().getId());
-            String title = messageSource.getMessage("new_po", null, Helper.getLocale(user));
-            String message = messageSource.getMessage("notification_new_po_request", new Object[]{result.getName(),
-                            estimatedAmount,
-                            user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
-                    Helper.getLocale(user));
-            Map<String, Object> mailVariables = new HashMap<String, Object>() {{
-                put("purchaseOrderLink", frontendUrl + "/app/purchase-orders/" + result.getId());
-                put("message", message);
-            }};
-            Collection<User> usersToNotify = userService.findByCompany(user.getCompany().getId()).stream()
-                    .filter(user1 -> user1.isEnabled() &&
-                            (user1.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) ||
-                                    user1.getRole().getCode().equals(RoleCode.LIMITED_ADMIN)))
-                    .collect(Collectors.toList());
-            notificationService.createMultiple(usersToNotify.stream().map(user1 -> new Notification(message, user1,
-                    NotificationType.PURCHASE_ORDER, result.getId())).collect(Collectors.toList()), true, title);
-            Collection<User> usersToMail =
-                    usersToNotify.stream().filter(user1 -> user1.getUserSettings().shouldEmailUpdatesForPurchaseOrders()).collect(Collectors.toList());
-            mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(usersToMail.stream().map(User::getEmail).toArray(String[]::new), messageSource.getMessage("new_po", null, Helper.getLocale(user)), mailVariables, "new-purchase-order.html", Helper.getLocale(user), null);
+            purchaseOrderNotificationService.notifyCreatedAfterCommit(result, user, estimatedAmount, currency);
             return result;
         } else throw new
 
@@ -268,9 +239,9 @@ public class PurchaseOrderController {
 
         var savedLines = partQuantityService.findByPurchaseOrder(saved.getId());
         java.math.BigDecimal estimatedAmount = ProcurementApprovalService.estimatePurchaseOrderAmount(savedLines);
+        String currency = user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode();
         procurementApprovalService.start("PO", saved.getId(), saved.getName(), saved.getCreatedBy(),
-                saved.getCompany(), estimatedAmount,
-                user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode());
+                saved.getCompany(), estimatedAmount, currency);
         runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_CREATED, saved, user.getCompany().getId());
         if (request.isApproveOnSubmit() && saved.getStatus() == ApprovalStatus.PENDING
                 && !procurementApprovalService.isGoverned("PO", saved.getId(), user.getCompany().getId())) {
@@ -281,19 +252,7 @@ public class PurchaseOrderController {
         }
 
         PurchaseOrderShowDTO result = setPartQuantities(purchaseOrderMapper.toShowDto(saved));
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        notifyPurchaseOrderCreated(result, user, estimatedAmount);
-                    } catch (RuntimeException exception) {
-                        log.error("Purchase order {} was created, but its notification could not be sent",
-                                result.getId(), exception);
-                    }
-                }
-            });
-        }
+        purchaseOrderNotificationService.notifyCreatedAfterCommit(result, user, estimatedAmount, currency);
         return result;
     }
 
@@ -383,30 +342,6 @@ public class PurchaseOrderController {
                     || !Objects.equals(shippingDueDate, csvDate(row, "shippingDueDate")))
                 throw new IllegalArgumentException("purchase_order_header_mismatch");
         }
-    }
-
-    private void notifyPurchaseOrderCreated(PurchaseOrderShowDTO result, User user, java.math.BigDecimal estimatedAmount) {
-        String title = messageSource.getMessage("new_po", null, Helper.getLocale(user));
-        String message = messageSource.getMessage("notification_new_po_request", new Object[]{result.getName(),
-                        estimatedAmount, user.getCompany().getCompanySettings().getGeneralPreferences().getCurrency().getCode()},
-                Helper.getLocale(user));
-        Map<String, Object> mailVariables = new HashMap<>();
-        mailVariables.put("purchaseOrderLink", frontendUrl + "/app/purchase-orders/" + result.getId());
-        mailVariables.put("message", message);
-        Collection<User> usersToNotify = userService.findByCompany(user.getCompany().getId()).stream()
-                .filter(candidate -> candidate.isEnabled()
-                        && (candidate.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)
-                        || candidate.getRole().getCode().equals(RoleCode.LIMITED_ADMIN)))
-                .collect(Collectors.toList());
-        notificationService.createMultiple(usersToNotify.stream()
-                .map(candidate -> new Notification(message, candidate, NotificationType.PURCHASE_ORDER, result.getId()))
-                .collect(Collectors.toList()), true, title);
-        Collection<User> usersToMail = usersToNotify.stream()
-                .filter(candidate -> candidate.getUserSettings().shouldEmailUpdatesForPurchaseOrders())
-                .collect(Collectors.toList());
-        mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(
-                usersToMail.stream().map(User::getEmail).toArray(String[]::new), title, mailVariables,
-                "new-purchase-order.html", Helper.getLocale(user), null);
     }
 
     @PatchMapping("/{id}")

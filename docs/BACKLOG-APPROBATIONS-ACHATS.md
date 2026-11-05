@@ -229,3 +229,9 @@ Les points 3 et 4 ci-dessus sont partiellement dépassés par les changements pr
 - Les retours et annulations de PO approuvés/réceptionnés demeurent absents; leur implémentation doit compenser le stock reçu, recalculer les reliquats PR et conserver les références d'audit.
 - Les webhooks PO sont bien absents. Avant de les annoncer fonctionnels, définir le payload stable et ajouter une livraison durable/rejouable après commit; le dispatcher asynchrone existant seul ne garantit pas la remise.
 - **Correctif ajouté le 5 novembre, 04:33 UTC** : sélection et réaffectation d'un niveau d'approbation bloqué vérifient maintenant l'accès au document et à tous ses sites; une portée hors site renvoie 404 sans révéler de cible ni modifier le circuit. `ProcurementApprovalControllerTest` passe (8/8).
+
+### Suivi du 5 novembre 2026 — 12:15 UTC
+
+- **Terminé dans cette reprise** : notifications PO centralisées sur création directe et conversion PR→PO, exécutées après commit; le formulaire PO distingue désormais l'erreur de prix fournisseur de l'erreur de quantité. Tests backend ciblés (8) verts; ESLint et typecheck frontend verts.
+- **Toujours ouvert** : recette visuelle Procurement authentifiée à 390/768/1440 px; cycle sécurisé d'annulation et retour PO; purge/rétention outbox; test réel webhook vers endpoint autorisé; validation métier des WO000026–WO000028; environnement d'intégration Sage 300. Le build Web optimisé et les deux images locales ont depuis été reconstruits avec succès; voir l'audit pour leurs digests.
+- **Mise à jour de statut historique** : les sections antérieures qui décrivent les webhooks PO comme absents sont dépassées par l'outbox persistante et la console dead-letter décrites dans `AUDIT-PROCUREMENT-SAP-SAGE300.md`; restent leur politique de rétention et le smoke test externe.

@@ -251,15 +251,16 @@ function CreatePurchaseOrder() {
                       onMissingPartQuantities();
                       return;
                     }
-                    if (
-                      values.partQuantities.some(
-                        (partQuantity) => partQuantity.quantity <= 0
-                          || partQuantity.purchaseUnitPrice == null
-                          || !Number.isFinite(partQuantity.purchaseUnitPrice)
-                          || partQuantity.purchaseUnitPrice < 0
-                      )
-                    ) {
+                    if (values.partQuantities.some((partQuantity) => partQuantity.quantity <= 0)) {
                       showSnackBar(t('each_item_superior_zero'), 'error');
+                      return;
+                    }
+                    if (values.partQuantities.some((partQuantity) =>
+                      partQuantity.purchaseUnitPrice == null
+                        || !Number.isFinite(partQuantity.purchaseUnitPrice)
+                        || partQuantity.purchaseUnitPrice < 0
+                    )) {
+                      showSnackBar(t('enter_supplier_price'), 'error');
                       return;
                     }
                     values.category = formatSelect(values.category);

@@ -285,3 +285,16 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 
 - Captures headless de la page de connexion publique à 375×812, 768×1024 et 1440×900. Les champs restent dans le viewport horizontal; en mobile, le contenu se poursuit par défilement vertical. Aucun débordement horizontal évident sur les trois largeurs.
 - Verdict global **inconclusif** pour le module Procurement : il n’y a pas de baseline visuelle versionnée et Chrome DevTools MCP ne démarre pas (X server absent). Les captures headless ne couvrent que la connexion publique, sans authentification de compte réel; les écrans d’approbation/PO, leurs appels API et l’accessibilité axe restent à vérifier avec un compte de recette.
+
+### Reprise Procurement — notifications et validation PO — 5 novembre 2026, 12:15 UTC
+
+- **Correction UX formulaire PO** : une quantité invalide conserve son message dédié; un prix fournisseur manquant, non fini ou négatif affiche maintenant `enter_supplier_price`, déjà localisé FR/EN, au lieu d'un message de quantité incorrect. ESLint ciblé et `npm run typecheck` passent. Le build CRA de production n'a pas été certifié lors de cette reprise; une tentative antérieure est restée bloquée pendant l'optimisation.
+- **Notifications des PO convertis depuis une PR** : le chemin de conversion PR→PO ne prévenait pas les administrateurs comme la création PO standard. Les deux chemins PO et la conversion PR partagent maintenant un service de notification; l'envoi se fait après commit quand une transaction est active et les échecs de notification ne font pas échouer la création déjà persistée.
+- **Tests** : `PurchaseOrderNotificationServiceTest`, `PurchaseOrderControllerSearchTest` et `PurchaseRequisitionLegacyApprovalTest` passent (8 tests, 0 échec). Le test dédié vérifie l'absence d'effet avant le callback afterCommit et l'envoi ensuite. `git diff --check` est propre.
+- **À faire** : valider le build CRA, effectuer une recette authentifiée responsive des pages Procurement; cycle PO annulation/retour, validation métier des WO000026–WO000028, politique de rétention et smoke test webhook restent au backlog. Sage 300 requiert toujours un serveur et des accès de recette.
+
+### Rebuild local des conteneurs — 5 novembre 2026, 12:53 UTC
+
+- Le build CRA hôte puis le build Docker réussissent avec `QPM_LOW_MEMORY_BUILD=1`, `GENERATE_SOURCEMAP=false` et Terser séquentiel. Le build Web conserve deux avertissements de mise en forme préexistants dans `Settings/Features/TaskLists` et un avis sur la taille du bundle.
+- Images reconstruites, sans déploiement à ce stade : API `atlas-cmms-backend:local`, digest `b788765b287e98d45db3d78b0d70fa72bebcb0be7b2431fe1d5e5261b47c1d5d`; Web `atlas-cmms-frontend:local`, digest `785cabbeba830d68bc8ef241c0bf1c315402f23f80b452690cef7df97aa1e36d`.
+- Validation finale : typecheck Web, ESLint PO et 8 tests API ciblés réussis. La page du site et le health-check API servis avant déploiement répondent HTTP 200. `mobile/QPM-1.0.60.apk` est inchangé (SHA-256 `0caa3274ec3faf991c1b2fcbe82d0fdf4bed62b8f46e4aaa7323af9eec4c2172`).
