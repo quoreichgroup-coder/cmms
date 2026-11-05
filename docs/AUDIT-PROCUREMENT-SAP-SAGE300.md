@@ -311,3 +311,9 @@ Reconstruction serveur : `mvn -o -Dmaven.compiler.useIncrementalCompilation=fals
 - La vérification rétrospective des parcours d'import et des intégrations a révélé que les abonnements PO étaient masqués dans Settings malgré le dispatch API opérationnel (`NEW_PURCHASE_ORDER`, `PURCHASE_ORDER_CHANGE`, `PURCHASE_ORDER_STATUS_CHANGE`). Une exclusion frontend historique n'avait pas été retirée avec l'ajout de l'outbox.
 - Le sélecteur expose maintenant les trois événements PO; `WORK_ORDER_OVERDUE` reste masqué, car son enum n'a toujours aucun dispatch backend. Le test Connectors vérifie les dispatchs PO et protège cet état incomplet.
 - Tests Connectors (5/5), documents Procurement (22/22) et champs modèles d'impression (5/5) passent. ESLint ciblé et typecheck Web passent. Une tentative de build Web hôte a terminé prématurément par manque de mémoire; le build Docker avec le réglage faible mémoire reste à valider avant de déployer le frontend.
+
+### Livraison des événements PO dans Settings — 5 novembre 2026, 13:35 UTC
+
+- Le build Docker frontend termine avec succès malgré la pression mémoire; il réutilise les couches npm et typecheck. Le build inclut `main.c81a728c.js`; l’image Web est `atlas-cmms-frontend:local`, digest `50c79721462c3057c8883c0f6c64b13a1cb66aa239aa3606f9de6e6b0abf58bf`.
+- Le conteneur frontend a été recréé. Son digest correspond à la nouvelle image; un bundle servi contient bien `NEW_PURCHASE_ORDER`. Le site et `/api/health-check` répondent HTTP 200. L’API reste sur `b788765b…` et n’a pas été redémarrée pour ce changement.
+- Correctif `86aa5ccd` déjà poussé sur `origin/projet`. L’APK v1.0.60 reste inchangée. Les événements `WORK_ORDER_OVERDUE` demeurent masqués, faute de dispatch backend.
