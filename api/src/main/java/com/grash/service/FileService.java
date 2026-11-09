@@ -78,6 +78,10 @@ public class FileService {
         if (!licenseService.hasEntitlement(LicenseEntitlement.FILE_ATTACHMENTS))
             throw new CustomException("You need a license to add a file", HttpStatus.FORBIDDEN);
         boolean isBypass = Boolean.TRUE.equals(bypass);
+        // The permission bypass only exists for profile pictures: one hidden image, not linked to a task.
+        if (isBypass && (filesReq == null || filesReq.length != 1 || fileType != FileType.IMAGE || taskId != null
+                || !"true".equals(hidden)))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         if (!rateLimiterService.tryConsumeFileUpload(String.valueOf(user.getId()), isBypass)) {
             throw new CustomException("Rate limit exceeded. Try again later.", HttpStatus.TOO_MANY_REQUESTS);
         }

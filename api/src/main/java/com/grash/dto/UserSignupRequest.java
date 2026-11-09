@@ -47,7 +47,9 @@ public class UserSignupRequest {
     private Language language;
     @Schema(hidden = true)
     private String subscriptionPlanId;
+    /** Set only by DemoController; never accepted from a client request body. */
     @Schema(hidden = true)
+    @JsonIgnore
     private Boolean demo;
 
     @Schema(hidden = true)

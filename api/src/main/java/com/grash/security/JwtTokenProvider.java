@@ -10,7 +10,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,14 +95,8 @@ public class JwtTokenProvider {
         if (bearerToken != null && bearerToken.startsWith(Consts.TOKEN_PREFIX)) {
             return bearerToken.substring(7);
         }
-        Cookie[] cookies = req.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("swagger_jwt".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
+        // Only the Authorization header is accepted: CSRF protection is disabled, so an ambient
+        // cookie credential would let other sites issue authenticated requests.
         return null;
     }
 

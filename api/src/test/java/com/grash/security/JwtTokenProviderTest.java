@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -179,15 +180,14 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        void noAuthorizationHeader_cookieMatch_returnsToken() {
+        void noAuthorizationHeader_legacySwaggerCookie_isIgnored() {
             HttpServletRequest request = mock(HttpServletRequest.class);
             when(request.getHeader("Authorization")).thenReturn(null);
-            Cookie cookie = new Cookie("swagger_jwt", "cookie-jwt");
-            when(request.getCookies()).thenReturn(new Cookie[]{cookie});
+            lenient().when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("swagger_jwt", "cookie-jwt")});
 
             String token = jwtTokenProvider.resolveToken(request);
 
-            assertEquals("cookie-jwt", token);
+            assertNull(token);
         }
 
         @Test
@@ -195,7 +195,7 @@ class JwtTokenProviderTest {
             HttpServletRequest request = mock(HttpServletRequest.class);
             when(request.getHeader("Authorization")).thenReturn(null);
             Cookie cookie = new Cookie("other_cookie", "value");
-            when(request.getCookies()).thenReturn(new Cookie[]{cookie});
+            lenient().when(request.getCookies()).thenReturn(new Cookie[]{cookie});
 
             String token = jwtTokenProvider.resolveToken(request);
 
@@ -206,7 +206,7 @@ class JwtTokenProviderTest {
         void noAuthorizationHeader_noCookies_returnsNull() {
             HttpServletRequest request = mock(HttpServletRequest.class);
             when(request.getHeader("Authorization")).thenReturn(null);
-            when(request.getCookies()).thenReturn(null);
+            lenient().when(request.getCookies()).thenReturn(null);
 
             String token = jwtTokenProvider.resolveToken(request);
 

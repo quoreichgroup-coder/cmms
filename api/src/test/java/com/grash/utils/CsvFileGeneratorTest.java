@@ -508,4 +508,24 @@ class CsvFileGeneratorTest {
                 csvFileGenerator.writeWorkOrdersToCsv(List.of(buildWorkOrder(1L)), failingWriter, LOCALE,
                         CSV_SEPARATOR, false));
     }
+
+    @org.junit.jupiter.api.Nested
+    class FormulaInjection {
+
+        @org.junit.jupiter.api.Test
+        void prefixesCellsThatSpreadsheetsWouldEvaluate() {
+            org.junit.jupiter.api.Assertions.assertEquals("'=HYPERLINK(\"x\")",
+                    CsvFileGenerator.neutralizeCsvCell("=HYPERLINK(\"x\")"));
+            org.junit.jupiter.api.Assertions.assertEquals("'@SUM(A1)", CsvFileGenerator.neutralizeCsvCell("@SUM(A1)"));
+            org.junit.jupiter.api.Assertions.assertEquals("'-2+3+cmd", CsvFileGenerator.neutralizeCsvCell("-2+3+cmd"));
+        }
+
+        @org.junit.jupiter.api.Test
+        void keepsOrdinaryValues() {
+            org.junit.jupiter.api.Assertions.assertEquals("- check oil", CsvFileGenerator.neutralizeCsvCell("- check oil"));
+            org.junit.jupiter.api.Assertions.assertEquals("-12.5", CsvFileGenerator.neutralizeCsvCell("-12.5"));
+            org.junit.jupiter.api.Assertions.assertEquals("Pump", CsvFileGenerator.neutralizeCsvCell("Pump"));
+            org.junit.jupiter.api.Assertions.assertEquals(42, CsvFileGenerator.neutralizeCsvCell(42));
+        }
+    }
 }

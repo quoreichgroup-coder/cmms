@@ -37,7 +37,7 @@ public class TenantAspect {
     }
 
     @Before("@annotation(org.springframework.web.bind.annotation.PostMapping) || @annotation(org.springframework.web" +
-            ".bind.annotation.PatchMapping)")
+            ".bind.annotation.PatchMapping) || @annotation(org.springframework.web.bind.annotation.PutMapping)")
     public void validateTenant(JoinPoint joinPoint) {
         if (ignoreCompanyCheck.get()) return;
         MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();

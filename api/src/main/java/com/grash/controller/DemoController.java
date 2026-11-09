@@ -50,10 +50,15 @@ public class DemoController {
     private final AssetService assetService;
     private final DemoDataService demoDataService;
     private final ClientIpResolver clientIpResolver;
+    /** Anonymous demo-company creation is only for the public marketing demo; off for QPM deployments. */
+    @org.springframework.beans.factory.annotation.Value("${demo.public-account-enabled:false}")
+    private boolean publicDemoAccountEnabled;
 
     @Hidden
     @GetMapping("/generate-account")
     public SuccessResponse generateAccount(HttpServletRequest req) {
+        if (!publicDemoAccountEnabled)
+            throw new com.grash.exception.CustomException("Not found", org.springframework.http.HttpStatus.NOT_FOUND);
         String clientIp = clientIpResolver.resolve(req);
         if (!rateLimiterService.resolveDemoBucket(clientIp).tryConsume(1)) {
             return new SuccessResponse(false, "Rate limit exceeded. Try again later.");
