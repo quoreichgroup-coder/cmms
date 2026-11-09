@@ -726,7 +726,7 @@ const Parts = ({ setAction }: PropsType) => {
                   await exportEntity(entity);
                 } catch (error) {
                   showSnackBar(
-                    getErrorMessage(error, t('Export failed')),
+                    getErrorMessage(error, t('export_failed')),
                     'error'
                   );
                 }

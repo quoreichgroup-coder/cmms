@@ -88,7 +88,7 @@ function Overview({
                     handleOpenModal(
                       data.config.columns,
                       data.config.filters,
-                      t('The numbers')
+                      t('cost_overview_export')
                     )
                   }
                 >

@@ -149,11 +149,11 @@ export default function ScanAssetScreen({
           {isNfcEnabled && (
             <>
               <List.Item
-                title={t('NFC')}
+                title={t('nfc')}
                 description={t('nfc_hold_near_device')}
                 left={(props) => <List.Icon {...props} icon="nfc" />}
                 accessibilityRole="button"
-                accessibilityLabel={t('NFC')}
+                accessibilityLabel={t('nfc')}
                 accessibilityHint={t('nfc_hold_near_device')}
                 onPress={() => {
                   if (hasBarcodeNfcEntitlement)

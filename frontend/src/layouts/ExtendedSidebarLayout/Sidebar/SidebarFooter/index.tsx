@@ -118,9 +118,9 @@ function SidebarFooter({ forceExpanded = false }: { forceExpanded?: boolean }) {
           </IconButton>
         </LightTooltip>
       )}
-      <LightTooltip placement="top" arrow title={t('Logout')}>
+      <LightTooltip placement="top" arrow title={t('logout')}>
         <IconButton
-          aria-label={t('Logout')}
+          aria-label={t('logout')}
           sx={footerButtonSx}
           onClick={handleLogout}
         >

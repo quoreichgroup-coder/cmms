@@ -241,7 +241,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     purchaseOrder1: PurchaseOrder
   ): { label: string; value: any }[] => [
     {
-      label: t('Company Name'),
+      label: t('company_name'),
       value: purchaseOrder1.shippingCompanyName
     },
     {

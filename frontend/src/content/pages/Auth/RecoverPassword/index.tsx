@@ -240,8 +240,7 @@ function RecoverPasswordBasic() {
               }
               severity="info"
             >
-              {t(
-                'The password reset instructions have been sent to your email'
+              {t('password_reset_sent'
               )}
             </Alert>
           </Collapse>

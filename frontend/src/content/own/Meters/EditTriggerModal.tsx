@@ -104,7 +104,7 @@ export default function EditTriggerModal({
     showSnackBar(t('wo_trigger_edit_failure'), 'error');
 
   const shape = {
-    name: Yup.string().required(t('Trequired_trigger_name')),
+    name: Yup.string().required(t('required_trigger_name')),
     title: Yup.string().required(t('required_wo_title')),
     value: Yup.number().required(t('required_value')),
     recurrent: Yup.boolean(),

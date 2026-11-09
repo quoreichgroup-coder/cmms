@@ -71,7 +71,7 @@ function Overview({
       value: overview.avgCycleTime
     },
     {
-      label: t('MTTA'),
+      label: t('mtta'),
       value: overview.mtta
     }
   ];

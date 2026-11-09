@@ -523,7 +523,7 @@ function RootNavigator() {
       <Stack.Screen
         name="Notifications"
         component={NotificationsScreen}
-        options={{ title: t('Notifications') }}
+        options={{ title: t('notifications') }}
       />
       <Stack.Screen
         name="License"

@@ -21,7 +21,7 @@ function AccountDeleted() {
   return (
     <>
       <Helmet>
-        <title>{t('Account deleted')}</title>
+        <title>{t('account_deleted')}</title>
       </Helmet>
       <MainContent>
         <Container maxWidth="sm">
@@ -47,14 +47,14 @@ function AccountDeleted() {
                   mb: 1
                 }}
               >
-                {t('Account deleted')}
+                {t('account_deleted')}
               </Typography>
               <Typography
                 variant="h4"
                 color="text.secondary"
                 fontWeight="normal"
               >
-                {t('The account has been deleted successfully')}
+                {t('account_deleted_description')}
               </Typography>
             </Box>
           </Card>

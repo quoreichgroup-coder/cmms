@@ -102,7 +102,7 @@ const DemoCleaningAlert = () => {
         }}
         severity="info"
       >
-        {t('You can delete demo data from General Settings')}
+        {t('demo_data_delete_hint')}
       </Alert>
     );
   return null;

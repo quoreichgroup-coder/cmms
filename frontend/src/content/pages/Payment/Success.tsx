@@ -48,7 +48,7 @@ function PaymentSuccess() {
                   mb: 3
                 }}
               >
-                {t('Your payment was processed successfully. Please check your email for your license details.')}
+                {t('payment_success_license_email')}
               </Typography>
             </Box>
           </Card>

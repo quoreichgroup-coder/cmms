@@ -53,9 +53,9 @@ function BulkActions(props: BulkActionsProps) {
       <Box display="flex" alignItems="center" justifyContent="space-between">
         <Box display="flex" alignItems="center">
           <Typography variant="h5" color="text.secondary">
-            {t('Bulk actions')}:
+            {t('bulk_actions')}:
           </Typography>
-          {/* <Tooltip arrow placement="top" title={t('Resend verification email')}>
+          {/* <Tooltip arrow placement="top" title={t('resend_verification_email')}>
             <IconButton
               color="primary"
               sx={{
@@ -127,10 +127,10 @@ function BulkActions(props: BulkActionsProps) {
           component="nav"
         >
           <ListItem button>
-            <ListItemText primary={t('Bulk edit accounts')} />
+            <ListItemText primary={t('bulk_edit_accounts')} />
           </ListItem>
           <ListItem button>
-            <ListItemText primary={t('Close selected accounts')} />
+            <ListItemText primary={t('close_selected_accounts')} />
           </ListItem>
         </List>
       </Menu>

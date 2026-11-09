@@ -86,7 +86,7 @@ function Status404() {
               <FormControl variant="outlined" fullWidth>
                 <OutlinedInputWrapper
                   type="text"
-                  placeholder={t('Search terms here...')}
+                  placeholder={t('search_terms_placeholder')}
                   endAdornment={
                     <InputAdornment position="end">
                       <ButtonSearch variant="contained" size="small">
@@ -109,7 +109,7 @@ function Status404() {
                 OR
               </Divider>
               <Button component={Link} to="/app/work-orders" variant="outlined">
-                {t('Go to homepage')}
+                {t('go_to_homepage')}
               </Button>
             </Card>
           </Container>

@@ -213,12 +213,12 @@ const ThemeSettings: FC = () => {
   return (
     <>
       <ThemeSettingsButton>
-        <Tooltip arrow title={t('Theme Settings')}>
+        <Tooltip arrow title={t('theme_settings')}>
           <Fab
             ref={ref}
             onClick={handleOpen}
             color="primary"
-            aria-label={t('Theme Settings')}
+            aria-label={t('theme_settings')}
           >
             <SettingsOutlinedIcon />
           </Fab>

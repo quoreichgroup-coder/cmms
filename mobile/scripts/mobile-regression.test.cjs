@@ -621,7 +621,7 @@ test('asset scanner choices explain NFC and QR actions visually and accessibly',
     'utf8'
   );
   const nfcItem = source.match(
-    /<List\.Item\s+title=\{t\('NFC'\)\}[\s\S]*?onPress=/
+    /<List\.Item\s+title=\{t\('nfc'\)\}[\s\S]*?onPress=/
   );
   const barcodeItem = source.match(
     /<List\.Item\s+title=\{t\('barcode'\) \+ '\/QR code'\}[\s\S]*?onPress=/

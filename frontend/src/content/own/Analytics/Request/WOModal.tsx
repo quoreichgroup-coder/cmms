@@ -82,8 +82,8 @@ export default function WOModal({
     },
     {
       field: 'title',
-      headerName: t('Title'),
-      description: t('Title'),
+      headerName: t('title'),
+      description: t('title'),
       width: 150,
       renderCell: (params: GridRenderCellParams<string>) => (
         <Box sx={{ fontWeight: 'bold' }}>{params.value}</Box>
@@ -107,8 +107,8 @@ export default function WOModal({
     },
     {
       field: 'primaryUser',
-      headerName: t('Worker'),
-      description: t('Worker'),
+      headerName: t('worker'),
+      description: t('worker'),
       width: 170,
       renderCell: (params: GridRenderCellParams<UserMiniDTO>) =>
         params.value ? (
@@ -117,8 +117,8 @@ export default function WOModal({
     },
     {
       field: 'assignedTo',
-      headerName: t('Assignees'),
-      description: t('Assignees'),
+      headerName: t('assignees'),
+      description: t('assignees'),
       width: 170,
       renderCell: (params: GridRenderCellParams<UserMiniDTO[]>) => (
         <UserAvatars users={params.value} />
@@ -126,8 +126,8 @@ export default function WOModal({
     },
     {
       field: 'location',
-      headerName: t('Location name'),
-      description: t('Location name'),
+      headerName: t('location_name'),
+      description: t('location_name'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<LocationMiniDTO>) =>
         params.value?.name,
@@ -135,8 +135,8 @@ export default function WOModal({
     },
     {
       field: 'locationAddress',
-      headerName: t('Location address'),
-      description: t('Location address'),
+      headerName: t('location_address'),
+      description: t('location_address'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<null, WorkOrder>) =>
         params.row.location?.address,
@@ -152,16 +152,16 @@ export default function WOModal({
     },
     {
       field: 'asset',
-      headerName: t('Asset name'),
-      description: t('Asset name'),
+      headerName: t('asset_name'),
+      description: t('asset_name'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<AssetMiniDTO>) =>
         params.value?.name
     },
     {
       field: 'daysSinceCreated',
-      headerName: t('Days since creation'),
-      description: t('Days since creation'),
+      headerName: t('days_since_creation'),
+      description: t('days_since_creation'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<null, WorkOrder>) =>
         dayDiff(new Date(), new Date(params.row.createdAt))
@@ -176,16 +176,16 @@ export default function WOModal({
     },
     {
       field: 'requestedBy',
-      headerName: t('Requested By'),
-      description: t('Requested By'),
+      headerName: t('requested_by'),
+      description: t('requested_by'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<null, WorkOrder>) =>
         getUserNameById(params.row.parentRequest?.createdBy)
     },
     {
       field: 'completedOn',
-      headerName: t('Completed On'),
-      description: t('Completed On'),
+      headerName: t('completed_on'),
+      description: t('completed_on'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<string>) =>
         getFormattedDate(params.value)
@@ -239,7 +239,7 @@ export default function WOModal({
             components={{
               NoRowsOverlay: () => (
                 <NoRowsMessageWrapper
-                  message={t('No Work Order found')}
+                  message={t('no_work_order_found')}
                   action={null}
                 />
               )

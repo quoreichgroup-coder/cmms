@@ -285,7 +285,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
     {
       name: 'description',
       type: 'text',
-      label: t('Description'),
+      label: t('description'),
       multiple: true,
       placeholder: t('description')
     },

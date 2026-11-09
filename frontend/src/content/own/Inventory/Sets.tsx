@@ -156,7 +156,7 @@ const Sets = ({ setAction }: PropsType) => {
       name: 'name',
       type: 'text',
       label: t('name'),
-      placeholder: t('Enter Part name'),
+      placeholder: t('enter_part_name'),
       required: true
     },
     {

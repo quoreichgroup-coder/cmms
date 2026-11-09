@@ -281,7 +281,7 @@ const AssetDowntimes = ({ asset }: PropsType) => {
         }}
       >
         <Typography variant="h4" gutterBottom>
-          {t('Edit Downtime')}
+          {t('edit_downtime')}
         </Typography>
       </DialogTitle>
       <DialogContent

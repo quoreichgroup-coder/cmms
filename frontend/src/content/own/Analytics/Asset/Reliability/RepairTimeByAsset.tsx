@@ -68,7 +68,7 @@ function RepairTimeByAsset({
     };
   });
 
-  const title = t('MTTR');
+  const title = t('mttr');
   return (
     <AnalyticsCard title={title}>
       {loading.repairTimeByAsset || errors.repairTimeByAsset ? (

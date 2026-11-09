@@ -1090,10 +1090,10 @@ function WorkOrders() {
         }}
       >
         <Typography variant="h4" gutterBottom>
-          {t('Edit Work Order')}
+          {t('edit_work_order')}
         </Typography>
         <Typography variant="subtitle2">
-          {t('Fill in the fields below to update the Work Order')}
+          {t('edit_work_order_description')}
         </Typography>
       </DialogTitle>
       <DialogContent
@@ -1197,7 +1197,7 @@ function WorkOrders() {
                 await exportEntity(item.key);
               } catch (error) {
                 showSnackBar(
-                  getErrorMessage(error, t('Export failed')),
+                  getErrorMessage(error, t('export_failed')),
                   'error'
                 );
               }

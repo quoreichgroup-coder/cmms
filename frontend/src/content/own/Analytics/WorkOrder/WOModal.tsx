@@ -200,7 +200,7 @@ export default function WOModal({
     {
       field: 'location',
       headerName: t('location'),
-      description: t('Location'),
+      description: t('location'),
       width: 150,
       valueGetter: (params: GridValueGetterParams<LocationMiniDTO>) =>
         params.value?.name,

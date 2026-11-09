@@ -608,7 +608,7 @@ function Meters() {
             try {
               await exportEntity('meters');
             } catch (error) {
-              showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
+              showSnackBar(getErrorMessage(error, t('export_failed')), 'error');
             }
           }}
         >

@@ -6,7 +6,6 @@ function HeaderButtons() {
     <Box>
       <HeaderNotifications />
       {/*<LanguageSwitcher />*/}
-      {/*<Chat />*/}
     </Box>
   );
 }

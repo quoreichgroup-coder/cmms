@@ -95,7 +95,7 @@ function ProfileDetails() {
         value: userSettings?.emailUpdatesForRequests,
         title: t('email_updates_requests')
       }
-      // dailyEmailSummary: { value: userSettings?., title: t('Daily Summary Emails') },
+      // dailyEmailSummary: { value: userSettings?., title: t('daily_summary_emails') },
       // emailUpdatesForPurchaseOrders: {
       //   value: userSettings?.emailUpdatesForPurchaseOrders,
       //   title: t('po_emails')

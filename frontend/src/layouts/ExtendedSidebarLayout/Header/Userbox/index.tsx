@@ -385,7 +385,7 @@ function HeaderUserbox() {
         {/*    <Box ml={1}>*/}
         {/*      <Typography variant="h3">$14,264</Typography>*/}
         {/*      <Typography noWrap variant="subtitle2">*/}
-        {/*        {t('total value')}*/}
+        {/*        {t('total_value')}*/}
         {/*      </Typography>*/}
         {/*    </Box>*/}
         {/*  </Box>*/}

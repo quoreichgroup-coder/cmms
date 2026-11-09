@@ -135,7 +135,7 @@ function ApiKeys() {
       try {
         const deleted = await dispatch(deleteApiKey(currentApiKey.id));
         if (deleted) {
-          showSnackBar(t('Deleted successfully'), 'success');
+          showSnackBar(t('deleted_successfully'), 'success');
           handleCloseDeleteDialog();
         } else {
           showSnackBar(t('something_went_wrong'), 'error');

@@ -77,7 +77,7 @@ export default function SettingsScreen({
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setOpenLogout(false)}>{t('cancel')}</Button>
-            <Button onPress={logout}>{t('Sign out')}</Button>
+            <Button onPress={logout}>{t('sign_out')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -87,9 +87,9 @@ export default function SettingsScreen({
     return (
       <Portal theme={theme}>
         <Dialog visible={openDevInfo} onDismiss={() => setOpenDevInfo(false)}>
-          <Dialog.Title>{t('Dev Info')}</Dialog.Title>
+          <Dialog.Title>{t('dev_info')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="titleMedium">{t('Build ID')}</Text>
+            <Text variant="titleMedium">{t('build_id')}</Text>
             <Text variant="bodyMedium">{Updates.updateId}</Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -297,7 +297,7 @@ export default function SettingsScreen({
           left={(props) => (
             <List.Icon {...props} color={theme.colors.error} icon="logout" />
           )}
-          title={t('Sign out')}
+          title={t('sign_out')}
           titleStyle={{ color: theme.colors.error }}
           onPress={() => setOpenLogout(true)}
         />
@@ -344,7 +344,7 @@ export default function SettingsScreen({
             }
           ]}
           left={(props) => <List.Icon {...props} icon="information-outline" />}
-          title={t('Version')}
+          title={t('version')}
           description={Constants.expoConfig.version}
         />
       </View>

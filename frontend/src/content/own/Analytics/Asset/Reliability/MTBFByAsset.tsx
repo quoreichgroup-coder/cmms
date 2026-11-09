@@ -68,7 +68,7 @@ function MTBFByAsset({
     };
   });
 
-  const title = t('MTBF');
+  const title = t('mtbf');
   return (
     <AnalyticsCard title={title}>
       {loading.mtbfByAsset || errors.mtbfByAsset ? (
@@ -85,7 +85,7 @@ function MTBFByAsset({
           <Bar
             dataKey="mtbf"
             fill={theme.palette.primary.main}
-            name={t('MTBF')}
+            name={t('mtbf')}
             yAxisId="left-axis"
           >
             {formattedData.map((entry, index) => (

@@ -853,7 +853,7 @@ function Locations() {
             try {
               await exportEntity('locations');
             } catch (error) {
-              showSnackBar(getErrorMessage(error, t('Export failed')), 'error');
+              showSnackBar(getErrorMessage(error, t('export_failed')), 'error');
             }
           }}
         >

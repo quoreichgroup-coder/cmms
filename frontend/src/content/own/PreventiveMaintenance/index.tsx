@@ -1420,7 +1420,7 @@ function PMs() {
                   await exportEntity('preventive-maintenances');
                 } catch (error) {
                   showSnackBar(
-                    getErrorMessage(error, t('Export failed')),
+                    getErrorMessage(error, t('export_failed')),
                     'error'
                   );
                 }

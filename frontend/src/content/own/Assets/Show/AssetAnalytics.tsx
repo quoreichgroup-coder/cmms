@@ -53,11 +53,11 @@ const AssetDowntimes = ({ id }: PropsType) => {
     value: string;
   }[] = [
     {
-      label: t('MTBF'),
+      label: t('mtbf'),
       value: assetDetailsOverview.mtbf.toString()
     },
     {
-      label: t('MTTR'),
+      label: t('mttr'),
       value: assetDetailsOverview.mttr.toString()
     },
     {
