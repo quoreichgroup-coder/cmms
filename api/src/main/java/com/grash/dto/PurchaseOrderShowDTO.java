@@ -20,6 +20,13 @@ public class PurchaseOrderShowDTO extends AuditShowDTO {
 
     private boolean receivingWorkflowEnabled;
 
+    @Schema(description = "When the order was closed before being fully received")
+    private Date closedAt;
+
+    private Long closedById;
+
+    private String closeReason;
+
     @Schema(description = "Name")
     private String name;
 

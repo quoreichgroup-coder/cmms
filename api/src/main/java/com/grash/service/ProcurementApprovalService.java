@@ -265,6 +265,24 @@ public class ProcurementApprovalService {
         return true;
     }
 
+    /**
+     * A pending purchase order created before the company activated an approval policy is not governed
+     * yet. Once its lines (and therefore its amount) change, it must follow the policy like a new order,
+     * otherwise the amount could be raised and approved through the legacy single-step flow.
+     */
+    @Transactional
+    public boolean governPendingPurchaseOrder(PurchaseOrder purchaseOrder, Collection<PartQuantity> lines) {
+        if (purchaseOrder == null || purchaseOrder.getId() == null
+                || purchaseOrder.getStatus() != com.grash.model.enums.ApprovalStatus.PENDING) return false;
+        Company company = purchaseOrder.getCompany();
+        if (isGoverned("PO", purchaseOrder.getId(), company.getId()) || !hasActivatedPolicy("PO", company.getId()))
+            return false;
+        String currency = company.getCompanySettings().getGeneralPreferences().getCurrency() == null ? null
+                : company.getCompanySettings().getGeneralPreferences().getCurrency().getCode();
+        return start("PO", purchaseOrder.getId(), purchaseOrder.getName(), purchaseOrder.getCreatedBy(), company,
+                estimatePurchaseOrderAmount(lines), currency);
+    }
+
     @Transactional(readOnly = true)
     public boolean hasActivatedPolicy(String type, Long companyId) {
         return policies.existsByCompany_IdAndDocumentTypeAndActivatedAtIsNotNull(companyId, documentType(type));
@@ -453,6 +471,19 @@ public class ProcurementApprovalService {
 
     private boolean isDecision(ProcurementApprovalEvent event) {
         return "APPROVED".equals(event.getAction()) || "REJECTED".equals(event.getAction());
+    }
+
+    /**
+     * Lets a rejected document be revised or deleted: the rejected approval instance is removed (its events
+     * stay in the approval history) so that a resubmission starts a fresh approval. Pending or approved
+     * instances keep the document locked.
+     */
+    @Transactional
+    public void releaseRejected(String type, Long document, Long company) {
+        instances.findByCompany_IdAndDocumentTypeAndDocumentId(company, documentType(type), document).ifPresent(instance -> {
+            if (!"REJECTED".equals(instance.getStatus())) throw conflict("approval_document_locked");
+            instances.delete(instance);
+        });
     }
 
     public void requireEditable(String type, Long document, Long company) {

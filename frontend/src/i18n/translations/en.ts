@@ -4077,7 +4077,8 @@ const locale = {
   help_article_unavailable: 'This article does not exist or you do not have access to it.',
   help_confirm_archive_article: 'Archive the article “{{title}}”? It will no longer be shown in the Help Center.',
   help_confirm_archive_category: 'Archive the category “{{name}}”?',
-  running_low: 'running low'
+  running_low: 'running low',
+  vendor_used_by_purchase_orders: 'This vendor is used by purchase orders and cannot be deleted.'
 };
 
 export default locale;

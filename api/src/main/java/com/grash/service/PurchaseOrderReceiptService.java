@@ -47,6 +47,9 @@ public class PurchaseOrderReceiptService {
         if (order.getStatus() != ApprovalStatus.APPROVED) {
             throw new CustomException("Only an approved purchase order can be received", HttpStatus.CONFLICT);
         }
+        if (order.getClosedAt() != null) {
+            throw new CustomException("purchase_order_closed", HttpStatus.CONFLICT);
+        }
         String key = request.getIdempotencyKey().trim();
         String requestHash = hash(request);
         Optional<PurchaseOrderReceipt> existing = receiptRepository

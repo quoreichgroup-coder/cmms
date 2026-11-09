@@ -37,6 +37,11 @@ public class PurchaseOrderService {
     public PurchaseOrder create(PurchaseOrder purchaseOrder) {
         // The request body cannot set a final status. The controller starts the policy
         // after it has persisted the complete PO, including separately submitted lines.
+        // Creation never merges onto an existing order (every caller builds a new PO from a request body).
+        purchaseOrder.setId(null);
+        purchaseOrder.setClosedAt(null);
+        purchaseOrder.setClosedById(null);
+        purchaseOrder.setCloseReason(null);
         purchaseOrder.setStatus(ApprovalStatus.PENDING);
         Sanitizer.sanitizePurchaseOrder(purchaseOrder);
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);

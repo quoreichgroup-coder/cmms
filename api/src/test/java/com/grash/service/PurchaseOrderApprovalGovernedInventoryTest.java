@@ -36,6 +36,7 @@ class PurchaseOrderApprovalGovernedInventoryTest {
     @Mock private PurchaseOrderWebhookService purchaseOrderWebhookService;
     @Mock private PurchaseRequisitionRepository purchaseRequisitionRepository;
     @Mock private ProcurementApprovalService procurementApprovals;
+    @Mock private PurchaseOrderReceiptService purchaseOrderReceiptService;
     @InjectMocks private PurchaseOrderApprovalService service;
 
     @Test

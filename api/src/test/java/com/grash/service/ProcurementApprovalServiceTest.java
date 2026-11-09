@@ -533,4 +533,40 @@ class ProcurementApprovalServiceTest {
         assertFailure(HttpStatus.BAD_REQUEST, "approval_invalid_amount_snapshot", () ->
                 ProcurementApprovalService.estimatePurchaseOrderAmount(List.of(new PartQuantity(broken, null, null, 1))));
     }
+
+    @Test void pendingLegacyPurchaseOrderJoinsActivatedPolicyAfterLineChange() {
+        PurchaseOrder order = new PurchaseOrder(); order.setId(55L); order.setName("PO-55"); order.setCompany(company);
+        order.setStatus(com.grash.model.enums.ApprovalStatus.PENDING);
+        when(instances.findByCompany_IdAndDocumentTypeAndDocumentId(1L, "PO", 55L)).thenReturn(Optional.empty());
+        when(policies.existsByCompany_IdAndDocumentTypeAndActivatedAtIsNotNull(1L, "PO")).thenReturn(true);
+        when(policies.findAllByCompany_IdAndDocumentTypeAndStatusOrderByPriorityAscIdAsc(1L, "PO", "ACTIVE")).thenReturn(List.of());
+
+        // start() is reached: with the policy now deactivated it refuses instead of letting the legacy flow approve.
+        assertFailure(HttpStatus.CONFLICT, "approval_no_active_policy", () ->
+                service.governPendingPurchaseOrder(order, List.of()));
+    }
+
+    @Test void nonPendingOrUngovernedCompanyPurchaseOrderIsLeftUnchanged() {
+        PurchaseOrder approved = new PurchaseOrder(); approved.setId(56L); approved.setCompany(company);
+        approved.setStatus(com.grash.model.enums.ApprovalStatus.APPROVED);
+        assertFalse(service.governPendingPurchaseOrder(approved, List.of()));
+
+        PurchaseOrder pending = new PurchaseOrder(); pending.setId(57L); pending.setCompany(company);
+        pending.setStatus(com.grash.model.enums.ApprovalStatus.PENDING);
+        when(instances.findByCompany_IdAndDocumentTypeAndDocumentId(1L, "PO", 57L)).thenReturn(Optional.empty());
+        when(policies.existsByCompany_IdAndDocumentTypeAndActivatedAtIsNotNull(1L, "PO")).thenReturn(false);
+        assertFalse(service.governPendingPurchaseOrder(pending, List.of()));
+    }
+
+    @Test void rejectedInstanceIsReleasedButPendingOneStaysLocked() {
+        var rejected = new ProcurementApprovalInstance(); rejected.setId(1L); rejected.setStatus("REJECTED");
+        when(instances.findByCompany_IdAndDocumentTypeAndDocumentId(1L, "PR", 70L)).thenReturn(Optional.of(rejected));
+        service.releaseRejected("PR", 70L, 1L);
+        verify(instances).delete(rejected);
+
+        var pending = new ProcurementApprovalInstance(); pending.setId(2L); pending.setStatus("PENDING");
+        when(instances.findByCompany_IdAndDocumentTypeAndDocumentId(1L, "PR", 71L)).thenReturn(Optional.of(pending));
+        assertFailure(HttpStatus.CONFLICT, "approval_document_locked", () -> service.releaseRejected("PR", 71L, 1L));
+        verify(instances, never()).delete(pending);
+    }
 }

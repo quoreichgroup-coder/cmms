@@ -4396,7 +4396,8 @@ const frJSON = {
   help_article_unavailable: 'Cet article n’existe pas ou vous n’y avez pas accès.',
   help_confirm_archive_article: 'Archiver l’article « {{title}} » ? Il ne sera plus affiché dans le centre d’aide.',
   help_confirm_archive_category: 'Archiver la catégorie « {{name}} » ?',
-  running_low: 'stock bas'
+  running_low: 'stock bas',
+  vendor_used_by_purchase_orders: 'Ce fournisseur est utilisé par des bons de commande et ne peut pas être supprimé.'
 };
 
 export default frJSON;

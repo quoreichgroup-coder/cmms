@@ -15,6 +15,7 @@ import com.grash.model.enums.CustomFieldEntityType;
 import com.grash.model.enums.PermissionEntity;
 import com.grash.model.enums.RoleType;
 import com.grash.model.enums.webhook.WebhookEvent;
+import com.grash.repository.PurchaseOrderRepository;
 import com.grash.repository.VendorRepository;
 import com.grash.utils.Sanitizer;
 import jakarta.persistence.EntityManager;
@@ -36,6 +37,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class VendorService {
     private final VendorRepository vendorRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
     private final VendorMapper vendorMapper;
     private final LicenseService licenseService;
     private final WebhookDispatchService webhookDispatchService;
@@ -149,6 +151,9 @@ public class VendorService {
         if (optionalVendor.isPresent()) {
             Vendor savedVendor = optionalVendor.get();
             if (savedVendor.canBeDeletedBy(user)) {
+                // The PO foreign key is SET NULL: deleting would silently strip the vendor from issued orders.
+                if (purchaseOrderRepository.existsByVendor_IdAndCompany_Id(id, user.getCompany().getId()))
+                    throw new CustomException("vendor_used_by_purchase_orders", HttpStatus.CONFLICT);
                 vendorRepository.delete(savedVendor);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         } else throw new CustomException("Vendor not found", HttpStatus.NOT_FOUND);

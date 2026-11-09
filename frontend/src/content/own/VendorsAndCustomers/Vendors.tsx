@@ -167,8 +167,15 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
   const onDeleteSuccess = () => {
     showSnackBar(t('vendor_delete_success'), 'success');
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('vendor_delete_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message = getErrorMessage(err, 'vendor_delete_failure');
+    showSnackBar(
+      message === 'vendor_used_by_purchase_orders'
+        ? t(message)
+        : t('vendor_delete_failure'),
+      'error'
+    );
+  };
 
   const handleOpenModal = (vendor: Vendor) => {
     setCurrentVendor(vendor);

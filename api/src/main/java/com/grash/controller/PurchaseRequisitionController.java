@@ -346,6 +346,27 @@ public class PurchaseRequisitionController {
         }
     }
 
+    @PostMapping("/{id}/revise")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
+    public PurchaseRequisitionShowDTO revise(@PathVariable Long id, HttpServletRequest httpRequest) {
+        User user = userService.whoami(httpRequest);
+        procurementPolicy.requireModuleEnabled(user);
+        PurchaseRequisition requisition = locked(id, user);
+        if (!requisition.canEdit(user) || requisition.getStatus() != PurchaseRequisitionStatus.REJECTED) {
+            throw new CustomException("purchase_requisition_revise_requires_rejected", HttpStatus.CONFLICT);
+        }
+        procurementApprovals.releaseRejected("PR", requisition.getId(), user.getCompany().getId());
+        // Back to draft so the requester can correct the lines and submit again.
+        requisition.setStatus(PurchaseRequisitionStatus.DRAFT);
+        requisition.setDecisionBy(null);
+        requisition.setDecisionAt(null);
+        requisition.setApprovalApproverIds(null);
+        requisition.setApprovalStep(0);
+        requisition.setApprovalConfigVersion(null);
+        return show(requisitionRepository.save(requisition));
+    }
+
     @PostMapping("/{id}/decision")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     @Transactional

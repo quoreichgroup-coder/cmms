@@ -42,6 +42,7 @@ public class PurchaseOrderApprovalService {
     private final PurchaseOrderWebhookService purchaseOrderWebhookService;
     private final PurchaseRequisitionRepository purchaseRequisitionRepository;
     private final ProcurementApprovalService procurementApprovals;
+    private final PurchaseOrderReceiptService purchaseOrderReceiptService;
 
     @Transactional
     public PurchaseOrder respond(Long id, Long companyId, boolean approved) {
@@ -112,6 +113,41 @@ public class PurchaseOrderApprovalService {
     }
 
     private void releaseRequisitionQuantities(Collection<PartQuantity> quantities, Long companyId) {
+        releaseRequisitionQuantities(quantities, companyId, PartQuantity::getQuantity);
+    }
+
+    /**
+     * Closes an approved purchase order that will not be received in full (short delivery, cancelled
+     * balance). Receipts already posted are kept; the unreceived balance is released back to the source
+     * requisitions so it can be ordered again, and the order leaves the receiving queue.
+     */
+    @Transactional
+    public PurchaseOrder close(Long id, com.grash.model.User actor, String reason) {
+        Long companyId = actor.getCompany().getId();
+        PurchaseOrder purchaseOrder = purchaseOrderService.findByIdForUpdateAndCompany(id, companyId)
+                .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
+        if (!purchaseOrder.canBeEditedBy(actor)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (purchaseOrder.getStatus() != ApprovalStatus.APPROVED || !purchaseOrder.isReceivingWorkflowEnabled())
+            throw new CustomException("purchase_order_close_requires_approved", HttpStatus.CONFLICT);
+        if (purchaseOrder.getClosedAt() != null)
+            throw new CustomException("purchase_order_closed", HttpStatus.CONFLICT);
+        String cleanReason = reason == null ? null : reason.trim();
+        if (cleanReason == null || cleanReason.isEmpty())
+            throw new CustomException("purchase_order_close_reason_required", HttpStatus.BAD_REQUEST);
+        Collection<PartQuantity> lines = partQuantityService.findByPurchaseOrder(id);
+        Map<Long, Double> received = purchaseOrderReceiptService.receivedByLine(id);
+        releaseRequisitionQuantities(lines, companyId,
+                line -> Math.max(0, line.getQuantity() - received.getOrDefault(line.getId(), 0d)));
+        purchaseOrder.setClosedAt(new java.util.Date());
+        purchaseOrder.setClosedById(actor.getId());
+        purchaseOrder.setCloseReason(cleanReason.length() > 500 ? cleanReason.substring(0, 500) : cleanReason);
+        PurchaseOrder saved = purchaseOrderService.save(purchaseOrder);
+        purchaseOrderWebhookService.changed(saved);
+        return saved;
+    }
+
+    private void releaseRequisitionQuantities(Collection<PartQuantity> quantities, Long companyId,
+                                              java.util.function.ToDoubleFunction<PartQuantity> quantityToRelease) {
         Set<Long> requisitionIds = new TreeSet<>();
         for (PartQuantity quantity : quantities) {
             if (quantity.getRequisitionLine() != null) {
@@ -133,7 +169,7 @@ public class PurchaseOrderApprovalService {
             PurchaseRequisitionLine sourceLine = requisition.getLines().stream()
                     .filter(line -> line.getId().equals(quantity.getRequisitionLine().getId()))
                     .findFirst().orElseThrow(() -> new CustomException("Requisition source line not found", HttpStatus.CONFLICT));
-            double released = sourceLine.getOrderedQuantity() - quantity.getQuantity();
+            double released = sourceLine.getOrderedQuantity() - quantityToRelease.applyAsDouble(quantity);
             if (released < -0.000001) {
                 throw new CustomException("Requisition order quantity is inconsistent", HttpStatus.CONFLICT);
             }

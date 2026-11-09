@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <!-- Closing an approved order that will not be received in full. Nullable: existing orders stay open. -->
+    <changeSet id="2026-11-10-purchase-order-close" author="qpm">
+        <addColumn tableName="purchase_order">
+            <column name="closed_at" type="TIMESTAMP"/>
+            <column name="closed_by_id" type="BIGINT"/>
+            <column name="close_reason" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

@@ -19,10 +19,12 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     boolean existsByCategory_IdAndCompany_Id(Long categoryId, Long companyId);
 
+    boolean existsByVendor_IdAndCompany_Id(Long vendorId, Long companyId);
+
     Optional<PurchaseOrder> findByIdAndCompany_Id(Long id, Long companyId);
 
     @Query(value = "select po from PurchaseOrder po left join po.vendor vendor where po.company.id = :companyId " +
-            "and po.receivingWorkflowEnabled = true and po.status = :status " +
+            "and po.receivingWorkflowEnabled = true and po.status = :status and po.closedAt is null " +
             "and (:includeOthers = true or po.createdBy = :userId) " +
             "and (:allSites = true or not exists (select scoped.id from PartQuantity scoped where scoped.purchaseOrder = po and scoped.site is not null and scoped.site.id not in :siteIds)) " +
             "and (:query is null or lower(po.name) like lower(concat('%', :query, '%')) " +
@@ -31,12 +33,12 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             "or (:receiptState = 'NOT_STARTED' and not exists (select receipt.id from PurchaseOrderReceiptLine receipt join receipt.partQuantity receivedLine where receivedLine.purchaseOrder = po)) " +
             "or (:receiptState = 'PARTIAL' and exists (select receipt.id from PurchaseOrderReceiptLine receipt join receipt.partQuantity receivedLine where receivedLine.purchaseOrder = po) " +
             "and exists (select openLine.id from PartQuantity openLine where openLine.purchaseOrder = po " +
-            "and openLine.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine where receiptLine.partQuantity = openLine), 0.0)))) " +
+            "and openLine.quantity - coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine where receiptLine.partQuantity = openLine), 0.0) > 0.000000001))) " +
             "and exists (select line.id from PartQuantity line where line.purchaseOrder = po " +
-            "and line.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
-            "where receiptLine.partQuantity = line), 0.0))",
+            "and line.quantity - coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
+            "where receiptLine.partQuantity = line), 0.0) > 0.000000001)",
             countQuery = "select count(po) from PurchaseOrder po left join po.vendor vendor where po.company.id = :companyId " +
-                    "and po.receivingWorkflowEnabled = true and po.status = :status " +
+                    "and po.receivingWorkflowEnabled = true and po.status = :status and po.closedAt is null " +
                     "and (:includeOthers = true or po.createdBy = :userId) " +
                     "and (:allSites = true or not exists (select scoped.id from PartQuantity scoped where scoped.purchaseOrder = po and scoped.site is not null and scoped.site.id not in :siteIds)) " +
                     "and (:query is null or lower(po.name) like lower(concat('%', :query, '%')) " +
@@ -45,10 +47,10 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
                     "or (:receiptState = 'NOT_STARTED' and not exists (select receipt.id from PurchaseOrderReceiptLine receipt join receipt.partQuantity receivedLine where receivedLine.purchaseOrder = po)) " +
                     "or (:receiptState = 'PARTIAL' and exists (select receipt.id from PurchaseOrderReceiptLine receipt join receipt.partQuantity receivedLine where receivedLine.purchaseOrder = po) " +
                     "and exists (select openLine.id from PartQuantity openLine where openLine.purchaseOrder = po " +
-                    "and openLine.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine where receiptLine.partQuantity = openLine), 0.0)))) " +
+                    "and openLine.quantity - coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine where receiptLine.partQuantity = openLine), 0.0) > 0.000000001))) " +
                     "and exists (select line.id from PartQuantity line where line.purchaseOrder = po " +
-                    "and line.quantity > coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
-                    "where receiptLine.partQuantity = line), 0.0))")
+                    "and line.quantity - coalesce((select sum(receiptLine.quantity) from PurchaseOrderReceiptLine receiptLine " +
+                    "where receiptLine.partQuantity = line), 0.0) > 0.000000001)")
     Page<PurchaseOrder> findReceivable(@Param("companyId") Long companyId,
                                       @Param("status") ApprovalStatus status,
                                       @Param("includeOthers") boolean includeOthers,

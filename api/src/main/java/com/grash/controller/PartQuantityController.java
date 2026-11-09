@@ -220,7 +220,9 @@ public class PartQuantityController {
                             partQuantity.getPart().getId().equals(partId)).findFirst().get());
                 }
             });
-            return partQuantityService.findByPurchaseOrder(id).stream().map(partQuantityMapper::toShowDto).collect(Collectors.toList());
+            Collection<PartQuantity> updatedLines = partQuantityService.findByPurchaseOrder(id);
+            procurementApprovalService.governPendingPurchaseOrder(savedPurchaseOrder, updatedLines);
+            return updatedLines.stream().map(partQuantityMapper::toShowDto).collect(Collectors.toList());
         } else throw new CustomException("WorkOrder not found", HttpStatus.NOT_FOUND);
     }
 
@@ -262,6 +264,10 @@ public class PartQuantityController {
     PartQuantityShowDTO create(@Parameter(description = "Part quantity to create") @Valid @RequestBody PartQuantity partQuantityReq,
                                HttpServletRequest req) {
         partQuantityReq.setId(null); // POST always creates: never merge onto an existing row
+        // Currency and cost snapshots are derived server-side from the company and the part.
+        partQuantityReq.setPurchasePriceCurrency(null);
+        partQuantityReq.setPurchaseUnitCostSnapshot(null);
+        partQuantityReq.setPurchaseCurrencySnapshot(null);
         User user = userService.whoami(req);
         if (partQuantityReq.getRequisitionLine() != null) {
             throw new CustomException("Purchase requisition source links are managed by the conversion service",
@@ -312,6 +318,9 @@ public class PartQuantityController {
             partQuantityReq.setSite(workOrder.getSite());
         }
         PartQuantity savedPartQuantity = partQuantityService.create(partQuantityReq);
+        if (savedPartQuantity.getPurchaseOrder() != null)
+            procurementApprovalService.governPendingPurchaseOrder(savedPartQuantity.getPurchaseOrder(),
+                    partQuantityService.findByPurchaseOrder(savedPartQuantity.getPurchaseOrder().getId()));
         return partQuantityMapper.toShowDto(savedPartQuantity);
     }
 
@@ -365,6 +374,9 @@ public class PartQuantityController {
                         savedPartQuantity.getWorkOrder(), Helper.getLocale(user), false);
             }
             PartQuantity patchedPartQuantity = partQuantityService.update(savedPartQuantity, partQuantity);
+            if (patchedPartQuantity.getPurchaseOrder() != null)
+                procurementApprovalService.governPendingPurchaseOrder(patchedPartQuantity.getPurchaseOrder(),
+                        partQuantityService.findByPurchaseOrder(patchedPartQuantity.getPurchaseOrder().getId()));
             return partQuantityMapper.toShowDto(patchedPartQuantity);
         } else throw new CustomException("PartQuantity not found", HttpStatus.NOT_FOUND);
     }
@@ -392,6 +404,9 @@ public class PartQuantityController {
                             savedPartQuantity.getWorkOrder(), Helper.getLocale(user), true);
                 }
                 partQuantityService.delete(savedPartQuantity);
+                if (!isWorkOrderPartQuantity)
+                    procurementApprovalService.governPendingPurchaseOrder(savedPartQuantity.getPurchaseOrder(),
+                            partQuantityService.findByPurchaseOrder(savedPartQuantity.getPurchaseOrder().getId()));
                 return new ResponseEntity<>(new SuccessResponse(true, "Deleted successfully"),
                         HttpStatus.OK);
             } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);

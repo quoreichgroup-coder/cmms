@@ -429,6 +429,7 @@ public class PurchaseOrderController {
         purchaseOrderPatch.setCategory(resolveCategory(purchaseOrderPatch.getCategory(), user));
         PurchaseOrder updated = purchaseOrderService.update(id, user.getCompany().getId(), purchaseOrderPatch);
         replacePurchaseOrderLines(updated, requestedLines, requestedParts, user);
+        procurementApprovalService.governPendingPurchaseOrder(updated, partQuantityService.findByPurchaseOrder(updated.getId()));
 
         runPurchaseOrderWorkflows(WFMainCondition.PURCHASE_ORDER_UPDATED, updated, user.getCompany().getId());
         return setPartQuantities(purchaseOrderMapper.toShowDto(updated));
@@ -500,6 +501,21 @@ public class PurchaseOrderController {
         if (!accessible) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
     }
 
+    @PostMapping("/{id}/close")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    @Transactional
+    public PurchaseOrderShowDTO close(@PathVariable("id") Long id,
+                                      @RequestBody Map<String, String> body,
+                                      HttpServletRequest req) {
+        User user = userService.whoami(req);
+        purchaseOrderPolicyService.requireModuleEnabled(user);
+        PurchaseOrder currentOrder = purchaseOrderService.findByIdAndCompany_Id(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("PurchaseOrder not found", HttpStatus.NOT_FOUND));
+        requireSiteAccess(currentOrder, user);
+        PurchaseOrder closed = purchaseOrderApprovalService.close(id, user, body == null ? null : body.get("reason"));
+        return setPartQuantities(purchaseOrderMapper.toShowDto(closed));
+    }
+
     @PatchMapping("/{id}/respond")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     @Transactional
@@ -531,7 +547,9 @@ public class PurchaseOrderController {
             requireSiteAccess(savedPurchaseOrder, user);
             if (savedPurchaseOrder.canBeDeletedBy(user)) {
                 purchaseOrderPolicyService.requireModuleEnabled(user);
-                procurementApprovalService.requireEditable("PO", id, user.getCompany().getId());
+                if (savedPurchaseOrder.getStatus() == ApprovalStatus.REJECTED)
+                    procurementApprovalService.releaseRejected("PO", id, user.getCompany().getId());
+                else procurementApprovalService.requireEditable("PO", id, user.getCompany().getId());
                 if (savedPurchaseOrder.getStatus() == ApprovalStatus.APPROVED) {
                     throw new CustomException(messageSource.getMessage("purchase_order_cancel_unavailable",
                             null, Helper.getLocale(user)),
@@ -558,7 +576,9 @@ public class PurchaseOrderController {
             var dto = partQuantityMapper.toShowDto(line);
             double received = receivedByLine.getOrDefault(line.getId(), 0d);
             dto.setReceivedQuantity(received);
-            dto.setRemainingToReceive(Math.max(0, line.getQuantity() - received));
+            double remaining = line.getQuantity() - received;
+            // Same tolerance as PurchaseOrderReceiptService: hide floating-point residue (e.g. 10 × 0.1).
+            dto.setRemainingToReceive(remaining > 1e-9 ? Math.round(remaining * 1_000_000d) / 1_000_000d : 0);
             return dto;
         }).collect(Collectors.toList()));
         return purchaseOrderShowDTO;

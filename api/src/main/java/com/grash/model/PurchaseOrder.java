@@ -77,6 +77,15 @@ public class PurchaseOrder extends CompanyAudit {
     @ManyToOne(fetch = FetchType.LAZY)
     private Vendor vendor;
 
+    @Schema(description = "When the order was closed before being fully received", accessMode = Schema.AccessMode.READ_ONLY)
+    private Date closedAt;
+
+    @Schema(description = "User who closed the order", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long closedById;
+
+    @Schema(description = "Reason given when closing the order", accessMode = Schema.AccessMode.READ_ONLY)
+    private String closeReason;
+
     @Schema(description = "Indicates whether this is a demo purchase order")
     private boolean isDemo;
 
