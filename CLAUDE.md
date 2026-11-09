@@ -15,7 +15,6 @@ QPM (QUOREICH GROUP) is a modified fork of Atlas CMMS (AGPLv3): a self-hosted ma
 | `mobile/` | Android/iOS app | Expo SDK 53 / React Native 0.79 with `expo-dev-client` (not Expo Go) |
 | `pdfme-renderer/` | PDF rendering microservice called by the API | Node 22, PDFme 6.2.8 |
 | `license-authority/` | Separate licensing service with its own DB, reached by the API over the internal Docker network `atlas-license-internal` | Java 17, Spring Boot, JDBC |
-| `home/` | Public marketing site | Next.js, deployed to Cloudflare Workers |
 | `monitoring/` | Prometheus/Grafana config | |
 
 Production request path: Caddy (TLS) → nginx (routing) → `frontend` / `api`; API uses PostgreSQL, MinIO (object storage), `pdfme-renderer`, and `license-internal`. All defined in `docker-compose.yml`.
@@ -63,9 +62,13 @@ Production request path: Caddy (TLS) → nginx (routing) → `frontend` / `api`;
 - Brand fonts (Montserrat for UI, Playfair Display for brand titles) are not yet bundled. Bundle them locally before using them, never load them from an external CDN at runtime.
 - UI/UX working conventions: `docs/design.md`.
 
+## Rebrand constraints
+
+User-visible text must say QPM; the only allowed Atlas mention is the AGPL attribution (`open_source_upstream` key, README Licensing). Persistent identifiers that still contain `atlas` (Compose project/volumes/containers, DB `atlas`, bucket `atlas-bucket`, network `atlas-license-internal`, Docker images, mobile app IDs/schemes) are kept on purpose — see `docs/REBRANDING-AUDIT.md` before touching them. `frontend/scripts/rebrand-visible-copy.test.cjs` guards this.
+
 ## Translations
 
-Frontend translations live in `frontend/src/i18n/translations/`. When adding/translating keys: translate values only, keep keys unchanged, and add keys only to the languages requested (not to every language file).
+Frontend translations live in `frontend/src/i18n/translations/` (mobile: `mobile/i18n/translations/`). Every literal `t('key')` must exist in `en.ts` and `fr.ts`; `npm run test:i18n-keys` (web and mobile) enforces it. When adding/translating keys: translate values only, keep keys unchanged, and add keys only to the languages requested (not to every language file).
 
 ## Branches, CI and deployment
 

@@ -1,10 +1,10 @@
 {
-  "name": "atlas-cmms",
+  "name": "qpm",
   "version": "1.8.0",
   "title": "QUOREICH GROUP · QPM",
   "description": "QUOREICH GROUP maintenance management platform.",
   "private": true,
-  "homepage": "https://atlas-cmms.com",
+  "homepage": "https://eam.quoreichgroup.bf",
   "dependencies": {
     "@auth0/auth0-spa-js": "1.22.0",
     "@emotion/react": "11.9.0",

@@ -33,7 +33,7 @@ class MainLayoutTemplateTest extends AbstractTemplateTest {
         assertTrue(html.contains("Annual Maintenance"));
         assertTrue(html.contains("Discount for long-term partners"));
         assertTrue(html.contains("Your machinery is due for inspection."));
-        assertTrue(html.contains("Atlas Team"));
+        assertTrue(html.contains("QPM Team"));
         assertTrue(html.contains("display: none"));
     }
 
@@ -106,7 +106,7 @@ class MainLayoutTemplateTest extends AbstractTemplateTest {
         assertTrue(html.contains("New work order assigned to you"));
         assertTrue(html.contains("You have been assigned this Work Order: Replace conveyor belt"));
         assertTrue(html.contains("See more details"));
-        assertTrue(html.contains("Atlas Team"));
+        assertTrue(html.contains("QPM Team"));
         assertTrue(html.contains("https://app.example.com/work-orders/1"));
     }
 
@@ -122,7 +122,7 @@ class MainLayoutTemplateTest extends AbstractTemplateTest {
         assertTrue(html.contains("Nouveau bon de travail qui vous est assigné"));
         assertTrue(html.contains("Ce bon de travail vous a été assigné: Remplacer le tapis"));
         assertTrue(html.contains("Voir plus de détails"));
-        assertTrue(html.contains("équipe Atlas"));
+        assertTrue(html.contains("équipe QPM"));
     }
 
     private Map<String, Object> emailContext(String headerText, String preheaderText, String messageText,
@@ -133,7 +133,7 @@ class MainLayoutTemplateTest extends AbstractTemplateTest {
         vars.put("messageText", messageText);
         vars.put("buttonText", buttonText);
         vars.put("buttonLink", buttonLink);
-        vars.put("brandConfig", BrandConfig.builder().shortName("Atlas").build());
+        vars.put("brandConfig", BrandConfig.builder().shortName("QPM").build());
         vars.put("backgroundColor", "#2563EB");
         vars.put("environment", environment());
         return vars;

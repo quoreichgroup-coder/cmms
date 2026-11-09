@@ -13,6 +13,11 @@ class SwaggerConfigTest {
     void publicApi_hasExpectedGroup() {
         GroupedOpenApi groupedOpenApi = swaggerConfig.publicApi();
 
-        assertEquals("atlas-cmms", groupedOpenApi.getGroup());
+        assertEquals("qpm", groupedOpenApi.getGroup());
+    }
+
+    @Test
+    void legacyGroup_isKeptForExistingClients() {
+        assertEquals("atlas-cmms", swaggerConfig.legacyPublicApi().getGroup());
     }
 }

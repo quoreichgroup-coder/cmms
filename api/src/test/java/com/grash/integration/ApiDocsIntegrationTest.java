@@ -27,7 +27,7 @@ class ApiDocsIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void qpmGroup_returnsOpenApiSpec() throws Exception {
-        mockMvc.perform(get("/v3/api-docs/atlas-cmms"))
+        mockMvc.perform(get("/v3/api-docs/qpm"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.openapi", startsWith("3.")))

@@ -154,8 +154,7 @@ public class UserService {
         )
             throw new RuntimeException("Cannot create more users than the " + (licensingState.isHasLicense() ?
                     "paid" : "free") + " license allows: " + limit + ". " +
-                    "Refer to" +
-                    " https://github.com/Grashjs/cmms/blob/main/dev-docs/Disable%20users.md");
+                    "Disable unused users in People & Teams or extend the license.");
     }
 
     /** Legacy aggregate full-seat check used by older signup and enable flows. */
@@ -171,7 +170,7 @@ public class UserService {
                 && userRepository.hasMorePaidUsersThan(limit - newUsersCount)) {
             throw new RuntimeException("Cannot create more users than the " +
                     (licensingState.isHasLicense() ? "paid" : "free") + " license allows: " + limit + ". " +
-                    "Refer to https://github.com/Grashjs/cmms/blob/main/dev-docs/Disable%20users.md");
+                    "Disable unused users in People & Teams or extend the license.");
         }
     }
 

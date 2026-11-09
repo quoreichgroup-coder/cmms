@@ -2,7 +2,7 @@
 <p align="center"><img src="frontend/public/static/images/logo/logo.png" width="80"></p>
 <h1 align="center">QUOREICH GROUP · QPM</h1>
 
-QPM is QUOREICH GROUP's modified edition of [Atlas CMMS](https://github.com/grashjs/cmms), distributed under AGPLv3. It is a powerful, self-hosted maintenance management system designed for both
+QPM is QUOREICH GROUP's maintenance management platform, distributed under AGPLv3 (see [Licensing](#open-source-licensing-info)). It is a powerful, self-hosted maintenance management system designed for both
 web and mobile platforms using Docker. It simplifies and automates the management of maintenance activities, making it
 ideal for IT managers or developers looking to implement solutions that keep their organization's assets running
 smoothly.
@@ -24,18 +24,10 @@ The QPM visual identity reference is documented in [docs/CHARTE-VISUELLE-QPM.md]
 - Educational Institutions (campus maintenance)
 - Utility Companies (power, water, and energy systems)
 
-**Demo website**
-
-- https://atlas-cmms.com
-
 **Screenshots**:
 <div align="center">
 
 ![work_orders_screenshot.png](images/work_orders_screenshot.png)
-
-![](https://i.ibb.co/7tGYCtv/Screenshot-502.png)
-
-<img src="https://i.ibb.co/B39dVjC/Screenshot-20230320-110652.jpg" width="300"/>
 </div>
 
 ## ⚡ **Features**
@@ -152,22 +144,20 @@ also [setup TLS](./dev-docs/Set%20up%20TLS.md)
 
 ### Mobile app
 
-You can use the [Android app](https://play.google.com/store/apps/details?id=com.atlas.cmms)
-or [iOS App](https://apps.apple.com/fr/app/atlas-cmms/id6751547284) and configure it with
-your custom backend server url: `${PUBLIC_SERVER_URL}/api`
+Install the QPM Android app from the APK described in [mobile/INSTALLER-APK.md](mobile/INSTALLER-APK.md).
+It connects to `https://eam.quoreichgroup.bf/api` by default and can be configured with
+your own backend server url: `${PUBLIC_SERVER_URL}/api`
 
 ## Getting help
 
 ### Docs
 
-[Usage guide](https://docs.atlas-cmms.com)
+The usage guide is built into the application: open **Help Center** (`/app/help`).
 
 [Super admin docs](./dev-docs)
 
-[Join our Discord server](https://discord.gg/cHqyVRYpkA)
-
-If you still have questions after reading the docs, concerns, bug reports, etc., please file an issue in this
-repository's Issue Tracker or email [contact@atlas-cmms.com](8mailto:contact@atlas-cmms.com).
+For questions, concerns or bug reports, file an issue in this repository's Issue Tracker or contact
+your QUOREICH GROUP representative.
 
 ## Supported languages
 
@@ -196,8 +186,7 @@ repository's Issue Tracker or email [contact@atlas-cmms.com](8mailto:contact@atl
 
 ## Need Professional Help?
 
-Don't want to handle the maintenance and management yourself? We offer a complete done-for-you
-service. [Please reach out to us](mailto:contact@atlas-cmms.com)
+QUOREICH GROUP offers deployment, hosting and support. Contact your QUOREICH GROUP representative.
 
 ## 🤝 Looking to contribute?
 
@@ -210,15 +199,12 @@ We welcome contributions! You can help by:
 
 Check CONTRIBUTING.md inside each subproject for details.
 
-You can also join our [Discord server](https://discord.gg/cHqyVRYpkA)
-
 ## Open source licensing info
 
-The upstream software is offered under two licensing paths:
+QPM is distributed under the [AGPLv3 License](./LICENSE). It is a modified version of
+[Atlas CMMS](https://github.com/grashjs/cmms); the upstream copyright notices are kept as the AGPL requires.
 
-- [AGPLv3 License](./LICENSE) — Free and open source.
-- [Commercial License](./COMMERCIAL_LICENSE.MD) — Its terms restrict distribution and limit SaaS use; read them before enabling commercial features.
-
-To enable commercial features, set a valid `LICENSE_KEY`. A feature key does not by itself grant hosted SaaS/OEM, reseller, redistribution, or customer-installation rights. Review the [QUOREICH GROUP delivery model notes](./dev-docs/QUOREICH%20GROUP%20delivery%20models.md) and confirm permitted uses in a signed order form.
-
-<img src="https://star-history.dera.page/svg?repos=grashjs/cmms&type=Date"/>
+Licensed features are activated by a QUOREICH GROUP licence. A feature licence does not by itself grant hosted
+SaaS/OEM, reseller, redistribution, or customer-installation rights. Review the
+[QUOREICH GROUP licensing policy](./dev-docs/QUOREICH-Licensing-Policy.md) and the
+[delivery model notes](./dev-docs/QUOREICH%20GROUP%20delivery%20models.md), and confirm permitted uses in a signed order form.

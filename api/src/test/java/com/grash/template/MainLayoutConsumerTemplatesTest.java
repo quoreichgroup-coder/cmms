@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
 
     private static final String TEMPLATE = "signup.html";
-    private static final BrandConfig BRAND = BrandConfig.builder().name("Atlas CMMS").shortName("Atlas").build();
+    private static final BrandConfig BRAND = BrandConfig.builder().name("QPM").shortName("QPM").build();
 
     @Override
     protected String templateName() {
@@ -67,8 +67,8 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
                 "joinLink", "https://app.example.com/join/abc"));
 
         assertRenderedEmail(html,
-                "Invitation to use Atlas CMMS.", "You have been invited to use Atlas CMMS.",
-                "Jane Smith has invited you to join the Acme Corp Company on Atlas.",
+                "Invitation to use QPM.", "You have been invited to use QPM.",
+                "Jane Smith has invited you to join the Acme Corp Company on QPM.",
                 "Join Company", "https://app.example.com/join/abc");
     }
 
@@ -166,7 +166,7 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
                 "resetConfirmLink", "https://app.example.com/reset/xyz"));
 
         assertRenderedEmail(html,
-                "New Atlas Password", "New Atlas Password",
+                "New QPM Password", "New QPM Password",
                 null,
                 "Confirm reset", "https://app.example.com/reset/xyz");
 
@@ -207,12 +207,12 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
 
         String html = render("invite.html", vars, Locale.FRANCE);
 
-        assertTrue(html.contains("Invitation à utiliser Atlas CMMS."));
-        assertTrue(html.contains("Vous avez été invité à utiliser le Atlas CMMS."));
-        assertTrue(html.contains("Jane Smith vous a invité à joindre Acme Corp sur Atlas."));
+        assertTrue(html.contains("Invitation à utiliser QPM."));
+        assertTrue(html.contains("Vous avez été invité à utiliser le QPM."));
+        assertTrue(html.contains("Jane Smith vous a invité à joindre Acme Corp sur QPM."));
         assertTrue(html.contains("Rejoindre"));
         assertTrue(html.contains("href=\"https://app.example.com/join/abc\""));
-        assertTrue(html.contains("équipe Atlas"));
+        assertTrue(html.contains("équipe QPM"));
     }
 
     @Test
@@ -230,7 +230,7 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
         assertTrue(html.contains("John Doe a laissé un commentaire sur \"Replace conveyor belt\": Please confirm " +
                 "parts"));
         assertTrue(html.contains("Voir plus de détails"));
-        assertTrue(html.contains("équipe Atlas"));
+        assertTrue(html.contains("équipe QPM"));
     }
 
     @Test
@@ -241,7 +241,7 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
                 "deleteConfirmLink", "https://app.example.com/delete/abc"));
 
         assertRenderedEmail(html,
-                "Delete Atlas Account", "Delete Atlas Account",
+                "Delete QPM Account", "Delete QPM Account",
                 "your account and the company Acme Corp will be permanently deleted",
                 "Confirm deletion", "https://app.example.com/delete/abc");
 
@@ -257,7 +257,7 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
                 "deleteConfirmLink", "https://app.example.com/delete/abc"));
 
         assertRenderedEmail(html,
-                "Delete Atlas Account", "Delete Atlas Account",
+                "Delete QPM Account", "Delete QPM Account",
                 "your account will be permanently deleted along with all your data",
                 "Confirm deletion", "https://app.example.com/delete/abc");
 
@@ -292,7 +292,7 @@ class MainLayoutConsumerTemplatesTest extends AbstractTemplateTest {
             assertTrue(html.contains("href=\"" + link + "\""));
         }
         assertTrue(html.contains("https://api.example.com/images/logo.png"));
-        assertTrue(html.contains("Atlas Team"));
+        assertTrue(html.contains("QPM Team"));
     }
 
     private Map<String, Object> vars(Object... keyValues) {

@@ -4,7 +4,7 @@ script({
     model:"google:gemini-2.5-flash"
 })
 
-const product = "Atlas CMMS"
+const product = "QPM"
 const previousVersion = "1.7.0"
 const version = "1.8.0"
 

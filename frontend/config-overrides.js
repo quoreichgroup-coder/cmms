@@ -105,7 +105,7 @@ module.exports = {
           authToken: process.env.SENTRY_AUTH_TOKEN,
           release: {
             name:
-              process.env.REACT_APP_SENTRY_RELEASE || 'atlas-frontend',
+              process.env.REACT_APP_SENTRY_RELEASE || 'qpm-frontend',
             create: true
           }
         })

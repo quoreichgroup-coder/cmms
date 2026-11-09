@@ -55,11 +55,6 @@ import Constants from 'expo-constants';
 import moment from 'moment-timezone';
 import { getCustomFields } from '../slices/customField';
 import * as Sentry from '@sentry/react-native';
-import {
-  initialize as initClarity,
-  setCustomUserId
-  // LogLevel
-} from '@microsoft/react-native-clarity';
 import Part from '../models/part';
 import Request from '../models/request';
 import { getPreferredLanguage } from '../utils/preferredLanguage';
@@ -807,22 +802,6 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       // Keep unverified entitlements disabled; the licence screen offers a retry.
     });
     globalDispatch(getCustomFields()).catch(() => {});
-    getApiUrl().then((apiUrl) => {
-      if (apiUrl.toLowerCase().includes('api.atlas-cmms.com')) {
-        const clarityId = Constants.expoConfig.extra.CLARITY_ID;
-        if (clarityId) {
-          initClarity(clarityId, {
-            // logLevel: LogLevel.Verbose
-          });
-          setCustomUserId(user.email);
-        }
-        Sentry.setUser({
-          id: user.id,
-          email: user.email,
-          username: user.firstName + ' ' + user.lastName
-        });
-      }
-    });
     try {
       await api.post('reviews/session', {});
       api

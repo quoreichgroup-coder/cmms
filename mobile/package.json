@@ -1,5 +1,5 @@
 {
-  "name": "atlas-cmms",
+  "name": "qpm",
   "version": "1.0.60",
   "scripts": {
     "start": "expo start --dev-client",

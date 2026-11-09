@@ -54,6 +54,7 @@ class WebhookController {
     private final SubscriptionService subscriptionService;
     private final PaddleService paddleService;
     private final Scheduler scheduler;
+    private final com.grash.service.BrandingService brandingService;
 
     @Value("${cloud-version}")
     private boolean cloudVersion;
@@ -357,7 +358,7 @@ class WebhookController {
 
             mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(
                     new String[]{email},
-                    "Atlas CMMS license key",
+                    brandingService.getBrandConfig().getName() + " license key",
                     model,
                     "checkout-complete.html",
                     Locale.getDefault(),
@@ -433,7 +434,7 @@ class WebhookController {
 
             mailServiceFactory.getMailService().sendMessageUsingThymeleafTemplate(
                     new String[]{email},
-                    "Atlas CMMS license key renewal",
+                    brandingService.getBrandConfig().getName() + " license key renewal",
                     model,
                     "checkout-complete.html",
                     Locale.getDefault(),

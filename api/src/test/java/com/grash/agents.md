@@ -1,9 +1,9 @@
-# Atlas CMMS - AI Agent Testing Guidelines
+# QPM - AI Agent Testing Guidelines
 
-This document serves as the system instruction set for any AI agents (e.g., OpenCode, Copilot, Cursor) generating or refactoring tests within the Atlas CMMS test root.
+This document serves as the system instruction set for any AI agents (e.g., OpenCode, Copilot, Cursor) generating or refactoring tests within the QPM test root.
 
 ## 1. Test Layer Boundaries
-Atlas CMMS maintains a strict separation between Unit (Service) tests, Controller tests, and Integration tests to ensure pipeline efficiency and reliable builds across the dual-licensing model.
+QPM maintains a strict separation between Unit (Service) tests, Controller tests, and Integration tests to ensure pipeline efficiency and reliable builds across the dual-licensing model.
 
 ### Unit Tests (Service Layer)
 - **Scope:** Pure business logic (e.g., work order state transitions, logic checks).

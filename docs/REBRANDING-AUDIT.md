@@ -55,3 +55,22 @@ No API, authentication, permissions, database, signing, or deployment configurat
 ## Safe copy pass — 20 October 2026
 
 The first low-risk visible-copy pass updates the Web package title/description and Web/API README headings to QUOREICH/QPM, changes the supplier example from Atlas to QUOREICH GROUP, and changes the webhook OpenAPI descriptions from Atlas CMMS to QPM. `frontend/scripts/rebrand-visible-copy.test.cjs` checks these labels and asserts that the Android application ID, iOS bundle ID and URL scheme remain unchanged. A second Mobile copy pass replaces Atlas product mentions in Bosnian, Polish and Hungarian feature translations with QPM; `mobile/scripts/rebrand-copy.test.cjs` protects all Mobile locale files. The Web upstream attribution notice remains intact. Internal package names, public hostnames, license/payment product names and native project identifiers remain unchanged pending owner/domain/legal decisions.
+
+## Mise à jour du 9 novembre 2026 — identifiants « atlas » conservés volontairement
+
+Le texte visible (Web, mobile, e-mails, PDF, README, politique de sécurité) ne mentionne plus Atlas, sauf la mention d’attribution exigée par l’AGPLv3 (page « À propos et licences », section Licensing du README, fichier `LICENSE`). Le site amont `home/` et la licence commerciale amont (`COMMERCIAL_LICENSE.MD`) ont été retirés.
+
+Les identifiants techniques suivants contiennent encore « atlas » et **ne doivent pas être renommés sans plan de migration** :
+
+| Identifiant | Où | Risque en cas de renommage |
+| --- | --- | --- |
+| Projet Compose `atlas-cmms`, volumes `atlas-cmms_postgres_data` / `atlas-cmms_minio_data`, conteneurs `atlas_db`, `atlas_minio`, `atlas_nginx`… | `docker-compose.yml`, scripts de sauvegarde, `dev-docs/` | Volumes orphelins : base et fichiers vides après redéploiement ; sauvegardes cassées |
+| Base `atlas`, bucket `atlas-bucket` | `docker-compose.yml`, `.env`, URLs de fichiers stockées | Pièces jointes existantes inaccessibles sans migration des objets |
+| Réseau `atlas-license-internal` | Compose principal et autorité de licences, `install-vps.sh` | Coupure API ↔ autorité de licences si non renommé partout en même temps |
+| Images `intelloop/atlas-cmms-*` | `.github/workflows/main-ci.yml` | Nécessite un nouveau dépôt de registre et les identifiants associés |
+| Android `com.atlas.cmms`, iOS `com.cmms.atlas`, schémas `atlascmms`, projet Xcode `AtlasCMMS` | `mobile/` | Nouvelle application : les installations existantes ne se mettent plus à jour, redirections OAuth cassées |
+| Org Sentry `atlas-cmms` | `.github/workflows/mobile-update.yml` | Doit correspondre au compte Sentry réel |
+| Groupe OpenAPI `atlas-cmms` | `SwaggerConfig.legacyPublicApi` | Conservé comme alias de `/v3/api-docs/qpm` pour les clients existants |
+| Auteur Liquibase `grash`, package Java `com.grash` | `api/` | Changer l’auteur ferait rejouer des changesets |
+
+Les liens d’application Android pointent désormais vers `eam.quoreichgroup.bf` (effectif au prochain build natif). Vérifier que les empreintes SHA-256 de `frontend/public/.well-known/assetlinks.json` correspondent à la clé de signature QPM.
