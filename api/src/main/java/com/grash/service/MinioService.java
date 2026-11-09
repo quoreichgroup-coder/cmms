@@ -87,7 +87,7 @@ public class MinioService implements StorageService {
                             .bucket(minioBucket)
                             .object(filePath)
                             .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(file.getContentType())
+                            .contentType(Helper.safeStorageContentType(file.getContentType(), file.getOriginalFilename()))
                             .build()
             );
 

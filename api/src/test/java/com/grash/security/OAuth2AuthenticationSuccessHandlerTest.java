@@ -140,7 +140,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
         @Test
         void existingUser_returnsCleanUrlAndStoresTokensInSessionGrant() {
             String email = "john@test.com";
-            stubOAuthFlow("google", Map.of("email", email, "given_name", "John", "family_name", "Doe", "sub", "123"));
+            stubOAuthFlow("google", Map.of("email", email, "email_verified", true, "given_name", "John", "family_name", "Doe",
+                    "sub", "123"));
             when(oAuth2Properties.getSuccessRedirectUrl()).thenReturn(successUrl);
             when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(createUser(email, null, null)));
 
@@ -156,8 +157,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
         void existingUser_updatesSsoProviderOnFirstLogin() {
             String email = "john@test.com";
             User user = createUser(email, null, null);
-            Map<String, Object> attrs = Map.of("email", email, "given_name", "John", "family_name", "Doe", "sub",
-                    "456");
+            Map<String, Object> attrs = Map.of("email", email, "email_verified", true, "given_name", "John",
+                    "family_name", "Doe", "sub", "456");
             stubOAuthFlow("google", attrs);
             when(oAuth2Properties.getSuccessRedirectUrl()).thenReturn(successUrl);
             when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
@@ -175,7 +176,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             String email = "john@test.com";
             User user = createUser(email, "google", "existing-id");
             Map<String, Object> attrs = Map.of("email", email, "given_name", "John", "family_name", "Doe", "sub",
-                    "456");
+                    "existing-id");
             stubOAuthFlow("google", attrs);
             when(oAuth2Properties.getSuccessRedirectUrl()).thenReturn(successUrl);
             when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
@@ -188,11 +189,41 @@ class OAuth2AuthenticationSuccessHandlerTest {
         }
 
         @Test
+        void existingLinkedUser_withDifferentProviderSubject_isRejected() {
+            String email = "john@test.com";
+            User user = createUser(email, "google", "existing-id");
+            stubOAuthFlow("google", Map.of("email", email, "email_verified", true, "sub", "attacker-id"));
+            when(oAuth2Properties.getFailureRedirectUrl()).thenReturn("https://app.test/oauth2/failure");
+            when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+            String result = handler.determineTargetUrl(request, response, authToken);
+
+            assertTrue(result.startsWith("https://app.test/oauth2/failure"));
+            verify(oAuthLoginGrantService, never()).issue(any(), any());
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        void existingUnlinkedUser_withUnverifiedMicrosoftEmail_isNotLinked() {
+            String email = "victim@corp.com";
+            User user = createUser(email, null, null);
+            stubOAuthFlow("microsoft", Map.of("email", email, "sub", "attacker-id"));
+            when(oAuth2Properties.getFailureRedirectUrl()).thenReturn("https://app.test/oauth2/failure");
+            when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+            String result = handler.determineTargetUrl(request, response, authToken);
+
+            assertTrue(result.startsWith("https://app.test/oauth2/failure"));
+            assertNull(user.getSsoProvider());
+            verify(oAuthLoginGrantService, never()).issue(any(), any());
+        }
+
+        @Test
         void existingUser_differentSsoProvider_updatesSsoDetails() {
             String email = "john@test.com";
             User user = createUser(email, "microsoft", "999");
-            Map<String, Object> attrs = Map.of("email", email, "given_name", "John", "family_name", "Doe", "sub",
-                    "456");
+            Map<String, Object> attrs = Map.of("email", email, "email_verified", true, "given_name", "John",
+                    "family_name", "Doe", "sub", "456");
             stubOAuthFlow("google", attrs);
             when(oAuth2Properties.getSuccessRedirectUrl()).thenReturn(successUrl);
             when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));

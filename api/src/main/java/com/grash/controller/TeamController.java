@@ -56,6 +56,7 @@ public class TeamController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     TeamShowDTO create(@Parameter(description = "Team data to create") @Valid @RequestBody Team teamReq,
                        @Parameter(hidden = true) @CurrentUser User user) {
+        teamReq.setId(null); // POST always creates: never merge onto an existing row
         return teamMapper.toShowDto(teamService.create(teamReq, user));
     }
 

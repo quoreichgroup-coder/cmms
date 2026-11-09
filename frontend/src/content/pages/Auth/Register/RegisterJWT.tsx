@@ -39,13 +39,15 @@ function RegisterJWT({
   role,
   invitationMode,
   onInvitationSuccess,
-  subscriptionPlanId
+  subscriptionPlanId,
+  invitationToken
 }: {
   email?: string | undefined;
   role?: number | undefined;
   invitationMode?: boolean;
   onInvitationSuccess?: () => void;
   subscriptionPlanId?: string;
+  invitationToken?: string;
 }) {
   const { register, loginInternal, user } = useAuth();
   const isMountedRef = useRefMounted();
@@ -97,6 +99,7 @@ function RegisterJWT({
         const valuesClone = { ...values };
         valuesClone.language = getLanguage.toUpperCase();
         valuesClone.subscriptionPlanId = subscriptionPlanId;
+        if (invitationToken) valuesClone.invitationToken = invitationToken;
         valuesClone.phone =
           (values.countryCode ? `+${values.countryCode.phone}` : '') +
           `${values.phone}`;

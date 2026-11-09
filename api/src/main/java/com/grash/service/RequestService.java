@@ -17,6 +17,7 @@ import com.grash.model.*;
 import com.grash.model.enums.*;
 import com.grash.model.enums.webhook.WebhookEvent;
 import com.grash.model.enums.workflow.WFMainCondition;
+import com.grash.repository.FileRepository;
 import com.grash.repository.RequestRepository;
 import com.grash.repository.SiteRepository;
 import com.grash.utils.Helper;
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RequestService {
     private final RequestRepository requestRepository;
+    private final FileRepository fileRepository;
     private final SiteRepository siteRepository;
     private final WorkOrderService workOrderService;
     private final RequestMapper requestMapper;
@@ -357,6 +359,7 @@ public class RequestService {
         requestReq.setId(null);
         RequestPortal requestPortal = optionalRequestPortal.get();
         Company company = requestPortal.getCompany();
+        restrictToPortalFields(requestReq, requestPortal);
         validateRequestAgainstCompany(requestReq, company);
         Request createdRequest = create(requestReq, company, requestPortal);
         onRequestCreation(createdRequest, company,
@@ -364,6 +367,40 @@ public class RequestService {
                         "someone", null
                         , Helper.getLocale(company)) : requestReq.getContact());
         return createdRequest;
+    }
+
+    /**
+     * Anonymous portal submissions may only describe the request. Internal relations (assignees, team,
+     * linked work order, customers...) are dropped, and attachments are limited to files uploaded through
+     * this portal, so the response cannot be used to obtain signed URLs for other company files.
+     */
+    private void restrictToPortalFields(Request request, RequestPortal requestPortal) {
+        request.setWorkOrder(null);
+        request.setPrimaryUser(null);
+        request.setAssignedTo(new ArrayList<>());
+        request.setTeam(null);
+        request.setCustomers(new ArrayList<>());
+        request.setCancelled(false);
+        request.setCancellationReason(null);
+        request.setFiles(portalUploadsOnly(request.getFiles(), requestPortal));
+        request.setImage(portalUploadOrNull(request.getImage(), requestPortal));
+        request.setAudioDescription(portalUploadOrNull(request.getAudioDescription(), requestPortal));
+    }
+
+    private List<File> portalUploadsOnly(List<File> files, RequestPortal requestPortal) {
+        if (files == null || files.isEmpty()) return new ArrayList<>();
+        List<Long> ids = files.stream().filter(Objects::nonNull).map(File::getId).filter(Objects::nonNull).toList();
+        if (ids.isEmpty()) return new ArrayList<>();
+        return fileRepository.findByIdIn(ids).stream()
+                .filter(file -> FileService.isRequestPortalUpload(file, requestPortal))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private File portalUploadOrNull(File file, RequestPortal requestPortal) {
+        if (file == null || file.getId() == null) return null;
+        return fileRepository.findById(file.getId())
+                .filter(saved -> FileService.isRequestPortalUpload(saved, requestPortal))
+                .orElse(null);
     }
 
     private void validateRequestAgainstCompany(Request request, Company company) {

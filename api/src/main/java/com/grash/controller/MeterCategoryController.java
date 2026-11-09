@@ -60,6 +60,7 @@ public class MeterCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public MeterCategory create(@Parameter(description = "Meter category to create") @Valid @RequestBody MeterCategory meterCategoryReq,
                                 HttpServletRequest req) {
+        meterCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return meterCategoryService.create(meterCategoryReq, user);

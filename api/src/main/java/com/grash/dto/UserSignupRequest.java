@@ -28,6 +28,9 @@ public class UserSignupRequest {
     @Schema(implementation = IdDTO.class)
     private Role role;
 
+    @Schema(description = "Token from the invitation link, required when the invitation was sent by email")
+    private String invitationToken;
+
     @NotNull
     private String firstName;
 

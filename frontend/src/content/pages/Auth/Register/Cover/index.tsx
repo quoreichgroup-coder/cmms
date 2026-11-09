@@ -42,6 +42,7 @@ function RegisterCover() {
             email={searchParams.get('email')}
             role={Number(searchParams.get('role'))}
             subscriptionPlanId={searchParams.get('subscription-plan-id')}
+            invitationToken={searchParams.get('token') ?? undefined}
           />
           <Box mt={4}>
             <Typography

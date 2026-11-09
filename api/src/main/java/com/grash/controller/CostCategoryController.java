@@ -60,6 +60,7 @@ public class CostCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public CostCategory create(@Parameter(description = "Cost category to create") @Valid @RequestBody CostCategory costCategoryReq,
                                HttpServletRequest req) {
+        costCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return costCategoryService.create(costCategoryReq, user);

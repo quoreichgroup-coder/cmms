@@ -53,6 +53,7 @@ public class ReadingController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     Reading create(@Parameter(description = "Reading data to create") @Valid @RequestBody Reading readingReq,
                    @Parameter(hidden = true) @CurrentUser User user) {
+        readingReq.setId(null); // POST always creates: never merge onto an existing row
         return readingService.create(readingReq, user);
     }
 

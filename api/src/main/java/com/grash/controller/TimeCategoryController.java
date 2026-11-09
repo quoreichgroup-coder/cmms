@@ -60,6 +60,7 @@ public class TimeCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public TimeCategory create(@Parameter(description = "Time category to create") @Valid @RequestBody TimeCategory timeCategoryReq,
                                HttpServletRequest req) {
+        timeCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return timeCategoryService.create(timeCategoryReq, user);

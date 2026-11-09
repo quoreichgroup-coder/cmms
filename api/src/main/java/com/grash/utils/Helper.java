@@ -61,6 +61,24 @@ public class Helper {
         return UUID.randomUUID().toString();
     }
 
+    private static final java.util.regex.Pattern ACTIVE_CONTENT_TYPE =
+            java.util.regex.Pattern.compile("html|svg|xml|javascript|ecmascript");
+    private static final java.util.regex.Pattern ACTIVE_CONTENT_EXTENSION =
+            java.util.regex.Pattern.compile("(?i).*\\.(html?|xhtml|shtml|svgz?|xml|xsl|js|mjs)$");
+
+    /**
+     * Content type to store for an uploaded object. Stored files are served from the application's own
+     * origin, so anything a browser could execute (HTML, SVG, XML, JS) is stored as a download-only
+     * binary instead of the type claimed by the uploader.
+     */
+    public static String safeStorageContentType(String claimedContentType, String originalFileName) {
+        String type = claimedContentType == null ? "" : claimedContentType.toLowerCase(java.util.Locale.ROOT);
+        if (type.isBlank() || ACTIVE_CONTENT_TYPE.matcher(type).find()
+                || (originalFileName != null && ACTIVE_CONTENT_EXTENSION.matcher(originalFileName).matches()))
+            return "application/octet-stream";
+        return claimedContentType;
+    }
+
     public static String generateUniqueFilePath(String fileName, String folder) {
         String cleanName = StringUtils.cleanPath(fileName != null && !fileName.isBlank() ? fileName : "unnamed");
         String sanitizedOriginalName = cleanName.replaceAll("[^a-zA-Z0-9._-]", "_");

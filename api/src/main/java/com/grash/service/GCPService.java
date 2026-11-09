@@ -75,7 +75,7 @@ public class GCPService implements StorageService {
         try (InputStream inputStream = file.getInputStream()) {
             BlobId blobId = BlobId.of(gcpBucketName, filePath);
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                    .setContentType(file.getContentType())
+                    .setContentType(Helper.safeStorageContentType(file.getContentType(), file.getOriginalFilename()))
                     .build();
 
             storage.createFrom(blobInfo, inputStream,

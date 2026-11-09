@@ -347,4 +347,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_11_05_00000000002_purchase_order_webhook_outbox.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_11_09_00000000001_user_invitation_token.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -891,4 +891,28 @@ class HelperTest {
             verify(workOrderBase).setAsset(asset);
         }
     }
+
+    @Nested
+    class SafeStorageContentType {
+
+        @Test
+        void keepsHarmlessTypes() {
+            assertEquals("image/png", Helper.safeStorageContentType("image/png", "photo.png"));
+            assertEquals("application/pdf", Helper.safeStorageContentType("application/pdf", "report.pdf"));
+        }
+
+        @Test
+        void neutralizesBrowserExecutableTypes() {
+            assertEquals("application/octet-stream", Helper.safeStorageContentType("text/html", "x.html"));
+            assertEquals("application/octet-stream", Helper.safeStorageContentType("image/svg+xml", "logo.svg"));
+            assertEquals("application/octet-stream", Helper.safeStorageContentType("application/xhtml+xml", "a"));
+            assertEquals("application/octet-stream", Helper.safeStorageContentType("text/javascript", "a.js"));
+        }
+
+        @Test
+        void neutralizesExecutableExtensionEvenWithInnocentClaimedType() {
+            assertEquals("application/octet-stream", Helper.safeStorageContentType("image/png", "payload.HTML"));
+            assertEquals("application/octet-stream", Helper.safeStorageContentType(null, "photo.png"));
+        }
+    }
 }

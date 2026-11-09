@@ -60,6 +60,7 @@ public class PartCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public PartCategory create(@Parameter(description = "Part category to create") @Valid @RequestBody PartCategory partCategoryReq,
                                HttpServletRequest req) {
+        partCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return partCategoryService.create(partCategoryReq, user);

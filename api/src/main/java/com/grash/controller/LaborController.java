@@ -111,6 +111,7 @@ public class LaborController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     Labor create(@Parameter(description = "Labor data to create") @Valid @RequestBody Labor laborReq,
                  HttpServletRequest req) {
+        laborReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.ADDITIONAL_TIME)) {
             WorkOrder workOrder = workOrderService.findById(laborReq.getWorkOrder().getId()).get();

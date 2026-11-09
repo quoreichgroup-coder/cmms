@@ -53,6 +53,7 @@ public class AssetDowntimeController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     AssetDowntime create(@Parameter(description = "Asset downtime to create") @Valid @RequestBody AssetDowntime assetDowntimeReq,
                          HttpServletRequest req) {
+        assetDowntimeReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         Optional<Asset> optionalAsset = assetService.findByIdAndCompany(
                 assetDowntimeReq.getAsset().getId(), user.getCompany().getId());

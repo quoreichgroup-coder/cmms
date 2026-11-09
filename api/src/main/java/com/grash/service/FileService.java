@@ -14,6 +14,7 @@ import com.grash.model.User;
 import com.grash.model.enums.*;
 import com.grash.repository.FileRepository;
 import com.grash.repository.TaskRepository;
+import com.grash.utils.Helper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -100,6 +102,23 @@ public class FileService {
     }
 
     @Transactional
+    public static String requestPortalFolder(RequestPortal requestPortal) {
+        return "company " + requestPortal.getCompany().getId() + "/request-portal/" + requestPortal.getUuid();
+    }
+
+    /**
+     * True only for files stored by {@link #uploadToRequestPortal} for this portal. Anonymous portal
+     * submissions may attach these, and nothing else from the company.
+     */
+    public static boolean isRequestPortalUpload(File file, RequestPortal requestPortal) {
+        if (file == null || file.getPath() == null || file.getCompany() == null
+                || !Objects.equals(file.getCompany().getId(), requestPortal.getCompany().getId()))
+            return false;
+        String samplePath = Helper.generateUniqueFilePath("x", requestPortalFolder(requestPortal));
+        String folderPrefix = samplePath.substring(0, samplePath.lastIndexOf('/') + 1);
+        return file.getPath().startsWith(folderPrefix);
+    }
+
     public Collection<File> uploadToRequestPortal(String uuid, MultipartFile[] filesReq,
                                                   FileType fileType, String clientIp) {
         if (!rateLimiterService.resolveFileUploadBucket(clientIp).tryConsume(1)) {
@@ -109,7 +128,7 @@ public class FileService {
         RequestPortal requestPortal = requestPortalService.findByUuidByUser(uuid).orElseThrow(() -> new CustomException(
                 "Request Portal not found", HttpStatus.NOT_FOUND));
 
-        String folder = "company " + requestPortal.getCompany().getId() + "/request-portal/" + requestPortal.getUuid();
+        String folder = requestPortalFolder(requestPortal);
 
         Collection<File> result = new ArrayList<>();
         Arrays.asList(filesReq).forEach(fileReq -> {

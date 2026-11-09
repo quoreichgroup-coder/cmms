@@ -66,6 +66,7 @@ public class AdditionalCostController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public AdditionalCost create(@Parameter(description = "Additional cost to create") @Valid @RequestBody AdditionalCost additionalCostReq,
                                  HttpServletRequest req) {
+        additionalCostReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getCompany().getSubscription().getSubscriptionPlan().getFeatures().contains(PlanFeatures.ADDITIONAL_COST)) {
             WorkOrder workOrder = workOrderService.findById(additionalCostReq.getWorkOrder().getId()).get();

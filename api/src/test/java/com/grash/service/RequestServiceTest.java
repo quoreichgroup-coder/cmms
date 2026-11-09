@@ -50,6 +50,8 @@ class RequestServiceTest {
     @Mock
     private RequestRepository requestRepository;
     @Mock
+    private com.grash.repository.FileRepository fileRepository;
+    @Mock
     private WorkOrderAssignmentScopeValidator assignmentScopeValidator;
     @Mock
     private WorkOrderService workOrderService;
@@ -281,6 +283,38 @@ class RequestServiceTest {
             assertEquals(company, result.getCompany());
             verify(tenantAspect).validateObject(request);
             verify(requestRepository).saveAndFlush(request);
+        }
+
+        @Test
+        void createFromPortal_dropsInternalRelationsAndFilesNotUploadedThroughPortal() {
+            Request request = buildRequest(1L);
+            RequestPortal portal = buildPortal();
+            File portalUpload = new File("photo.jpg",
+                    com.grash.utils.Helper.generateUniqueFilePath("photo.jpg", FileService.requestPortalFolder(portal)),
+                    FileType.IMAGE, null, true);
+            portalUpload.setId(1L);
+            portalUpload.setCompany(company);
+            File otherCompanyFile = new File("contract.pdf", "company_" + company.getId() + "_secret/contract.pdf",
+                    FileType.OTHER, null, false);
+            otherCompanyFile.setId(2L);
+            otherCompanyFile.setCompany(company);
+            File imageRef = new File();
+            imageRef.setId(2L);
+            request.setFiles(new ArrayList<>(List.of(portalUpload, otherCompanyFile)));
+            request.setImage(imageRef);
+            request.setAudioDescription(null);
+            request.setPrimaryUser(buildUser(5L));
+            request.setAssignedTo(new ArrayList<>(List.of(buildUser(6L))));
+            when(fileRepository.findByIdIn(List.of(1L, 2L))).thenReturn(List.of(portalUpload, otherCompanyFile));
+            when(fileRepository.findById(2L)).thenReturn(Optional.of(otherCompanyFile));
+            stubHappyPath(request, portal, buildUser(2L));
+
+            requestService.createFromPortal(request, "portal-uuid", "token");
+
+            assertEquals(List.of(portalUpload), request.getFiles());
+            assertNull(request.getImage());
+            assertNull(request.getPrimaryUser());
+            assertTrue(request.getAssignedTo().isEmpty());
         }
 
         @Test

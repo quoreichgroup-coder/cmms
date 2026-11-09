@@ -551,6 +551,18 @@ class RoleServiceTest {
         }
 
         @Test
+        void clientSuppliedId_isIgnoredSoExistingRoleIsNotOverwritten() {
+            when(licenseService.hasEntitlement(LicenseEntitlement.CUSTOM_ROLES)).thenReturn(true);
+            when(roleRepository.save(customRole)).thenReturn(customRole);
+            customRole.setId(adminRole.getId());
+
+            roleService.create(customRole, clientUser);
+
+            assertNull(customRole.getId());
+            verify(roleRepository).save(customRole);
+        }
+
+        @Test
         void withoutSettingsPermission_throwsForbidden() {
             CustomException ex = assertThrows(CustomException.class,
                     () -> roleService.create(customRole, restrictedUser));
@@ -682,6 +694,30 @@ class RoleServiceTest {
             roleService.deleteByIdAndUser(4L, clientUser);
 
             verify(roleRepository).deleteById(4L);
+        }
+    }
+
+    @Nested
+    class AssertCanGrantRole {
+
+        @Test
+        void roleWithinOwnedPermissions_passes() {
+            Role owned = clientUser.getRole();
+            Role requested = Role.builder().createPermissions(new HashSet<>(Set.of(PermissionEntity.WORK_ORDERS)))
+                    .viewPermissions(new HashSet<>()).build();
+
+            assertDoesNotThrow(() -> roleService.assertCanGrantRole(requested, owned));
+        }
+
+        @Test
+        void roleExceedingOwnedPermissions_throwsForbidden() {
+            Role owned = clientUser.getRole();
+            Role requested = Role.builder()
+                    .deleteOtherPermissions(new HashSet<>(Set.of(PermissionEntity.PEOPLE_AND_TEAMS))).build();
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> roleService.assertCanGrantRole(requested, owned));
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
         }
     }
 }

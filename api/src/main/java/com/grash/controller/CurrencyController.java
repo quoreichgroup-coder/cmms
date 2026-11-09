@@ -45,6 +45,7 @@ public class CurrencyController {
     @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     Currency create(@Parameter(description = "Currency to create") @Valid @RequestBody Currency currency,
                     @Parameter(hidden = true) @CurrentUser User user) {
+        currency.setId(null); // POST always creates: never merge onto an existing row
         return currencyService.create(currency);
     }
 

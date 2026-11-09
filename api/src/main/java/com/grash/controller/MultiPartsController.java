@@ -46,6 +46,7 @@ public class MultiPartsController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     MultiPartsShowDTO create(@Parameter(description = "Multi-part to create") @Valid @RequestBody MultiParts multiPartsReq,
                              @Parameter(hidden = true) @CurrentUser User user) {
+        multiPartsReq.setId(null); // POST always creates: never merge onto an existing row
         return multiPartsMapper.toShowDto(multiPartsService.create(multiPartsReq, user));
     }
 

@@ -1,6 +1,7 @@
 package com.grash.model;
 
 import com.grash.model.abstracts.Audit;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,6 +32,11 @@ public class UserInvitation extends Audit {
     @ManyToOne(fetch = FetchType.LAZY)
     @NotNull
     private Role role;
+
+    /** Secret included in emailed invitation links; never serialized. Null for invitations without email. */
+    @JsonIgnore
+    @Column(length = 64)
+    private String token;
 
     @Column(nullable = false)
     private boolean allSitesAccess = true;

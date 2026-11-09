@@ -53,6 +53,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private String[] recipients;
     @Value("${cloud-version}")
     private boolean cloudVersion;
+    @Value("${allowed-organization-admins:}")
+    private String[] allowedOrganizationAdmins;
     @Autowired
     @Lazy
     private PasswordEncoder passwordEncoder;
@@ -92,11 +94,20 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         createUserFromOAuth(email, attributes, authToken.getAuthorizedClientRegistrationId()));
             } else {
                 user = userOptional.get();
-
-                // Update SSO provider details if this is first time login with this provider
-                if (user.getSsoProvider() == null || !user.getSsoProvider().equals(authToken.getAuthorizedClientRegistrationId())) {
-                    user.setSsoProvider(authToken.getAuthorizedClientRegistrationId());
-                    user.setSsoProviderId(extractProviderId(attributes, authToken.getAuthorizedClientRegistrationId()));
+                String provider = authToken.getAuthorizedClientRegistrationId();
+                String providerId = extractProviderId(attributes, provider);
+                if (provider.equals(user.getSsoProvider()) && user.getSsoProviderId() != null) {
+                    // Already linked: the immutable provider subject must match, not just the email claim.
+                    if (!user.getSsoProviderId().equals(providerId))
+                        throw new CustomException("SSO identity does not match this account", HttpStatus.FORBIDDEN);
+                } else {
+                    // First SSO login for an existing account: only link on a provider-verified email,
+                    // otherwise anyone able to set an arbitrary email claim could take over the account.
+                    if (!isEmailVerified(attributes, provider))
+                        throw new CustomException("This account cannot be linked to SSO automatically",
+                                HttpStatus.FORBIDDEN);
+                    user.setSsoProvider(provider);
+                    user.setSsoProviderId(providerId);
                     userRepository.save(user);
                 }
             }
@@ -119,6 +130,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = new User();
         user.setEmail(email);
         String emailDomain = user.getEmail().split("@")[1];
+        if (allowedOrganizationAdmins != null && allowedOrganizationAdmins.length != 0
+                && Arrays.stream(allowedOrganizationAdmins).noneMatch(email::equalsIgnoreCase))
+            throw new CustomException("You are not allowed to create an account without being invited",
+                    HttpStatus.NOT_ACCEPTABLE);
         List<User> users = userRepository.findBySSOCompany(emailDomain);
         if (!users.isEmpty())
             throw new CustomException("You must be invited to your organization", HttpStatus.BAD_REQUEST);
@@ -202,6 +217,18 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         }
 
         return email;
+    }
+
+    /**
+     * Google asserts ownership through {@code email_verified}. Microsoft Entra email claims are not
+     * verified by the platform for multi-tenant apps, so they are never trusted for account linking.
+     */
+    private boolean isEmailVerified(Map<String, Object> attributes, String registrationId) {
+        if ("google".equals(registrationId)) {
+            Object verified = attributes.get("email_verified");
+            return Boolean.TRUE.equals(verified) || "true".equalsIgnoreCase(String.valueOf(verified));
+        }
+        return false;
     }
 
     private String extractProviderId(Map<String, Object> attributes, String registrationId) {

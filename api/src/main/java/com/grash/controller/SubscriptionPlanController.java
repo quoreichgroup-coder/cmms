@@ -50,6 +50,7 @@ public class SubscriptionPlanController {
     @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     SubscriptionPlan create(@Parameter(description = "Subscription plan to create") @Valid @RequestBody SubscriptionPlan subscriptionPlanReq,
                             HttpServletRequest req) {
+        subscriptionPlanReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         return subscriptionPlanService.create(subscriptionPlanReq);
     }

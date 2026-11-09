@@ -442,6 +442,55 @@ class UserServiceTest {
         }
 
         @Test
+        void emailedInvitation_requiresMatchingToken() {
+            Role invitedRole = Role.builder()
+                    .id(2L).name("Viewer").roleType(RoleType.ROLE_CLIENT)
+                    .code(RoleCode.VIEW_ONLY).paid(false).build();
+            signupRequest.setRole(invitedRole);
+            signupRequest.setInvitationToken("wrong");
+            mappedUser.setRole(invitedRole);
+            UserInvitation invitation = new UserInvitation("new@test.com", invitedRole);
+            invitation.setId(1L);
+            invitation.setCreatedBy(1L);
+            invitation.setToken("secret-token");
+
+            when(userMapper.toModel(signupRequest)).thenReturn(mappedUser);
+            when(userRepository.existsByEmailIgnoreCase("new@test.com")).thenReturn(false);
+            when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+            when(roleService.findById(2L)).thenReturn(Optional.of(invitedRole));
+            when(userInvitationService.findByRoleAndEmail(2L, "new@test.com"))
+                    .thenReturn(new ArrayList<>(List.of(invitation)));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.signup(signupRequest));
+            assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getHttpStatus());
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void companyRole_withoutInvitation_isRejectedEvenWhenInvitationEmailsAreDisabled() {
+            CompanySettings targetSettings = new CompanySettings();
+            targetSettings.setCompany(company);
+            Role companyRole = Role.builder()
+                    .id(4L).name("Custom").roleType(RoleType.ROLE_CLIENT)
+                    .code(RoleCode.USER_CREATED).paid(false).companySettings(targetSettings).build();
+            signupRequest.setRole(companyRole);
+            mappedUser.setRole(companyRole);
+
+            when(userMapper.toModel(signupRequest)).thenReturn(mappedUser);
+            when(userRepository.existsByEmailIgnoreCase("new@test.com")).thenReturn(false);
+            when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+            when(roleService.findById(4L)).thenReturn(Optional.of(companyRole));
+            when(userInvitationService.findByRoleAndEmail(4L, "new@test.com"))
+                    .thenReturn(new ArrayList<>());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.signup(signupRequest));
+            assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getHttpStatus());
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
         void invitedRoleNotFound_throws() {
             Role invitedRole = Role.builder()
                     .id(99L).name("Unknown").roleType(RoleType.ROLE_CLIENT)
@@ -2044,6 +2093,35 @@ class UserServiceTest {
                     () -> userService.patchUserRole(2L, 2L, user));
 
             assertEquals(HttpStatus.PAYMENT_REQUIRED, error.getHttpStatus());
+            verify(userRepository, never()).save(targetUser);
+        }
+
+        @Test
+        void companyOwnerRoleCannotBeChangedByAnotherUser() {
+            targetUser.setOwnsCompany(true);
+            when(userRepository.findByIdAndCompany_Id(2L, 1L)).thenReturn(Optional.of(targetUser));
+            when(roleService.findById(2L)).thenReturn(Optional.of(newRole));
+            when(userRepository.findByCompany_Id(1L)).thenReturn(List.of(user));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.patchUserRole(2L, 2L, user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
+            verify(userRepository, never()).save(targetUser);
+        }
+
+        @Test
+        void cannotGrantRoleWithMorePermissionsThanRequester() {
+            when(userRepository.findByIdAndCompany_Id(2L, 1L)).thenReturn(Optional.of(targetUser));
+            when(roleService.findById(2L)).thenReturn(Optional.of(newRole));
+            when(userRepository.findByCompany_Id(1L)).thenReturn(List.of(user));
+            lenient().doThrow(new CustomException("Cannot grant permissions you don't have", HttpStatus.FORBIDDEN))
+                    .when(roleService).assertCanGrantRole(newRole, user.getRole());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.patchUserRole(2L, 2L, user));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getHttpStatus());
             verify(userRepository, never()).save(targetUser);
         }
 

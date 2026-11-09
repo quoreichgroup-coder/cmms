@@ -67,6 +67,7 @@ public class PurchaseOrderCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public PurchaseOrderCategory create(@Parameter(description = "PurchaseOrder category to create") @Valid @RequestBody PurchaseOrderCategory purchaseOrderCategoryReq,
                                         HttpServletRequest req) {
+        purchaseOrderCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         purchaseOrderPolicyService.requireModuleEnabled(user);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {

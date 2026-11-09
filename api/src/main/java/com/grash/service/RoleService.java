@@ -50,6 +50,8 @@ public class RoleService {
             assertCanGrant(roleReq.getViewOtherPermissions(), user.getRole().getViewOtherPermissions());
             assertCanGrant(roleReq.getEditOtherPermissions(), user.getRole().getEditOtherPermissions());
             assertCanGrant(roleReq.getDeleteOtherPermissions(), user.getRole().getDeleteOtherPermissions());
+            // A client-supplied id would make save() merge onto an existing (possibly global or foreign) role.
+            roleReq.setId(null);
             roleReq.setPaid(true);
             roleReq.setCode(RoleCode.USER_CREATED);
             roleReq.setRoleType(RoleType.ROLE_CLIENT);
@@ -81,6 +83,19 @@ public class RoleService {
                     List.of("name", "description", "permissions"));
             return updated;
         } else throw new CustomException("Role not found", HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Rejects giving (or acting on) a role whose permissions exceed the requester's own role,
+     * so People & Teams managers cannot escalate privileges through invitations or role changes.
+     */
+    public void assertCanGrantRole(Role requested, Role owned) {
+        if (requested == null || owned == null) return;
+        assertCanGrant(requested.getCreatePermissions(), owned.getCreatePermissions());
+        assertCanGrant(requested.getViewPermissions(), owned.getViewPermissions());
+        assertCanGrant(requested.getViewOtherPermissions(), owned.getViewOtherPermissions());
+        assertCanGrant(requested.getEditOtherPermissions(), owned.getEditOtherPermissions());
+        assertCanGrant(requested.getDeleteOtherPermissions(), owned.getDeleteOtherPermissions());
     }
 
     private void assertCanGrant(Collection<PermissionEntity> requested, Collection<PermissionEntity> owned) {

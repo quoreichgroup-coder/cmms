@@ -60,6 +60,7 @@ public class AssetCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public AssetCategory create(@Parameter(description = "Asset category to create") @Valid @RequestBody AssetCategory assetCategoryReq,
                                 HttpServletRequest req) {
+        assetCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return assetCategoryService.create(assetCategoryReq, user);

@@ -60,6 +60,7 @@ public class WorkOrderCategoryController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public WorkOrderCategory create(@Parameter(description = "WorkOrder category to create") @Valid @RequestBody WorkOrderCategory workOrderCategoryReq,
                                     HttpServletRequest req) {
+        workOrderCategoryReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.CATEGORIES)) {
             return workOrderCategoryService.create(workOrderCategoryReq, user);

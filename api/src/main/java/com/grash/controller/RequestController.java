@@ -63,6 +63,7 @@ public class RequestController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     RequestShowDTO create(@Parameter(description = "Request data to create") @Valid @RequestBody RequestPostDTO requestReq,
                           @Parameter(hidden = true) @CurrentUser User user) {
+        requestReq.setId(null); // POST always creates: never merge onto an existing row
         return requestMapper.toShowDto(requestService.create(requestReq, user));
     }
 
@@ -71,6 +72,7 @@ public class RequestController {
                                     @PathVariable("requestPortalUuid") String requestPortalUuid,
                                     @RequestParam(value = "recaptchaToken", required = false) @Parameter(description
                                             = "RecaptchaToken value") String recaptchaToken) {
+        requestReq.setId(null); // POST always creates: never merge onto an existing row
         return requestMapper.toShowDto(requestService.createFromPortal(requestReq, requestPortalUuid, recaptchaToken));
     }
 

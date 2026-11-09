@@ -200,16 +200,27 @@ public class UserService {
             }
             List<UserInvitation> userInvitations =
                     userInvitationService.findByRoleAndEmail(role.getId(), user.getEmail());
-            if (enableInvitationViaEmail && userInvitations.isEmpty()) {
-                throw new CustomException("You are not invited to this organization for this role",
-                        HttpStatus.NOT_ACCEPTABLE);
-            }
             if (!enableInvitationViaEmail && role.getRoleType().equals(RoleType.ROLE_SUPER_ADMIN)
                     && userInvitations.isEmpty())
                 throw new CustomException("You should enable invitation via email to signup as superadmin",
                         HttpStatus.FORBIDDEN);
+            // Joining an existing organization always requires an invitation for this email and role,
+            // whether or not invitation emails are sent (invite() always records the invitation).
+            if (userInvitations.isEmpty()) {
+                throw new CustomException("You are not invited to this organization for this role",
+                        HttpStatus.NOT_ACCEPTABLE);
+            }
             userInvitations.sort(Comparator.comparing(UserInvitation::getCreatedAt).reversed());
-            UserInvitation acceptedInvitation = userInvitations.isEmpty() ? null : userInvitations.get(0);
+            // Emailed invitations carry a secret token: knowing the invited address and role id is not enough.
+            if (userInvitations.stream().anyMatch(invitation -> invitation.getToken() != null)) {
+                userInvitations = userInvitations.stream()
+                        .filter(invitation -> invitation.getToken() != null
+                                && tokensMatch(invitation.getToken(), userReq.getInvitationToken()))
+                        .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+                if (userInvitations.isEmpty())
+                    throw new CustomException("Invalid or expired invitation link", HttpStatus.NOT_ACCEPTABLE);
+            }
+            UserInvitation acceptedInvitation = userInvitations.get(0);
             if (acceptedInvitation != null) {
                 user.setAllSitesAccess(acceptedInvitation.isAllSitesAccess());
                 user.setSites(new ArrayList<>(acceptedInvitation.getSites()));
@@ -464,11 +475,15 @@ public class UserService {
             if (sendEmail) throwIfEmailNotificationsNotEnabled();
             if (role.isPaid() || ("QUOREICH".equalsIgnoreCase(licenseProvider)
                     && licenseService.getLicensingState().isValid())) checkUsageBasedLimit(1, role);
-            UserInvitation invitation = userInvitationService.create(new UserInvitation(email, role, inviter));
+            UserInvitation newInvitation = new UserInvitation(email, role, inviter);
+            if (sendEmail) newInvitation.setToken((UUID.randomUUID().toString() + UUID.randomUUID()).replace("-", ""));
+            UserInvitation invitation = userInvitationService.create(newInvitation);
             if (!sendEmail) return;
+            String invitationToken = newInvitation.getToken();
             Map<String, Object> variables = new HashMap<String, Object>() {{
                 put("joinLink", frontendUrl + "/account/register?email="
-                        + URLEncoder.encode(email, StandardCharsets.UTF_8) + "&role=" + role.getId());
+                        + URLEncoder.encode(email, StandardCharsets.UTF_8) + "&role=" + role.getId()
+                        + "&token=" + invitationToken);
                 put("inviter", inviter.getFirstName() + " " + inviter.getLastName());
                 put("company", inviter.getCompany().getName());
             }};
@@ -497,6 +512,7 @@ public class UserService {
             if (userReq.getNewPassword() != null) {
                 if (enableInvitationViaEmail)
                     throw new CustomException("Please tell the user to reset his password", HttpStatus.NOT_FOUND);
+                assertCanManageAccountOf(savedUser, requester);
 
                 savedUser.setPassword(passwordEncoder.encode(userReq.getNewPassword()));
                 savedUser.setSessionInvalidatedAt(new Date());
@@ -633,6 +649,7 @@ public class UserService {
         if (optionalRole.isEmpty() || !optionalRole.get().belongsToCompany(user.getCompany()))
             throw new CustomException("Not found", HttpStatus.NOT_FOUND);
         Role role = optionalRole.get();
+        roleService.assertCanGrantRole(role, user.getRole());
         if (role.isPaid() && companyUsersCount + invitation.getEmails().size() > user.getCompany().getSubscription().getUsersCount())
             throw new CustomException("Your current subscription doesn't allow you to invite that many users"
                     , HttpStatus.NOT_ACCEPTABLE);
@@ -658,6 +675,24 @@ public class UserService {
         );
     }
 
+    private static boolean tokensMatch(String expected, String provided) {
+        if (provided == null) return false;
+        return java.security.MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
+                provided.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Another user's password or role may only be changed by someone at least as privileged:
+     * the company owner can only be managed by themself, and the target's current role must not
+     * exceed the requester's role.
+     */
+    private void assertCanManageAccountOf(User target, User requester) {
+        if (requester == null || requester.getId().equals(target.getId())) return;
+        if (target.isOwnsCompany())
+            throw new CustomException("Only the company owner can change this account", HttpStatus.FORBIDDEN);
+        roleService.assertCanGrantRole(target.getRole(), requester.getRole());
+    }
+
     public User patchUserRole(Long userId, Long roleId, User requester) {
         boolean licensed = licenseSeatService.lockForUserChanges();
         Optional<User> optionalUserToPatch = findByIdAndCompany(userId, requester.getCompany().getId());
@@ -675,6 +710,8 @@ public class UserService {
             throw new CustomException("Company subscription users count doesn't allow this operation",
                     HttpStatus.NOT_ACCEPTABLE);
         User userToPatch = optionalUserToPatch.get();
+        assertCanManageAccountOf(userToPatch, requester);
+        roleService.assertCanGrantRole(optionalRole.get(), requester.getRole());
         assertLastAdminRemains(userToPatch, optionalRole.get(), requester);
         if (licensed) em.refresh(userToPatch);
         if ("QUOREICH".equalsIgnoreCase(licenseProvider)

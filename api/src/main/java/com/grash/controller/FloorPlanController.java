@@ -68,6 +68,7 @@ public class FloorPlanController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     FloorPlanShowDTO create(@Parameter(description = "Floor plan data to create") @Valid @RequestBody FloorPlan floorPlanReq,
                             HttpServletRequest req) {
+        floorPlanReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (!user.getRole().getCreatePermissions().contains(PermissionEntity.LOCATIONS))
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);

@@ -169,6 +169,7 @@ public class PurchaseOrderController {
     @Transactional
     PurchaseOrderShowDTO create(@Parameter(description = "Purchase order data to create") @Valid @RequestBody PurchaseOrder purchaseOrderReq,
                                 HttpServletRequest req) {
+        purchaseOrderReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (user.getRole().getCreatePermissions().contains(PermissionEntity.PURCHASE_ORDERS)) {
             purchaseOrderPolicyService.requireModuleEnabled(user);

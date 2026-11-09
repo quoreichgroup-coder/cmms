@@ -261,6 +261,7 @@ public class PartQuantityController {
     @Transactional
     PartQuantityShowDTO create(@Parameter(description = "Part quantity to create") @Valid @RequestBody PartQuantity partQuantityReq,
                                HttpServletRequest req) {
+        partQuantityReq.setId(null); // POST always creates: never merge onto an existing row
         User user = userService.whoami(req);
         if (partQuantityReq.getRequisitionLine() != null) {
             throw new CustomException("Purchase requisition source links are managed by the conversion service",
