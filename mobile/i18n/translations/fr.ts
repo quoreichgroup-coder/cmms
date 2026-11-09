@@ -2371,6 +2371,20 @@ const frJSON = {
   default: 'Par défaut',
   form_submission_in_progress: 'Envoi en cours…',
   purchase_order_price_required: 'Saisissez un prix unitaire convenu (4 décimales maximum) pour chaque ligne.',
-  receipt_quantity_exceeds_remaining: 'Saisissez une quantité comprise entre 0 et la quantité restante.'
+  receipt_quantity_exceeds_remaining: 'Saisissez une quantité comprise entre 0 et la quantité restante.',
+  pm_end_before_start: 'La date de fin doit être postérieure à la date de début.',
+  reading_linked_to_preventive_maintenance: 'Ce relevé a déclenché un ordre de travail de maintenance préventive et ne peut plus être modifié.',
+  pm_schedule_daily: 'Tous les jours',
+  pm_schedule_daily_plural: 'Tous les {{count}} jours',
+  pm_schedule_weekly: 'Toutes les semaines',
+  pm_schedule_weekly_plural: 'Toutes les {{count}} semaines',
+  pm_schedule_weekly_on: 'Toutes les semaines le {{days}}',
+  pm_schedule_weekly_on_plural: 'Toutes les {{count}} semaines le {{days}}',
+  pm_schedule_monthly: 'Tous les mois',
+  pm_schedule_monthly_plural: 'Tous les {{count}} mois',
+  pm_schedule_yearly: 'Tous les ans',
+  pm_schedule_yearly_plural: 'Tous les {{count}} ans',
+  'The update frequency has not been respected': 'La fréquence de relevé de ce compteur n’est pas encore atteinte.',
+  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.'
 };
 export default frJSON;

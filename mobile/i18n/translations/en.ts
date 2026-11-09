@@ -2177,6 +2177,20 @@ const locale = {
   default: 'Default',
   form_submission_in_progress: 'Submission in progress…',
   purchase_order_price_required: 'Enter an agreed unit price (up to 4 decimals) for every line.',
-  receipt_quantity_exceeds_remaining: 'Enter a quantity between 0 and the remaining quantity.'
+  receipt_quantity_exceeds_remaining: 'Enter a quantity between 0 and the remaining quantity.',
+  pm_end_before_start: 'The end date must be after the start date.',
+  reading_linked_to_preventive_maintenance: 'This reading triggered a preventive maintenance work order and can no longer be changed.',
+  pm_schedule_daily: 'Every day',
+  pm_schedule_daily_plural: 'Every {{count}} days',
+  pm_schedule_weekly: 'Every week',
+  pm_schedule_weekly_plural: 'Every {{count}} weeks',
+  pm_schedule_weekly_on: 'Every week on {{days}}',
+  pm_schedule_weekly_on_plural: 'Every {{count}} weeks on {{days}}',
+  pm_schedule_monthly: 'Every month',
+  pm_schedule_monthly_plural: 'Every {{count}} months',
+  pm_schedule_yearly: 'Every year',
+  pm_schedule_yearly_plural: 'Every {{count}} years',
+  'The update frequency has not been respected': 'The reading frequency of this meter has not been reached yet.',
+  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.'
 };
 export default locale;

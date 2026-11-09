@@ -3331,6 +3331,41 @@ class WorkOrderServiceTest {
 
             verify(scheduleService).scheduleNextWorkOrderJobAfterCompletion(eq(42L), any());
         }
+
+        @Test
+        void completingAnOlderPmWorkOrder_doesNotRechainTheSchedule() {
+            WorkOrder wo = buildWorkOrder(1L);
+            wo.setAsset(buildAsset(10L));
+            wo.setStatus(Status.OPEN);
+            Schedule schedule = new Schedule();
+            schedule.setId(42L);
+            PreventiveMaintenance pm = new PreventiveMaintenance();
+            pm.setId(7L);
+            pm.setSchedule(schedule);
+            wo.setParentPreventiveMaintenance(pm);
+            WorkOrder newer = buildWorkOrder(2L);
+            WorkOrderChangeStatusDTO dto = new WorkOrderChangeStatusDTO();
+            dto.setStatus(Status.COMPLETE);
+
+            when(workOrderRepository.findById(1L)).thenReturn(Optional.of(wo));
+            when(workOrderRepository.findByIdAndCompany_IdForUpdate(1L, company.getId())).thenReturn(Optional.of(wo));
+            when(workOrderRepository.saveAndFlush(any())).thenAnswer(inv -> {
+                WorkOrder saved = inv.getArgument(0);
+                saved.setCompletedOn(new Date());
+                return saved;
+            });
+            when(workOrderRepository.findByParentPreventiveMaintenance_Id(eq(7L), any()))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(newer)));
+            when(workOrderMapper.toShowDto(any())).thenReturn(new com.grash.dto.workOrder.WorkOrderShowDTO());
+            doNothing().when(em).refresh(any());
+            when(laborService.findByWorkOrder(1L)).thenReturn(Collections.emptyList());
+            when(workflowService.findByMainConditionAndCompany(any(), anyLong())).thenReturn(Collections.emptyList());
+            when(workOrderRepository.findByAsset_Id(10L)).thenReturn(Collections.emptyList());
+
+            workOrderService.changeStatus(dto, 1L, user, "ios");
+
+            verify(scheduleService, never()).scheduleNextWorkOrderJobAfterCompletion(anyLong(), any());
+        }
     }
 
     @Nested

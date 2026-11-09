@@ -47,6 +47,8 @@ class MeterServiceTest {
     private MeterService meterService;
 
     @Mock
+    private com.grash.repository.ScheduleRepository scheduleRepository;
+    @Mock
     private MeterRepository meterRepository;
     @Mock
     private MeterCategoryService meterCategoryService;
@@ -478,6 +480,18 @@ class MeterServiceTest {
             meterService.deleteByIdAndUser(1L, user);
 
             verify(meterRepository).deleteById(1L);
+        }
+
+        @Test
+        void deleteByIdAndUser_meterUsedByPreventiveMaintenance_throwsConflict() {
+            Meter meter = buildMeter(1L);
+            when(meterRepository.findById(1L)).thenReturn(Optional.of(meter));
+            when(scheduleRepository.existsByMeter_Id(1L)).thenReturn(true);
+
+            CustomException ex = assertThrows(CustomException.class, () -> meterService.deleteByIdAndUser(1L, user));
+
+            assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
+            verify(meterRepository, never()).deleteById(anyLong());
         }
 
         @Test

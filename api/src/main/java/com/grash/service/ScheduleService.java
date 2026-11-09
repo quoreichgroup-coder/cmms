@@ -96,15 +96,10 @@ public class ScheduleService {
         Page<WorkOrder> workOrdersPage = workOrderService.findLastByPM(preventiveMaintenance.getId(), limit);
         TimeZone timeZone = TimeZone.getTimeZone(preventiveMaintenance.getCompany()
                 .getCompanySettings().getGeneralPreferences().getTimeZone());
-        boolean isStale = false;
-        if (workOrdersPage.getTotalElements() >= limit && workOrdersPage.getContent().stream().allMatch(workOrder -> workOrder.getFirstTimeToReact() == null)) {
-            isStale = true;
-            schedule.setDisabled(true);
-            scheduleRepository.save(schedule);
-        }
-
+        // Plans are never paused automatically: planned maintenance keeps generating work orders even when
+        // nobody has reacted to the previous ones (pausing is an explicit user decision).
         boolean shouldSchedule =
-                !schedule.isDisabled() && (schedule.getEndsOn() == null || schedule.getEndsOn().after(new Date())) && !isStale;
+                !schedule.isDisabled() && (schedule.getEndsOn() == null || schedule.getEndsOn().after(new Date()));
         if (!shouldSchedule) syncCalendarCallRegister(schedule, Collections.emptyList());
 
         if (shouldSchedule) {
@@ -334,9 +329,21 @@ public class ScheduleService {
             // Delete Notification Job (it might not exist, but Quartz handles that gracefully usually, or returns
             // false)
             scheduler.deleteJob(new JobKey("notif-job-" + scheduleId, "notif-group"));
+            // Completion-based plans chain one-shot jobs; stop them too so an edited frequency is not
+            // followed by the job computed with the old one.
+            removeChainedJobs(scheduleId);
 
         } catch (SchedulerException e) {
             log.error("Error stopping quartz jobs for schedule " + scheduleId, e);
+        }
+    }
+
+    private void removeChainedJobs(Long scheduleId) throws SchedulerException {
+        String prefix = "wo-job-chained-" + scheduleId;
+        for (JobKey key : scheduler.getJobKeys(org.quartz.impl.matchers.GroupMatcher.jobGroupEquals("wo-group"))) {
+            String name = key.getName();
+            // Exact key, or the legacy "wo-job-chained-{id}-{timestamp}" keys.
+            if (name.equals(prefix) || name.startsWith(prefix + "-")) scheduler.deleteJob(key);
         }
     }
 
@@ -447,7 +454,9 @@ public class ScheduleService {
 
         // 2. Schedule a "One-Shot" Job for that date
         try {
-            JobKey jobKey = new JobKey("wo-job-chained-" + schedule.getId() + "-" + nextRunDate.getTime(), "wo-group");
+            // One chained job per schedule: a new completion replaces the pending one instead of adding another.
+            removeChainedJobs(schedule.getId());
+            JobKey jobKey = new JobKey("wo-job-chained-" + schedule.getId(), "wo-group");
 
             JobDetail woJob = JobBuilder.newJob(WorkOrderCreationJob.class)
                     .withIdentity(jobKey)

@@ -63,6 +63,7 @@ import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
 import { isCloudVersion } from '../../../config';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
+import { getErrorMessage } from '../../../utils/api';
 
 interface MeterDetailsProps {
   meter: Meter;
@@ -309,11 +310,19 @@ export default function MeterDetails(props: MeterDetailsProps) {
                   fields={fields}
                   validation={Yup.object().shape(shape)}
                   submitText={t('add_reading')}
-                  values={{ value: 0 }}
+                  values={{ value: '' }}
                   onSubmit={async (values) => {
                     return dispatch(createReading(meter.id, values))
                       .then(onNewReading)
-                      .then(onRefreshHistogram);
+                      .then(onRefreshHistogram)
+                      .catch((error) => {
+                        // e.g. update frequency not respected (406) or reading rejected by the API.
+                        showSnackBar(
+                          t(getErrorMessage(error, 'reading_create_failure')),
+                          'error'
+                        );
+                        throw error;
+                      });
                   }}
                 />
               ) : null}

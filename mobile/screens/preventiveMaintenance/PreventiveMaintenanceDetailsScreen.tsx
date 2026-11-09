@@ -18,6 +18,7 @@ import {
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
+import { getScheduleDescription } from '../../utils/scheduleDescription';
 import { Page } from '../../models/page';
 import PreventiveMaintenance from '../../models/preventiveMaintenance';
 import PreventiveMaintenanceCall from '../../models/preventiveMaintenanceCall';
@@ -46,7 +47,7 @@ export default function PreventiveMaintenanceDetailsScreen({
   navigation,
   route
 }: RootStackScreenProps<'PreventiveMaintenanceDetails'>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useAppTheme();
   const { getFormattedDate } = useContext(CompanySettingsContext);
   const { hasViewPermission, hasFeature } = useAuth();
@@ -212,9 +213,7 @@ export default function PreventiveMaintenanceDetailsScreen({
       } · ${t('pm_reference')}: ${
         pm.schedule.meterReferenceValue ?? '—'
       }`.trim()
-    : `${t(pm?.schedule?.recurrenceType ?? '')} · ${
-        pm?.schedule?.frequency ?? '—'
-      }`;
+    : getScheduleDescription(pm?.schedule, i18n.language, t) || '—';
 
   const sections = useMemo<PMDetailsSection[]>(
     () => [

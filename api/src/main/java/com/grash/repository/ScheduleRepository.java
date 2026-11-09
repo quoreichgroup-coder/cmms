@@ -39,6 +39,15 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     Collection<Schedule> findMultiCounterSchedulesByCompanyAndMeterId(@Param("companyId") Long companyId,
                                                                        @Param("meterId") Long meterId);
 
+    boolean existsByMeter_Id(Long meterId);
+
+    @Query(value = "SELECT COUNT(*) FROM schedule s "
+            + "JOIN preventive_maintenance pm ON pm.id = s.preventive_maintenance_id "
+            + "WHERE pm.company_id = :companyId AND s.plan_configuration IS NOT NULL "
+            + "AND EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE((NULLIF(BTRIM(s.plan_configuration), '')::jsonb)->'cycles', '[]'::jsonb)) cycle_item "
+            + "WHERE cycle_item->>'dimension' = 'METER' AND cycle_item->>'meterId' = CAST(:meterId AS text))", nativeQuery = true)
+    long countPlansUsingMeterInCycles(@Param("companyId") Long companyId, @Param("meterId") Long meterId);
+
     void deleteByPreventiveMaintenanceCompany_IdAndIsDemoTrue(Long companyId);
 
     @Query(value = "SELECT s.* FROM schedule s " +
@@ -55,8 +64,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             ") wo_stats ON s.preventive_maintenance_id = wo_stats.parent_preventive_maintenance_id " +
             "WHERE s.disabled = false " +
             "AND s.trigger_type = 'CALENDAR' " +
-            "AND (s.ends_on IS NULL OR s.ends_on > CURRENT_DATE) " +
-            "AND (wo_stats.total IS NULL OR wo_stats.total < 10 OR wo_stats.last_react IS NOT NULL)", nativeQuery =
+            "AND (s.ends_on IS NULL OR s.ends_on > CURRENT_DATE)", nativeQuery =
             true)
     Collection<Schedule> findByActive();
 

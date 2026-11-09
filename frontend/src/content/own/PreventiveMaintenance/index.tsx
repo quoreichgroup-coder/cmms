@@ -247,6 +247,13 @@ function PMs() {
     { label: t('scheduled_date'), value: 'SCHEDULED_DATE' },
     { label: t('completed_on'), value: 'COMPLETED_DATE' }
   ];
+  // Tomorrow at 07:00, the usual start of a maintenance shift.
+  const defaultPmStart = () => {
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(7, 0, 0, 0);
+    return start;
+  };
   const recurrenceTypes: {
     label: string;
     value: Schedule['recurrenceType'];
@@ -857,6 +864,12 @@ function PMs() {
       then: (schema) => schema.notRequired(),
       otherwise: (schema) => schema.required(t('required'))
     }),
+    endsOn: Yup.mixed()
+      .nullable()
+      .test('ends-after-start', t('pm_end_before_start'), function (value) {
+        if (!value || !this.parent.startsOn) return true;
+        return new Date(value).getTime() > new Date(this.parent.startsOn).getTime();
+      }),
     meter: Yup.mixed().when('triggerType', {
       is: (v) => v?.value === 'METER' || v === 'METER',
       then: (schema) =>
@@ -1101,13 +1114,23 @@ function PMs() {
             submitText={t('add')}
             values={
               copyPmData
-                ? { ...getPMFormValues(copyPmData), id: null }
+                ? {
+                    ...getPMFormValues(copyPmData),
+                    id: null,
+                    // A copy starts from the next planning slot, never from the original (past) start.
+                    startsOn:
+                      copyPmData.schedule?.startsOn &&
+                      new Date(copyPmData.schedule.startsOn) > new Date()
+                        ? copyPmData.schedule.startsOn
+                        : defaultPmStart()
+                  }
                 : {
                     triggerType: triggerTypes[0],
                     planConfigurationJson: '{\n  "mode": "SINGLE"\n}',
                     workOrderGenerationLeadDays: 0,
                     meterReferenceValue: null,
-                    startsOn: null,
+                    startsOn: defaultPmStart(),
+                    frequency: 1,
                     endsOn: null,
                     dueDate: null,
                     asset: assetPrefill
@@ -1117,7 +1140,8 @@ function PMs() {
                         }
                       : null,
                     recurrenceBasedOn: basedOnArray[0],
-                    recurrenceType: recurrenceTypes[0]
+                    // Monthly is the most common preventive interval; daily plans flood the backlog by mistake.
+                    recurrenceType: recurrenceTypes[2]
                   }
             }
             onChange={() => setIsFormDirty(true)}

@@ -311,8 +311,13 @@ function Meters() {
   const onDeleteSuccess = () => {
     showSnackBar(t('meter_delete_success'), 'success');
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('meter_delete_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message = getErrorMessage(err, 'meter_delete_failure');
+    showSnackBar(
+      t(message === 'meter_used_by_preventive_maintenance' ? message : 'meter_delete_failure'),
+      'error'
+    );
+  };
 
   const columnHelper = createColumnHelper<Meter>();
 

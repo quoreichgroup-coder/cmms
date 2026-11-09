@@ -39,6 +39,7 @@ import static com.grash.utils.Consts.usageBasedFreeLimits;
 @RequiredArgsConstructor
 public class MeterService {
     private final MeterRepository meterRepository;
+    private final com.grash.repository.ScheduleRepository scheduleRepository;
     private final MeterCategoryService meterCategoryService;
     private final AssetService assetService;
     private final MessageSource messageSource;
@@ -174,6 +175,12 @@ public class MeterService {
             Meter savedMeter = optionalMeter.get();
             if (belongsToCompany(savedMeter, user) && user.canAccessSite(savedMeter.getAsset().getSite())
                     && savedMeter.canBeDeletedBy(user)) {
+                // A meter driving preventive maintenance cannot disappear silently (the database would
+                // refuse with a 500 for meter-triggered plans; multi-counter plans would just stop).
+                if (scheduleRepository.existsByMeter_Id(id)
+                        || scheduleRepository.countPlansUsingMeterInCycles(user.getCompany().getId(), id) > 0)
+                    throw new CustomException("meter_used_by_preventive_maintenance",
+                            org.springframework.http.HttpStatus.CONFLICT);
                 delete(id);
             } else throw new CustomException("Forbidden", org.springframework.http.HttpStatus.FORBIDDEN);
         } else throw new CustomException("Meter not found", org.springframework.http.HttpStatus.NOT_FOUND);

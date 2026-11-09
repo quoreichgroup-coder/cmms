@@ -155,6 +155,7 @@ public class PreventiveMaintenanceService {
         configureSchedule(schedule, triggerType, preventiveMaintenancePost.getMeterId(),
                 preventiveMaintenancePost.getMeterCycleInterval(), preventiveMaintenancePost.getMeterReferenceValue(),
                 preventiveMaintenancePost.getMeterEndValue(), user.getCompany(), user, false);
+        requireEndAfterStart(schedule);
         Schedule savedSchedule = scheduleService.save(schedule);
         em.refresh(savedSchedule);
         em.refresh(savedPM);
@@ -235,6 +236,7 @@ public class PreventiveMaintenanceService {
                     configureSchedule(schedule, requestedType, preventiveMaintenance.getMeterId(),
                             preventiveMaintenance.getMeterCycleInterval(), preventiveMaintenance.getMeterReferenceValue(),
                             preventiveMaintenance.getMeterEndValue(), user.getCompany(), user, true);
+                    requireEndAfterStart(schedule);
                 }
                 if (!preventiveMaintenance.getCustomFields().isEmpty()) {
                     setPMCustomFields(savedPreventiveMaintenance, preventiveMaintenance.getCustomFields(),
@@ -256,6 +258,13 @@ public class PreventiveMaintenanceService {
                 return updatedPM;
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         } else throw new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND);
+    }
+
+    /** A calendar plan whose end is not after its start would be saved but never scheduled. */
+    private static void requireEndAfterStart(Schedule schedule) {
+        if (schedule.getTriggerType() == ScheduleTriggerType.CALENDAR && schedule.getEndsOn() != null
+                && schedule.getStartsOn() != null && !schedule.getEndsOn().after(schedule.getStartsOn()))
+            throw new CustomException("pm_end_before_start", HttpStatus.BAD_REQUEST);
     }
 
     /** Every schedule field that influences when work orders are generated. */
@@ -888,6 +897,16 @@ public class PreventiveMaintenanceService {
     @Transactional
     public WorkOrder createWorkOrderFromPreventiveMaintenance(PreventiveMaintenance preventiveMaintenance,
                                                                Collection<Long> taskBaseIds) {
+        return createWorkOrderFromPreventiveMaintenance(preventiveMaintenance, taskBaseIds, null);
+    }
+
+    /**
+     * @param occurrenceDate planned date of the calendar occurrence; the due date is counted from it so that
+     *                       work orders generated ahead (lead days) are not due before the planned date.
+     */
+    @Transactional
+    public WorkOrder createWorkOrderFromPreventiveMaintenance(PreventiveMaintenance preventiveMaintenance,
+                                                               Collection<Long> taskBaseIds, Date occurrenceDate) {
         WorkOrderPostDTO workOrder = workOrderService.getWorkOrderFromWorkOrderBase(preventiveMaintenance);
         if (preventiveMaintenance.getSchedule() != null
                 && preventiveMaintenance.getSchedule().getPlanConfiguration() != null) {
@@ -903,7 +922,8 @@ public class PreventiveMaintenanceService {
 
         Schedule schedule = preventiveMaintenance.getSchedule();
         if (schedule.getDueDateDelay() != null) {
-            workOrder.setDueDate(Helper.incrementDays(new Date(), schedule.getDueDateDelay()));
+            Date base = occurrenceDate != null && occurrenceDate.after(new Date()) ? occurrenceDate : new Date();
+            workOrder.setDueDate(Helper.incrementDays(base, schedule.getDueDateDelay()));
         }
 
         WorkOrder savedWorkOrder = workOrderService.createFromPreventiveMaintenance(workOrder,
@@ -964,7 +984,7 @@ public class PreventiveMaintenanceService {
             taskBaseIds = duePackages.stream().flatMap(item -> item.getTaskBaseIds().stream())
                     .filter(Objects::nonNull).distinct().toList();
         }
-        WorkOrder workOrder = createWorkOrderFromPreventiveMaintenance(preventiveMaintenance, taskBaseIds);
+        WorkOrder workOrder = createWorkOrderFromPreventiveMaintenance(preventiveMaintenance, taskBaseIds, occurrenceDate);
         PreventiveMaintenanceMeterCall call = existing.orElseGet(PreventiveMaintenanceMeterCall::new);
         call.setSchedule(schedule);
         call.setDueDate(occurrenceDate);

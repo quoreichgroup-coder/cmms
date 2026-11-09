@@ -4411,7 +4411,11 @@ const frJSON = {
   requisition_status_filter_rejected: 'Rejetées',
   requisition_revise: 'Corriger et resoumettre',
   requisition_revised: 'La demande est revenue en brouillon. Corrigez-la puis soumettez-la à nouveau.',
-  purchase_requisition_revise_requires_rejected: 'Seule une demande rejetée peut être corrigée'
+  purchase_requisition_revise_requires_rejected: 'Seule une demande rejetée peut être corrigée',
+  pm_end_before_start: 'La date de fin doit être postérieure à la date de début.',
+  reading_linked_to_preventive_maintenance: 'Ce relevé a déclenché un ordre de travail de maintenance préventive et ne peut plus être modifié.',
+  'The update frequency has not been respected': 'La fréquence de relevé de ce compteur n’est pas encore atteinte.',
+  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.'
 };
 
 export default frJSON;

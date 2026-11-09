@@ -495,20 +495,20 @@ class ScheduleServiceTest {
         }
 
         @Test
-        void staleSchedule_isDisabledAndNotScheduled() throws SchedulerException {
+        void unreactedWorkOrders_doNotPauseThePlan() throws SchedulerException {
             Schedule schedule = buildSchedule();
             WorkOrder[] unreacted = new WorkOrder[LAST_PM_LIMIT];
             for (int i = 0; i < LAST_PM_LIMIT; i++) {
                 unreacted[i] = buildWorkOrder((long) i, Status.OPEN, null, null);
             }
             when(workOrderService.findLastByPM(PM_ID, LAST_PM_LIMIT)).thenReturn(pageOf(unreacted));
-            when(scheduleRepository.save(schedule)).thenReturn(schedule);
 
             scheduleService.scheduleWorkOrder(schedule);
 
-            assertTrue(schedule.isDisabled());
-            verify(scheduleRepository).save(schedule);
-            verifyNoJobScheduled();
+            assertFalse(schedule.isDisabled());
+            verify(scheduleRepository, never()).save(schedule);
+            assertEquals(1, scheduledJobs().stream()
+                    .filter(job -> job.job.getKey().getName().equals("wo-job-" + SCHEDULE_ID)).count());
         }
 
         @Test
@@ -870,7 +870,7 @@ class ScheduleServiceTest {
             scheduleService.scheduleWorkOrder(schedule);
 
             Date expectedNextRun = Date.from(later.toInstant().plus(2, ChronoUnit.DAYS));
-            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + expectedNextRun.getTime());
+            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID);
             assertEquals(expectedNextRun, chained.trigger.getStartTime());
             assertEquals(0, ((SimpleTrigger) chained.trigger).getRepeatCount());
         }
@@ -947,7 +947,7 @@ class ScheduleServiceTest {
             scheduleService.scheduleNextWorkOrderJobAfterCompletion(SCHEDULE_ID, Date.from(MONDAY_0915));
 
             Date plannedDate = Date.from(MONDAY_0915.plus(1, ChronoUnit.DAYS));
-            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + plannedDate.getTime());
+            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID);
             assertEquals(Date.from(MONDAY_0915.minus(2, ChronoUnit.DAYS)), chained.trigger.getStartTime());
             assertEquals(plannedDate.getTime(), chained.job.getJobDataMap().getLong("occurrenceTimestamp"));
         }
@@ -979,7 +979,7 @@ class ScheduleServiceTest {
 
             Date nextRun = Date.from(MONDAY_0915.plus(1, ChronoUnit.DAYS));
             assertEquals(2, scheduledCount());
-            assertEquals(nextRun, jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + nextRun.getTime())
+            assertEquals(nextRun, jobNamed("wo-job-chained-" + SCHEDULE_ID)
                     .trigger.getStartTime());
             ScheduledJob notif = jobNamed("notif-job-" + SCHEDULE_ID);
             assertEquals(PreventiveMaintenanceNotificationJob.class, notif.job.getJobClass());
@@ -1000,7 +1000,7 @@ class ScheduleServiceTest {
 
             Date nextRun = Date.from(MONDAY_0915.plus(10, ChronoUnit.DAYS));
             assertEquals(1, scheduledCount());
-            assertEquals(nextRun, jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + nextRun.getTime())
+            assertEquals(nextRun, jobNamed("wo-job-chained-" + SCHEDULE_ID)
                     .trigger.getStartTime());
         }
 
@@ -1034,7 +1034,7 @@ class ScheduleServiceTest {
 
             assertEquals(1, scheduledCount());
             Date nextRun = Date.from(expectedNextRun);
-            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID + "-" + nextRun.getTime());
+            ScheduledJob chained = jobNamed("wo-job-chained-" + SCHEDULE_ID);
             assertEquals(nextRun, chained.trigger.getStartTime());
             assertEquals(WorkOrderCreationJob.class, chained.job.getJobClass());
             assertTrue(chained.job.isDurable());
@@ -1156,6 +1156,24 @@ class ScheduleServiceTest {
             assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 26), 2));
             assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 30), 2));
             assertFalse(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 11), 2));
+        }
+    }
+
+    @Nested
+    class ChainedJobCleanup {
+
+        @Test
+        void stoppingAScheduleRemovesItsChainedJobsButNotOtherSchedules() throws SchedulerException {
+            JobKey legacy = new JobKey("wo-job-chained-" + SCHEDULE_ID + "-1772788500000", "wo-group");
+            JobKey current = new JobKey("wo-job-chained-" + SCHEDULE_ID, "wo-group");
+            JobKey otherSchedule = new JobKey("wo-job-chained-" + SCHEDULE_ID + "0", "wo-group");
+            when(scheduler.getJobKeys(any())).thenReturn(new java.util.HashSet<>(java.util.Set.of(legacy, current, otherSchedule)));
+
+            scheduleService.stopScheduleJobs(SCHEDULE_ID);
+
+            verify(scheduler).deleteJob(legacy);
+            verify(scheduler).deleteJob(current);
+            verify(scheduler, never()).deleteJob(otherSchedule);
         }
     }
 }

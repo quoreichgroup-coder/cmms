@@ -565,6 +565,11 @@ public class WorkOrderService {
         return workOrderRepository.findByAsset_IdAndCreatedAtBetween(id, start, end);
     }
 
+    private boolean isLatestWorkOrderOfPreventiveMaintenance(WorkOrder workOrder) {
+        Page<WorkOrder> latest = findLastByPM(workOrder.getParentPreventiveMaintenance().getId(), 1);
+        return latest == null || latest.isEmpty() || latest.getContent().get(0).getId().equals(workOrder.getId());
+    }
+
     public Page<WorkOrder> findLastByPM(Long id, int count) {
         return workOrderRepository.findByParentPreventiveMaintenance_Id(id, PageRequest.of(0, count,
                 Sort.by(Sort.Direction.DESC, "createdAt")));
@@ -1153,7 +1158,10 @@ public class WorkOrderService {
                             assetService.stopDownTime(asset.getId(), Helper.getLocale(user));
                         }
                     }
-                    if (mutableWO.getParentPreventiveMaintenance() != null)
+                    // Completion-based plans restart from the most recent work order only: closing an older
+                    // one late (or reopening and completing again) must not pull the next occurrence back.
+                    if (mutableWO.getParentPreventiveMaintenance() != null
+                            && isLatestWorkOrderOfPreventiveMaintenance(mutableWO))
                         scheduleService.scheduleNextWorkOrderJobAfterCompletion(mutableWO.getParentPreventiveMaintenance().getSchedule().getId(), mutableWO.getCompletedOn());
                 }
                 Collection<Labor> labors = laborService.findByWorkOrder(id);

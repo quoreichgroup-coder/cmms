@@ -4092,7 +4092,11 @@ const locale = {
   requisition_status_filter_rejected: 'Rejected',
   requisition_revise: 'Revise and resubmit',
   requisition_revised: 'The requisition is back to draft. Correct it, then submit it again.',
-  purchase_requisition_revise_requires_rejected: 'Only a rejected requisition can be revised'
+  purchase_requisition_revise_requires_rejected: 'Only a rejected requisition can be revised',
+  pm_end_before_start: 'The end date must be after the start date.',
+  reading_linked_to_preventive_maintenance: 'This reading triggered a preventive maintenance work order and can no longer be changed.',
+  'The update frequency has not been respected': 'The reading frequency of this meter has not been reached yet.',
+  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.'
 };
 
 export default locale;

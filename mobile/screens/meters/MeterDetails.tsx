@@ -139,8 +139,13 @@ export default function MeterDetails({
     showSnackBar(t('meter_delete_success'), 'success');
     navigation.goBack();
   };
-  const onDeleteFailure = (err) =>
-    showSnackBar(t('meter_delete_failure'), 'error');
+  const onDeleteFailure = (err) => {
+    const message = getErrorMessage(err, 'meter_delete_failure');
+    showSnackBar(
+      t(message === 'meter_used_by_preventive_maintenance' ? message : 'meter_delete_failure'),
+      'error'
+    );
+  };
 
   const handleDelete = async () => {
     if (deletingRef.current || !meter) return;
@@ -366,8 +371,9 @@ export default function MeterDetails({
         setOpenModal(false);
         showSnackBar(t('reading_create_success'), 'success');
         onNewReading?.(parsedValue);
-      } catch {
-        showSnackBar(t('reading_create_failure'), 'error');
+      } catch (error) {
+        // Surface the API reason (e.g. reading frequency not reached) instead of a generic failure.
+        showSnackBar(t(getErrorMessage(error, 'reading_create_failure')), 'error');
       } finally {
         setIsSubmitting(false);
       }
