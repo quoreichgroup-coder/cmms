@@ -25,6 +25,9 @@ export default interface PurchaseOrder extends Audit {
   additionalInfoRequisitionedName: string;
   additionalInfoShippingMethod: string;
   additionalInfoShippingOrderCategory: string;
+  closedAt?: string | null;
+  closedById?: number | null;
+  closeReason?: string | null;
   additionalInfoTerm: string;
   additionalInfoNotes: string;
   partQuantities: PartQuantityMiniDTO[];

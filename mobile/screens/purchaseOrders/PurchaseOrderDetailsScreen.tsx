@@ -66,6 +66,19 @@ export default function PurchaseOrderDetailsScreen({
   const [responseError, setResponseError] = useState('');
   const approvalSummaryRequest = useRef(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // Orders under an approval policy are locked server-side until rejected; hide Delete instead of failing.
+  const [governed, setGoverned] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    setGoverned(null);
+    api
+      .get<ApprovalSummary | undefined>(`approval-management/documents/PO/${id}`)
+      .then((summary) => active && setGoverned(Boolean(summary)))
+      .catch(() => active && setGoverned(null));
+    return () => {
+      active = false;
+    };
+  }, [id]);
   const [deleting, setDeleting] = useState(false);
 
   const loadPurchaseOrder = useCallback(async () => {
@@ -99,6 +112,7 @@ export default function PurchaseOrderDetailsScreen({
   const canDelete = Boolean(
     purchaseOrder &&
       purchaseOrder.status !== 'APPROVED' &&
+      (governed === false || purchaseOrder.status === 'REJECTED') &&
       hasDeletePermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder) &&
       hasFeature(PlanFeature.PURCHASE_ORDER) &&
       !(purchaseOrder.partQuantities ?? []).some(
@@ -736,11 +750,17 @@ export default function PurchaseOrderDetailsScreen({
                     label={t('received_quantity')}
                     value={receiptQuantities[line.id] ?? ''}
                     keyboardType="decimal-pad"
+                    error={isInvalidReceiptQuantity(receiptQuantities[line.id], line.remainingToReceive ?? line.quantity)}
                     onChangeText={(value) => {
                       setReceiptQuantities((current) => ({ ...current, [line.id]: value }));
                       setCurrentReceiptKey(receiptKey());
                     }}
                   />
+                  {isInvalidReceiptQuantity(receiptQuantities[line.id], line.remainingToReceive ?? line.quantity) && (
+                    <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                      {t('receipt_quantity_exceeds_remaining')}
+                    </Text>
+                  )}
                 </View>
               ))}
             </ScrollView>
@@ -750,7 +770,8 @@ export default function PurchaseOrderDetailsScreen({
             <Button onPress={() => void saveReceipt()} loading={receiptSaving} disabled={
               receiptSaving || !(purchaseOrder.partQuantities ?? []).some(
                 (line) => Number((receiptQuantities[line.id] || '0').replace(',', '.')) > 0
-              )
+              ) || (purchaseOrder.partQuantities ?? []).some((line) =>
+                isInvalidReceiptQuantity(receiptQuantities[line.id], line.remainingToReceive ?? line.quantity))
             }>{t('confirm')}</Button>
           </Dialog.Actions>
         </Dialog>
@@ -829,6 +850,13 @@ export default function PurchaseOrderDetailsScreen({
   );
 }
 
+/** True for a typed quantity that is not a number, negative, or above the remaining balance. */
+export const isInvalidReceiptQuantity = (value: string | undefined, remaining: number) => {
+  if (!value || !value.trim()) return false;
+  const quantity = Number(value.trim().replace(',', '.'));
+  return !Number.isFinite(quantity) || quantity < 0 || quantity - remaining > 1e-9;
+};
+
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', padding: 20 },
   content: { padding: 16, paddingBottom: 40, gap: 12 },
@@ -848,7 +876,7 @@ const styles = StyleSheet.create({
   },
   partName: { flex: 1, minWidth: 140 },
   receiptProgress: { width: '100%' },
-  receiptHistoryItem: { gap: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#8886', paddingTop: 10 },
+  receiptHistoryItem: { gap: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(128,128,128,0.4)', paddingTop: 10 },
   receiptDialogContent: { gap: 12, padding: 2 },
   receiptLineInput: { gap: 4 }
 });

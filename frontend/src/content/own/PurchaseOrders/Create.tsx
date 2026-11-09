@@ -2,14 +2,16 @@ import { Helmet } from 'react-helmet-async';
 import { Card, Grid } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { IField } from '../type';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { TitleContext } from '../../../contexts/TitleContext';
 import { useDispatch } from '../../../store';
 import Form from '../components/form';
 import * as Yup from 'yup';
 import { phoneRegExp } from '../../../utils/validators';
 import { formatSelect, formatSwitch } from '../../../utils/formatters';
-import { useNavigate } from 'react-router-dom';
+import { UNSAFE_NavigationContext, useNavigate } from 'react-router-dom';
+import type { History, Transition } from 'history';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import useAuth from '../../../hooks/useAuth';
@@ -30,7 +32,35 @@ function CreatePurchaseOrder() {
   useEffect(() => {
     setTitle(t('new_po'));
   }, []);
+  // Leaving the page with an unsaved order asks for confirmation (in-app navigation and tab close).
+  const { navigator } = useContext(UNSAFE_NavigationContext);
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<Transition | null>(null);
+  const unblock = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [isDirty]);
+  useEffect(() => {
+    const history = navigator as History;
+    if (!isDirty || !history.block) return undefined;
+    const release = history.block((transition) => setPendingNavigation(transition));
+    unblock.current = release;
+    return () => {
+      release();
+      if (unblock.current === release) unblock.current = null;
+    };
+  }, [navigator, isDirty]);
   const onCreationSuccess = () => {
+    unblock.current?.();
+    unblock.current = null;
+    setIsDirty(false);
     showSnackBar(t('po_create_success'), 'success');
     navigate('/app/purchase-orders');
   };
@@ -134,7 +164,7 @@ function CreatePurchaseOrder() {
     },
     {
       name: 'shippingZipCode',
-      type: 'number',
+      type: 'text',
       label: t('zip_code'),
       placeholder: t('zip_code'),
       midWidth: true
@@ -224,7 +254,7 @@ function CreatePurchaseOrder() {
             justifyContent="center"
             alignItems="stretch"
             spacing={1}
-            paddingX={4}
+            paddingX={{ xs: 1, sm: 2, md: 4 }}
           >
             <Grid item xs={12}>
               <Card
@@ -240,6 +270,7 @@ function CreatePurchaseOrder() {
                   fields={getFields()}
                   validation={Yup.object().shape(shape)}
                   submitText={t('submit')}
+                  onDirtyChange={setIsDirty}
                   values={{
                     shippingDueDate: null,
                     additionalInfoDate: null,
@@ -280,13 +311,26 @@ function CreatePurchaseOrder() {
               </Card>
             </Grid>
           </Grid>
+          <ConfirmDialog
+            open={pendingNavigation !== null}
+            question={t('discard_changes_question')}
+            confirmText={t('discard_changes')}
+            onCancel={() => setPendingNavigation(null)}
+            onConfirm={() => {
+              unblock.current?.();
+              unblock.current = null;
+              const transition = pendingNavigation;
+              setPendingNavigation(null);
+              transition?.retry();
+            }}
+          />
         </>
       );
     else
       return <PermissionErrorMessage message={'no_access_purchase_orders'} />;
   } else
     return (
-      <FeatureErrorMessage message={'Upgrade to create Purchase Orders'} />
+      <FeatureErrorMessage message={'upgrade_po'} />
     );
 }
 

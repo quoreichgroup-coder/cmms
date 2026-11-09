@@ -25,6 +25,7 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { TitleContext } from '../../../contexts/TitleContext';
 import { GridEnrichedColDef } from '@mui/x-data-grid/models/colDef/gridColDef';
 import CustomDataGrid from '../components/CustomDatagrid';
+import PurchaseOrderStatusChip from '../components/PurchaseOrderStatusChip';
 import { GridRenderCellParams, GridToolbar } from '@mui/x-data-grid';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import PurchaseOrder from '../../../models/owns/purchaseOrder';
@@ -515,7 +516,13 @@ function PurchaseOrders() {
       headerName: t('status'),
       description: t('status'),
       width: 150,
-      valueGetter: (params: GridRenderCellParams<string>) => t(params.value)
+      valueGetter: (params: GridRenderCellParams<string>) => t(params.value),
+      renderCell: (params: GridRenderCellParams<string>) => (
+        <PurchaseOrderStatusChip
+          status={params.row.status}
+          closed={Boolean(params.row.closedAt)}
+        />
+      )
     },
     {
       field: 'shippingShipToName',
@@ -654,7 +661,7 @@ function PurchaseOrders() {
     },
     {
       name: 'shippingZipCode',
-      type: 'number',
+      type: 'text',
       label: t('zip_code'),
       placeholder: t('zip_code'),
       midWidth: true
@@ -759,14 +766,16 @@ function PurchaseOrders() {
               ...currentPurchaseOrder,
               vendor: currentPurchaseOrder?.vendor
                 ? {
-                    label: currentPurchaseOrder.vendor.name,
+                    label:
+                      currentPurchaseOrder.vendor.companyName ??
+                      currentPurchaseOrder.vendor.name,
                     value: currentPurchaseOrder.vendor.id.toString()
                   }
                 : null,
               category: currentPurchaseOrder?.category
                 ? {
                     label: currentPurchaseOrder.category.name,
-                    values: currentPurchaseOrder?.category.id
+                    value: currentPurchaseOrder.category.id.toString()
                   }
                 : null,
               partQuantities
@@ -804,7 +813,7 @@ function PurchaseOrders() {
           <Helmet>
             <title>{t('purchase_orders')}</title>
           </Helmet>
-          <Box justifyContent="center" alignItems="stretch" paddingX={4}>
+          <Box justifyContent="center" alignItems="stretch" paddingX={{ xs: 1, sm: 2, md: 4 }}>
             <Stack
               my={1}
               direction={{ xs: 'column', sm: 'row' }}

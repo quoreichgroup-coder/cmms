@@ -78,7 +78,9 @@ function PurchaseRequisitions() {
   const [converting, setConverting] = useState(false);
   const [pageNumber, setPageNumber] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'draft' | 'approved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'draft' | 'approved' | 'rejected'>('all');
+  // Prevents double submissions from repeated clicks on row actions.
+  const rowActionLock = useRef(false);
   const [formOpen, setFormOpen] = useState(false);
   const [isFormDirty, setIsFormDirty] = useState(false);
   const [openDiscardDialog, setOpenDiscardDialog] = useState(false);
@@ -154,7 +156,8 @@ function PurchaseRequisitions() {
     const statusValues = {
       pending: ['PENDING_APPROVAL'],
       draft: ['DRAFT'],
-      approved: ['APPROVED', 'PARTIALLY_ORDERED', 'ORDERED']
+      approved: ['APPROVED', 'PARTIALLY_ORDERED', 'ORDERED'],
+      rejected: ['REJECTED']
     }[statusFilter];
     return {
       pageNum,
@@ -362,12 +365,30 @@ function PurchaseRequisitions() {
   };
 
   const submitDraft = async (row: PurchaseRequisition) => {
+    if (rowActionLock.current) return;
+    rowActionLock.current = true;
     try {
       await api.post(`purchase-requisitions/${row.id}/submit`, {});
       showSnackBar(t('requisition_submitted'), 'success');
       await refresh();
     } catch (error) {
       showSnackBar(t(getErrorMessage(error, 'requisition_action_failed')), 'error');
+    } finally {
+      rowActionLock.current = false;
+    }
+  };
+
+  const reviseRejected = async (row: PurchaseRequisition) => {
+    if (rowActionLock.current) return;
+    rowActionLock.current = true;
+    try {
+      await api.post(`purchase-requisitions/${row.id}/revise`, {});
+      showSnackBar(t('requisition_revised'), 'success');
+      await refresh();
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, 'requisition_action_failed')), 'error');
+    } finally {
+      rowActionLock.current = false;
     }
   };
 
@@ -397,6 +418,8 @@ function PurchaseRequisitions() {
   };
 
   const deleteDraft = async (row: PurchaseRequisition) => {
+    if (rowActionLock.current) return;
+    rowActionLock.current = true;
     try {
       await api.deletes(`purchase-requisitions/${row.id}`);
       showSnackBar(t('requisition_deleted'), 'success');
@@ -404,6 +427,8 @@ function PurchaseRequisitions() {
       await refresh();
     } catch (error) {
       showSnackBar(t(getErrorMessage(error, 'requisition_action_failed')), 'error');
+    } finally {
+      rowActionLock.current = false;
     }
   };
 
@@ -510,6 +535,7 @@ function PurchaseRequisitions() {
           <ToggleButton value="pending">{t('requisition_status_filter_pending')}</ToggleButton>
           <ToggleButton value="draft">{t('requisition_status_filter_draft')}</ToggleButton>
           <ToggleButton value="approved">{t('requisition_status_filter_approved')}</ToggleButton>
+          <ToggleButton value="rejected">{t('requisition_status_filter_rejected')}</ToggleButton>
         </ToggleButtonGroup>
         {loading && <Typography color="text.secondary">{t('loading')}</Typography>}
         {!loading && rows.length === 0 && (
@@ -588,6 +614,11 @@ function PurchaseRequisitions() {
                         </Button>
                         )}
                       </>
+                    )}
+                    {row.status === 'REJECTED' && (row.requesterId === user?.id || canEditOther) && (
+                      <Button size="small" sx={{ minHeight: 40, justifyContent: 'flex-start' }} startIcon={<EditOutlinedIcon />} onClick={() => void reviseRejected(row)}>
+                        {t('requisition_revise')}
+                      </Button>
                     )}
                     {row.status === 'PENDING_APPROVAL' && canApprove && row.requesterId !== user?.id &&
                       (!row.currentApproverId || row.currentApproverId === user?.id) && (

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import api, { getErrorMessage } from '../utils/api';
 import { openPdfResponse } from '../utils/fileDownload';
 import AsyncStateFeedback from './AsyncStateFeedback';
+import { useAppTheme } from '../custom-theme';
 
 type Kind = 'purchase-orders' | 'purchase-requisitions';
 interface Template { id: number; name: string; versionNumber: number; isDefault: boolean }
@@ -13,6 +14,7 @@ interface Props { kind: Kind; sourceId: number; disabled?: boolean; issueDisable
 
 export default function ProcurementDocumentActions({ kind, sourceId, disabled = false, issueDisabled = false }: Props) {
   const { t } = useTranslation();
+  const theme = useAppTheme();
   const [visible, setVisible] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [documents, setDocuments] = useState<Doc[]>([]);
@@ -51,12 +53,16 @@ export default function ProcurementDocumentActions({ kind, sourceId, disabled = 
   const issue = async () => {
     if (!selectedId || busy) return;
     setBusy(true); setError('');
+    let created: Doc;
     try {
-      const created = await api.post<Doc>(`${kind}/${sourceId}/documents/issue/${selectedId}`, null);
+      created = await api.post<Doc>(`${kind}/${sourceId}/documents/issue/${selectedId}`, null);
+    } catch (e) { setError(getErrorMessage(e, t('issued_document_issue_error'))); setBusy(false); return; }
+    // The document is issued and archived at this point: a failed download must not invite a second issue.
+    try {
       await load();
       const response = await api.get<Response>(`documents/${created.id}/download`, { raw: true });
       await openPdfResponse(response, created.fileName);
-    } catch (e) { setError(getErrorMessage(e, t('issued_document_issue_error'))); }
+    } catch (e) { setError(getErrorMessage(e, t('issued_document_download_error'))); }
     finally { setBusy(false); }
   };
   const download = async (doc: Doc) => {
@@ -73,7 +79,7 @@ export default function ProcurementDocumentActions({ kind, sourceId, disabled = 
       <Dialog.Title>{kind === 'purchase-orders' ? t('purchase_order', 'Purchase order') : t('purchase_requisition', 'Purchase requisition')} · {t('procurement_print', 'Print / PDF')}</Dialog.Title>
       <Dialog.ScrollArea><ScrollView contentContainerStyle={{ paddingVertical: 12 }}>
         <Text variant="bodySmall">{t('procurement_print_help', 'Preview a published template, then issue a traceable PDF. Reprints remain available below.')}</Text>
-        {error ? <Text accessibilityRole="alert" style={{ color: '#B3261E', marginTop: 12 }}>{error}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.error, marginTop: 12 }}>{error}</Text> : null}
         {issueDisabled ? <Text style={{ marginTop: 8 }}>{t('procurement_issue_requires_approval', 'You can preview this document. Official PO issue requires final approval and the appropriate edit permission.')}</Text> : null}
         <View style={{ gap: 8, marginTop: 16 }}>
           {loading ? <AsyncStateFeedback mode="loading" message={t('loading')} /> : templates.length ? templates.map((item) => <Button key={item.id} mode={selectedId === item.id ? 'contained-tonal' : 'outlined'} disabled={busy} onPress={() => setSelectedId(item.id)}>{item.name} · v{item.versionNumber}{item.isDefault ? ` · ${t('default')}` : ''}</Button>) : <Text>{t('procurement_print_no_template', 'No published template is available. Configure one in Settings → Documents.')}</Text>}

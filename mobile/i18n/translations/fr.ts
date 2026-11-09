@@ -2369,6 +2369,8 @@ const frJSON = {
   issued_document_download_error: 'Impossible de télécharger le document',
   purchase_requisition: 'Demande d’achat',
   default: 'Par défaut',
-  form_submission_in_progress: 'Envoi en cours…'
+  form_submission_in_progress: 'Envoi en cours…',
+  purchase_order_price_required: 'Saisissez un prix unitaire convenu (4 décimales maximum) pour chaque ligne.',
+  receipt_quantity_exceeds_remaining: 'Saisissez une quantité comprise entre 0 et la quantité restante.'
 };
 export default frJSON;

@@ -33,6 +33,7 @@ import { PermissionEntity } from '../../../models/owns/role';
 import { editPartPurchasePrice, editPartQuantity } from '../../../slices/partQuantity';
 import { useDispatch } from '../../../store';
 import PartQuantitiesList from '../components/PartQuantitiesList';
+import PurchaseOrderStatusChip from '../components/PurchaseOrderStatusChip';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { PartQuantityMiniDTO } from '../../../models/owns/partQuantity';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
@@ -121,6 +122,38 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     setReceiptDialogOpen(true);
   };
 
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState('');
+  const [closing, setClosing] = useState(false);
+  const canClose =
+    purchaseOrder.status === 'APPROVED' &&
+    purchaseOrder.receivingWorkflowEnabled &&
+    !purchaseOrder.closedAt &&
+    hasEditPermission(PermissionEntity.PURCHASE_ORDERS, purchaseOrder) &&
+    partQuantities.some((line) => (line.remainingToReceive ?? line.quantity) > 0);
+  const submitClose = async () => {
+    if (closing || !closeReason.trim()) return;
+    setClosing(true);
+    try {
+      await api.post(`purchase-orders/${purchaseOrder.id}/close`, {
+        reason: closeReason.trim()
+      });
+      setCloseDialogOpen(false);
+      setCloseReason('');
+      onReceiptCreated();
+      showSnackBar(t('purchase_order_closed_success'), 'success');
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, 'purchase_order_close_failure')), 'error');
+    } finally {
+      setClosing(false);
+    }
+  };
+  const isInvalidReceiptQuantity = (value: string | undefined, remaining: number) => {
+    if (!value || !value.trim()) return false;
+    const quantity = Number(value.trim().replace(',', '.'));
+    return !Number.isFinite(quantity) || quantity < 0 || quantity - remaining > 1e-9;
+  };
+
   const submitReceipt = async () => {
     if (receiptSubmitting) return;
     const lines = partQuantities.map((line) => ({
@@ -169,7 +202,8 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
   };
   const debouncedPartQuantityChange = useMemo(
     () => debounce(onPartQuantityChange, 1500),
-    []
+    // Rebuild when another order is opened so a pending edit never targets the previous order.
+    [purchaseOrder.id]
   );
   const onPurchasePriceChange = (value: string, line: PartQuantityMiniDTO) => {
     const amount = Number(value);
@@ -282,7 +316,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
     },
     {
       label: t('shipping_method'),
-      value: purchaseOrder1.additionalInfoShippingMethod
+      value: purchaseOrder1.additionalInfoShippingOrderCategory
     },
     {
       label: t('notes'),
@@ -299,7 +333,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
       justifyContent="center"
       alignItems="stretch"
       spacing={2}
-      padding={4}
+      padding={{ xs: 2, md: 4 }}
     >
       <Grid
         item
@@ -313,7 +347,12 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
         <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
           <Typography variant="h2">{purchaseOrder?.name}</Typography>
           <Typography variant="h6">{purchaseOrder?.shippingAddress}</Typography>
-          <Typography variant="h6">{t(purchaseOrder?.status)}</Typography>
+          <Box sx={{ mt: 1, mr: 1, display: 'inline-flex' }}>
+            <PurchaseOrderStatusChip
+              status={purchaseOrder?.status}
+              closed={Boolean(purchaseOrder.closedAt)}
+            />
+          </Box>
           {purchaseOrder.receivingWorkflowEnabled && canViewReceipts && receiptProgressKey && (
             <Chip size="small" sx={{ mt: 1 }} color={receiptProgressKey === 'receipt_complete' ? 'success' : receiptProgressKey === 'receipt_partial' ? 'warning' : 'default'} label={t(receiptProgressKey)} />
           )}
@@ -328,7 +367,12 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
-          {approvalState.ready && !approvalState.summary && purchaseOrder.status !== 'APPROVED' && hasDeletePermission(
+          {canClose && (
+            <Button size="small" variant="outlined" color="warning" onClick={() => setCloseDialogOpen(true)}>
+              {t('purchase_order_close')}
+            </Button>
+          )}
+          {approvalState.ready && (!approvalState.summary || purchaseOrder.status === 'REJECTED') && purchaseOrder.status !== 'APPROVED' && hasDeletePermission(
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
@@ -437,6 +481,21 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog open={closeDialogOpen} onClose={() => !closing && setCloseDialogOpen(false)} fullScreen={fullScreen} fullWidth maxWidth="sm">
+        <DialogTitle>{t('purchase_order_close')}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Alert severity="warning">{t('purchase_order_close_hint')}</Alert>
+            <TextField fullWidth required multiline minRows={2} label={t('purchase_order_close_reason')} value={closeReason} inputProps={{ maxLength: 500 }} onChange={(event) => setCloseReason(event.target.value)} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCloseDialogOpen(false)} disabled={closing}>{t('cancel')}</Button>
+          <Button variant="contained" color="warning" onClick={() => void submitClose()} disabled={closing || !closeReason.trim()} startIcon={closing ? <CircularProgress size="1rem" /> : undefined}>
+            {t('purchase_order_close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={receiptDialogOpen} onClose={() => !receiptSubmitting && setReceiptDialogOpen(false)} fullScreen={fullScreen} fullWidth maxWidth="sm">
         <DialogTitle>{t('record_receipt')}</DialogTitle>
         <DialogContent dividers>
@@ -451,6 +510,8 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
                   type="number"
                   fullWidth
                   label={`${line.part.name} · ${t('remaining')}: ${remaining} ${line.part.unit || ''}`}
+                  error={isInvalidReceiptQuantity(receiptQuantities[line.id], remaining)}
+                  helperText={isInvalidReceiptQuantity(receiptQuantities[line.id], remaining) ? t('receipt_quantity_exceeds_remaining') : undefined}
                   value={receiptQuantities[line.id] ?? ''}
                   inputProps={{ min: 0, max: remaining, step: line.part.unit ? 'any' : 1, inputMode: 'decimal' }}
                   onChange={(event) => { setReceiptQuantities((current) => ({ ...current, [line.id]: event.target.value })); setReceiptIdempotencyKey(newReceiptIdempotencyKey()); }}
@@ -462,7 +523,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReceiptDialogOpen(false)} disabled={receiptSubmitting}>{t('cancel')}</Button>
-          <Button variant="contained" onClick={() => void submitReceipt()} disabled={receiptSubmitting || !partQuantities.some((line) => Number(receiptQuantities[line.id]) > 0)} startIcon={receiptSubmitting ? <CircularProgress size="1rem" /> : <LocalShippingOutlinedIcon />}>
+          <Button variant="contained" onClick={() => void submitReceipt()} disabled={receiptSubmitting || !partQuantities.some((line) => Number(receiptQuantities[line.id]) > 0) || partQuantities.some((line) => isInvalidReceiptQuantity(receiptQuantities[line.id], line.remainingToReceive ?? line.quantity))} startIcon={receiptSubmitting ? <CircularProgress size="1rem" /> : <LocalShippingOutlinedIcon />}>
             {t('record_receipt')}
           </Button>
         </DialogActions>

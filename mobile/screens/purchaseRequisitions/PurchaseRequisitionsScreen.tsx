@@ -157,6 +157,10 @@ export default function PurchaseRequisitionsScreen({
   const [convertQuantities, setConvertQuantities] = React.useState<
     Record<number, string>
   >({});
+  // Agreed supplier unit price per requisition line; the API requires one for every converted line.
+  const [convertPrices, setConvertPrices] = React.useState<
+    Record<number, string>
+  >({});
   const [converting, setConverting] = React.useState(false);
   const [convertError, setConvertError] = React.useState('');
   const canCreateOrder = hasCreatePermission(PermissionEntity.PURCHASE_ORDERS);
@@ -496,6 +500,7 @@ export default function PurchaseRequisitionsScreen({
     );
     setConvertTarget(requisition);
     setConvertQuantities(quantities);
+    setConvertPrices({});
     setConvertVendor(null);
     setConvertName('');
     setConvertError('');
@@ -514,9 +519,19 @@ export default function PurchaseRequisitionsScreen({
     const enteredLines = Object.entries(convertQuantities).filter(
       ([, value]) => value.trim() !== ''
     );
+    const priceOf = (lineId: string) => (convertPrices[Number(lineId)] ?? '').trim();
+    if (
+      enteredLines.some(
+        ([lineId]) => !/^\d+([.,]\d{1,4})?$/.test(priceOf(lineId))
+      )
+    ) {
+      setConvertError(t('purchase_order_price_required'));
+      return;
+    }
     const selectedLines = enteredLines.map(([requisitionLineId, quantity]) => ({
       requisitionLineId: Number(requisitionLineId),
-      quantity: Number(quantity.replace(',', '.'))
+      quantity: Number(quantity.replace(',', '.')),
+      purchaseUnitPrice: Number(priceOf(requisitionLineId).replace(',', '.'))
     }));
     const invalidLine = selectedLines.some((selected) => {
       const sourceLine = convertTarget.lines.find(
@@ -645,7 +660,7 @@ export default function PurchaseRequisitionsScreen({
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
           !loading && !error ? (
-            <Text style={styles.empty}>{t('purchase_requisitions_empty')}</Text>
+            <Text style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>{t('purchase_requisitions_empty')}</Text>
           ) : null
         }
         renderItem={({ item }) => (
@@ -1077,20 +1092,33 @@ export default function PurchaseRequisitionsScreen({
                 );
                 if (remaining <= 0 || line.id == null) return null;
                 return (
-                  <TextInput
-                    key={line.id}
-                    label={`${line.partName} · ${t(
-                      'remaining'
-                    )}: ${remaining} ${line.unit ?? ''}`}
-                    value={convertQuantities[line.id] ?? ''}
-                    keyboardType="decimal-pad"
-                    onChangeText={(value) =>
-                      setConvertQuantities((current) => ({
-                        ...current,
-                        [line.id as number]: value
-                      }))
-                    }
-                  />
+                  <View key={line.id} style={{ gap: 6 }}>
+                    <TextInput
+                      label={`${line.partName} · ${t(
+                        'remaining'
+                      )}: ${remaining} ${line.unit ?? ''}`}
+                      value={convertQuantities[line.id] ?? ''}
+                      keyboardType="decimal-pad"
+                      onChangeText={(value) =>
+                        setConvertQuantities((current) => ({
+                          ...current,
+                          [line.id as number]: value
+                        }))
+                      }
+                    />
+                    <TextInput
+                      label={t('agreed_unit_price')}
+                      accessibilityLabel={`${line.partName} ${t('agreed_unit_price')}`}
+                      value={convertPrices[line.id] ?? ''}
+                      keyboardType="decimal-pad"
+                      onChangeText={(value) =>
+                        setConvertPrices((current) => ({
+                          ...current,
+                          [line.id as number]: value
+                        }))
+                      }
+                    />
+                  </View>
                 );
               })}
               {!!convertError && (
@@ -1136,6 +1164,6 @@ const styles = StyleSheet.create({
   form: { padding: 16, gap: 12 },
   line: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lineContainer: { gap: 6 },
-  empty: { textAlign: 'center', padding: 24, color: '#667085' },
+  empty: { textAlign: 'center', padding: 24 },
   quantity: { width: 76 }
 });

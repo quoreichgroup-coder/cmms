@@ -4397,7 +4397,21 @@ const frJSON = {
   help_confirm_archive_article: 'Archiver l’article « {{title}} » ? Il ne sera plus affiché dans le centre d’aide.',
   help_confirm_archive_category: 'Archiver la catégorie « {{name}} » ?',
   running_low: 'stock bas',
-  vendor_used_by_purchase_orders: 'Ce fournisseur est utilisé par des bons de commande et ne peut pas être supprimé.'
+  vendor_used_by_purchase_orders: 'Ce fournisseur est utilisé par des bons de commande et ne peut pas être supprimé.',
+  purchase_order_close: 'Clôturer la commande',
+  purchase_order_close_hint: 'À utiliser lorsque les quantités restantes ne seront pas livrées. Les réceptions déjà enregistrées sont conservées ; le solde ouvert est rendu aux demandes d’achat d’origine et la commande sort de la file de réception.',
+  purchase_order_close_reason: 'Motif de clôture',
+  purchase_order_closed_success: 'Bon de commande clôturé',
+  purchase_order_close_failure: 'Le bon de commande n’a pas pu être clôturé',
+  purchase_order_closed_label: 'Clôturé',
+  purchase_order_closed: 'Ce bon de commande est clôturé',
+  purchase_order_close_requires_approved: 'Seule une commande approuvée suivie en réception peut être clôturée',
+  purchase_order_close_reason_required: 'Un motif est requis pour clôturer la commande',
+  receipt_quantity_exceeds_remaining: 'Saisissez une quantité comprise entre 0 et la quantité restante.',
+  requisition_status_filter_rejected: 'Rejetées',
+  requisition_revise: 'Corriger et resoumettre',
+  requisition_revised: 'La demande est revenue en brouillon. Corrigez-la puis soumettez-la à nouveau.',
+  purchase_requisition_revise_requires_rejected: 'Seule une demande rejetée peut être corrigée'
 };
 
 export default frJSON;

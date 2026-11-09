@@ -4078,7 +4078,21 @@ const locale = {
   help_confirm_archive_article: 'Archive the article “{{title}}”? It will no longer be shown in the Help Center.',
   help_confirm_archive_category: 'Archive the category “{{name}}”?',
   running_low: 'running low',
-  vendor_used_by_purchase_orders: 'This vendor is used by purchase orders and cannot be deleted.'
+  vendor_used_by_purchase_orders: 'This vendor is used by purchase orders and cannot be deleted.',
+  purchase_order_close: 'Close order',
+  purchase_order_close_hint: 'Use this when the remaining quantities will not be delivered. Receipts already recorded are kept; the open balance is released back to the source requisitions and the order leaves the receiving queue.',
+  purchase_order_close_reason: 'Reason for closing',
+  purchase_order_closed_success: 'Purchase order closed',
+  purchase_order_close_failure: 'The purchase order could not be closed',
+  purchase_order_closed_label: 'Closed',
+  purchase_order_closed: 'This purchase order is closed',
+  purchase_order_close_requires_approved: 'Only an approved order in the receiving workflow can be closed',
+  purchase_order_close_reason_required: 'A reason is required to close the order',
+  receipt_quantity_exceeds_remaining: 'Enter a quantity between 0 and the remaining quantity.',
+  requisition_status_filter_rejected: 'Rejected',
+  requisition_revise: 'Revise and resubmit',
+  requisition_revised: 'The requisition is back to draft. Correct it, then submit it again.',
+  purchase_requisition_revise_requires_rejected: 'Only a rejected requisition can be revised'
 };
 
 export default locale;

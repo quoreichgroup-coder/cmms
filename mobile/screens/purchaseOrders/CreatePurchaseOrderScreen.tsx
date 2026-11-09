@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View
 } from 'react-native';
-import { Button, Card, Divider, Text, TextInput } from 'react-native-paper';
+import { Button, Card, Divider, Menu, Text, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { RootStackScreenProps } from '../../types';
 import { PartMiniDTO } from '../../models/part';
@@ -21,7 +21,19 @@ import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { useContext } from 'react';
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
 
-type OrderLine = { part: PartMiniDTO; quantity: string };
+type OrderLine = {
+  part: PartMiniDTO;
+  quantity: string;
+  price: string;
+  siteId?: number | null;
+  siteName?: string | null;
+};
+type SiteOption = { id: number; name: string };
+
+const parseDecimal = (value: string) => Number(value.trim().replace(',', '.'));
+// The API stores supplier prices with at most four decimals.
+const isValidPrice = (value: string) =>
+  /^\d+([.,]\d{1,4})?$/.test(value.trim()) && parseDecimal(value) >= 0;
 
 export default function CreatePurchaseOrderScreen({
   navigation
@@ -41,6 +53,19 @@ export default function CreatePurchaseOrderScreen({
   const [lines, setLines] = React.useState<OrderLine[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [sites, setSites] = React.useState<SiteOption[]>([]);
+  const [siteMenuLine, setSiteMenuLine] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    api
+      .get<SiteOption[]>('sites')
+      .then((result) => active && setSites(Array.isArray(result) ? result : []))
+      .catch(() => active && setSites([]));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selectVendor = () =>
     navigation.navigate('SelectVendors', {
@@ -56,15 +81,32 @@ export default function CreatePurchaseOrderScreen({
           selected.map((part) => ({
             part,
             quantity:
-              current.find((line) => line.part.id === part.id)?.quantity ?? '1'
+              current.find((line) => line.part.id === part.id)?.quantity ?? '1',
+            price:
+              current.find((line) => line.part.id === part.id)?.price ??
+              (part.cost != null ? String(part.cost) : ''),
+            siteId: current.find((line) => line.part.id === part.id)?.siteId,
+            siteName: current.find((line) => line.part.id === part.id)?.siteName
           }))
         )
     });
   const save = async () => {
     const normalizedLines = lines.map((line) => ({
       part: { id: line.part.id },
-      quantity: Number(line.quantity.replace(',', '.'))
+      quantity: parseDecimal(line.quantity),
+      purchaseUnitPrice: isValidPrice(line.price)
+        ? parseDecimal(line.price)
+        : null,
+      siteId: line.siteId ?? null
     }));
+    if (lines.some((line) => !isValidPrice(line.price))) {
+      setError(t('purchase_order_price_required'));
+      return;
+    }
+    if (sites.length > 1 && lines.some((line) => !line.siteId)) {
+      setError(t('procurement_site_required'));
+      return;
+    }
     if (
       !name.trim() ||
       !normalizedLines.length ||
@@ -168,7 +210,8 @@ export default function CreatePurchaseOrderScreen({
               </Button>
             </View>
             {lines.map((line) => (
-              <View key={line.part.id} style={styles.line}>
+              <View key={line.part.id} style={styles.lineBlock}>
+              <View style={styles.line}>
                 <View style={styles.flex}>
                   <Text variant="bodyMedium">{line.part.name}</Text>
                   <Text
@@ -194,6 +237,23 @@ export default function CreatePurchaseOrderScreen({
                   }
                   style={styles.quantity}
                 />
+                <TextInput
+                  label={t('agreed_unit_price')}
+                  keyboardType="decimal-pad"
+                  accessibilityLabel={`${line.part.name} ${t('agreed_unit_price')}`}
+                  value={line.price}
+                  error={!!line.price && !isValidPrice(line.price)}
+                  onChangeText={(value) =>
+                    setLines((current) =>
+                      current.map((entry) =>
+                        entry.part.id === line.part.id
+                          ? { ...entry, price: value }
+                          : entry
+                      )
+                    )
+                  }
+                  style={styles.quantity}
+                />
                 <Button
                   compact
                   icon="close"
@@ -206,6 +266,40 @@ export default function CreatePurchaseOrderScreen({
                 >
                   {t('remove')}
                 </Button>
+              </View>
+              {sites.length > 0 && (
+                <Menu
+                  visible={siteMenuLine === line.part.id}
+                  onDismiss={() => setSiteMenuLine(null)}
+                  anchor={
+                    <Button
+                      mode="outlined"
+                      compact
+                      icon="map-marker-outline"
+                      onPress={() => setSiteMenuLine(line.part.id)}
+                    >
+                      {line.siteName || t('select_site')}
+                    </Button>
+                  }
+                >
+                  {sites.map((site) => (
+                    <Menu.Item
+                      key={site.id}
+                      title={site.name}
+                      onPress={() => {
+                        setLines((current) =>
+                          current.map((entry) =>
+                            entry.part.id === line.part.id
+                              ? { ...entry, siteId: site.id, siteName: site.name }
+                              : entry
+                          )
+                        );
+                        setSiteMenuLine(null);
+                      }}
+                    />
+                  ))}
+                </Menu>
+              )}
               </View>
             ))}
             {!!error && (
@@ -232,6 +326,7 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   partsHeader: { flexDirection: 'row', alignItems: 'center' },
   flex: { flex: 1 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lineBlock: { gap: 6 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   quantity: { width: 92 }
 });

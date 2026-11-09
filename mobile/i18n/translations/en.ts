@@ -2175,6 +2175,8 @@ const locale = {
   issued_document_download_error: 'Unable to download the document',
   purchase_requisition: 'Purchase requisition',
   default: 'Default',
-  form_submission_in_progress: 'Submission in progress…'
+  form_submission_in_progress: 'Submission in progress…',
+  purchase_order_price_required: 'Enter an agreed unit price (up to 4 decimals) for every line.',
+  receipt_quantity_exceeds_remaining: 'Enter a quantity between 0 and the remaining quantity.'
 };
 export default locale;
