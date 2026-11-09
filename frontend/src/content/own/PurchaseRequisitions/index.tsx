@@ -46,6 +46,7 @@ import { UserMiniDTO } from '../../../models/owns/user';
 import { PlanFeature } from '../../../models/owns/subscriptionPlan';
 import api, { getErrorMessage } from '../../../utils/api';
 import Form from '../components/form';
+import ConfirmDialog from '../components/ConfirmDialog';
 import FeatureErrorMessage from '../components/FeatureErrorMessage';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import { IField } from '../type';
@@ -79,6 +80,8 @@ function PurchaseRequisitions() {
   const [hasMore, setHasMore] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'draft' | 'approved'>('all');
   const [formOpen, setFormOpen] = useState(false);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [openDiscardDialog, setOpenDiscardDialog] = useState(false);
   const [editingRow, setEditingRow] = useState<PurchaseRequisition | null>(null);
   const [sourceWorkOrder, setSourceWorkOrder] = useState<{ id: number; name: string } | null>(null);
   const [sourcePart, setSourcePart] = useState<{
@@ -166,6 +169,16 @@ function PurchaseRequisitions() {
     };
   };
 
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingRow(null);
+    setIsFormDirty(false);
+    clearSourceWorkOrderContext();
+  };
+  const requestCloseForm = () => {
+    if (isFormDirty) setOpenDiscardDialog(true);
+    else closeForm();
+  };
   const clearSourceWorkOrderContext = () => {
     setSourceWorkOrder(null);
     setSourcePart(null);
@@ -613,7 +626,7 @@ function PurchaseRequisitions() {
         {hasMore && <Button variant="outlined" onClick={() => void loadMore()} disabled={loading} sx={{ alignSelf: 'center' }}>{t('load_more')}</Button>}
       </Stack>
 
-      <Dialog open={formOpen} onClose={() => { setFormOpen(false); setEditingRow(null); clearSourceWorkOrderContext(); }} fullScreen={fullScreen} fullWidth maxWidth="md">
+      <Dialog open={formOpen} onClose={requestCloseForm} fullScreen={fullScreen} fullWidth maxWidth="md">
         <DialogTitle>{editingRow ? t('edit_purchase_requisition') : t('new_purchase_requisition')}</DialogTitle>
         <DialogContent dividers>
           {sourceWorkOrder && !editingRow && (
@@ -639,6 +652,7 @@ function PurchaseRequisitions() {
           )}
           <Form
             fields={formFields}
+            onDirtyChange={setIsFormDirty}
             validation={Yup.object().shape({
               title: Yup.string().required(t('required_name')),
               partQuantities: Yup.array().min(1, t('requisition_needs_one_line')).required(t('requisition_needs_one_line'))
@@ -701,9 +715,7 @@ function PurchaseRequisitions() {
                 if (editingRow) await api.put(`purchase-requisitions/${editingRow.id}`, payload);
                 else await api.post('purchase-requisitions', payload);
                 showSnackBar(editingRow ? t('requisition_updated') : t('requisition_created'), 'success');
-                setFormOpen(false);
-                setEditingRow(null);
-                clearSourceWorkOrderContext();
+                closeForm();
                 await refresh();
               } catch (error) {
                 showSnackBar(t(getErrorMessage(error, 'requisition_action_failed')), 'error');
@@ -711,8 +723,18 @@ function PurchaseRequisitions() {
             }}
           />
         </DialogContent>
-      <DialogActions><Button onClick={() => { setFormOpen(false); setEditingRow(null); clearSourceWorkOrderContext(); }}>{t('close')}</Button></DialogActions>
+      <DialogActions><Button onClick={requestCloseForm}>{t('close')}</Button></DialogActions>
       </Dialog>
+      <ConfirmDialog
+        open={openDiscardDialog}
+        onCancel={() => setOpenDiscardDialog(false)}
+        onConfirm={() => {
+          setOpenDiscardDialog(false);
+          closeForm();
+        }}
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
 
       <Dialog open={!!decisionRow} onClose={() => !deciding && setDecisionRow(null)} fullScreen={fullScreen} fullWidth maxWidth="xs">
         <DialogTitle>{t('review_requisition')}</DialogTitle>

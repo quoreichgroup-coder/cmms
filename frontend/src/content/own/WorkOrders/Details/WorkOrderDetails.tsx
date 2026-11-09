@@ -1053,14 +1053,14 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                       {savingPrimaryTime ? (
                         <CircularProgress size="1rem" />
                       ) : (
-                        <IconButton
+                        <IconButton aria-label={t('save')}
                           disabled={savingPrimaryTime}
                           onClick={onSavePrimaryTime}
                         >
                           <CheckOutlinedIcon color={'primary'} />
                         </IconButton>
                       )}
-                      <IconButton onClick={() => setOpenEditPrimaryTime(false)}>
+                      <IconButton aria-label={t('cancel')} onClick={() => setOpenEditPrimaryTime(false)}>
                         <CloseIcon color={'error'} />
                       </IconButton>
                     </Stack>

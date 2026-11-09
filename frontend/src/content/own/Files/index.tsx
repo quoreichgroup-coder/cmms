@@ -99,7 +99,7 @@ function Files() {
       const deleted = await dispatch(deleteFile(id));
       setOpenDelete(false);
       if (deleted) onDeleteSuccess();
-      else onDeleteFailure(new Error('File deletion was not confirmed'));
+      else onDeleteFailure(new Error());
     } catch (err) {
       setOpenDelete(false);
       onDeleteFailure(err);

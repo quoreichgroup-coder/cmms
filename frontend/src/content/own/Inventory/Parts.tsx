@@ -190,7 +190,7 @@ const Parts = ({ setAction }: PropsType) => {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Part deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (error) {
       setOpenDelete(false);
@@ -354,9 +354,15 @@ const Parts = ({ setAction }: PropsType) => {
         const quantity = info.getValue();
         const row = info.row.original;
         return (
-          <Box sx={quantity < row.minQuantity ? { color: 'red' } : {}}>
+          <Box
+            sx={
+              quantity < row.minQuantity
+                ? { color: 'error.main', fontWeight: 600 }
+                : {}
+            }
+          >
             {getFormattedQuantityWithUnit(quantity, row.unit)}{' '}
-            {quantity < row.minQuantity && t('(Running Low !)')}
+            {quantity < row.minQuantity && `(${t('running_low')})`}
           </Box>
         );
       },
@@ -773,7 +779,11 @@ const Parts = ({ setAction }: PropsType) => {
           ))}
         </Tabs>
         <SearchInput onChange={debouncedQueryChange} />
-        <IconButton onClick={handleOpenMenu} color="primary">
+        <IconButton
+          aria-label={t('actions')}
+          onClick={handleOpenMenu}
+          color="primary"
+        >
           <MoreVertOutlinedIcon />
         </IconButton>
       </Stack>

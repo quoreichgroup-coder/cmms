@@ -355,7 +355,7 @@ function WorkOrders() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Work order deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (error) {
       setOpenDelete(false);
@@ -431,9 +431,10 @@ function WorkOrders() {
     setTaskListsLoading(true);
     setTaskListsLoadError(false);
     const loadActiveTaskLists = async () => {
-      const loadPage = (page: number) => api.get<TaskListOptionsPage>(
-        `maintenance-task-lists/options?query=&page=${page}&size=100`
-      );
+      const loadPage = (page: number) =>
+        api.get<TaskListOptionsPage>(
+          `maintenance-task-lists/options?query=&page=${page}&size=100`
+        );
       const firstPage = await loadPage(0);
       if (cancelled) return;
       const results = [...(firstPage.content ?? [])];
@@ -451,7 +452,9 @@ function WorkOrders() {
       }
       if (!cancelled) {
         const today = new Date().toISOString().slice(0, 10);
-        const uniqueResults = Array.from(new Map(results.map((item) => [item.id, item])).values());
+        const uniqueResults = Array.from(
+          new Map(results.map((item) => [item.id, item])).values()
+        );
         setTaskListOptions(
           uniqueResults
             .filter(

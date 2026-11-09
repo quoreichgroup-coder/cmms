@@ -374,6 +374,7 @@ function Assets() {
 
         return (
           <IconButton
+            aria-label={isExpanded ? t('collapse') : t('expand')}
             size="small"
             onClick={(e) => {
               e.stopPropagation();

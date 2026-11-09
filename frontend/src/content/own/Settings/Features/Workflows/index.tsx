@@ -521,7 +521,7 @@ function Workflows() {
       const deleted = await dispatch(deleteWorkflow(id));
       setOpenDelete(false);
       if (deleted) onDeleteSuccess();
-      else onDeleteFailure(new Error('Workflow deletion was not confirmed'));
+      else onDeleteFailure(new Error());
     } catch (err) {
       setOpenDelete(false);
       onDeleteFailure(err);

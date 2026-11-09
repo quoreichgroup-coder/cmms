@@ -236,7 +236,7 @@ function Locations() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Location deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (err) {
       setOpenDelete(false);
@@ -287,7 +287,12 @@ function Locations() {
   };
   const onDeleteFailure = (err) => {
     const message = (err as any)?.responseBody?.message;
-    showSnackBar(message === 'location_used_by_task_list' ? t(message) : t('location_delete_failure'), 'error');
+    showSnackBar(
+      message === 'location_used_by_task_list'
+        ? t(message)
+        : t('location_delete_failure'),
+      'error'
+    );
   };
 
   const handleOpenDetails = async (id: number) => {
@@ -1041,7 +1046,11 @@ function Locations() {
         <Helmet>
           <title>{t('locations')}</title>
         </Helmet>
-        <Box justifyContent="center" alignItems="stretch" paddingX={{ xs: 1, sm: 2, md: 4 }}>
+        <Box
+          justifyContent="center"
+          alignItems="stretch"
+          paddingX={{ xs: 1, sm: 2, md: 4 }}
+        >
           <Box
             my={1}
             display="flex"
@@ -1070,9 +1079,14 @@ function Locations() {
               direction="row"
               alignItems="center"
               spacing={1}
-              sx={{ flexWrap: 'wrap', justifyContent: { xs: 'flex-end', md: 'initial' } }}
+              sx={{
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'flex-end', md: 'initial' }
+              }}
             >
-              <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 220px' }, minWidth: 0 }}>
+              <Box
+                sx={{ flex: { xs: '1 1 100%', sm: '1 1 220px' }, minWidth: 0 }}
+              >
                 <SearchInput onChange={debouncedQueryChange} />
               </Box>
               <IconButton onClick={() => handleReset(true)} color="primary">

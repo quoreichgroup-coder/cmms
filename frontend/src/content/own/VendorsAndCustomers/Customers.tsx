@@ -171,7 +171,7 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
         onDeleteSuccess();
       } else {
         setIsCustomerDetailsOpen(true);
-        onDeleteFailure(new Error('Customer deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (err) {
       setOpenDelete(false);

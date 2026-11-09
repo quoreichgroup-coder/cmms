@@ -209,12 +209,17 @@ export default function PartDetails(props: PartDetailsProps) {
               </Button>
             )}
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
-            <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
+            <IconButton
+              aria-label={t('edit')}
+              onClick={handleOpenUpdate}
+              style={{ marginRight: 10 }}
+            >
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.PARTS_AND_MULTIPARTS) && (
             <IconButton
+              aria-label={t('duplicate')}
               style={{ marginRight: 10 }}
               onClick={() => onCopy(part)}
             >
@@ -223,6 +228,7 @@ export default function PartDetails(props: PartDetailsProps) {
           )}
           {hasEditPermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
             <IconButton
+              aria-label={t('restock')}
               style={{ marginRight: 10 }}
               onClick={() => setOpenRestock(true)}
             >
@@ -230,7 +236,7 @@ export default function PartDetails(props: PartDetailsProps) {
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.PARTS_AND_MULTIPARTS, part) && (
-            <IconButton onClick={handleOpenDelete}>
+            <IconButton aria-label={t('to_delete')} onClick={handleOpenDelete}>
               <DeleteOutlinedIcon style={{ cursor: 'pointer' }} color="error" />
             </IconButton>
           )}

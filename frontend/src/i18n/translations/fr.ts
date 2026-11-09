@@ -4390,7 +4390,13 @@ const frJSON = {
   recurrence_based_on: 'Récurrence basée sur',
   days_of_week: 'Jours de la semaine',
   workers: 'Intervenants',
-  all_companies: 'Toutes les entreprises'
+  all_companies: 'Toutes les entreprises',
+  help_articles_load_error: 'Les articles d’aide publiés n’ont pas pu être chargés. Les guides intégrés sont affichés à la place.',
+  help_back_to_center: 'Retour au centre d’aide',
+  help_article_unavailable: 'Cet article n’existe pas ou vous n’y avez pas accès.',
+  help_confirm_archive_article: 'Archiver l’article « {{title}} » ? Il ne sera plus affiché dans le centre d’aide.',
+  help_confirm_archive_category: 'Archiver la catégorie « {{name}} » ?',
+  running_low: 'stock bas'
 };
 
 export default frJSON;

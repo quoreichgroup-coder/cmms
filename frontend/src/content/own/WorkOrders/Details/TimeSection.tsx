@@ -120,12 +120,14 @@ export default function TimeSection({
                     {canEdit && (
                       <>
                         <IconButton
+                          aria-label={t('edit')}
                           sx={{ ml: 1 }}
                           onClick={() => handleEdit(labor)}
                         >
                           <EditOutlinedIcon fontSize="small" color="primary" />
                         </IconButton>
                         <IconButton
+                          aria-label={t('to_delete')}
                           sx={{ ml: 1 }}
                           onClick={() => handleDelete(labor)}
                         >

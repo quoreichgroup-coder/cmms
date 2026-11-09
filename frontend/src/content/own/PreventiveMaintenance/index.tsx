@@ -356,9 +356,7 @@ function PMs() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(
-          new Error('Preventive maintenance deletion was not confirmed')
-        );
+        onDeleteFailure(new Error());
       }
     } catch (error) {
       setOpenDelete(false);
@@ -1280,7 +1278,11 @@ function PMs() {
           paddingX={4}
         >
           <Stack direction={'row'} alignSelf={'flex-end'} spacing={1} mt={1}>
-            <IconButton onClick={handleOpenMenu} color="primary">
+            <IconButton
+              aria-label={t('actions')}
+              onClick={handleOpenMenu}
+              color="primary"
+            >
               <MoreVertOutlinedIcon />
             </IconButton>
             {hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) && (

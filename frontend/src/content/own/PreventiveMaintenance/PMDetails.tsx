@@ -212,7 +212,10 @@ export default function PMDetails({
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             variant="h2"
-            sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' }, overflowWrap: 'anywhere' }}
+            sx={{
+              fontSize: { xs: '1.75rem', sm: '2.5rem' },
+              overflowWrap: 'anywhere'
+            }}
           >
             {preventiveMaintenance?.name}
           </Typography>
@@ -220,10 +223,16 @@ export default function PMDetails({
             <Typography variant="h5">{t('paused')}</Typography>
           )}
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}
+        >
           {(hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) ||
             hasCreatePermission(PermissionEntity.WORK_ORDERS)) && (
-            <IconButton style={{ marginRight: 10 }} onClick={handleOpenMenu}>
+            <IconButton
+              aria-label={t('actions')}
+              style={{ marginRight: 10 }}
+              onClick={handleOpenMenu}
+            >
               <MoreVertOutlinedIcon />
             </IconButton>
           )}
@@ -231,7 +240,11 @@ export default function PMDetails({
             PermissionEntity.PREVENTIVE_MAINTENANCES,
             preventiveMaintenance
           ) && (
-            <IconButton style={{ marginRight: 10 }} onClick={handleOpenUpdate}>
+            <IconButton
+              aria-label={t('edit')}
+              style={{ marginRight: 10 }}
+              onClick={handleOpenUpdate}
+            >
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
@@ -239,7 +252,7 @@ export default function PMDetails({
             PermissionEntity.PREVENTIVE_MAINTENANCES,
             preventiveMaintenance
           ) && (
-            <IconButton onClick={handleOpenDelete}>
+            <IconButton aria-label={t('to_delete')} onClick={handleOpenDelete}>
               <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}

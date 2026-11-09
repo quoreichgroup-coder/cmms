@@ -43,8 +43,15 @@ const CommentWrapper = styled(Box)<{ highlighted?: boolean }>(
     transition: all 0.2s ease-in-out;
     ${highlighted ? `box-shadow: 0 0 8px ${theme.palette.primary.main}40;` : ''}
 
-    &:hover .comment-actions {
+    &:hover .comment-actions,
+    &:focus-within .comment-actions {
       opacity: 1;
+    }
+
+    @media (hover: none) {
+      .comment-actions {
+        opacity: 1;
+      }
     }
   `
 );
@@ -235,13 +242,18 @@ export default function CommentItem(props: CommentItemProps) {
                 {!isSystem && isOwner && !isEditing && (
                   <Box className="comment-actions" sx={{ opacity: 0 }}>
                     <IconButton
+                      aria-label={t('edit')}
                       size="small"
                       onClick={() => setIsEditing(true)}
                       sx={{ mr: 0.5 }}
                     >
                       <EditOutlinedIcon fontSize="small" color="primary" />
                     </IconButton>
-                    <IconButton size="small" onClick={handleDelete}>
+                    <IconButton
+                      aria-label={t('to_delete')}
+                      size="small"
+                      onClick={handleDelete}
+                    >
                       <DeleteOutlinedIcon fontSize="small" color="error" />
                     </IconButton>
                   </Box>

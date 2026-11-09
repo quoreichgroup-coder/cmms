@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {
   alpha,
+  Alert,
   Box,
   Breadcrumbs,
   Button,
@@ -24,6 +25,7 @@ import {
   IconButton,
   InputLabel,
   InputAdornment,
+  LinearProgress,
   InputBase,
   Link,
   List,
@@ -139,6 +141,12 @@ export default function HelpCenter() {
   const [databaseArticles, setDatabaseArticles] = useState<
     DocumentationArticle[] | null
   >(null);
+  // Distinguish loading from failure: on error the bundled guides stay available,
+  // but the user is told that published articles could not be loaded.
+  const [articlesStatus, setArticlesStatus] = useState<
+    'loading' | 'ready' | 'error'
+  >('loading');
+  const [articlesReload, setArticlesReload] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -148,18 +156,23 @@ export default function HelpCenter() {
 
   useEffect(() => {
     let mounted = true;
+    setArticlesStatus('loading');
     api
       .get<DocumentationArticle[]>(`documentation/articles?locale=${locale}`)
       .then((articles) => {
-        if (mounted) setDatabaseArticles(articles);
+        if (!mounted) return;
+        setDatabaseArticles(articles);
+        setArticlesStatus('ready');
       })
       .catch(() => {
-        if (mounted) setDatabaseArticles(null);
+        if (!mounted) return;
+        setDatabaseArticles(null);
+        setArticlesStatus('error');
       });
     return () => {
       mounted = false;
     };
-  }, [locale]);
+  }, [locale, articlesReload]);
 
   const localGuides = useMemo<Guide[]>(
     () => [
@@ -885,7 +898,48 @@ export default function HelpCenter() {
         />
       </Helmet>
 
-      {!activeGuide ? (
+      {articlesStatus === 'loading' && (
+        <LinearProgress
+          aria-label={t('loading')}
+          sx={{ mb: 2, maxWidth: 1120, mx: 'auto' }}
+        />
+      )}
+      {articlesStatus === 'error' && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, maxWidth: 1120, mx: 'auto' }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setArticlesReload((value) => value + 1)}
+            >
+              {t('retry')}
+            </Button>
+          }
+        >
+          {t('help_articles_load_error')}
+        </Alert>
+      )}
+      {!activeGuide && slug && articlesStatus !== 'loading' ? (
+        <Box sx={{ maxWidth: 760, mx: 'auto', pt: { xs: 2, md: 5 } }}>
+          <Alert
+            severity="info"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                component={RouterLink}
+                to={helpRoot}
+              >
+                {t('help_back_to_center')}
+              </Button>
+            }
+          >
+            {t('help_article_unavailable')}
+          </Alert>
+        </Box>
+      ) : !activeGuide && slug ? null : !activeGuide ? (
         <Box sx={{ maxWidth: 1120, mx: 'auto' }}>
           <Stack spacing={5}>
             <Box

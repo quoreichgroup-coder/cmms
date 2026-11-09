@@ -112,6 +112,7 @@ export default function CostSection({
                       {canEdit && (
                         <>
                           <IconButton
+                            aria-label={t('edit')}
                             onClick={() => handleEdit(additionalCost)}
                           >
                             <EditOutlinedIcon
@@ -120,6 +121,7 @@ export default function CostSection({
                             />
                           </IconButton>
                           <IconButton
+                            aria-label={t('to_delete')}
                             onClick={() => handleDelete(additionalCost)}
                           >
                             <DeleteOutlinedIcon

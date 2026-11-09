@@ -28,6 +28,7 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import ConfirmDialog from '../../components/ConfirmDialog';
 import api from '../../../../utils/api';
 import { isUemoaCountry } from '../../../../utils/regionalCurrency';
+import { qpmBrandTokens } from '../../../../theme/tokens';
 
 interface CompanyLegalProfile {
   registrationCountry?: string | null;
@@ -338,14 +339,14 @@ function GeneralSettings() {
                         type={'text'}
                         defaultValue={generalPreferences.color || ''}
                         name="color"
-                        placeholder="#1975ff"
+                        placeholder={qpmBrandTokens.primary}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <input
                                 type="color"
                                 defaultValue={
-                                  generalPreferences.color || '#5569ff'
+                                  generalPreferences.color || qpmBrandTokens.primary
                                 }
                                 onChange={debounce(
                                   (e) =>

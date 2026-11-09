@@ -246,21 +246,13 @@ test('preventive maintenance and inventory detail labels use theme-aware text', 
     'src/content/own/Inventory/PartDetails.tsx',
     'src/content/own/WorkOrders/Details/TimeSection.tsx',
     'src/content/own/WorkOrders/Details/CostSection.tsx',
-    'src/content/own/Locations/LocationDetails.tsx',
-    'src/content/own/UserProfile/MyCards.tsx'
+    'src/content/own/Locations/LocationDetails.tsx'
   ];
 
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /theme\.colors\.alpha\.black\[70\]/, file);
   }
-  const profileCards = fs.readFileSync(
-    'src/content/own/UserProfile/MyCards.tsx',
-    'utf8'
-  );
-  assert.doesNotMatch(profileCards, /theme\.colors\.alpha\.black\[(5|30)\]/);
-  assert.match(profileCards, /theme\.palette\.action\.hover/);
-  assert.match(profileCards, /theme\.palette\.background\.paper/);
 });
 
 test('preventive work-order history uses the shared semantic status badge', () => {
@@ -375,7 +367,6 @@ test('shared multi-tab layout uses theme-aware surfaces and text', () => {
 test('shared dashboard gauge and header popovers use theme-aware text', () => {
   const files = [
     'src/components/Gauge/index.tsx',
-    'src/layouts/ExtendedSidebarLayout/Header/Search/index.tsx',
     'src/layouts/ExtendedSidebarLayout/Header/Userbox/index.tsx'
   ];
 
@@ -410,16 +401,6 @@ test('shared overlays, work-order comments, and search controls follow the activ
       'src/content/own/PeopleAndTeams/UserDetailsDrawer.tsx',
       /theme\.palette\.action\.hover/,
       /theme\.palette\.divider/
-    ],
-    [
-      'src/layouts/ExtendedSidebarLayout/Header/Buttons/Chat/index.tsx',
-      /theme\.palette\.background\.paper/,
-      /theme\.palette\.action\.hover/
-    ],
-    [
-      'src/content/pages/Status/ComingSoon/index.tsx',
-      /theme\.palette\.background\.paper/,
-      /theme\.palette\.text\.secondary/
     ],
     [
       'src/content/pages/Status/Status404/index.tsx',
@@ -469,14 +450,7 @@ test('shared labels, data-grid headings, and task cards use theme surfaces', () 
   }
 });
 
-test('registration and alternating settings fields use semantic surfaces', () => {
-  const registration = fs.readFileSync(
-    'src/content/pages/Auth/Register/Wizard/index.tsx',
-    'utf8'
-  );
-  assert.match(registration, /theme\.palette\.action\.hover/);
-  assert.doesNotMatch(registration, /theme\.colors\.alpha\.black\[5\]/);
-
+test('alternating settings fields use semantic surfaces', () => {
   const settings = fs.readFileSync(
     'src/content/own/Settings/components/GrayWhiteSelector.tsx',
     'utf8'

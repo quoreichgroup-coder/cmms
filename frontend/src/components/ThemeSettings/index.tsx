@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import UnfoldMoreOutlinedIcon from '@mui/icons-material/UnfoldMoreOutlined';
 import { NavLink } from 'react-router-dom';
 import { readBrowserPreference } from 'src/utils/safeBrowserStorage';
+import { qpmBrandTokens } from 'src/theme/tokens';
 
 const ThemeSettingsButton = styled(Box)(
   ({ theme }) => `
@@ -123,7 +124,7 @@ const ColorSchemeWrapper = styled(Box)(
 
     &.pureLight {
         .primary {
-            background: #5569ff;
+            background: ${qpmBrandTokens.primary};
         }
     
         .secondary {

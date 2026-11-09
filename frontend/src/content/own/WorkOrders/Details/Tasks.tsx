@@ -160,7 +160,7 @@ export default function Tasks({
     setDeletingImage(true);
     try {
       const deleted = await dispatch(deleteFile(imageToDelete));
-      if (!deleted) throw new Error('Image deletion was not confirmed');
+      if (!deleted) throw new Error();
       setTasks((current) =>
         current.map((task) => ({
           ...task,

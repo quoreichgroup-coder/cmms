@@ -114,7 +114,7 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
     try {
       const deleted = await dispatch(deleteCustomField(id));
       if (!deleted) {
-        onDeleteFailure(new Error('Custom field deletion was rejected'));
+        onDeleteFailure(new Error());
         return;
       }
       onDeleteSuccess();

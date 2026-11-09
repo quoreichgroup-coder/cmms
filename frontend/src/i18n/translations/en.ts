@@ -4071,7 +4071,13 @@ const locale = {
   something_went_wrong: 'Something went wrong',
   no_site: 'No site',
   purchase_requisition: 'Purchase requisition',
-  conflict_error: 'This record was changed by someone else. Reload it and try again.'
+  conflict_error: 'This record was changed by someone else. Reload it and try again.',
+  help_articles_load_error: 'Published help articles could not be loaded. The built-in guides are shown instead.',
+  help_back_to_center: 'Back to the Help Center',
+  help_article_unavailable: 'This article does not exist or you do not have access to it.',
+  help_confirm_archive_article: 'Archive the article “{{title}}”? It will no longer be shown in the Help Center.',
+  help_confirm_archive_category: 'Archive the category “{{name}}”?',
+  running_low: 'running low'
 };
 
 export default locale;

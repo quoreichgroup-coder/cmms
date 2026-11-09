@@ -46,6 +46,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import { useTranslation } from 'react-i18next';
 import { TitleContext } from '../../../contexts/TitleContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../../../models/owns/role';
 import {
@@ -114,7 +115,9 @@ export default function HelpCenterAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [loadErrorMessage, setLoadErrorMessage] = useState('help_admin_load_error');
+  const [loadErrorMessage, setLoadErrorMessage] = useState(
+    'help_admin_load_error'
+  );
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [categoryDraft, setCategoryDraft] =
     useState<DocumentationCategoryRequest>(emptyCategory);
@@ -127,6 +130,13 @@ export default function HelpCenterAdmin() {
   const [editingArticle, setEditingArticle] =
     useState<DocumentationArticle | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [articleBaseline, setArticleBaseline] = useState<string | null>(null);
+  const [openDiscardDialog, setOpenDiscardDialog] = useState(false);
+  const [pendingArchive, setPendingArchive] = useState<
+    | { kind: 'article'; article: DocumentationArticle }
+    | { kind: 'category'; category: DocumentationCategory }
+    | null
+  >(null);
   const [articleFilter, setArticleFilter] = useState('ALL');
   const [imageAltDialogOpen, setImageAltDialogOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<{
@@ -343,6 +353,19 @@ export default function HelpCenterAdmin() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Snapshot the draft when the editor opens so closing it can warn about unsaved edits.
+  useEffect(() => {
+    setArticleBaseline(editorOpen ? JSON.stringify(articleDraft) : null);
+  }, [editorOpen]);
+  const isArticleDirty =
+    editorOpen &&
+    articleBaseline !== null &&
+    JSON.stringify(articleDraft) !== articleBaseline;
+  const requestCloseEditor = () => {
+    if (isArticleDirty) setOpenDiscardDialog(true);
+    else setEditorOpen(false);
   };
 
   const archiveArticle = async (article: DocumentationArticle) => {
@@ -630,7 +653,12 @@ export default function HelpCenterAdmin() {
                               size="small"
                               aria-label={t('archive')}
                               disabled={saving || category.articleCount > 0}
-                              onClick={() => void archiveCategory(category)}
+                              onClick={() =>
+                                setPendingArchive({
+                                  kind: 'category',
+                                  category
+                                })
+                              }
                             >
                               <ArchiveOutlinedIcon fontSize="small" />
                             </IconButton>
@@ -771,7 +799,9 @@ export default function HelpCenterAdmin() {
                               size="small"
                               aria-label={t('archive')}
                               disabled={saving}
-                              onClick={() => void archiveArticle(article)}
+                              onClick={() =>
+                                setPendingArchive({ kind: 'article', article })
+                              }
                             >
                               <ArchiveOutlinedIcon fontSize="small" />
                             </IconButton>
@@ -889,7 +919,7 @@ export default function HelpCenterAdmin() {
 
       <Dialog
         open={editorOpen}
-        onClose={() => setEditorOpen(false)}
+        onClose={requestCloseEditor}
         fullScreen={fullScreen}
         fullWidth
         maxWidth="lg"
@@ -898,7 +928,7 @@ export default function HelpCenterAdmin() {
           {editingArticle ? t('help_edit_article') : t('help_new_article')}
           <IconButton
             aria-label={t('close')}
-            onClick={() => setEditorOpen(false)}
+            onClick={requestCloseEditor}
             sx={{ position: 'absolute', right: 12, top: 12 }}
           >
             <CloseOutlinedIcon />
@@ -1090,7 +1120,7 @@ export default function HelpCenterAdmin() {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setEditorOpen(false)}>{t('cancel')}</Button>
+          <Button onClick={requestCloseEditor}>{t('cancel')}</Button>
           <Button
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
@@ -1180,6 +1210,40 @@ export default function HelpCenterAdmin() {
           <Button onClick={() => setPreviewOpen(false)}>{t('close')}</Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog
+        open={openDiscardDialog}
+        onCancel={() => setOpenDiscardDialog(false)}
+        onConfirm={() => {
+          setOpenDiscardDialog(false);
+          setEditorOpen(false);
+        }}
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
+      <ConfirmDialog
+        open={pendingArchive !== null}
+        onCancel={() => setPendingArchive(null)}
+        onConfirm={() => {
+          const target = pendingArchive;
+          setPendingArchive(null);
+          if (target?.kind === 'article') void archiveArticle(target.article);
+          else if (target?.kind === 'category')
+            void archiveCategory(target.category);
+        }}
+        confirmText={t('archive')}
+        question={
+          pendingArchive?.kind === 'category'
+            ? t('help_confirm_archive_category', {
+                name: pendingArchive.category.title
+              })
+            : t('help_confirm_archive_article', {
+                title:
+                  pendingArchive?.kind === 'article'
+                    ? pendingArchive.article.title
+                    : ''
+              })
+        }
+      />
     </Stack>
   );
 }

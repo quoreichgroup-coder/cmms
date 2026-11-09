@@ -249,7 +249,7 @@ function Requests() {
         handleCloseDetails();
         onDeleteSuccess();
       } else {
-        onDeleteFailure(new Error('Request deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (error) {
       onDeleteFailure(error);

@@ -71,9 +71,7 @@ const Sets = ({ setAction }: PropsType) => {
     try {
       const deleted = await dispatch(deleteMultiParts(id));
       if (!deleted) {
-        onDeleteFailure(
-          new Error('Set deletion was not confirmed by the server')
-        );
+        onDeleteFailure(new Error());
         return;
       }
       handleCloseDetails();

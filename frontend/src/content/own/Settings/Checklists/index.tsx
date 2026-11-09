@@ -93,7 +93,7 @@ function Checklists() {
       const deleted = await dispatch(deleteChecklist(id));
       setOpenDelete(false);
       if (deleted) onDeleteSuccess();
-      else onDeleteFailure(new Error('Checklist deletion was not confirmed'));
+      else onDeleteFailure(new Error());
     } catch (err) {
       setOpenDelete(false);
       onDeleteFailure(err);

@@ -258,7 +258,7 @@ function Meters() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Meter deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (err) {
       setOpenDelete(false);

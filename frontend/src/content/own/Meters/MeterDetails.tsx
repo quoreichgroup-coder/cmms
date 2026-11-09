@@ -215,12 +215,17 @@ export default function MeterDetails(props: MeterDetailsProps) {
         </Box>
         <Box>
           {hasEditPermission(PermissionEntity.METERS, meter) && (
-            <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
+            <IconButton
+              aria-label={t('edit')}
+              onClick={handleOpenUpdate}
+              style={{ marginRight: 10 }}
+            >
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.METERS) && (
             <IconButton
+              aria-label={t('duplicate')}
               style={{ marginRight: 10 }}
               onClick={() => onCopy(meter)}
             >
@@ -228,7 +233,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.METERS, meter) && (
-            <IconButton onClick={handleOpenDelete}>
+            <IconButton aria-label={t('to_delete')} onClick={handleOpenDelete}>
               <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
@@ -379,6 +384,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                         hasEditPermission(PermissionEntity.METERS, meter) ? (
                           <Stack spacing={1} direction="row">
                             <IconButton
+                              aria-label={t('edit')}
                               onClick={() => {
                                 setCurrentWorkOrderMeterTrigger(
                                   currentMeterTriggers.find(
@@ -391,6 +397,7 @@ export default function MeterDetails(props: MeterDetailsProps) {
                               <EditOutlinedIcon />
                             </IconButton>
                             <IconButton
+                              aria-label={t('to_delete')}
                               onClick={() => setTriggerToDelete(trigger)}
                             >
                               <DeleteOutlinedIcon color="error" />

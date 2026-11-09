@@ -324,7 +324,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
-            <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
+            <IconButton aria-label={t('edit')} onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
@@ -332,7 +332,7 @@ export default function PurchaseOrderDetails(props: PurchaseOrderDetailsProps) {
             PermissionEntity.PURCHASE_ORDERS,
             purchaseOrder
           ) && (
-            <IconButton onClick={handleDelete}>
+            <IconButton aria-label={t('to_delete')} onClick={handleDelete}>
               <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}

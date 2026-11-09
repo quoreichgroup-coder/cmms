@@ -294,7 +294,7 @@ function PurchaseOrders() {
         onDeleteSuccess();
       } else {
         setOpenDrawer(true);
-        onDeleteFailure(new Error('Purchase order deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (error) {
       setOpenDelete(false);

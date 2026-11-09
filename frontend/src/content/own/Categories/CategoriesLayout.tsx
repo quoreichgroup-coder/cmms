@@ -99,7 +99,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
     try {
       const deleted = await dispatch(deleteCategory(id, basePath));
       if (!deleted) {
-        onDeleteFailure(new Error('Category deletion was rejected'));
+        onDeleteFailure(new Error());
         return;
       }
       onDeleteSuccess();

@@ -98,7 +98,7 @@ const ShowAsset = ({}: PropsType) => {
     try {
       const deleted = await dispatch(deleteAsset(asset.id));
       if (deleted) onDeleteSuccess();
-      else onDeleteFailure(new Error('Asset deletion was not confirmed'));
+      else onDeleteFailure(new Error());
     } catch (error) {
       onDeleteFailure(error);
     }
@@ -193,7 +193,12 @@ const ShowAsset = ({}: PropsType) => {
   };
   const onDeleteFailure = (err) => {
     const message = (err as any)?.responseBody?.message;
-    showSnackBar(message === 'asset_used_by_task_list' ? t(message) : t('asset_remove_failure'), 'error');
+    showSnackBar(
+      message === 'asset_used_by_task_list'
+        ? t(message)
+        : t('asset_remove_failure'),
+      'error'
+    );
   };
   const defaultFields: Array<IField> = [
     {

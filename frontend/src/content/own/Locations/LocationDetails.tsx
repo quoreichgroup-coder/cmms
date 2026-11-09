@@ -304,12 +304,12 @@ export default function LocationDetails(props: LocationDetailsProps) {
         </Box>
         <Box display="flex" justifyContent={{ xs: 'flex-end', sm: 'initial' }}>
           {hasEditPermission(PermissionEntity.LOCATIONS, location) && (
-            <IconButton onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
+            <IconButton aria-label={t('edit')} onClick={handleOpenUpdate} style={{ marginRight: 10 }}>
               <EditOutlinedIcon color="primary" />
             </IconButton>
           )}
           {hasCreatePermission(PermissionEntity.LOCATIONS) && (
-            <IconButton
+            <IconButton aria-label={t('duplicate')}
               style={{ marginRight: 10 }}
               onClick={() => onCopy(location)}
             >
@@ -317,7 +317,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
             </IconButton>
           )}
           {hasDeletePermission(PermissionEntity.LOCATIONS, location) && (
-            <IconButton onClick={handleOpenDelete}>
+            <IconButton aria-label={t('to_delete')} onClick={handleOpenDelete}>
               <DeleteOutlinedIcon color="error" />
             </IconButton>
           )}
@@ -494,7 +494,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
                   <ListItemButton key={floorPlan.id} divider>
                     <ListItem
                       secondaryAction={
-                        <IconButton
+                        <IconButton aria-label={t('to_delete')}
                           sx={{ ml: 1 }}
                           onClick={() => {
                             if (

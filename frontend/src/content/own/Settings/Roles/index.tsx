@@ -187,7 +187,7 @@ function Roles() {
     try {
       const deleted = await dispatch(deleteRole(id));
       if (!deleted) {
-        onDeleteFailure(new Error('Role deletion was rejected'));
+        onDeleteFailure(new Error());
         return;
       }
       onDeleteSuccess();

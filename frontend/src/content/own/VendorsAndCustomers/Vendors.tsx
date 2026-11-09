@@ -144,7 +144,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
         onDeleteSuccess();
       } else {
         setIsVendorDetailsOpen(true);
-        onDeleteFailure(new Error('Vendor deletion was not confirmed'));
+        onDeleteFailure(new Error());
       }
     } catch (err) {
       setOpenDelete(false);
