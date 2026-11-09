@@ -2385,6 +2385,7 @@ const frJSON = {
   pm_schedule_yearly: 'Tous les ans',
   pm_schedule_yearly_plural: 'Tous les {{count}} ans',
   'The update frequency has not been respected': 'La fréquence de relevé de ce compteur n’est pas encore atteinte.',
-  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.'
+  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.',
+  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.'
 };
 export default frJSON;

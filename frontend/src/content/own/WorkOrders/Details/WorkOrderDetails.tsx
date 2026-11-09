@@ -3,6 +3,10 @@ import {
   Box,
   Button,
   ButtonBase,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   CircularProgress,
   debounce,
   Divider,
@@ -51,6 +55,7 @@ import PriorityWrapper from '../../components/PriorityWrapper';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import {
   changeWorkOrderStatus,
+  reopenWorkOrder,
   editWorkOrder,
   removeFileFromWorkOrder
 } from '../../../../slices/workOrder';
@@ -71,7 +76,7 @@ import {
 } from '../../../../utils/formatters';
 import { getAdditionalCosts } from '../../../../slices/additionalCost';
 import { getTasksByWorkOrder } from '../../../../slices/task';
-import { Task } from '../../../../models/owns/tasks';
+import { isTaskComplete, Task } from '../../../../models/owns/tasks';
 import LinkModal from './LinkModal';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { deleteRelation, getRelations } from '../../../../slices/relation';
@@ -168,6 +173,38 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
   const { user, hasEditPermission, hasDeletePermission, hasCreatePermission } =
     useAuth();
   const navigate = useNavigate();
+  // The API refuses changes on completed work orders (they must be reopened first); mirror that here so
+  // edit, status, time and cost actions are not offered only to fail. Reports stay available.
+  const canEditWorkOrder =
+    hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) &&
+    workOrder?.status !== 'COMPLETE';
+  const canReopenWorkOrder =
+    workOrder?.status === 'COMPLETE' &&
+    user?.role?.roleType === 'ROLE_CLIENT' &&
+    !(user?.superAccountRelations?.length > 0) &&
+    Boolean(
+      user?.role?.editOtherPermissions?.includes(
+        PermissionEntity.REOPEN_WORK_ORDERS
+      )
+    );
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
+  const [reopening, setReopening] = useState(false);
+  const submitReopen = async () => {
+    const reason = reopenReason.trim();
+    if (reopening || !reason) return;
+    setReopening(true);
+    try {
+      await dispatch(reopenWorkOrder(workOrder.id, reason));
+      setReopenOpen(false);
+      setReopenReason('');
+      showSnackBar(t('work_order_reopen_success'), 'success');
+    } catch (error) {
+      showSnackBar(t(getErrorMessage(error, 'wo_status_change_failure')), 'error');
+    } finally {
+      setReopening(false);
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const commentIdParam = searchParams.get('commentId');
   const [openAddFileModal, setOpenAddFileModal] = useState<boolean>(false);
@@ -362,15 +399,16 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
     const fieldsToTest = [
       {
         name: 'completeFiles',
+        // Missing counts (still loading) must not be read as "no files": treat them as 0 only once loaded.
         condition:
-          workOrder.files.length +
-            commentsCountByWorkOrder[workOrder.id]?.withFilesCount ===
+          (workOrder.files?.length ?? 0) +
+            (commentsCountByWorkOrder[workOrder.id]?.withFilesCount ?? 0) ===
           0,
         message: 'required_files_on_completion'
       },
       {
         name: 'completeTasks',
-        condition: tasks.some((task) => !task.value),
+        condition: tasks.some((task) => !isTaskComplete(task)),
         message: 'required_tasks_on_completion'
       },
       {
@@ -394,7 +432,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         workOrderConfiguration.workOrderFieldConfigurations.find(
           (woFC) => woFC.fieldName === field.name
         );
-      if (fieldConfig.fieldType === 'REQUIRED' && field.condition) {
+      if (fieldConfig?.fieldType === 'REQUIRED' && field.condition) {
         showSnackBar(t(field.message), 'error');
         error = true;
         return false;
@@ -698,7 +736,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
               <MoreVertOutlinedIcon />
             </IconButton>
           )}
-          {hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
+          {canEditWorkOrder && (
             <IconButton
               aria-label={t('edit')}
               onClick={() => onEdit(workOrder.id)}
@@ -785,12 +823,13 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                             let error;
                             if (workOrder.requiredSignature) {
                               if (!hasFeature(PlanFeature.SIGNATURE)) {
-                                error =
-                                  'Signature on Work Order completion is not available in your current subscription plan.';
+                                error = 'signature_required_feature_unavailable';
                               }
                             }
                             if (error) {
+                              // Completion would be refused by the API: stop here instead of sending it.
                               showSnackBar(t(error), 'error');
+                              return;
                             } else {
                               // Keep completion explicit even when feedback and signature are optional.
                               setOpenCompleteModal(true);
@@ -816,10 +855,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                           .finally(() => setChangingStatus(false));
                       }}
                       disabled={
-                        !hasEditPermission(
-                          PermissionEntity.WORK_ORDERS,
-                          workOrder
-                        )
+                        !canEditWorkOrder
                       }
                       value={workOrder.status}
                       sx={{
@@ -837,6 +873,51 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                       ))}
                     </Select>
                   )}
+                  {canReopenWorkOrder && (
+                    <Button
+                      sx={{ mt: 1 }}
+                      variant="outlined"
+                      onClick={() => setReopenOpen(true)}
+                    >
+                      {t('work_order_reopen_action')}
+                    </Button>
+                  )}
+                  <Dialog
+                    open={reopenOpen}
+                    onClose={() => !reopening && setReopenOpen(false)}
+                    fullWidth
+                    maxWidth="sm"
+                  >
+                    <DialogTitle>{t('work_order_reopen_title')}</DialogTitle>
+                    <DialogContent dividers>
+                      <Typography sx={{ mb: 2 }}>
+                        {t('work_order_reopen_description')}
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        required
+                        multiline
+                        minRows={2}
+                        label={t('work_order_reopen_reason')}
+                        value={reopenReason}
+                        inputProps={{ maxLength: 1000 }}
+                        onChange={(event) => setReopenReason(event.target.value)}
+                      />
+                    </DialogContent>
+                    <DialogActions>
+                      <Button disabled={reopening} onClick={() => setReopenOpen(false)}>
+                        {t('cancel')}
+                      </Button>
+                      <Button
+                        variant="contained"
+                        disabled={reopening || !reopenReason.trim()}
+                        onClick={() => void submitReopen()}
+                        startIcon={reopening ? <CircularProgress size="1rem" /> : undefined}
+                      >
+                        {t('work_order_reopen_action')}
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
                 </Box>
                 <Box>
                   <Button
@@ -849,10 +930,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                     }
                     disabled={
                       controllingTime ||
-                      !hasEditPermission(
-                        PermissionEntity.WORK_ORDERS,
-                        workOrder
-                      )
+                      !canEditWorkOrder
                     }
                     onClick={() => {
                       setControllingTime(true);
@@ -1242,7 +1320,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   workOrderId={workOrder?.id}
                   handleZoomImage={setImageState}
                   disabled={
-                    !hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder)
+                    !canEditWorkOrder
                   }
                 />
               </Box>
@@ -1277,17 +1355,11 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   <PartQuantitiesList
                     partQuantities={partQuantities}
                     disabled={
-                      !hasEditPermission(
-                        PermissionEntity.WORK_ORDERS,
-                        workOrder
-                      )
+                      !canEditWorkOrder
                     }
                     onChange={debouncedPartQuantityChange}
                   />
-                  {hasEditPermission(
-                    PermissionEntity.WORK_ORDERS,
-                    workOrder
-                  ) && (
+                  {canEditWorkOrder && (
                     <SelectParts
                       selected={partQuantities.map(
                         (partQuantity) => partQuantity.part.id
@@ -1342,10 +1414,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                                       justifyContent: 'flex-end'
                                     }}
                                   >
-                                    {hasEditPermission(
-                                      PermissionEntity.WORK_ORDERS,
-                                      workOrder
-                                    ) && (
+                                    {canEditWorkOrder && (
                                       <IconButton
                                         sx={{ ml: 1 }}
                                         aria-label={t('delete')}
@@ -1392,10 +1461,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                         )
                     )}
                   </List>
-                  {hasEditPermission(
-                    PermissionEntity.WORK_ORDERS,
-                    workOrder
-                  ) && (
+                  {canEditWorkOrder && (
                     <Button
                       onClick={() => setOpenLinkModal(true)}
                       variant="outlined"
@@ -1416,7 +1482,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                 <FilesList
                   confirmMessage={t('confirm_delete_file_wo')}
                   removeDisabled={
-                    !hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder)
+                    !canEditWorkOrder
                   }
                   files={workOrder.files}
                   onRemove={(id: number) => {
@@ -1428,7 +1494,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                   {t('no_file_linked_to_wo')}
                 </Typography>
               )}
-              {hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) && (
+              {canEditWorkOrder && (
                 <Button
                   onClick={() => setOpenAddFileModal(true)}
                   variant="outlined"
@@ -1443,7 +1509,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
         {currentTab == 'comments' && (
           <CommentsSection
             disabled={
-              !hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder)
+              !canEditWorkOrder
             }
             workOrderId={workOrder.id}
             commentId={commentId}

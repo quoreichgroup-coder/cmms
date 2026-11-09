@@ -83,7 +83,9 @@ export default function TimeSection({
     }
   };
 
-  const canEdit = hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder);
+  const canEdit =
+    hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) &&
+    workOrder?.status !== 'COMPLETE';
 
   return (
     <Box>

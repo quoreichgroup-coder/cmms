@@ -31,6 +31,20 @@ export interface Task {
   taskBase: TaskBase;
   images: File[];
 }
+/**
+ * Same rule as the API (WorkOrderService.isTaskComplete) and mobile: a sub-task is done only when
+ * COMPLETE, a numeric/meter task accepts 0, other task types need any non-empty value.
+ */
+export const isTaskComplete = (task: Task): boolean => {
+  if (task.value === undefined || task.value === null) return false;
+  const value = String(task.value).trim();
+  if (!value || !task.taskBase?.taskType) return false;
+  if (task.taskBase.taskType === 'SUBTASK') return value === 'COMPLETE';
+  if (task.taskBase.taskType === 'NUMBER' || task.taskBase.taskType === 'METER')
+    return Number.isFinite(Number(value));
+  return true;
+};
+
 export const tasks: Task[] = [
   {
     id: 74,

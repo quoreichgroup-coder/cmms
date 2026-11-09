@@ -546,6 +546,7 @@ class RequestServiceTest {
         void patch_existingAndEditable_patches() {
             Request saved = buildRequest(1L);
             saved.setWorkOrder(null);
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
             when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
             when(requestRepository.existsById(1L)).thenReturn(true);
             when(requestMapper.updateRequest(any(), any())).thenReturn(saved);
@@ -562,7 +563,7 @@ class RequestServiceTest {
         void patch_approvedRequest_throwsNotAcceptable() {
             Request saved = buildRequest(1L);
             saved.setWorkOrder(new WorkOrder());
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.patch(1L, new RequestPatchDTO(), user));
@@ -575,7 +576,7 @@ class RequestServiceTest {
             role.getEditOtherPermissions().clear();
             Request saved = buildRequest(1L);
             saved.setCreatedBy(999L);
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.patch(1L, new RequestPatchDTO(), user));
@@ -585,7 +586,7 @@ class RequestServiceTest {
 
         @Test
         void patch_notFound_throwsNotFound() {
-            when(requestRepository.findById(1L)).thenReturn(Optional.empty());
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.empty());
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.patch(1L, new RequestPatchDTO(), user));
@@ -613,12 +614,43 @@ class RequestServiceTest {
             role.getViewPermissions().add(PermissionEntity.SETTINGS);
             Request saved = buildRequest(1L);
             saved.setWorkOrder(new WorkOrder());
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.approve(1L, new RequestApproveDTO(), user));
 
             assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getHttpStatus());
+        }
+    }
+
+    @Nested
+    class ApproveGuards {
+
+        @Test
+        void approve_cancelledRequest_isRefused() {
+            role.getViewPermissions().add(PermissionEntity.SETTINGS);
+            Request saved = buildRequest(1L);
+            saved.setWorkOrder(null);
+            saved.setCancelled(true);
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> requestService.approve(1L, new RequestApproveDTO(), user));
+
+            assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
+            verify(requestRepository, never()).saveAndFlush(any());
+        }
+
+        @Test
+        void approve_requestOfAnotherCompany_isNotFound() {
+            role.getViewPermissions().add(PermissionEntity.SETTINGS);
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> requestService.approve(1L, new RequestApproveDTO(), user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+            verify(requestRepository, never()).findById(anyLong());
         }
     }
 
@@ -630,7 +662,7 @@ class RequestServiceTest {
             role.getViewPermissions().add(PermissionEntity.SETTINGS);
             Request saved = buildRequest(1L);
             saved.setWorkOrder(null);
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
             when(requestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(workflowService.findByMainConditionAndCompany(any(), anyLong())).thenReturn(Collections.emptyList());
             when(messageSource.getMessage(anyString(), any(), any())).thenReturn("t");
@@ -649,7 +681,7 @@ class RequestServiceTest {
             role.getViewPermissions().add(PermissionEntity.SETTINGS);
             Request saved = buildRequest(1L);
             saved.setWorkOrder(new WorkOrder());
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.cancel(1L, "reason", user));
@@ -661,7 +693,7 @@ class RequestServiceTest {
         void cancel_withoutReason_throwsNotAcceptable() {
             role.getViewPermissions().add(PermissionEntity.SETTINGS);
             Request saved = buildRequest(1L);
-            when(requestRepository.findById(1L)).thenReturn(Optional.of(saved));
+            when(requestRepository.findByIdAndCompany_IdForUpdate(1L, 1L)).thenReturn(Optional.of(saved));
 
             CustomException ex = assertThrows(CustomException.class,
                     () -> requestService.cancel(1L, "  ", user));

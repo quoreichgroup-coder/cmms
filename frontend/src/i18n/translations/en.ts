@@ -4096,7 +4096,14 @@ const locale = {
   pm_end_before_start: 'The end date must be after the start date.',
   reading_linked_to_preventive_maintenance: 'This reading triggered a preventive maintenance work order and can no longer be changed.',
   'The update frequency has not been respected': 'The reading frequency of this meter has not been reached yet.',
-  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.'
+  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.',
+  signature_required_feature_unavailable: 'This work order requires a signature, but signatures are not available in your current plan.',
+  work_order_reopen_title: 'Reopen completed work order',
+  work_order_reopen_description: 'Reopening returns this work order to Open. Enter a reason; the completion record remains in its history.',
+  work_order_reopen_reason: 'Reason for reopening',
+  work_order_reopen_action: 'Reopen for correction',
+  work_order_reopen_success: 'The work order was reopened for correction.',
+  request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.'
 };
 
 export default locale;

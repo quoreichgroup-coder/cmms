@@ -74,7 +74,9 @@ export default function CostSection({
     }
   };
 
-  const canEdit = hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder);
+  const canEdit =
+    hasEditPermission(PermissionEntity.WORK_ORDERS, workOrder) &&
+    workOrder?.status !== 'COMPLETE';
 
   return (
     <Box>

@@ -423,6 +423,17 @@ export const changeWorkOrderStatus =
     else if (!wasUrgent && isNowUrgent)
       dispatch(slice.actions.incrementUrgentCount());
   };
+/** Returns a completed work order to Open with a mandatory reason (kept in its lifecycle history). */
+export const reopenWorkOrder =
+  (id: number, reason: string): AppThunk =>
+  async (dispatch) => {
+    const workOrderResponse = await api.post<WorkOrder>(
+      `${basePath}/${id}/reopen`,
+      { reason }
+    );
+    dispatch(slice.actions.editWorkOrder({ workOrder: workOrderResponse }));
+    return workOrderResponse;
+  };
 export const deleteWorkOrder =
   (id: number): AppThunk =>
   async (dispatch, getState) => {

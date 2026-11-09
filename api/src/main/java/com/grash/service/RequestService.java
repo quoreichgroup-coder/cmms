@@ -417,7 +417,7 @@ public class RequestService {
 
     @Transactional
     public Request patch(Long id, RequestPatchDTO request, User user) {
-        Optional<Request> optionalRequest = requestRepository.findById(id);
+        Optional<Request> optionalRequest = requestRepository.findByIdAndCompany_IdForUpdate(id, user.getCompany().getId());
         if (optionalRequest.isPresent()) {
             Request savedRequest = optionalRequest.get();
             if (!user.canAccessSite(savedRequest.getSite()) || (request.getSite() != null
@@ -434,7 +434,7 @@ public class RequestService {
 
     @Transactional
     public WorkOrder approve(Long id, RequestApproveDTO requestApproveDTO, User user) {
-        Optional<Request> optionalRequest = requestRepository.findById(id);
+        Optional<Request> optionalRequest = requestRepository.findByIdAndCompany_IdForUpdate(id, user.getCompany().getId());
         if (!(user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) || user.getRole().getCode().equals(RoleCode.LIMITED_ADMIN))) {
             throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         }
@@ -444,6 +444,9 @@ public class RequestService {
                 throw new CustomException("Access denied for this site", HttpStatus.FORBIDDEN);
             if (savedRequest.getWorkOrder() != null) {
                 throw new CustomException("Request is already approved", HttpStatus.NOT_ACCEPTABLE);
+            }
+            if (savedRequest.isCancelled()) {
+                throw new CustomException("request_cancelled_cannot_be_approved", HttpStatus.CONFLICT);
             }
             Collection<Workflow> workflows =
                     workflowService.findByMainConditionAndCompany(WFMainCondition.REQUEST_APPROVED,
@@ -502,7 +505,7 @@ public class RequestService {
 
     @Transactional
     public Request cancel(Long id, String reason, User user) {
-        Optional<Request> optionalRequest = requestRepository.findById(id);
+        Optional<Request> optionalRequest = requestRepository.findByIdAndCompany_IdForUpdate(id, user.getCompany().getId());
         if (!(user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS) || user.getRole().getCode().equals(RoleCode.LIMITED_ADMIN))) {
             throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
         }

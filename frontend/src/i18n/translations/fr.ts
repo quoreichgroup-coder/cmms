@@ -4415,7 +4415,14 @@ const frJSON = {
   pm_end_before_start: 'La date de fin doit être postérieure à la date de début.',
   reading_linked_to_preventive_maintenance: 'Ce relevé a déclenché un ordre de travail de maintenance préventive et ne peut plus être modifié.',
   'The update frequency has not been respected': 'La fréquence de relevé de ce compteur n’est pas encore atteinte.',
-  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.'
+  meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.',
+  signature_required_feature_unavailable: 'Cet ordre de travail exige une signature, mais cette fonction n’est pas disponible dans votre offre actuelle.',
+  work_order_reopen_title: 'Rouvrir l’ordre de travail terminé',
+  work_order_reopen_description: 'La réouverture remet cet ordre de travail à l’état Ouvert. Indiquez un motif ; l’enregistrement de clôture reste dans son historique.',
+  work_order_reopen_reason: 'Motif de réouverture',
+  work_order_reopen_action: 'Rouvrir pour correction',
+  work_order_reopen_success: 'L’ordre de travail a été rouvert pour correction.',
+  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.'
 };
 
 export default frJSON;

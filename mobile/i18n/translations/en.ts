@@ -2191,6 +2191,7 @@ const locale = {
   pm_schedule_yearly: 'Every year',
   pm_schedule_yearly_plural: 'Every {{count}} years',
   'The update frequency has not been respected': 'The reading frequency of this meter has not been reached yet.',
-  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.'
+  meter_used_by_preventive_maintenance: 'This meter drives preventive maintenance plans. Change or delete those plans first.',
+  request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.'
 };
 export default locale;
