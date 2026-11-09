@@ -160,7 +160,7 @@ class PreventiveMaintenanceNotificationJobTest {
     @Test
     void weeklyShouldNotRun_returnsWithoutSendingMail() {
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(false);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(java.util.Date.class))).thenReturn(false);
 
         assertDoesNotThrow(() -> preventiveMaintenanceNotificationJob.executeInternal(contextWithScheduleId(1L)));
 
@@ -173,7 +173,7 @@ class PreventiveMaintenanceNotificationJobTest {
         User adminOnly = buildUser(2L, adminRole, true, true);
         preventiveMaintenance.setAssignedTo(new ArrayList<>(List.of(pmUser)));
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(true);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(java.util.Date.class))).thenReturn(true);
         when(userService.findWorkersByCompany(1L)).thenReturn(List.of(pmUser, adminOnly));
         stubMailDefaults();
 
@@ -192,7 +192,7 @@ class PreventiveMaintenanceNotificationJobTest {
         User eligible = buildUser(3L, workerRole, true, true);
         preventiveMaintenance.setAssignedTo(new ArrayList<>(List.of(optedOut, disabled, eligible)));
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(true);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(java.util.Date.class))).thenReturn(true);
         when(userService.findWorkersByCompany(1L)).thenReturn(Collections.emptyList());
         stubMailDefaults();
 
@@ -210,7 +210,7 @@ class PreventiveMaintenanceNotificationJobTest {
         User eligible = buildUser(1L, workerRole, true, true);
         preventiveMaintenance.setAssignedTo(new ArrayList<>(List.of(eligible)));
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
-        when(scheduleService.checkIfWeeklyShouldRun(schedule)).thenReturn(true);
+        when(scheduleService.checkIfWeeklyShouldRun(eq(schedule), any(java.util.Date.class))).thenReturn(true);
         when(userService.findWorkersByCompany(1L)).thenReturn(Collections.emptyList());
         stubMailDefaults();
 

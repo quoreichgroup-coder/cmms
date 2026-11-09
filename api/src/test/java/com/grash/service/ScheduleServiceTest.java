@@ -421,7 +421,7 @@ class ScheduleServiceTest {
             Schedule schedule = buildSchedule();
             schedule.setRecurrenceType(RecurrenceType.WEEKLY);
             schedule.setStartsOn(daysFromNow(-8));
-            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now().getDayOfWeek().getValue() - 1));
+            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now(java.time.ZoneId.of(TIME_ZONE)).getDayOfWeek().getValue() - 1));
             schedule.setEndsOn(daysFromNow(1));
             when(scheduler.checkExists(new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group")))
                     .thenReturn(false);
@@ -437,7 +437,7 @@ class ScheduleServiceTest {
             Schedule schedule = buildSchedule();
             schedule.setRecurrenceType(RecurrenceType.WEEKLY);
             schedule.setStartsOn(daysFromNow(-1));
-            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now().getDayOfWeek().getValue() % 7));
+            schedule.setDaysOfWeek(Collections.singletonList(java.time.LocalDate.now(java.time.ZoneId.of(TIME_ZONE)).getDayOfWeek().getValue() % 7));
             schedule.setEndsOn(daysFromNow(8));
             when(scheduler.checkExists(new TriggerKey("wo-trigger-" + SCHEDULE_ID, "wo-group")))
                     .thenReturn(false);
@@ -1108,6 +1108,54 @@ class ScheduleServiceTest {
 
             verify(scheduler).deleteJob(jobKey);
             verify(scheduler).scheduleJob(any(JobDetail.class), any(Trigger.class));
+        }
+    }
+
+    @Nested
+    class RescheduleWithPastStart {
+
+        @Test
+        void planWithGeneratedWorkOrdersStartsAtNextOccurrenceInsteadOfReplayingThePast() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            schedule.setStartsOn(daysFromNow(-10));
+            when(workOrderService.findLastByPM(anyLong(), anyInt()))
+                    .thenReturn(pageOf(buildWorkOrder(1L, Status.OPEN, null, new Date())));
+
+            scheduleService.scheduleWorkOrder(schedule);
+
+            Trigger trigger = jobNamed("wo-job-" + SCHEDULE_ID).trigger;
+            assertFalse(trigger.getStartTime().before(new Date(System.currentTimeMillis() - 2000)),
+                    "a past start would misfire and generate an extra work order immediately");
+            long phase = (trigger.getStartTime().getTime() - schedule.getStartsOn().getTime()) % DAY_MS;
+            assertEquals(0, phase, "the daily recurrence keeps its original time of day");
+        }
+
+        @Test
+        void newPlanKeepsItsFirstOccurrence() throws SchedulerException {
+            Schedule schedule = buildSchedule();
+            Date startsOn = daysFromNow(-1);
+            schedule.setStartsOn(startsOn);
+
+            scheduleService.scheduleWorkOrder(schedule);
+
+            assertEquals(startsOn, jobNamed("wo-job-" + SCHEDULE_ID).trigger.getStartTime());
+        }
+    }
+
+    @Nested
+    class WeeklyIntervalRule {
+
+        @Test
+        void everyTwoWeeksCountsSevenDayWindowsFromTheStartDate() {
+            java.time.LocalDate thursdayStart = java.time.LocalDate.of(2026, 11, 12);
+            // Window 0: Thu 12 to Wed 18, window 2: Thu 26 to Wed 2 Dec.
+            assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 12), 2));
+            assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 16), 2));
+            assertFalse(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 19), 2));
+            assertFalse(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 23), 2));
+            assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 26), 2));
+            assertTrue(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 30), 2));
+            assertFalse(ScheduleService.isOnWeeklyInterval(thursdayStart, java.time.LocalDate.of(2026, 11, 11), 2));
         }
     }
 }

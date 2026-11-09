@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReadingService {
     private final ReadingRepository readingRepository;
+    private final com.grash.repository.PreventiveMaintenanceMeterCallRepository meterCallRepository;
     private final UserRepository userRepository;
     private final ReadingMapper readingMapper;
     private final LicenseService licenseService;
@@ -123,7 +124,7 @@ public class ReadingService {
 
         if (optionalReading.isPresent()) {
             Reading savedReading = optionalReading.get();
-            meterService.getById(savedReading.getMeter().getId(), user);
+            requireCanChangeRecordedReading(savedReading, user);
             Reading updated = readingRepository.save(readingMapper.updateReading(savedReading, reading));
             processMeterTriggers(savedReading.getMeter(), updated, user);
             preventiveMaintenanceService.processMeterCycleReading(savedReading.getMeter(), updated);
@@ -136,13 +137,26 @@ public class ReadingService {
         Optional<Reading> optionalReading = readingRepository.findById(id);
 
         if (optionalReading.isPresent()) {
-            meterService.getById(optionalReading.get().getMeter().getId(), user);
+            requireCanChangeRecordedReading(optionalReading.get(), user);
             readingRepository.deleteById(id);
         } else throw new CustomException("Reading not found", HttpStatus.NOT_FOUND);
     }
 
     public Optional<Reading> findById(Long id) {
         return readingRepository.findById(id);
+    }
+
+    /**
+     * Recording a reading only needs access to the meter (field technicians), but rewriting or deleting
+     * history needs edit rights on the meter. A reading that already triggered a preventive-maintenance
+     * work order is part of that plan's audit trail and cannot be changed afterwards.
+     */
+    private void requireCanChangeRecordedReading(Reading reading, User user) {
+        Meter meter = meterService.getById(reading.getMeter().getId(), user);
+        if (!meter.canBeEditedBy(user))
+            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
+        if (meterCallRepository.existsByReading_Id(reading.getId()))
+            throw new CustomException("reading_linked_to_preventive_maintenance", HttpStatus.CONFLICT);
     }
 
     public Collection<Reading> findByCompany(Long id) {

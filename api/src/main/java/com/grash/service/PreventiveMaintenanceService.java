@@ -214,6 +214,7 @@ public class PreventiveMaintenanceService {
                 pmToSave.setSite(preventiveMaintenance.getSite() == null ? savedPreventiveMaintenance.getSite() :
                         resolveSite(preventiveMaintenance.getSite(), user.getCompany()));
                 Schedule schedule = savedPreventiveMaintenance.getSchedule();
+                List<Object> scheduleBefore = scheduleFingerprint(schedule);
                 if (preventiveMaintenance.getPlanConfiguration() != null) {
                     schedule.setPlanConfiguration(preventiveMaintenance.getPlanConfiguration());
                 }
@@ -244,13 +245,37 @@ public class PreventiveMaintenanceService {
                 PreventiveMaintenance updatedPM =
                         preventiveMaintenanceRepository.saveAndFlush(pmToSave);
                 em.refresh(updatedPM);
-                if (preventiveMaintenance.getTriggerType() != null || preventiveMaintenance.getPlanConfiguration() != null) {
+                // Only rebuild the Quartz trigger when the timing actually changed (or a paused plan is
+                // reactivated): editing a title or tasks must not touch the schedule.
+                boolean scheduleChanged = !scheduleBefore.equals(scheduleFingerprint(updatedPM.getSchedule()));
+                if ((preventiveMaintenance.getTriggerType() != null || preventiveMaintenance.getPlanConfiguration() != null)
+                        && scheduleChanged) {
                     scheduleService.reScheduleWorkOrder(updatedPM.getSchedule());
                     syncMeterCallRegister(updatedPM.getSchedule());
                 }
                 return updatedPM;
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         } else throw new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND);
+    }
+
+    /** Every schedule field that influences when work orders are generated. */
+    static List<Object> scheduleFingerprint(Schedule schedule) {
+        return Arrays.asList(
+                schedule.isDisabled(),
+                schedule.getTriggerType(),
+                schedule.getMeter() == null ? null : schedule.getMeter().getId(),
+                schedule.getMeterCycleInterval(),
+                schedule.getMeterReferenceValue(),
+                schedule.getMeterEndValue(),
+                schedule.getStartsOn() == null ? null : schedule.getStartsOn().getTime(),
+                schedule.getEndsOn() == null ? null : schedule.getEndsOn().getTime(),
+                schedule.getFrequency(),
+                schedule.getRecurrenceType(),
+                schedule.getRecurrenceBasedOn(),
+                schedule.getDaysOfWeek() == null ? null : new ArrayList<>(schedule.getDaysOfWeek()),
+                schedule.getDueDateDelay(),
+                schedule.getWorkOrderGenerationLeadDays(),
+                schedule.getPlanConfiguration() == null ? null : schedule.getPlanConfiguration().toString());
     }
 
     private void remapPlanTaskReferences(PreventiveMaintenancePlanConfiguration configuration,
@@ -1255,13 +1280,8 @@ public class PreventiveMaintenanceService {
                 .getGeneralPreferences().getTimeZone();
         ZoneId zoneId = ZoneId.of(tzId);
 
-        long daysSinceStart = ChronoUnit.DAYS.between(
-                schedule.getStartsOn().toInstant().atZone(zoneId).toLocalDate(),
-                fireTime.toInstant().atZone(zoneId).toLocalDate()
-        );
-        long weeksSinceStart = daysSinceStart / 7;
-
-        return weeksSinceStart % schedule.getFrequency() == 0;
+        return ScheduleService.isOnWeeklyInterval(schedule.getStartsOn().toInstant().atZone(zoneId).toLocalDate(),
+                fireTime.toInstant().atZone(zoneId).toLocalDate(), schedule.getFrequency());
     }
 
     public Optional<PreventiveMaintenance> findByIdAndCompany(Long id, Long companyId) {

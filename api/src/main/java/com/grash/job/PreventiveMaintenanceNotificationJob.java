@@ -52,7 +52,14 @@ public class PreventiveMaintenanceNotificationJob extends QuartzJobBean {
             log.info("Skipping preventive maintenance notification, schedule {} is disabled.", scheduleId);
             return;
         }
-        if (!scheduleService.checkIfWeeklyShouldRun(schedule)) {
+        // The reminder fires N days before the work order: check the week rule on the work order date.
+        int daysBefore = schedule.getPreventiveMaintenance().getCompany().getCompanySettings()
+                .getGeneralPreferences().getDaysBeforePrevMaintNotification();
+        java.util.Date fireTime = context.getScheduledFireTime() == null ? new java.util.Date()
+                : context.getScheduledFireTime();
+        java.util.Date workOrderDate = new java.util.Date(fireTime.getTime()
+                + java.util.concurrent.TimeUnit.DAYS.toMillis(Math.max(0, daysBefore)));
+        if (!scheduleService.checkIfWeeklyShouldRun(schedule, workOrderDate)) {
             log.info("Skipping preventive maintenance notification, schedule {} is not on a valid week interval.",
                     scheduleId);
             return;

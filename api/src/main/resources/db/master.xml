@@ -351,4 +351,6 @@
              relativeToChangelogFile="true"/>
     <include file="changelog/2026_11_10_00000000001_purchase_order_close.xml"
              relativeToChangelogFile="true"/>
+    <include file="changelog/2026_11_10_00000000002_pm_call_reading_set_null.xml"
+             relativeToChangelogFile="true"/>
 </databaseChangeLog>

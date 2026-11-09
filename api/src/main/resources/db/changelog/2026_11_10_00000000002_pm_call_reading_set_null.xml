@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <!-- Deleting a meter reading must never delete the preventive-maintenance call it produced:
+         the call keeps its own reading_value, only the link is cleared. -->
+    <changeSet id="2026-11-10-pm-call-reading-set-null" author="qpm">
+        <dropForeignKeyConstraint baseTableName="preventive_maintenance_meter_call"
+                                  constraintName="fk_pm_meter_call_reading"/>
+        <addForeignKeyConstraint baseTableName="preventive_maintenance_meter_call" baseColumnNames="reading_id"
+                                 constraintName="fk_pm_meter_call_reading" referencedTableName="reading"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+    </changeSet>
+</databaseChangeLog>

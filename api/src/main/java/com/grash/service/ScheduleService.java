@@ -197,9 +197,29 @@ public class ScheduleService {
                         .storeDurably()
                         .build();
 
+                // Rebuilding the trigger of a plan that already generated work orders (edit, copy of
+                // settings, reactivation) must not replay a past start date: Quartz would treat it as a
+                // misfire and create an extra work order immediately. Start at the next real occurrence
+                // instead, which keeps the recurrence phase. New plans keep their first occurrence.
+                Date effectiveStart = startsOn;
+                if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE
+                        && !workOrdersPage.isEmpty() && startsOn.before(new Date())) {
+                    Trigger probe = TriggerBuilder.newTrigger()
+                            .startAt(startsOn)
+                            .withSchedule(scheduleBuilder)
+                            .endAt(schedule.getEndsOn())
+                            .build();
+                    Date next = probe.getFireTimeAfter(new Date(System.currentTimeMillis() - 1000));
+                    if (next == null) {
+                        syncCalendarCallRegister(schedule, Collections.emptyList());
+                        return;
+                    }
+                    effectiveStart = next;
+                }
+
                 Trigger woTrigger = TriggerBuilder.newTrigger()
                         .withIdentity("wo-trigger-" + schedule.getId(), "wo-group")
-                        .startAt(startsOn) // Now points to the original startsOn
+                        .startAt(effectiveStart)
                         .withSchedule(scheduleBuilder)
                         .endAt(schedule.getEndsOn())
                         .build();
@@ -484,13 +504,8 @@ public class ScheduleService {
                     .getGeneralPreferences().getTimeZone();
             ZoneId zoneId = ZoneId.of(tzId);
 
-            long daysSinceStart = ChronoUnit.DAYS.between(
-                    schedule.getStartsOn().toInstant().atZone(zoneId).toLocalDate(),
-                    occurrence.toInstant().atZone(zoneId).toLocalDate()
-            );
-            long weeksSinceStart = daysSinceStart / 7;
-
-            if (weeksSinceStart % schedule.getFrequency() != 0) {
+            if (!isOnWeeklyInterval(schedule.getStartsOn().toInstant().atZone(zoneId).toLocalDate(),
+                    occurrence.toInstant().atZone(zoneId).toLocalDate(), schedule.getFrequency())) {
                 log.info("Skipping execution - not on correct week interval for schedule {}", schedule.getId());
                 return false;
             }
@@ -581,12 +596,19 @@ public class ScheduleService {
 
     private boolean isValidWeeklyOccurrence(Schedule schedule, Date occurrence, TimeZone timeZone) {
         ZoneId zone = timeZone.toZoneId();
-        java.time.LocalDate startWeek = schedule.getStartsOn().toInstant().atZone(zone).toLocalDate()
-                .with(java.time.DayOfWeek.MONDAY);
-        java.time.LocalDate occurrenceWeek = occurrence.toInstant().atZone(zone).toLocalDate()
-                .with(java.time.DayOfWeek.MONDAY);
-        long week = ChronoUnit.WEEKS.between(startWeek, occurrenceWeek);
-        return week >= 0 && week % schedule.getFrequency() == 0;
+        return isOnWeeklyInterval(schedule.getStartsOn().toInstant().atZone(zone).toLocalDate(),
+                occurrence.toInstant().atZone(zone).toLocalDate(), schedule.getFrequency());
+    }
+
+    /**
+     * Single rule for "every N weeks": weeks are 7-day windows counted from the start date
+     * (window 0 = start date and the six following days). Work order generation, the call register,
+     * the calendar and notifications must all use it, otherwise they disagree on which weeks are due.
+     */
+    public static boolean isOnWeeklyInterval(java.time.LocalDate start, java.time.LocalDate date, int frequency) {
+        if (frequency <= 1) return !date.isBefore(start);
+        long daysSinceStart = ChronoUnit.DAYS.between(start, date);
+        return daysSinceStart >= 0 && (daysSinceStart / 7) % frequency == 0;
     }
 
     private List<Date> forecastFromCompletion(Schedule schedule, Date firstDate, TimeZone timeZone, int limit) {

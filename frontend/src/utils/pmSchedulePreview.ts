@@ -7,8 +7,7 @@ import {
   differenceInCalendarYears,
   getDay,
   isValid,
-  set,
-  startOfWeek
+  set
 } from 'date-fns';
 import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
@@ -189,10 +188,8 @@ export const getPMBaseCycleNumber = (
         elapsed = differenceInCalendarDays(localDue, localStart);
         break;
       case 'WEEKLY':
-        elapsed = Math.floor(differenceInCalendarDays(
-          startOfWeek(localDue, { weekStartsOn: 1 }),
-          startOfWeek(localStart, { weekStartsOn: 1 })
-        ) / 7);
+        // Same rule as the API (ScheduleService.isOnWeeklyInterval): 7-day windows from the start date.
+        elapsed = Math.floor(differenceInCalendarDays(localDue, localStart) / 7);
         break;
       case 'MONTHLY':
         elapsed = differenceInCalendarMonths(

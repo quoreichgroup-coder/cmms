@@ -34,6 +34,8 @@ public interface PreventiveMaintenanceMeterCallRepository extends JpaRepository<
 
     boolean existsBySchedule_IdAndReading_Id(Long scheduleId, Long readingId);
 
+    boolean existsByReading_Id(Long readingId);
+
     Page<PreventiveMaintenanceMeterCall> findBySchedule_PreventiveMaintenance_Id(Long pmId, Pageable pageable);
 
     boolean existsBySchedule_IdAndDueValue(Long scheduleId, double dueValue);
