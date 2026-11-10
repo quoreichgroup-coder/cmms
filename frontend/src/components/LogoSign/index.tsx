@@ -8,10 +8,10 @@ import {
   useTheme
 } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { customLogoPaths } from '../../config';
 import { useEffect, useState } from 'react';
 import { useBrand } from '../../hooks/useBrand';
+import QpmWordmark from '../QpmWordmark';
 
 const LogoWrapper = styled(Link)(
   ({ theme }) => `
@@ -19,7 +19,8 @@ const LogoWrapper = styled(Link)(
         display: flex;
         text-decoration: none;
         align-items: center;
-        width: 53px;
+        justify-content: center;
+        min-width: 53px;
         margin: 0 auto;
         font-weight: ${theme.typography.fontWeightBold};
 `
@@ -50,10 +51,12 @@ const TooltipWrapper = styled(({ className, ...props }: TooltipProps) => (
 }));
 interface OwnProps {
   white?: boolean;
+  /** Collapsed sidebar: monogram instead of the full wordmark. */
+  compact?: boolean;
+  tagline?: boolean;
 }
 
-function Logo({ white }: OwnProps) {
-  const { t } = useTranslation();
+function Logo({ white, compact, tagline }: OwnProps) {
   const theme = useTheme();
   const width = 60;
   const height = 60;
@@ -63,14 +66,24 @@ function Logo({ white }: OwnProps) {
   return (
     <TooltipWrapper title={brandName} arrow>
       <LogoWrapper to="/app">
-        <LogoSignWrapper>
-          <img
-            src={white ? logo.white : logo.dark}
-            width={`${width * (mobile ? 0.7 : 1)}px`}
-            height={`${height * (mobile ? 0.7 : 1)}px`}
-            alt={'logo'}
+        {customLogoPaths ? (
+          // A company-provided logo keeps priority over the QPM wordmark.
+          <LogoSignWrapper>
+            <img
+              src={white ? logo.white : logo.dark}
+              width={`${width * (mobile ? 0.7 : 1)}px`}
+              height={`${height * (mobile ? 0.7 : 1)}px`}
+              alt={brandName}
+            />
+          </LogoSignWrapper>
+        ) : (
+          <QpmWordmark
+            white={white}
+            compact={compact}
+            tagline={tagline}
+            size={mobile ? 'small' : 'medium'}
           />
-        </LogoSignWrapper>
+        )}
       </LogoWrapper>
     </TooltipWrapper>
   );

@@ -58,7 +58,7 @@ export default function AuthPageLayout({
         }}
       >
         <Box sx={{ position: 'relative', zIndex: 1, alignSelf: 'flex-start' }}>
-          <Logo white />
+          <Logo white tagline />
         </Box>
         <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 440 }}>
           <Typography

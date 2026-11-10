@@ -64,7 +64,7 @@ function Sidebar() {
               }}
             >
               <Box>
-                <Logo />
+                <Logo compact={desktopSidebarCollapsed} />
               </Box>
             </Box>
           </Box>
