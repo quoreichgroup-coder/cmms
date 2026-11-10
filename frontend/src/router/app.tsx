@@ -108,9 +108,6 @@ const VendorsCustomFields = Loader(
 const RolesSettings = Loader(
   lazy(() => import('../content/own/Settings/Roles'))
 );
-const ChecklistsSettings = Loader(
-  lazy(() => import('../content/own/Settings/Checklists'))
-);
 const WorkflowsSettings = Loader(
   lazy(() => import('../content/own/Settings/Features/Workflows'))
 );
@@ -206,7 +203,7 @@ const PreventiveMaintenances = Loader(
   lazy(() => import('../content/own/PreventiveMaintenance'))
 );
 const MaintenanceTaskLists = Loader(
-  lazy(() => import('../content/own/MaintenanceTaskLists'))
+  lazy(() => import('../content/own/MaintenanceTaskLists/TaskListsHub'))
 );
 
 const PeopleAndTeams = Loader(
@@ -316,8 +313,9 @@ const appRoutes = [
         element: <RolesSettings />
       },
       {
+        // Checklists are managed next to task lists (single entry point); keep old links working.
         path: 'checklists',
-        element: <ChecklistsSettings />
+        element: <Navigate to="/app/task-lists?tab=checklists" replace />
       },
       {
         path: 'documents',

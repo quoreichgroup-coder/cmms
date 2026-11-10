@@ -1359,7 +1359,7 @@ function PMs() {
                     ? [
                         {
                           label: t('view_task_list_library'),
-                          onClick: () => navigate('/app/settings/checklists')
+                          onClick: () => navigate('/app/task-lists?tab=checklists')
                         }
                       ]
                     : []),
