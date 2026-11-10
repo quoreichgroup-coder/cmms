@@ -271,6 +271,15 @@ export default function MeterDetails({
                 {t('invalid_reading_value')}
               </Text>
             )}
+            {readingWarning && (
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}
+                accessibilityLiveRegion="polite"
+              >
+                {readingWarning}
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button
@@ -359,6 +368,24 @@ export default function MeterDetails({
         ) : null
     });
   }, [canOpenMeterActions, meter, navigation, t]);
+
+  const lastReadingValue = React.useMemo(() => {
+    const readings = (meter && readingsByMeter[meter.id]) || [];
+    if (!readings.length) return null;
+    return [...readings].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0].value;
+  }, [meter, readingsByMeter]);
+  // Typing errors are caught before submit: a counter never goes down, and a 10x jump is unusual.
+  const readingWarning = (() => {
+    if (lastReadingValue == null || !isValidReading(readingValue)) return null;
+    const value = Number(readingValue.replace(',', '.'));
+    if (value < lastReadingValue)
+      return t('reading_lower_warning', { last: lastReadingValue });
+    if (lastReadingValue > 0 && value > lastReadingValue * 10)
+      return t('reading_jump_warning', { last: lastReadingValue });
+    return null;
+  })();
 
   const onAddReading = () => {
     if (!isValidReading(readingValue)) return;

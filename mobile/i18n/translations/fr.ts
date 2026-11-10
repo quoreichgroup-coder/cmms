@@ -2401,6 +2401,9 @@ const frJSON = {
   pm_generation_lead: 'Création de l’ordre de travail',
   pm_due_date_delay: 'Échéance',
   pm_tasks_load_error: "Impossible de charger les tâches de ce plan.",
-  pm_no_tasks: "Aucune tâche dans ce plan."
+  pm_no_tasks: "Aucune tâche dans ce plan.",
+  reading_lower_than_previous: "Ce compteur pilote un plan de maintenance préventive : un relevé ne peut pas être inférieur au précédent.",
+  reading_lower_warning: "Inférieur au dernier relevé ({{last}}). Vérifiez la valeur.",
+  reading_jump_warning: "Plus de 10 fois le dernier relevé ({{last}}). Vérifiez la valeur."
 };
 export default frJSON;

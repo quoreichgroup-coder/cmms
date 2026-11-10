@@ -2207,6 +2207,9 @@ const locale = {
   pm_generation_lead: 'Work order created',
   pm_due_date_delay: 'Due date',
   pm_tasks_load_error: "Could not load this plan's tasks.",
-  pm_no_tasks: "No tasks in this plan."
+  pm_no_tasks: "No tasks in this plan.",
+  reading_lower_than_previous: "This meter drives a preventive maintenance plan: a reading cannot be lower than the previous one.",
+  reading_lower_warning: "Lower than the last reading ({{last}}). Check the value.",
+  reading_jump_warning: "More than 10 times the last reading ({{last}}). Check the value."
 };
 export default locale;

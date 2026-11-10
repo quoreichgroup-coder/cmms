@@ -82,7 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'QPM',
   slug: 'qpm',
-  version: '1.0.60',
+  version: '1.0.61',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'atlascmms',
@@ -108,11 +108,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: 'com.cmms.atlas',
-    buildNumber: '14',
+    buildNumber: '15',
     jsEngine: 'hermes',
     supportsTablet: false,
     // Bare React Native workflow requires a concrete runtime version for EAS Update.
-    runtimeVersion: '1.0.60',
+    runtimeVersion: '1.0.61',
     ...(googleServicesPlist && fs.existsSync(googleServicesPlist)
       ? { googleServicesFile: googleServicesPlist }
       : {}),
@@ -125,14 +125,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#071b3d'
     },
-    versionCode: 43,
+    versionCode: 44,
     package: 'com.atlas.cmms',
     jsEngine: 'hermes',
     edgeToEdgeEnabled: true,
     ...(fs.existsSync(androidGoogleServicesPath)
       ? { googleServicesFile: androidGoogleServicesPath }
       : {}),
-    runtimeVersion: '1.0.60'
+    runtimeVersion: '1.0.61'
   },
   web: {
     favicon: './assets/images/favicon.png'

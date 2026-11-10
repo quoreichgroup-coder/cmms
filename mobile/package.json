@@ -1,6 +1,6 @@
 {
   "name": "qpm",
-  "version": "1.0.60",
+  "version": "1.0.61",
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",

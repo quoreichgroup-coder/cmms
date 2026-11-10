@@ -100,7 +100,7 @@ import EditRequestScreen from '../screens/requests/EditRequestScreen';
 import UserDetails from '../screens/peopleTeams/UserDetails';
 import UserProfile from '../screens/peopleTeams/Profile';
 import InviteUserScreen from '../screens/peopleTeams/InviteUserScreen';
-import { navigate, navigationRef } from './RootNavigation';
+import { flushPendingNavigation, navigate, navigationRef } from './RootNavigation';
 import { getNotificationUrlFromData } from '../utils/urlPaths';
 import SettingsScreen from '../screens/SettingsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -138,6 +138,12 @@ export default function Navigation() {
     useAuth();
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   const [navigationReady, setNavigationReady] = React.useState(false);
+  React.useEffect(() => {
+    // Work order / request screens only exist once signed in: replay a startup link at that point.
+    if (!navigationReady || !isInitialized || !isAuthenticated) return;
+    const timeout = setTimeout(flushPendingNavigation, 0);
+    return () => clearTimeout(timeout);
+  }, [navigationReady, isInitialized, isAuthenticated]);
   const navigationTheme = React.useMemo(() => {
     const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
     return {
