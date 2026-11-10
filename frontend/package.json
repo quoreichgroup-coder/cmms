@@ -136,6 +136,7 @@
     "format": "prettier --write \"./**/*.{ts,tsx,js,jsx,json}\" --config ./.prettierrc",
     "prepare": "cd .. && husky install frontend/.husky",
     "test:license-console": "cross-env TZ=Europe/Berlin node --test scripts/license-authority-console.test.cjs",
+    "test:approval-coverage": "node --test scripts/approval-coverage.test.cjs",
     "test:asset-analytics": "node --test scripts/asset-analytics-error-state.test.cjs",
     "test:asset-export-error": "node --test scripts/asset-export-error-message.test.cjs",
     "test:asset-downtime-permission": "node --test scripts/asset-downtime-permission.test.cjs",

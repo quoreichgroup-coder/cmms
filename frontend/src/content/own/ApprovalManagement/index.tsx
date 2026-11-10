@@ -17,6 +17,7 @@ import { ApprovalConditionOperator, ApprovalEvent, ApprovalPage, ApprovalPolicy,
 import api, { getErrorMessage } from '../../../utils/api';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ApprovalPolicyEditor from './ApprovalPolicyEditor';
+import { AmountGap, findAmountGaps, formatAmountGap } from '../../../utils/approvalCoverage';
 
 const base = 'approval-management';
 const ruleSymbols: Record<ApprovalConditionOperator, string> = { EQUALS: '=', NOT_EQUALS: '≠', GREATER_THAN: '>', GREATER_THAN_OR_EQUAL: '≥', LESS_THAN: '<', LESS_THAN_OR_EQUAL: '≤' };
@@ -93,6 +94,27 @@ export default function ApprovalManagement() {
     return () => controller.abort();
   }, [allowed, company?.id, user?.id, policyId, history, query, type, status, action, page, reload]);
 
+  // Gaps in the amounts accepted by the active policies block document submission (approval_no_matching_policy).
+  const [coverageGaps, setCoverageGaps] = useState<{ type: 'PR' | 'PO'; gaps: AmountGap[]; currency: string }[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!allowed || policyId || history) return () => controller.abort();
+    const loadActive = async (documentType: 'PR' | 'PO') => {
+      const active: ApprovalPolicy[] = [];
+      for (let pageIndex = 0; pageIndex < 10; pageIndex++) {
+        const searchParams = new URLSearchParams({ type: documentType, status: 'ACTIVE', page: String(pageIndex) });
+        const data = await api.get<ApprovalPage<ApprovalPolicy>>(`${base}/policies?${searchParams}`, { signal: controller.signal });
+        active.push(...data.content);
+        if (pageIndex + 1 >= data.totalPages) break;
+      }
+      return { type: documentType, gaps: findAmountGaps(active), currency: active.flatMap(policy => policy.conditions ?? [])[0]?.currency ?? '' };
+    };
+    Promise.all([loadActive('PR'), loadActive('PO')])
+      .then(results => { if (!controller.signal.aborted) setCoverageGaps(results.filter(result => result.gaps.length)); })
+      .catch(() => { if (!controller.signal.aborted) setCoverageGaps([]); });
+    return () => controller.abort();
+  }, [allowed, company?.id, policyId, history, reload]);
+
   const filter = (key: string, value: string) => { const next = new URLSearchParams(params); next.delete('page'); if (value) next.set(key, value); else next.delete(key); setParams(next); };
   const edit = (id: string | number) => navigate(`${policiesPath}/${id}`, { state: { returnTo: `${location.pathname}${location.search}` } });
   const mutate = async (operation: 'copy' | 'delete' | 'deactivate') => {
@@ -128,6 +150,10 @@ export default function ApprovalManagement() {
         </Stack>
       </Paper>
       {history && <Alert severity="info">{t('ap_history_scope')}</Alert>}
+      {!history && coverageGaps.map(coverage => <Alert key={coverage.type} severity="warning">{t('ap_coverage_gap', {
+        type: coverage.type,
+        ranges: coverage.gaps.map(gap => `${formatAmountGap(gap, value => value.toLocaleString(), t('and').toLowerCase())}${coverage.currency ? ` ${coverage.currency}` : ''}`).join(' ; ')
+      })}</Alert>)}
       {error && <Alert severity="error" action={<Button onClick={() => setReload(value => value + 1)}>{t('retry')}</Button>}>{t(error)}</Alert>}
       {loading ? <Box role="status" sx={{ textAlign: 'center', py: 6 }}><CircularProgress aria-label={t('loading')} /></Box> : !error && <>
         {!(history ? events : items).length ? <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}><Typography variant="h5">{t(history ? 'ap_history_empty' : query || type || status ? 'no_results' : 'ap_empty')}</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>{t(history ? 'ap_history_description' : 'ap_list_description')}</Typography></Paper> : history ? <Stack spacing={1.5}>
