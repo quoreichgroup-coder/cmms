@@ -94,7 +94,26 @@ export function getApiErrorMessage(
   // opaque `null`/HTML body or internal server details when the status is known.
   if (errorMessage && errorMessage !== '[object Object]') {
     const looksLikeHttpFallback = /^Request failed \(\d+\)$/.test(errorMessage);
-    if (!looksLikeHttpFallback) return errorMessage;
+    if (!looksLikeHttpFallback) return translateApiMessage(errorMessage);
   }
-  return bodyMessage || statusMessage(apiError.status) || defaultMessage;
+  return translateApiMessage(
+    bodyMessage || statusMessage(apiError.status) || defaultMessage
+  );
 }
+
+/**
+ * The API returns translation keys for business rules (e.g. "required_tasks_on_completion");
+ * show their translation. Free text and unknown keys are returned unchanged, so callers that
+ * still wrap the result in t() keep working.
+ */
+export function translateApiMessage(message: string): string {
+  return typeof message === 'string' &&
+    /^[a-z][a-z0-9_]*$/.test(message) &&
+    i18n.exists(message)
+    ? i18n.t(message)
+    : message;
+}
+
+/** True when a message from getErrorMessage is the given API key (raw or already translated). */
+export const isApiMessage = (message: string, key: string): boolean =>
+  message === key || (i18n.exists(key) && message === i18n.t(key));

@@ -72,6 +72,7 @@ import SearchInput from '../components/SearchInput';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import { getErrorMessage } from '../../../utils/api';
+import { isApiMessage } from '../../../utils/apiError';
 import { getMeterUrl } from '../../../utils/urlPaths';
 import SplitButton from '../components/SplitButton';
 import useCompactDialog from '../../../hooks/useCompactDialog';
@@ -324,7 +325,7 @@ function Meters() {
   const onDeleteFailure = (err) => {
     const message = getErrorMessage(err, 'meter_delete_failure');
     showSnackBar(
-      t(message === 'meter_used_by_preventive_maintenance' ? message : 'meter_delete_failure'),
+      t(isApiMessage(message, 'meter_used_by_preventive_maintenance') ? 'meter_used_by_preventive_maintenance' : 'meter_delete_failure'),
       'error'
     );
   };

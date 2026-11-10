@@ -4429,7 +4429,10 @@ const frJSON = {
   people_load_error: 'Les personnes n’ont pas pu être chargées.',
   teams_load_error: 'Les équipes n’ont pas pu être chargées.',
   vendors_load_error: 'Les fournisseurs n’ont pas pu être chargés.',
-  customers_load_error: 'Les clients n’ont pas pu être chargés.'
+  customers_load_error: 'Les clients n’ont pas pu être chargés.',
+  work_order_reopen_required: 'Cet ordre de travail est terminé. Rouvrez-le avant de changer son statut.',
+  signature_required_on_completion: 'Une signature est requise pour terminer cet ordre de travail.',
+  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.'
 };
 
 export default frJSON;

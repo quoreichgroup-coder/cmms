@@ -56,6 +56,7 @@ import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsIFields, getCustomFieldsRequiredShape } from '../type';
 import { formatCustomFields } from '../../../utils/formatters';
 import { getErrorMessage } from '../../../utils/api';
+import { isApiMessage } from '../../../utils/apiError';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
 import useCompactDialog from '../../../hooks/useCompactDialog';
 
@@ -173,8 +174,8 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
   const onDeleteFailure = (err) => {
     const message = getErrorMessage(err, 'vendor_delete_failure');
     showSnackBar(
-      message === 'vendor_used_by_purchase_orders'
-        ? t(message)
+      isApiMessage(message, 'vendor_used_by_purchase_orders')
+        ? t('vendor_used_by_purchase_orders')
         : t('vendor_delete_failure'),
       'error'
     );

@@ -48,7 +48,7 @@ import { PermissionEntity } from '../../models/role';
 import Reading from '../../models/reading';
 import { qpmLayoutTokens, useAppTheme } from '../../custom-theme';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
-import { getErrorMessage } from '../../utils/api';
+import { getErrorMessage, isApiMessage } from '../../utils/api';
 import { createAsyncActionLock } from '../../utils/asyncActionLock';
 
 const isValidReading = (value: string) =>
@@ -142,7 +142,7 @@ export default function MeterDetails({
   const onDeleteFailure = (err) => {
     const message = getErrorMessage(err, 'meter_delete_failure');
     showSnackBar(
-      t(message === 'meter_used_by_preventive_maintenance' ? message : 'meter_delete_failure'),
+      t(isApiMessage(message, 'meter_used_by_preventive_maintenance') ? 'meter_used_by_preventive_maintenance' : 'meter_delete_failure'),
       'error'
     );
   };

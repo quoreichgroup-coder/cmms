@@ -2386,6 +2386,9 @@ const frJSON = {
   pm_schedule_yearly_plural: 'Tous les {{count}} ans',
   'The update frequency has not been respected': 'La fréquence de relevé de ce compteur n’est pas encore atteinte.',
   meter_used_by_preventive_maintenance: 'Ce compteur pilote des plans de maintenance préventive. Modifiez ou supprimez d’abord ces plans.',
-  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.'
+  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.',
+  work_order_reopen_required: 'Cet ordre de travail est terminé. Rouvrez-le avant de changer son statut.',
+  signature_required_on_completion: 'Une signature est requise pour terminer cet ordre de travail.',
+  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.'
 };
 export default frJSON;

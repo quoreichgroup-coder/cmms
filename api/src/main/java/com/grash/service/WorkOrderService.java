@@ -1117,8 +1117,7 @@ public class WorkOrderService {
         if (dto.getStatus() == null) throw new CustomException("Status can't be null", HttpStatus.NOT_ACCEPTABLE);
         Status savedWorkOrderStatusBefore = mutableWO.getStatus();
         if (Status.COMPLETE.equals(savedWorkOrderStatusBefore)) {
-            throw new CustomException("Completed work orders must be reopened before changing their status",
-                    HttpStatus.CONFLICT);
+            throw new CustomException("work_order_reopen_required", HttpStatus.CONFLICT);
         }
         boolean canEditWorkOrder = mutableWO.canBeEditedBy(user);
         if (!canEditWorkOrder) throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
@@ -1133,8 +1132,7 @@ public class WorkOrderService {
                     HttpStatus.BAD_REQUEST);
         if (dto.getStatus() == Status.COMPLETE && mutableWO.isRequiredSignature()
                 && (dto.getSignature() == null || dto.getSignature().trim().isEmpty()))
-            throw new CustomException("Signature is required to complete this work order",
-                    HttpStatus.BAD_REQUEST);
+            throw new CustomException("signature_required_on_completion", HttpStatus.BAD_REQUEST);
         if (dto.getStatus() == Status.COMPLETE) validateCompletionRequirements(mutableWO, user);
         if (dto.getSignature() != null) mutableWO.setSignature(dto.getSignature());
         Date statusChangedAt = new Date();
@@ -1229,6 +1227,13 @@ public class WorkOrderService {
         } else throw new CustomException("Forbidden", HttpStatus.FORBIDDEN);
     }
 
+    private static final Map<String, String> COMPLETION_REQUIREMENT_KEYS = Map.of(
+            "completeFiles", "required_files_on_completion",
+            "completeTasks", "required_tasks_on_completion",
+            "completeTime", "required_labor_on_completion",
+            "completeParts", "required_part_on_completion",
+            "completeCost", "required_cost_on_completion");
+
     private void validateCompletionRequirements(WorkOrder workOrder, User user) {
         Set<String> requiredFields = workOrder.getCompany().getCompanySettings().getWorkOrderConfiguration()
                 .getWorkOrderFieldConfigurations().stream()
@@ -1259,7 +1264,8 @@ public class WorkOrderService {
             missing.add("completeCost");
         }
         if (!missing.isEmpty()) {
-            throw new CustomException("Required work order completion data is missing: " + String.join(", ", missing),
+            // Translation key of the first missing requirement (clients translate API keys).
+            throw new CustomException(COMPLETION_REQUIREMENT_KEYS.getOrDefault(missing.get(0), "required_completion_data_missing"),
                     HttpStatus.BAD_REQUEST);
         }
     }

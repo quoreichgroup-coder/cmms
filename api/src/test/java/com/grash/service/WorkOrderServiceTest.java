@@ -1432,7 +1432,7 @@ class WorkOrderServiceTest {
                     () -> workOrderService.changeStatus(dto, 1L, user, "ios"));
 
             assertEquals(HttpStatus.BAD_REQUEST, ex.getHttpStatus());
-            assertTrue(ex.getMessage().contains("completeTasks"));
+            assertTrue("required_tasks_on_completion".equals(ex.getMessage()));
             verify(workOrderRepository, never()).saveAndFlush(any());
         }
 
@@ -1462,7 +1462,7 @@ class WorkOrderServiceTest {
             }
 
             // Other failures in this lightweight fixture are irrelevant; the time requirement must not be one.
-            assertFalse(missing != null && missing.getMessage().contains("completeTime"),
+            assertFalse(missing != null && "required_labor_on_completion".equals(missing.getMessage()),
                     "a running timer must satisfy the required-time rule");
         }
 

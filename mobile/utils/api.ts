@@ -266,13 +266,25 @@ export const getErrorMessage = (
   if (status >= 500) {
     return i18n.t('api_server_error', { defaultValue: defaultMessage });
   }
+  let message: string;
   try {
     const parsed = JSON.parse(error.message);
-    return parsed?.message ?? error.message ?? defaultMessage;
+    message = parsed?.message ?? error.message ?? defaultMessage;
   } catch {
-    return error.message ?? defaultMessage;
+    message = error.message ?? defaultMessage;
   }
+  return translateApiMessage(message);
 };
+
+/** The API returns translation keys for business rules (e.g. "required_tasks_on_completion"). */
+export const translateApiMessage = (message: string): string =>
+  typeof message === 'string' && /^[a-z][a-z0-9_]*$/.test(message) && i18n.exists(message)
+    ? i18n.t(message)
+    : message;
+
+/** True when a message from getErrorMessage is the given API key (raw or already translated). */
+export const isApiMessage = (message: string, key: string): boolean =>
+  message === key || (i18n.exists(key) && message === i18n.t(key));
 
 export const isNetworkError = (error: any): boolean => {
   if (!error) return false;

@@ -4110,7 +4110,10 @@ const locale = {
   people_load_error: 'People could not be loaded.',
   teams_load_error: 'Teams could not be loaded.',
   vendors_load_error: 'Vendors could not be loaded.',
-  customers_load_error: 'Customers could not be loaded.'
+  customers_load_error: 'Customers could not be loaded.',
+  work_order_reopen_required: 'This work order is completed. Reopen it before changing its status.',
+  signature_required_on_completion: 'A signature is required to complete this work order.',
+  required_completion_data_missing: 'Some data required to complete this work order is missing.'
 };
 
 export default locale;
