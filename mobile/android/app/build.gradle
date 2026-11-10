@@ -104,6 +104,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 44
         versionName "1.0.61"
+        // Prebuilt native libraries (React Native, ML Kit barcode, Sentry...) ship every ABI; package only the
+        // ones requested. scripts/build-apk.mjs passes armeabi-v7a,arm64-v8a, which removes ~40 MB of x86 code.
+        ndk {
+            abiFilters(*((findProperty('reactNativeArchitectures') ?: 'armeabi-v7a,arm64-v8a').split(',')*.trim()))
+        }
     }
     signingConfigs {
         release {
