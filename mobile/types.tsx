@@ -107,7 +107,6 @@ export type RootStackParamList = {
   PreventiveMaintenanceDetails: { id: number; pmProp?: PreventiveMaintenance };
   CustomerDetails: { id: number; customerProp?: Customer };
   VendorDetails: { id: number; vendorProp?: Vendor };
-  Modal: undefined;
   Tasks: {
     tasksProps: Task[];
     workOrderId: number;

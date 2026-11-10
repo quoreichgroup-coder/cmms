@@ -27,7 +27,6 @@ import {
   View,
   useWindowDimensions
 } from 'react-native';
-import ModalScreen from '../screens/ModalScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 import HomeScreen from '../screens/HomeScreen';
 import AuthenticationScreen from '../screens/auth/AuthenticationScreen';
@@ -566,7 +565,6 @@ function RootNavigator() {
           contentStyle: Platform.OS === 'ios' ? { paddingTop: 20 } : undefined
         }}
       >
-        <Stack.Screen name="Modal" component={ModalScreen} />
         <Stack.Screen
           name="CompleteWorkOrder"
           component={CompleteWorkOrderModal}

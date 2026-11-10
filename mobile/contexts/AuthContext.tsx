@@ -673,7 +673,14 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
               const subscription = client.subscribe(
                 `/user/${state.user.email}/notifications`,
                 function (message) {
-                  const notification: Notification = JSON.parse(message.body);
+                  let notification: Notification;
+                  try {
+                    notification = JSON.parse(message.body);
+                  } catch (e) {
+                    // A malformed frame must not break the realtime subscription.
+                    logSafeError('Ignored malformed notification frame', e);
+                    return;
+                  }
                   globalDispatch(newReceivedNotification(notification));
                   if (notification.notificationType === 'WORK_ORDER') {
                     if (

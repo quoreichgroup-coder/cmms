@@ -19,7 +19,6 @@ const linking: LinkingOptions<RootStackParamList> = {
           WorkOrders: 'two'
         }
       },
-      Modal: 'modal',
       NotFound: '*'
     }
   }
