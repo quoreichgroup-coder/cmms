@@ -2205,6 +2205,8 @@ const locale = {
   pm_due_date_delay_value: '{{count}} day after the occurrence',
   pm_due_date_delay_value_plural: '{{count}} days after the occurrence',
   pm_generation_lead: 'Work order created',
-  pm_due_date_delay: 'Due date'
+  pm_due_date_delay: 'Due date',
+  pm_tasks_load_error: "Could not load this plan's tasks.",
+  pm_no_tasks: "No tasks in this plan."
 };
 export default locale;

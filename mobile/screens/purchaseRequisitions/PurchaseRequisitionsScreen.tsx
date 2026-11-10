@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View
 } from 'react-native';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 import {
   Button,
   Card,
@@ -135,6 +136,32 @@ export default function PurchaseRequisitionsScreen({
   const [sites, setSites] = React.useState<SiteOption[]>([]);
   const [siteMenuLine, setSiteMenuLine] = React.useState<number | null>(null);
   const [partsLoading, setPartsLoading] = React.useState(false);
+  // Snapshot of the form once it is loaded; any difference means unsaved input.
+  const formBaseline = React.useRef<string | null>(null);
+  const formSnapshot = JSON.stringify([title, justification, requiredDate, lines]);
+  React.useEffect(() => {
+    if (formOpen && !partsLoading && formBaseline.current === null) {
+      formBaseline.current = formSnapshot;
+    }
+  }, [formOpen, partsLoading, formSnapshot]);
+  const formDirty =
+    formOpen && formBaseline.current !== null && formSnapshot !== formBaseline.current;
+  const markFormClean = useUnsavedChanges(navigation, formDirty);
+  const closeForm = React.useCallback(() => {
+    if (saving) return;
+    if (!formDirty) {
+      setFormOpen(false);
+      return;
+    }
+    Alert.alert(t('discard_changes'), t('discard_changes_question'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('discard_changes'),
+        style: 'destructive',
+        onPress: () => setFormOpen(false)
+      }
+    ]);
+  }, [formDirty, saving, t]);
   const [submittingId, setSubmittingId] = React.useState<number | null>(null);
   const [deletingId, setDeletingId] = React.useState<number | null>(null);
   const [decisionTarget, setDecisionTarget] = React.useState<{
@@ -230,6 +257,7 @@ export default function PurchaseRequisitionsScreen({
           requisition?.sourceWorkOrderName ?? route.params?.sourceWorkOrderName
       });
       setFormError('');
+      formBaseline.current = null;
       setFormOpen(true);
       setPartsLoading(true);
       void api.get<SiteOption[]>('sites').then((result) => setSites(Array.isArray(result) ? result : [])).catch(() => setSites([]));
@@ -350,6 +378,8 @@ export default function PurchaseRequisitionsScreen({
       setSaving(false);
       return;
     }
+    markFormClean();
+    formBaseline.current = null;
     setFormOpen(false);
     setEditingId(null);
     await loadPage();
@@ -890,7 +920,7 @@ export default function PurchaseRequisitionsScreen({
         </Dialog>
         <Dialog
           visible={formOpen}
-          onDismiss={() => !saving && setFormOpen(false)}
+          onDismiss={closeForm}
           style={{ maxHeight: '90%' }}
         >
           <Dialog.Title>
@@ -1040,7 +1070,7 @@ export default function PurchaseRequisitionsScreen({
             />
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button disabled={saving} onPress={() => setFormOpen(false)}>
+            <Button disabled={saving} onPress={closeForm}>
               {t('cancel')}
             </Button>
             <Button

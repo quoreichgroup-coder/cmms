@@ -34,5 +34,5 @@ Les statuts métier (erreur, succès, retard, priorité, approbation) gardent le
 
 - Web et mobile utilisent les tokens centraux pour le bleu primaire et exposent l’orange comme accent de marque.
 - Les formulaires, tableaux, graphiques et interactions conservent la lisibilité, les contrastes et les comportements responsive déjà définis.
-- Les polices ne sont pas encore embarquées dans les applications. Avant de les appliquer partout, ajouter et valider les fichiers de police dans les bundles Web et mobile; éviter une dépendance à un chargement externe à l’exécution.
+- Montserrat est embarquée localement : Web via `@fontsource/montserrat` (graisses 400–700), mobile via `@expo-google-fonts/montserrat` (thème react-native-paper, graisses 400–700). Aucun chargement externe à l’exécution. Sur mobile, les textes React Native hors composants Paper gardent la police système. Playfair Display n’est pas encore embarquée.
 - Cette charte s’applique aux nouveaux écrans et aux retouches MVP concernés. Une refonte globale du design system reste hors périmètre du MVP.

@@ -1,6 +1,7 @@
 import { MD3DarkTheme, MD3LightTheme, useTheme } from 'react-native-paper';
 import { qpmDesignTokens } from './theme/tokens';
 import { createQpmPaperColors } from './theme/paperColors';
+import { qpmFonts } from './theme/fonts';
 
 export { qpmDesignTokens, qpmLayoutTokens } from './theme/tokens';
 
@@ -11,6 +12,7 @@ function makeTheme(dark: boolean) {
   return {
     ...base,
     dark,
+    fonts: qpmFonts,
     colors: createQpmPaperColors(base.colors, tokens)
   };
 }

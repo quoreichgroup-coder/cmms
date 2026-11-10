@@ -30,6 +30,7 @@ import useAuth from '../../hooks/useAuth';
 import { PermissionEntity } from '../../models/role';
 import { PlanFeature } from '../../models/subscriptionPlan';
 import AsyncStateFeedback from '../../components/AsyncStateFeedback';
+import { Task } from '../../models/tasks';
 
 const PAGE_SIZE = 10;
 
@@ -82,6 +83,20 @@ export default function PreventiveMaintenanceDetailsScreen({
     append: boolean;
   } | null>(null);
   const workOrdersRequestInProgress = useRef(false);
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [tasksError, setTasksError] = useState(false);
+
+  const loadTasks = useCallback(async () => {
+    if (!canView) return;
+    setTasksError(false);
+    try {
+      const result = await api.get<Task[]>(`tasks/preventive-maintenance/${id}`);
+      setTasks(Array.isArray(result) ? result : []);
+    } catch (error) {
+      logSafeError('Could not load preventive maintenance tasks:', error);
+      setTasksError(true);
+    }
+  }, [canView, id]);
 
   const loadPM = useCallback(async () => {
     if (!canView) return;
@@ -175,12 +190,14 @@ export default function PreventiveMaintenanceDetailsScreen({
 
   useEffect(() => {
     loadPM();
+    loadTasks();
     loadCalls(0, false);
     loadWorkOrders(0, false);
-  }, [loadPM, loadCalls, loadWorkOrders]);
+  }, [loadPM, loadTasks, loadCalls, loadWorkOrders]);
 
   const onRefresh = () => {
     loadPM();
+    loadTasks();
     loadCalls(0, false);
     loadWorkOrders(0, false);
   };
@@ -786,6 +803,41 @@ export default function PreventiveMaintenanceDetailsScreen({
                     {pm.description}
                   </Text>
                 ) : null}
+                <Divider style={styles.divider} />
+                <Text variant="titleSmall" accessibilityRole="header">
+                  {tasks ? `${t('tasks')} (${tasks.length})` : t('tasks')}
+                </Text>
+                {tasksError ? (
+                  <AsyncStateFeedback
+                    mode="error"
+                    message={t('pm_tasks_load_error')}
+                    onRetry={loadTasks}
+                  />
+                ) : tasks === null ? (
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t('please_wait')}
+                  </Text>
+                ) : tasks.length === 0 ? (
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t('pm_no_tasks')}
+                  </Text>
+                ) : (
+                  tasks.map((task, index) => (
+                    <Text
+                      key={task.id}
+                      variant="bodyMedium"
+                      style={styles.taskRow}
+                    >
+                      {`${index + 1}. ${task.taskBase?.label ?? '—'}`}
+                    </Text>
+                  ))
+                )}
               </Card.Content>
             </Card>
           )}
@@ -854,6 +906,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   description: { marginTop: 12 },
+  taskRow: { marginTop: 6 },
   divider: { marginVertical: 10 },
   infoRow: {
     flexDirection: 'row',

@@ -2399,6 +2399,8 @@ const frJSON = {
   pm_due_date_delay_value: '{{count}} jour après l’occurrence',
   pm_due_date_delay_value_plural: '{{count}} jours après l’occurrence',
   pm_generation_lead: 'Création de l’ordre de travail',
-  pm_due_date_delay: 'Échéance'
+  pm_due_date_delay: 'Échéance',
+  pm_tasks_load_error: "Impossible de charger les tâches de ce plan.",
+  pm_no_tasks: "Aucune tâche dans ce plan."
 };
 export default frJSON;

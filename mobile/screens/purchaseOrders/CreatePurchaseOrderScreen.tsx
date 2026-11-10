@@ -20,6 +20,7 @@ import { useAppTheme } from '../../custom-theme';
 import { CustomSnackBarContext } from '../../contexts/CustomSnackBarContext';
 import { useContext } from 'react';
 import CustomDateTimePicker from '../../components/CustomDateTimePicker';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 type OrderLine = {
   part: PartMiniDTO;
@@ -55,6 +56,10 @@ export default function CreatePurchaseOrderScreen({
   const [error, setError] = React.useState('');
   const [sites, setSites] = React.useState<SiteOption[]>([]);
   const [siteMenuLine, setSiteMenuLine] = React.useState<number | null>(null);
+  const isFormDirty =
+    Boolean(name.trim() || vendor || dueDate || shippingDetails.trim() || shippingAddress.trim()) ||
+    lines.length > 0;
+  const markFormClean = useUnsavedChanges(navigation, isFormDirty);
 
   React.useEffect(() => {
     let active = true;
@@ -140,6 +145,7 @@ export default function CreatePurchaseOrderScreen({
         approveOnSubmit: false
       });
       showSnackBar(t('po_create_success'), 'success');
+      markFormClean();
       navigation.goBack();
     } catch (e) {
       setError(getErrorMessage(e, t('po_create_failure')));

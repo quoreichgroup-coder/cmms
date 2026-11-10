@@ -2,6 +2,7 @@ import { logSafeError } from '../utils/safeErrorLog';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Font from 'expo-font';
 import { useEffect, useState } from 'react';
+import { qpmFontFiles } from '../theme/fonts';
 
 export default function useCachedResources() {
   const [isLoadingComplete, setLoadingComplete] = useState(false);
@@ -12,7 +13,8 @@ export default function useCachedResources() {
       try {
         // Load fonts
         await Font.loadAsync({
-          ...FontAwesome.font
+          ...FontAwesome.font,
+          ...qpmFontFiles
         });
       } catch (e) {
         // We might want to provide this error information to an error reporting service
