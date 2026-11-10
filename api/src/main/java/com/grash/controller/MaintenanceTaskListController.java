@@ -40,6 +40,8 @@ import java.util.*;
 public class MaintenanceTaskListController {
     private final MaintenanceTaskListService taskListService;
     private final MaintenanceTaskListConfigurationService configurationService;
+    // Creating or changing task lists is the MAINTENANCE_TASK_LISTS module; reading and deleting stay open.
+    private final com.grash.service.LicenseService licenseService;
 
     @GetMapping("/configuration")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
@@ -51,6 +53,7 @@ public class MaintenanceTaskListController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public MaintenanceTaskListConfigurationDTO updateConfiguration(
             @Valid @RequestBody MaintenanceTaskListConfigurationDTO configuration, @CurrentUser User user) {
+        licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.MAINTENANCE_TASK_LISTS);
         return configurationService.save(user, configuration);
     }
 
@@ -109,6 +112,7 @@ public class MaintenanceTaskListController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public ResponseEntity<MaintenanceTaskListDTO> create(@Valid @RequestBody MaintenanceTaskListDTO dto,
                                                           @CurrentUser User user) {
+        licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.MAINTENANCE_TASK_LISTS);
         if (!user.getRole().getCreatePermissions().contains(PermissionEntity.TASK_LISTS)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
@@ -119,6 +123,7 @@ public class MaintenanceTaskListController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public MaintenanceTaskListDTO update(@PathVariable Long id, @Valid @RequestBody MaintenanceTaskListDTO dto,
                                          @CurrentUser User user) {
+        licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.MAINTENANCE_TASK_LISTS);
         return taskListService.update(id, dto, user);
     }
 
@@ -173,6 +178,7 @@ public class MaintenanceTaskListController {
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     @Transactional
     public ResponseEntity<Map<String, Object>> importCsv(@RequestParam("file") MultipartFile file, @CurrentUser User user) throws Exception {
+        licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.MAINTENANCE_TASK_LISTS);
         if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024) throw new CustomException("task_list_import_file_invalid", HttpStatus.BAD_REQUEST);
         if (!user.getRole().getCreatePermissions().contains(PermissionEntity.TASK_LISTS)) throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         TreeMap<String, TreeMap<String, ImportCounter>> groups = new TreeMap<>();

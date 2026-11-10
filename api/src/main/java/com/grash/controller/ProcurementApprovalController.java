@@ -28,6 +28,7 @@ public class ProcurementApprovalController {
     private final PurchaseOrderRepository orders;
     private final PartQuantityService partQuantities;
     private final ProcurementSiteService procurementSites;
+    private final com.grash.service.LicenseService licenseService;
 
     private User administrator(HttpServletRequest request, boolean edit) {
         User user = users.whoami(request);
@@ -36,6 +37,8 @@ public class ProcurementApprovalController {
                 || edit && !user.getRole().getEditOtherPermissions().contains(PermissionEntity.SETTINGS)) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
+        // Configuring approval policies is the APPROVAL_WORKFLOWS module; deciding on pending documents is not.
+        if (edit) licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.APPROVAL_WORKFLOWS);
         return user;
     }
 

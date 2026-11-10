@@ -2404,6 +2404,7 @@ const frJSON = {
   pm_no_tasks: "Aucune tâche dans ce plan.",
   reading_lower_than_previous: "Ce compteur pilote un plan de maintenance préventive : un relevé ne peut pas être inférieur au précédent.",
   reading_lower_warning: "Inférieur au dernier relevé ({{last}}). Vérifiez la valeur.",
-  reading_jump_warning: "Plus de 10 fois le dernier relevé ({{last}}). Vérifiez la valeur."
+  reading_jump_warning: "Plus de 10 fois le dernier relevé ({{last}}). Vérifiez la valeur.",
+  license_entitlement_required: "Votre licence QPM n’inclut pas ce module. Contactez QUOREICH GROUP pour l’ajouter."
 };
 export default frJSON;

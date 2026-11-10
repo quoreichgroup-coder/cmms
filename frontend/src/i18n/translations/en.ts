@@ -3734,6 +3734,7 @@ const locale = {
   site_logo_unreadable: "The logo file could not be read. Upload it again.",
   site_logo_upload_error: "The site logo could not be saved.",
   site_logo_alt: "Logo of {{name}}",
+  license_entitlement_required: "Your QPM licence does not include this module. Contact QUOREICH GROUP to add it.",
   pdfme_work_orders_only:
     'The PDFME designer is currently available for Work Order templates only.',
   document_designer_binding_help:

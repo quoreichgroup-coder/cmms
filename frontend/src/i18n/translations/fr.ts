@@ -4023,6 +4023,7 @@ const frJSON = {
   site_logo_unreadable: "Le fichier du logo est illisible. Téléversez-le à nouveau.",
   site_logo_upload_error: "Le logo du site n’a pas pu être enregistré.",
   site_logo_alt: "Logo de {{name}}",
+  license_entitlement_required: "Votre licence QPM n’inclut pas ce module. Contactez QUOREICH GROUP pour l’ajouter.",
   pdfme_work_orders_only:
     'Le concepteur PDFME est actuellement réservé aux modèles d’ordres de travail.',
   document_designer_binding_help:

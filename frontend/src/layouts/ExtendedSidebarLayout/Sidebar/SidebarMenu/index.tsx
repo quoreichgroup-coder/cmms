@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from '../../../../store';
 import { getPendingRequestsCount } from '../../../../slices/request';
 import dayjs from 'dayjs';
 import { isCloudVersion } from 'src/config';
+import { hasLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
 import { SidebarContext } from 'src/contexts/SidebarContext';
 
 const MenuWrapper = styled(Box)(
@@ -336,6 +337,7 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const { desktopSidebarCollapsed } = useContext(SidebarContext);
   const sidebarCollapsed = desktopSidebarCollapsed && !forceExpanded;
   const { urgentCount } = useSelector((state) => state.workOrders);
+  const licensingState = useSelector((state) => state.license.state);
   const { pendingCount } = useSelector((state) => state.requests);
   const TRIAL_DAYS = 15;
   const daysPassed = dayjs().diff(dayjs(company.createdAt), 'day');
@@ -358,7 +360,8 @@ function SidebarMenu({ forceExpanded = false }: { forceExpanded?: boolean }) {
           : false) ||
         (item.permissionFallback ? hasViewPermission(item.permissionFallback) : false)
       : true;
-    const hasFeatureEnabled = item.planFeature ? hasFeature(item.planFeature) : true;
+    const hasFeatureEnabled = (item.planFeature ? hasFeature(item.planFeature) : true)
+      && (item.entitlement ? hasLicenseEntitlement(licensingState, item.entitlement) : true);
     const visibleInConfiguration = user.uiConfiguration && item.uiConfigKey
       ? user.uiConfiguration[item.uiConfigKey]
       : true;

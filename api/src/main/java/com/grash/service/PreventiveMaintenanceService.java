@@ -115,6 +115,7 @@ public class PreventiveMaintenanceService {
                 .ifPresent(message -> {
                     throw new CustomException(message, HttpStatus.BAD_REQUEST);
                 });
+        requireStrategyEntitlement(preventiveMaintenancePost.getPlanConfiguration(), null);
         checkUsageBasedLimit(user.getCompany());
         Company company = user.getCompany();
         Long nextSequence = customSequenceService.getNextPreventiveMaintenanceSequence(company);
@@ -192,6 +193,8 @@ public class PreventiveMaintenanceService {
                             requestedTasks, persistedTasks);
                 }
                 if (preventiveMaintenance.getPlanConfiguration() != null) {
+                    requireStrategyEntitlement(preventiveMaintenance.getPlanConfiguration(),
+                            savedPreventiveMaintenance.getSchedule().getPlanConfiguration());
                     validatePlanConfiguration(preventiveMaintenance.getPlanConfiguration(), user.getCompany(),
                             preventiveMaintenance.getTriggerType() == null ? savedPreventiveMaintenance.getSchedule().getTriggerType()
                                     : preventiveMaintenance.getTriggerType(),
@@ -259,6 +262,18 @@ public class PreventiveMaintenanceService {
                 return updatedPM;
             } else throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
         } else throw new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Strategy packages and multi-counter plans are the PM_STRATEGIES module. Only a new or changed advanced
+     * configuration needs it, so a customer without the module can still edit the rest of an existing plan.
+     */
+    private void requireStrategyEntitlement(PreventiveMaintenancePlanConfiguration requested,
+                                            PreventiveMaintenancePlanConfiguration current) {
+        if (requested == null || requested.getMode() == null
+                || requested.getMode() == PreventiveMaintenancePlanConfiguration.Mode.SINGLE) return;
+        if (current != null && String.valueOf(requested).equals(String.valueOf(current))) return;
+        licenseService.requireEntitlement(LicenseEntitlement.PM_STRATEGIES);
     }
 
     /** A calendar plan whose end is not after its start would be saved but never scheduled. */

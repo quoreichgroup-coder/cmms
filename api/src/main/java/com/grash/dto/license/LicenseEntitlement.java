@@ -75,5 +75,30 @@ public enum LicenseEntitlement {
     @Schema(description = "Request portal for submitting maintenance requests")
     REQUEST_PORTAL,
     @Schema(description = "Resource planning and workload view")
-    RESOURCE_PLANNING
+    RESOURCE_PLANNING,
+    // ---- QPM modules (licence catalogue version 2). Appended at the end: the order of earlier values is kept.
+    @Schema(description = "Purchase requisitions, purchase orders and receipts")
+    PROCUREMENT,
+    @Schema(description = "Multi-level approval policies for requisitions and purchase orders")
+    APPROVAL_WORKFLOWS,
+    @Schema(description = "Structured maintenance task lists (operations, components, counters)")
+    MAINTENANCE_TASK_LISTS,
+    @Schema(description = "PM strategy packages and multi-counter plans")
+    PM_STRATEGIES,
+    @Schema(description = "Custom document templates for work orders, requests, requisitions and purchase orders")
+    DOCUMENT_TEMPLATES,
+    @Schema(description = "Visual (PDFME) document designer")
+    VISUAL_DOCUMENT_DESIGNER,
+    @Schema(description = "Several sites with their own logo, language and time zone")
+    MULTI_SITE;
+
+    /**
+     * Modules added with licence catalogue version 2. Licences issued before it (no catalogVersion in the lease),
+     * instances without a QUOREICH licence and preview mode keep them, exactly as before the catalogue existed.
+     */
+    public static final java.util.Set<LicenseEntitlement> CATALOG_MODULES = java.util.EnumSet.of(PROCUREMENT,
+            APPROVAL_WORKFLOWS, MAINTENANCE_TASK_LISTS, PM_STRATEGIES, DOCUMENT_TEMPLATES, VISUAL_DOCUMENT_DESIGNER,
+            MULTI_SITE);
+
+    public static final int MODULE_CATALOG_VERSION = 2;
 }

@@ -45,4 +45,8 @@ public class LicensingState {
     private int seatsLight;
     @Schema(description = "Expiration of the signed offline activation lease")
     private Date leaseExpirationDate;
+
+    /** Licence catalogue version from the signed lease; 1 when absent (licence issued before the catalogue). */
+    @Builder.Default
+    private int catalogVersion = 1;
 }

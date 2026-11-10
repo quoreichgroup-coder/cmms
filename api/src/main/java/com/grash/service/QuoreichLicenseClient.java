@@ -232,6 +232,7 @@ public class QuoreichLicenseClient {
                     .seatsLight(lightSeats)
                     .usersCount(fullSeats + lightSeats)
                     .entitlements(entitlements)
+                    .catalogVersion(claims.path("catalogVersion").asInt(1))
                     .expirationDate(contractExpiry)
                     .leaseExpirationDate(Date.from(Instant.ofEpochSecond(leaseExpiresAt)))
                     .build();

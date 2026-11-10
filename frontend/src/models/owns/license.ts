@@ -30,8 +30,22 @@ const licenseEntitlements = [
   'UNLIMITED_ACTIVE_WORK_ORDERS',
   'UNLIMITED_CHECKLIST',
   'UNLIMITED_METERS',
-  'RESOURCE_PLANNING'
+  'RESOURCE_PLANNING',
+  // QPM modules sold through the licence catalogue (version 2).
+  'PROCUREMENT',
+  'APPROVAL_WORKFLOWS',
+  'MAINTENANCE_TASK_LISTS',
+  'PM_STRATEGIES',
+  'DOCUMENT_TEMPLATES',
+  'VISUAL_DOCUMENT_DESIGNER',
+  'MULTI_SITE'
 ] as const;
+
+/** Restricted only by a QUOREICH catalogue licence (catalogVersion >= 2); kept otherwise, as on the server. */
+export const CATALOG_MODULE_ENTITLEMENTS: readonly string[] = [
+  'PROCUREMENT', 'APPROVAL_WORKFLOWS', 'MAINTENANCE_TASK_LISTS', 'PM_STRATEGIES',
+  'DOCUMENT_TEMPLATES', 'VISUAL_DOCUMENT_DESIGNER', 'MULTI_SITE'
+];
 export type LicensingState = {
   hasLicense?: boolean;
   readOnly?: boolean;
@@ -44,5 +58,7 @@ export type LicensingState = {
   entitlements: LicenseEntitlement[];
   expirationDate: string;
   planName: string;
+  /** Licence catalogue version from the lease; 1 (or absent) = licence issued before the catalogue. */
+  catalogVersion?: number;
 };
 export type LicenseEntitlement = typeof licenseEntitlements[number];

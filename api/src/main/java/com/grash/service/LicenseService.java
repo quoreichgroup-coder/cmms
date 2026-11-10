@@ -136,8 +136,27 @@ public class LicenseService {
     }
 
     public boolean hasEntitlement(LicenseEntitlement entitlement) {
-        LicensingState state = getLicensingState();
+        return hasEntitlement(getLicensingState(), entitlement);
+    }
+
+    /**
+     * QPM modules (procurement, approvals, task lists, PM strategies, documents, multi-site) are only restricted by
+     * a QUOREICH catalogue licence (catalogVersion >= 2). Anything else keeps them, as before the catalogue.
+     */
+    static boolean hasEntitlement(LicensingState state, LicenseEntitlement entitlement) {
+        if (LicenseEntitlement.CATALOG_MODULES.contains(entitlement)
+                && (!state.isHasLicense() || state.getCatalogVersion() < LicenseEntitlement.MODULE_CATALOG_VERSION)) {
+            return true;
+        }
         return state.isValid() && state.getEntitlements().contains(entitlement.toString());
+    }
+
+    /** 403 with a stable key the web and mobile apps translate. */
+    public void requireEntitlement(LicenseEntitlement entitlement) {
+        if (!hasEntitlement(entitlement)) {
+            throw new com.grash.exception.CustomException("license_entitlement_required",
+                    org.springframework.http.HttpStatus.FORBIDDEN);
+        }
     }
 
     private boolean isCacheValid() {

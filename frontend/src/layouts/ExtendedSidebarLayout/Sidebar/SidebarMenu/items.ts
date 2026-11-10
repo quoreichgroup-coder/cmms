@@ -19,6 +19,7 @@ import BuildCircleOutlinedIcon from '@mui/icons-material/BuildCircleOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
+import type { LicenseEntitlement } from '../../../../models/owns/license';
 import { UiConfiguration } from '../../../../models/owns/uiConfiguration';
 
 export interface MenuItem {
@@ -31,6 +32,8 @@ export interface MenuItem {
   createPermission?: PermissionEntity;
   editOtherPermission?: PermissionEntity;
   planFeature?: PlanFeature;
+  /** Hidden when the licence does not include this module (see hasLicenseEntitlement). */
+  entitlement?: LicenseEntitlement;
   uiConfigKey?: keyof Omit<UiConfiguration, 'id'>;
   items?: MenuItem[];
   name: string;
@@ -77,7 +80,8 @@ const ownMenuItems: MenuItems[] = [
         link: '/app/task-lists',
         icon: BuildCircleOutlinedIcon,
         permission: PermissionEntity.TASK_LISTS,
-        planFeature: PlanFeature.PREVENTIVE_MAINTENANCE
+        planFeature: PlanFeature.PREVENTIVE_MAINTENANCE,
+        entitlement: 'MAINTENANCE_TASK_LISTS'
       }
     ]
   },
@@ -127,14 +131,16 @@ const ownMenuItems: MenuItems[] = [
         permission: PermissionEntity.PURCHASE_REQUISITIONS,
         createPermission: PermissionEntity.PURCHASE_REQUISITIONS,
         editOtherPermission: PermissionEntity.PURCHASE_REQUISITION_APPROVAL,
-        planFeature: PlanFeature.PURCHASE_ORDER
+        planFeature: PlanFeature.PURCHASE_ORDER,
+        entitlement: 'PROCUREMENT'
       },
       {
         name: 'purchase_orders',
         link: '/app/purchase-orders',
         icon: ReceiptOutlinedIcon,
         permission: PermissionEntity.PURCHASE_ORDERS,
-        planFeature: PlanFeature.PURCHASE_ORDER
+        planFeature: PlanFeature.PURCHASE_ORDER,
+        entitlement: 'PROCUREMENT'
       }
     ]
   },

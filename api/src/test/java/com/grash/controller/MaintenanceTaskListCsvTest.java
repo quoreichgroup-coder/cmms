@@ -40,12 +40,13 @@ class MaintenanceTaskListCsvTest {
 
     @Mock private MaintenanceTaskListService service;
     @Mock private MaintenanceTaskListConfigurationService configurationService;
+    @Mock private com.grash.service.LicenseService licenseService;
     private MaintenanceTaskListController controller;
     private User user;
 
     @BeforeEach
     void setUp() {
-        controller = new MaintenanceTaskListController(service, configurationService);
+        controller = new MaintenanceTaskListController(service, configurationService, licenseService);
         user = new User();
         user.setId(7L);
         user.setRole(Role.builder().createPermissions(Set.of(PermissionEntity.TASK_LISTS))

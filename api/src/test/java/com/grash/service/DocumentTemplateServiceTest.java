@@ -32,6 +32,7 @@ class DocumentTemplateServiceTest {
     @Mock private DocumentTypeRepository typeRepository;
     @Mock private ReportTemplateConfigurationValidator validator;
     @Mock private PdfmeTemplateConfigurationValidator pdfmeValidator;
+    @Mock private LicenseService licenseService;
     @InjectMocks private DocumentTemplateService service;
 
     @Test

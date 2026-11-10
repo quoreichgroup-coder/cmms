@@ -2210,6 +2210,7 @@ const locale = {
   pm_no_tasks: "No tasks in this plan.",
   reading_lower_than_previous: "This meter drives a preventive maintenance plan: a reading cannot be lower than the previous one.",
   reading_lower_warning: "Lower than the last reading ({{last}}). Check the value.",
-  reading_jump_warning: "More than 10 times the last reading ({{last}}). Check the value."
+  reading_jump_warning: "More than 10 times the last reading ({{last}}). Check the value.",
+  license_entitlement_required: "Your QPM licence does not include this module. Contact QUOREICH GROUP to add it."
 };
 export default locale;

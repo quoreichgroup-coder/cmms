@@ -29,10 +29,11 @@ class SiteServiceProcurementReferenceTest {
     @Mock FileService files;
     @Mock com.grash.mapper.FileMapper fileMapper;
     @Mock(answer = org.mockito.Answers.RETURNS_DEEP_STUBS) com.grash.factory.StorageServiceFactory storage;
+    @Mock LicenseService licenses;
 
     private SiteService service() {
         return new SiteService(sites, locations, assets, workOrders, preventiveMaintenances, documents,
-                partQuantities, requisitionLines, configurationAudit, files, fileMapper, storage);
+                partQuantities, requisitionLines, configurationAudit, files, fileMapper, storage, licenses);
     }
 
     @Test void preventsDeletingASiteReferencedByARequisitionLine() {
@@ -89,5 +90,18 @@ class SiteServiceProcurementReferenceTest {
 
         service().removeLogo(11L, user);
         assertNull(site.getLogo());
+    }
+
+    @Test void secondSiteNeedsTheMultiSiteEntitlement() {
+        Company company = new Company(); company.setId(7L);
+        User user = new User(); user.setCompany(company);
+        Site existing = new Site(); existing.setId(1L); existing.setCompany(company);
+        when(sites.findByCompany_IdOrderByNameAsc(7L)).thenReturn(java.util.List.of(existing));
+        doThrow(new CustomException("license_entitlement_required", org.springframework.http.HttpStatus.FORBIDDEN))
+                .when(licenses).requireEntitlement(com.grash.dto.license.LicenseEntitlement.MULTI_SITE);
+        com.grash.dto.SiteDTO input = new com.grash.dto.SiteDTO(); input.setName("Usine 2"); input.setCode("U2");
+
+        assertThrows(CustomException.class, () -> service().create(input, user));
+        verify(sites, never()).save(any());
     }
 }

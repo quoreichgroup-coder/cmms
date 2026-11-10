@@ -37,6 +37,7 @@ public class SiteService {
     private final FileService fileService;
     private final com.grash.mapper.FileMapper fileMapper;
     private final com.grash.factory.StorageServiceFactory storageServiceFactory;
+    private final LicenseService licenseService;
 
     @Transactional(readOnly = true)
     public List<SiteDTO> list(User user) {
@@ -47,6 +48,9 @@ public class SiteService {
 
     @Transactional
     public SiteDTO create(SiteDTO input, User user) {
+        // The first site is always allowed; additional ones are the MULTI_SITE module.
+        if (!siteRepository.findByCompany_IdOrderByNameAsc(user.getCompany().getId()).isEmpty())
+            licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.MULTI_SITE);
         String code = input.getCode().trim().toUpperCase(java.util.Locale.ROOT);
         if (siteRepository.existsByCompany_IdAndCodeIgnoreCase(user.getCompany().getId(), code))
             throw new CustomException("Site code already exists", HttpStatus.CONFLICT);

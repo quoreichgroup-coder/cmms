@@ -41,6 +41,7 @@ public class DocumentTemplateService {
     private final WorkOrderService workOrderService;
     private final DocumentContextResolver documentContextResolver;
     private final DocumentDataProviderRegistry providerRegistry;
+    private final LicenseService licenseService;
 
     @Transactional(readOnly = true)
     public List<DocumentTemplateDTO> list(User user) {
@@ -199,6 +200,7 @@ public class DocumentTemplateService {
         if (template.getStatus() == DocumentTemplateStatus.ARCHIVED) bad("Archived templates cannot be published");
         DocumentTemplateVersion draft = template.getDraftVersion();
         if (draft == null || draft.getStatus() != DocumentTemplateStatus.DRAFT) bad("A valid draft is required before publishing");
+        requireTemplateEntitlements(draft.getConfiguration());
         validateConfiguration(draft.getConfiguration(), template.getDocumentType());
         if (makeDefault) templateRepository.clearDefaultForScope(user.getCompany().getId(),
                 template.getDocumentType().getId(), template.getDefaultScope(),
@@ -252,9 +254,17 @@ public class DocumentTemplateService {
     }
 
     private JsonNode validateDraft(JsonNode configuration, DocumentType type) {
+        requireTemplateEntitlements(configuration);
         if (PdfmeTemplateConfigurationValidator.isPdfme(configuration))
             return pdfmeValidator.validate(configuration, type.getCode(), type.getProviderCode());
         return validator.validateDraft(configuration, type.getCode(), type.getProviderCode());
+    }
+
+    /** Custom templates are DOCUMENT_TEMPLATES; visual (PDFME) ones also VISUAL_DOCUMENT_DESIGNER. Issuing stays open. */
+    private void requireTemplateEntitlements(JsonNode configuration) {
+        licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.DOCUMENT_TEMPLATES);
+        if (PdfmeTemplateConfigurationValidator.isPdfme(configuration))
+            licenseService.requireEntitlement(com.grash.dto.license.LicenseEntitlement.VISUAL_DOCUMENT_DESIGNER);
     }
 
     private JsonNode validateConfiguration(JsonNode configuration, DocumentType type) {
