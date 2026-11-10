@@ -632,6 +632,27 @@ export default function PreventiveMaintenanceDetailsScreen({
                 >
                   {t(meterBased ? 'pm_meter_based' : 'pm_calendar_based')}
                 </Chip>
+                {pm.schedule?.disabled ? (
+                  <View style={styles.pausedNotice}>
+                    <Chip
+                      compact
+                      icon="pause-circle-outline"
+                      style={[
+                        styles.triggerChip,
+                        { backgroundColor: theme.colors.surfaceVariant }
+                      ]}
+                      textStyle={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {t('pm_status_paused')}
+                    </Chip>
+                    <Text
+                      variant="bodySmall"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {t('pm_paused_banner')}
+                    </Text>
+                  </View>
+                ) : null}
                 <Divider style={styles.divider} />
                 <Info label={t('priority')} value={t(pm.priority)} />
                 <Info label={t('asset_name')} value={pm.asset?.name || '—'} />
@@ -646,6 +667,10 @@ export default function PreventiveMaintenanceDetailsScreen({
                 <Info label={t('pm_schedule')} value={scheduleLabel} />
                 {meterBased ? (
                   <>
+                    <Info
+                      label={t('pm_meter')}
+                      value={pm.schedule.meterName || '—'}
+                    />
                     <Info
                       label={t('pm_next_threshold')}
                       value={
@@ -681,6 +706,31 @@ export default function PreventiveMaintenanceDetailsScreen({
                         value={getFormattedDate(pm.schedule.endsOn, true)}
                       />
                     )}
+                    <Info
+                      label={t('recurrence_based_on')}
+                      value={t(
+                        pm.schedule?.recurrenceBasedOn === 'COMPLETED_DATE'
+                          ? 'completed_on'
+                          : 'scheduled_date'
+                      )}
+                    />
+                    {pm.schedule?.workOrderGenerationLeadDays > 0 && (
+                      <Info
+                        label={t('pm_generation_lead')}
+                        value={t('pm_lead_days_value', {
+                          count: pm.schedule.workOrderGenerationLeadDays
+                        })}
+                      />
+                    )}
+                    {pm.schedule?.dueDateDelay != null &&
+                      pm.schedule.dueDateDelay > 0 && (
+                        <Info
+                          label={t('pm_due_date_delay')}
+                          value={t('pm_due_date_delay_value', {
+                            count: pm.schedule.dueDateDelay
+                          })}
+                        />
+                      )}
                     <Info
                       label={t('pm_next_occurrence')}
                       value={
@@ -720,8 +770,12 @@ export default function PreventiveMaintenanceDetailsScreen({
                       <Info
                         key={cycle.code}
                         label={cycle.name || cycle.code}
-                        value={`${cycle.interval} · ${t('pm_meter')} #${
-                          cycle.meterId ?? '—'
+                        value={`${cycle.interval} · ${t('pm_meter')} ${
+                          cycle.meterId != null &&
+                          cycle.meterId === pm.schedule.meterId &&
+                          pm.schedule.meterName
+                            ? pm.schedule.meterName
+                            : `#${cycle.meterId ?? '—'}`
                         }`}
                       />
                     ))}
@@ -785,6 +839,10 @@ const styles = StyleSheet.create({
   pmName: { fontWeight: '700' },
   title: { marginTop: 4 },
   identifier: { marginTop: 4 },
+  pausedNotice: {
+    gap: 4,
+    marginTop: 8
+  },
   triggerChip: { alignSelf: 'flex-start', marginTop: 12 },
   statusChip: { alignSelf: 'flex-start', marginTop: 8, marginBottom: 4 },
   relatedWorkOrderButton: {

@@ -4,6 +4,7 @@ import com.grash.advancedsearch.FilterField;
 import com.grash.advancedsearch.SearchCriteria;
 import com.grash.advancedsearch.SpecificationBuilder;
 import com.grash.dto.CalendarEvent;
+import com.grash.dto.SchedulePatchDTO;
 import com.grash.dto.PreventiveMaintenanceCallDTO;
 import com.grash.dto.PreventiveMaintenanceCallAnalyticsDTO;
 import com.grash.dto.PreventiveMaintenanceCallRescheduleDTO;
@@ -1039,6 +1040,35 @@ public class PreventiveMaintenanceService {
         scheduleService.scheduleDeferredOccurrence(call);
         scheduleService.refreshCalendarCallRegister(call.getSchedule());
         return toMeterCallDTO(call, List.of(event));
+    }
+
+    /**
+     * Direct schedule edit (PATCH /schedules/{id}), held to the same rules as editing the plan: company and
+     * site scoping, edit rights, a valid period, and a reschedule only when the timing changed.
+     */
+    @Transactional
+    public Schedule patchSchedule(Long scheduleId, SchedulePatchDTO patch, User user) {
+        Schedule schedule = scheduleService.findById(scheduleId)
+                .filter(found -> found.getPreventiveMaintenance() != null
+                        && found.getPreventiveMaintenance().getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Schedule not found", HttpStatus.NOT_FOUND));
+        PreventiveMaintenance preventiveMaintenance = schedule.getPreventiveMaintenance();
+        checkAccessToPreventiveMaintenance(user, preventiveMaintenance);
+        if (!preventiveMaintenance.canBeEditedBy(user))
+            throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        if (patch.getPlanConfiguration() != null)
+            throw new CustomException("Change the plan configuration through the preventive maintenance.",
+                    HttpStatus.BAD_REQUEST);
+        if (patch.getFrequency() < 1)
+            throw new CustomException("The frequency must be at least 1.", HttpStatus.BAD_REQUEST);
+        List<Object> before = scheduleFingerprint(schedule);
+        Schedule updated = scheduleService.update(scheduleId, patch);
+        requireEndAfterStart(updated);
+        if (!before.equals(scheduleFingerprint(updated))) {
+            scheduleService.reScheduleWorkOrder(updated);
+            syncMeterCallRegister(updated);
+        }
+        return updated;
     }
 
     /** Explicit pause/resume of work order generation; history and register are kept. */

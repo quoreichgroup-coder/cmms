@@ -2389,6 +2389,16 @@ const frJSON = {
   request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.',
   work_order_reopen_required: 'Cet ordre de travail est terminé. Rouvrez-le avant de changer son statut.',
   signature_required_on_completion: 'Une signature est requise pour terminer cet ordre de travail.',
-  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.'
+  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.',
+  pm_status_paused: 'En pause',
+  pm_paused_banner: 'Plan en pause : aucun ordre de travail ne sera généré tant qu’il n’est pas repris.',
+  recurrence_based_on: 'Récurrence basée sur',
+  scheduled_date: 'Date prévue',
+  pm_lead_days_value: '{{count}} jour avant l’échéance',
+  pm_lead_days_value_plural: '{{count}} jours avant l’échéance',
+  pm_due_date_delay_value: '{{count}} jour après l’occurrence',
+  pm_due_date_delay_value_plural: '{{count}} jours après l’occurrence',
+  pm_generation_lead: 'Création de l’ordre de travail',
+  pm_due_date_delay: 'Échéance'
 };
 export default frJSON;

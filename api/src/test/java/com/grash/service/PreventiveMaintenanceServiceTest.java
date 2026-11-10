@@ -1108,4 +1108,56 @@ class PreventiveMaintenanceServiceTest {
             assertTrue(occurrences.contains(moved));
         }
     }
+
+    @Nested
+    class PatchScheduleTests {
+
+        private com.grash.dto.SchedulePatchDTO patchFrom(Schedule schedule) {
+            com.grash.dto.SchedulePatchDTO patch = new com.grash.dto.SchedulePatchDTO();
+            patch.setStartsOn(schedule.getStartsOn());
+            patch.setFrequency(schedule.getFrequency());
+            patch.setRecurrenceType(schedule.getRecurrenceType());
+            patch.setRecurrenceBasedOn(schedule.getRecurrenceBasedOn());
+            return patch;
+        }
+
+        @Test
+        void scheduleOfAnotherCompanyIsNotFound() {
+            PreventiveMaintenance pm = buildPM(1L);
+            Company other = new Company("Other", 1, null);
+            other.setId(2L);
+            pm.setCompany(other);
+            when(scheduleService.findById(100L)).thenReturn(Optional.of(pm.getSchedule()));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> preventiveMaintenanceService.patchSchedule(100L, patchFrom(pm.getSchedule()), user));
+
+            assertEquals(HttpStatus.NOT_FOUND, ex.getHttpStatus());
+            verify(scheduleService, never()).update(anyLong(), any());
+        }
+
+        @Test
+        void zeroFrequencyIsRejected() {
+            PreventiveMaintenance pm = buildPM(1L);
+            when(scheduleService.findById(100L)).thenReturn(Optional.of(pm.getSchedule()));
+            com.grash.dto.SchedulePatchDTO patch = patchFrom(pm.getSchedule());
+            patch.setFrequency(0);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> preventiveMaintenanceService.patchSchedule(100L, patch, user));
+
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getHttpStatus());
+        }
+
+        @Test
+        void unchangedTimingDoesNotReschedule() {
+            PreventiveMaintenance pm = buildPM(1L);
+            when(scheduleService.findById(100L)).thenReturn(Optional.of(pm.getSchedule()));
+            when(scheduleService.update(eq(100L), any())).thenReturn(pm.getSchedule());
+
+            preventiveMaintenanceService.patchSchedule(100L, patchFrom(pm.getSchedule()), user);
+
+            verify(scheduleService, never()).reScheduleWorkOrder(any());
+        }
+    }
 }

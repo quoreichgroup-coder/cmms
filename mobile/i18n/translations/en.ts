@@ -2195,6 +2195,16 @@ const locale = {
   request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.',
   work_order_reopen_required: 'This work order is completed. Reopen it before changing its status.',
   signature_required_on_completion: 'A signature is required to complete this work order.',
-  required_completion_data_missing: 'Some data required to complete this work order is missing.'
+  required_completion_data_missing: 'Some data required to complete this work order is missing.',
+  pm_status_paused: 'Paused',
+  pm_paused_banner: 'Plan paused: no work orders will be generated until it is resumed.',
+  recurrence_based_on: 'Recurrence based on',
+  scheduled_date: 'Scheduled date',
+  pm_lead_days_value: '{{count}} day before the due date',
+  pm_lead_days_value_plural: '{{count}} days before the due date',
+  pm_due_date_delay_value: '{{count}} day after the occurrence',
+  pm_due_date_delay_value_plural: '{{count}} days after the occurrence',
+  pm_generation_lead: 'Work order created',
+  pm_due_date_delay: 'Due date'
 };
 export default locale;

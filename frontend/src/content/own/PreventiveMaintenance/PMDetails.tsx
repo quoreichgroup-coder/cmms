@@ -80,6 +80,13 @@ export default function PMDetails({
   const dateLocale = useDateLocale();
   const { hasEditPermission, hasDeletePermission, hasCreatePermission } =
     useAuth();
+  // Each action is offered only when the API would accept it for this user.
+  const canCopy = hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES);
+  const canTrigger = hasCreatePermission(PermissionEntity.WORK_ORDERS);
+  const canPause = hasEditPermission(
+    PermissionEntity.PREVENTIVE_MAINTENANCES,
+    preventiveMaintenance
+  );
   const navigate = useNavigate();
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
@@ -241,8 +248,7 @@ export default function PMDetails({
         <Box
           sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}
         >
-          {(hasCreatePermission(PermissionEntity.PREVENTIVE_MAINTENANCES) ||
-            hasCreatePermission(PermissionEntity.WORK_ORDERS)) && (
+          {(canCopy || canTrigger || canPause) && (
             <IconButton
               aria-label={t('actions')}
               style={{ marginRight: 10 }}
@@ -661,31 +667,32 @@ export default function PMDetails({
         </div>
       )}
       <Menu anchorEl={anchorEl} open={openMenu} onClose={handleCloseMenu}>
-        <MenuItem
-          onClick={() => {
-            onCopy(preventiveMaintenance);
-            handleCloseMenu();
-          }}
-        >
-          <Stack spacing={2} direction="row">
-            <ContentCopyOutlined />
-            <Typography variant="h6">{t('copy')}</Typography>
-          </Stack>
-        </MenuItem>
-        <MenuItem disabled={triggering} onClick={handleTriggerWorkOrder}>
-          <Stack spacing={2} direction="row">
-            {triggering ? (
-              <CircularProgress size="1rem" />
-            ) : (
-              <PlayArrowOutlinedIcon />
-            )}
-            <Typography variant="h6">{t('trigger_work_order')}</Typography>
-          </Stack>
-        </MenuItem>
-        {hasEditPermission(
-          PermissionEntity.PREVENTIVE_MAINTENANCES,
-          preventiveMaintenance
-        ) && (
+        {canCopy && (
+          <MenuItem
+            onClick={() => {
+              onCopy(preventiveMaintenance);
+              handleCloseMenu();
+            }}
+          >
+            <Stack spacing={2} direction="row">
+              <ContentCopyOutlined />
+              <Typography variant="h6">{t('copy')}</Typography>
+            </Stack>
+          </MenuItem>
+        )}
+        {canTrigger && (
+          <MenuItem disabled={triggering} onClick={handleTriggerWorkOrder}>
+            <Stack spacing={2} direction="row">
+              {triggering ? (
+                <CircularProgress size="1rem" />
+              ) : (
+                <PlayArrowOutlinedIcon />
+              )}
+              <Typography variant="h6">{t('trigger_work_order')}</Typography>
+            </Stack>
+          </MenuItem>
+        )}
+        {canPause && (
           <MenuItem disabled={togglingPause} onClick={handleTogglePause}>
             <Stack spacing={2} direction="row">
               {togglingPause ? (
