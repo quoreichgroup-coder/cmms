@@ -215,4 +215,12 @@ export const getSupportedLanguage = (lang: string) =>
   supportedLanguages.find(({ code }) => code === lang) ??
   supportedLanguages.find(({ code }) => code === 'en')!;
 
+// Keep <html lang> in sync for screen readers, hyphenation and browser spell checking.
+const syncDocumentLanguage = (language?: string) => {
+  if (typeof document !== 'undefined' && language)
+    document.documentElement.lang = language.split(/[-_]/)[0];
+};
+i18n.on('languageChanged', syncDocumentLanguage);
+syncDocumentLanguage(i18n.language);
+
 export default i18n;
