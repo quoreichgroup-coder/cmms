@@ -18,6 +18,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class CurrencyService {
+    @org.springframework.beans.factory.annotation.Value("${qpm.default-currency:${QPM_DEFAULT_CURRENCY:XOF}}")
+    private String defaultCurrencyCode;
     private final CurrencyRepository currencyRepository;
     private final CurrencyMapper currencyMapper;
 
@@ -58,6 +60,17 @@ public class CurrencyService {
 
     public Optional<Currency> findById(Long id) {
         return currencyRepository.findById(id);
+    }
+
+    /**
+     * Currency given to a newly created company: the deployment default (XOF for QPM deployments in the
+     * UEMOA zone, overridable with QPM_DEFAULT_CURRENCY), falling back to the dollar seed currency.
+     */
+    public Currency defaultForNewCompany() {
+        Optional<Currency> configured = defaultCurrencyCode == null || defaultCurrencyCode.isBlank()
+                ? Optional.empty() : findByCode(defaultCurrencyCode.trim());
+        if (configured != null && configured.isPresent()) return configured.get();
+        return findByCode("$").orElseThrow();
     }
 
     public Optional<Currency> findByCode(String code) {

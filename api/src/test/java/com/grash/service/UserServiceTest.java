@@ -290,7 +290,7 @@ class UserServiceTest {
             when(licenseService.getLicensingState()).thenReturn(
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -313,7 +313,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -343,7 +343,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -439,6 +439,30 @@ class UserServiceTest {
 
             assertTrue(response.isSuccess());
             assertNotNull(response.getUser());
+        }
+
+        @Test
+        void newFrenchCompany_usesDayMonthYearAndDeploymentCurrency() {
+            signupRequest.setLanguage(Language.FR);
+            com.grash.model.Currency xof = new com.grash.model.Currency();
+            xof.setCode("XOF");
+            when(userMapper.toModel(signupRequest)).thenReturn(mappedUser);
+            when(userRepository.existsByEmailIgnoreCase("new@test.com")).thenReturn(false);
+            when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+            when(subscriptionPlanService.findByCode("BUSINESS")).thenReturn(Optional.of(new SubscriptionPlan()));
+            when(currencyService.defaultForNewCompany()).thenReturn(xof);
+            org.mockito.ArgumentCaptor<Company> created = org.mockito.ArgumentCaptor.forClass(Company.class);
+
+            try {
+                userService.signup(signupRequest);
+            } catch (RuntimeException ignored) {
+                // Later signup steps are not stubbed here; only the company defaults matter.
+            }
+
+            verify(companyService).create(created.capture());
+            GeneralPreferences preferences = created.getValue().getCompanySettings().getGeneralPreferences();
+            assertEquals(com.grash.model.enums.DateFormat.DDMMYY, preferences.getDateFormat());
+            assertEquals("XOF", preferences.getCurrency().getCode());
         }
 
         @Test
@@ -615,7 +639,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -641,7 +665,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -673,7 +697,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -703,7 +727,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -819,7 +843,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency currency = new com.grash.model.Currency();
             currency.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(currency));
+            when(currencyService.defaultForNewCompany()).thenReturn(currency);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             when(verificationTokenRepository.save(any(VerificationToken.class))).thenReturn(null);
@@ -849,7 +873,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency ccy = new com.grash.model.Currency();
             ccy.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(ccy));
+            when(currencyService.defaultForNewCompany()).thenReturn(ccy);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(jwtTokenProvider.createToken(eq("new@test.com"), anyList()))
                     .thenReturn("signup-token");
@@ -944,7 +968,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency ccy = new com.grash.model.Currency();
             ccy.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(ccy));
+            when(currencyService.defaultForNewCompany()).thenReturn(ccy);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             when(verificationTokenRepository.save(any(VerificationToken.class))).thenReturn(null);
@@ -975,7 +999,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency ccy = new com.grash.model.Currency();
             ccy.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(ccy));
+            when(currencyService.defaultForNewCompany()).thenReturn(ccy);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             when(verificationTokenRepository.save(any(VerificationToken.class))).thenReturn(null);
@@ -1008,7 +1032,7 @@ class UserServiceTest {
                     LicensingState.builder().hasLicense(false).usersCount(0).build());
             com.grash.model.Currency ccy = new com.grash.model.Currency();
             ccy.setCode("$");
-            when(currencyService.findByCode("$")).thenReturn(Optional.of(ccy));
+            when(currencyService.defaultForNewCompany()).thenReturn(ccy);
             when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(role));
             when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             doNothing().when(cacheService).putUserInCache(any());

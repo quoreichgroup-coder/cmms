@@ -34,6 +34,7 @@ services:
       - license_cache:/app/license-cache
     environment:
       DB_URL: postgres/atlas
+      QPM_DEFAULT_CURRENCY: ${QPM_DEFAULT_CURRENCY:-XOF}
       DB_USER: ${POSTGRES_USER}
       DB_PWD: ${POSTGRES_PWD}
       PUBLIC_API_URL: ${PUBLIC_SERVER_URL}/api

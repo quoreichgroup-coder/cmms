@@ -251,9 +251,13 @@ public class UserService {
         subscriptionService.create(subscription);
         Company company = new Company(userReq.getCompanyName(), userReq.getEmployeesCount(), subscription);
         company.setDemo(Boolean.TRUE.equals(userReq.getDemo()));
-        company.getCompanySettings().getGeneralPreferences().setCurrency(currencyService.findByCode("$").get());
-        if (userReq.getLanguage() != null)
+        company.getCompanySettings().getGeneralPreferences().setCurrency(currencyService.defaultForNewCompany());
+        if (userReq.getLanguage() != null) {
             company.getCompanySettings().getGeneralPreferences().setLanguage(userReq.getLanguage());
+            // French-speaking companies read dates as day/month/year.
+            if (userReq.getLanguage() == com.grash.model.enums.Language.FR)
+                company.getCompanySettings().getGeneralPreferences().setDateFormat(com.grash.model.enums.DateFormat.DDMMYY);
+        }
         if (userReq.getTimeZone() != null)
             company.getCompanySettings().getGeneralPreferences().setTimeZone(userReq.getTimeZone());
         companyService.create(company);

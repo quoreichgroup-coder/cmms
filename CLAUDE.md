@@ -59,7 +59,7 @@ Production request path: Caddy (TLS) → nginx (routing) → `frontend` / `api`;
 
 - Brand tokens are centralized in `frontend/src/theme/tokens.ts` and `mobile/theme/tokens.ts`: primary `#0062DB`, accent `#FF8A51`. Source PDF and rules: `docs/assets/identite-visuelle-quoreich-group.pdf`, `docs/CHARTE-VISUELLE-QPM.md`.
 - The orange is decorative only: never use it as text on white (2.33:1 contrast). Status/priority/approval colors are semantic and must not be replaced by brand colors.
-- Brand fonts (Montserrat for UI, Playfair Display for brand titles) are not yet bundled. Bundle them locally before using them, never load them from an external CDN at runtime.
+- Web uses Montserrat bundled from `@fontsource/montserrat` (imported in `frontend/src/index.tsx`); mobile still uses system fonts. Never load fonts from an external CDN at runtime (`frontend/scripts/web-typography.test.cjs` guards this).
 - UI/UX working conventions: `docs/design.md`.
 
 ## Rebrand constraints

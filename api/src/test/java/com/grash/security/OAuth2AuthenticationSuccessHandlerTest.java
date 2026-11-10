@@ -308,7 +308,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
                             .features(new HashSet<>(Set.of(PlanFeatures.API_ACCESS)))
                             .build()));
             lenient().when(subscriptionService.create(any(Subscription.class))).thenAnswer(inv -> inv.getArgument(0));
-            lenient().when(currencyService.findByCode("$")).thenReturn(Optional.of(new com.grash.model.Currency()));
+            lenient().when(currencyService.defaultForNewCompany()).thenReturn(new com.grash.model.Currency());
             lenient().when(companyService.create(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
             lenient().when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
             lenient().when(roleService.findDefaultRoleWithCode(RoleCode.ADMIN)).thenReturn(Optional.of(adminRole));
