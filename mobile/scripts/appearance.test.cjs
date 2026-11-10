@@ -492,8 +492,11 @@ test('maintenance status and priority helpers keep their semantic token mapping'
       }
     };
 
-    assert.equal(getStatusColor('OPEN', theme), colors.neutral);
-    assert.equal(getStatusForegroundColor('OPEN', theme), colors.onNeutral);
+    // Open work orders use the same blue as the web status chips, not the neutral grey.
+    assert.equal(getStatusColor('OPEN', theme), colors.open);
+    assert.equal(getStatusForegroundColor('OPEN', theme), colors.onOpen);
+    assert.ok(contrastRatio(colors.onOpen, colors.open) >= 4.5, mode);
+    assert.ok(contrastRatio(colors.onOpenContainer, colors.openContainer) >= 4.5, mode);
     assert.equal(getStatusColor('IN_PROGRESS', theme), colors.inProgress);
     assert.equal(
       getStatusForegroundColor('IN_PROGRESS', theme),

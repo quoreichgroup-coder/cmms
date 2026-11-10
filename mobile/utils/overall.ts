@@ -177,7 +177,7 @@ export const getStatusColor = (
   switch (status) {
     case 'OPEN':
       // @ts-ignore QPM semantic palette extension
-      return theme.colors.neutral;
+      return theme.colors.open;
     case 'IN_PROGRESS':
       // @ts-ignore
       return theme.colors.inProgress;
@@ -204,7 +204,7 @@ export const getStatusForegroundColor = (
   switch (status) {
     case 'OPEN':
       // @ts-ignore QPM semantic palette extension
-      return theme.colors.onNeutral;
+      return theme.colors.onOpen;
     case 'IN_PROGRESS':
       // @ts-ignore QPM semantic palette extension
       return theme.colors.onInProgress;
@@ -231,7 +231,8 @@ export const getStatusContainerColor = (
 ): string => {
   switch (status) {
     case 'OPEN':
-      return theme.colors.surfaceVariant;
+      // @ts-ignore QPM semantic palette extension
+      return theme.colors.openContainer;
     case 'ON_HOLD':
       // @ts-ignore QPM semantic palette extension
       return theme.colors.warningContainer;
