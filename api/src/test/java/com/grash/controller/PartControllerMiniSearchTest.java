@@ -59,7 +59,12 @@ class PartControllerMiniSearchTest {
         FilterField queryFilter = criteria.getFilterFields().get(0);
         assertEquals("barcode", queryFilter.getField());
         assertEquals("seal", queryFilter.getValue());
-        assertEquals("contains", queryFilter.getOperation());
+        assertEquals("cn", queryFilter.getOperation());
+        // Every operation must be one the search engine knows, or the API answers "Invalid search field".
+        java.util.stream.Stream.concat(java.util.stream.Stream.of(queryFilter), queryFilter.getAlternatives().stream())
+                .forEach(field -> assertNotNull(
+                        com.grash.advancedsearch.SearchOperation.getSimpleOperation(field.getOperation()),
+                        "unknown search operation for " + field.getField() + ": " + field.getOperation()));
         assertEquals(List.of("name", "description"), queryFilter.getAlternatives().stream().map(FilterField::getField).toList());
         assertEquals(1, result.getTotalElements());
     }

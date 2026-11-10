@@ -106,8 +106,8 @@ public class PartController {
         criteria.setSortField("name");
         criteria.setDirection(Sort.Direction.ASC);
         java.util.List<com.grash.advancedsearch.FilterField> alternatives = new java.util.ArrayList<>(java.util.List.of(
-                        com.grash.advancedsearch.FilterField.builder().field("name").value(term).operation("contains").build(),
-                        com.grash.advancedsearch.FilterField.builder().field("description").value(term).operation("contains").build()));
+                        com.grash.advancedsearch.FilterField.builder().field("name").value(term).operation("cn").build(),
+                        com.grash.advancedsearch.FilterField.builder().field("description").value(term).operation("cn").build()));
         if (term.chars().allMatch(Character::isDigit)) {
             try {
                 alternatives.add(com.grash.advancedsearch.FilterField.builder()
@@ -117,7 +117,7 @@ public class PartController {
             }
         }
         criteria.getFilterFields().add(com.grash.advancedsearch.FilterField.builder()
-                .field("barcode").value(term).operation("contains")
+                .field("barcode").value(term).operation("cn")
                 .alternatives(alternatives)
                 .build());
         SearchCriteria scopedCriteria = partService.getSearchCriteria(user, criteria);
