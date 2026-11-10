@@ -4433,7 +4433,11 @@ const frJSON = {
   work_order_reopen_required: 'Cet ordre de travail est terminé. Rouvrez-le avant de changer son statut.',
   signature_required_on_completion: 'Une signature est requise pour terminer cet ordre de travail.',
   required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.',
-  locations_load_error: 'Les emplacements n’ont pas pu être chargés.'
+  locations_load_error: 'Les emplacements n’ont pas pu être chargés.',
+  pm_pause: 'Mettre le plan en pause',
+  pm_resume: 'Reprendre le plan',
+  pm_paused: 'Plan en pause : aucun ordre de travail ne sera généré tant qu’il n’est pas repris.',
+  pm_resumed: 'Plan repris : les prochains ordres de travail sont à nouveau planifiés.'
 };
 
 export default frJSON;

@@ -568,7 +568,7 @@ class PreventiveMaintenanceServiceTest {
         }
 
         @Test
-        void patch_enablesScheduleAfterUpdate() {
+        void patch_keepsAPausedPlanPaused() {
             PreventiveMaintenance pm = buildPM(1L);
             pm.getSchedule().setDisabled(true);
             PreventiveMaintenancePatchDTO patchDTO = new PreventiveMaintenancePatchDTO();
@@ -580,7 +580,33 @@ class PreventiveMaintenanceServiceTest {
 
             preventiveMaintenanceService.patch(1L, patchDTO, user);
 
-            assertFalse(pm.getSchedule().isDisabled());
+            assertTrue(pm.getSchedule().isDisabled(), "only an explicit resume reactivates a paused plan");
+        }
+    }
+
+    @Nested
+    class PauseResumeTests {
+
+        @Test
+        void pause_disablesTheScheduleAndReschedulesIt() {
+            PreventiveMaintenance pm = buildPM(1L);
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
+
+            preventiveMaintenanceService.setPaused(1L, true, user);
+
+            assertTrue(pm.getSchedule().isDisabled());
+            verify(scheduleService).save(pm.getSchedule());
+            verify(scheduleService).reScheduleWorkOrder(pm.getSchedule());
+        }
+
+        @Test
+        void resumingAPlanThatIsNotPaused_changesNothing() {
+            PreventiveMaintenance pm = buildPM(1L);
+            when(preventiveMaintenanceRepository.findByIdAndCompany_Id(1L, 1L)).thenReturn(Optional.of(pm));
+
+            preventiveMaintenanceService.setPaused(1L, false, user);
+
+            verify(scheduleService, never()).reScheduleWorkOrder(any());
         }
     }
 

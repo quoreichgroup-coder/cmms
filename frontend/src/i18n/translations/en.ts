@@ -4114,7 +4114,11 @@ const locale = {
   work_order_reopen_required: 'This work order is completed. Reopen it before changing its status.',
   signature_required_on_completion: 'A signature is required to complete this work order.',
   required_completion_data_missing: 'Some data required to complete this work order is missing.',
-  locations_load_error: 'Locations could not be loaded.'
+  locations_load_error: 'Locations could not be loaded.',
+  pm_pause: 'Pause the plan',
+  pm_resume: 'Resume the plan',
+  pm_paused: 'Plan paused: no work orders will be generated until it is resumed.',
+  pm_resumed: 'Plan resumed: upcoming work orders are scheduled again.'
 };
 
 export default locale;

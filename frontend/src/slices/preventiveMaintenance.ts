@@ -194,6 +194,21 @@ export const editPreventiveMaintenance =
       })
     );
   };
+/** Stops or restarts work order generation for a plan (explicit pause, history is kept). */
+export const setPreventiveMaintenancePaused =
+  (id: number, paused: boolean): AppThunk =>
+  async (dispatch) => {
+    const preventiveMaintenanceResponse =
+      await api.post<PreventiveMaintenance>(
+        `${basePath}/${id}/${paused ? 'pause' : 'resume'}`,
+        {}
+      );
+    dispatch(
+      slice.actions.editPreventiveMaintenance({
+        preventiveMaintenance: preventiveMaintenanceResponse
+      })
+    );
+  };
 export const patchSchedule =
   (scheduleId: number, pmId: number, schedule: Partial<Schedule>): AppThunk =>
   async (dispatch) => {

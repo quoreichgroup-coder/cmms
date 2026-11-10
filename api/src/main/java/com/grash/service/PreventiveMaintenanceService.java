@@ -243,7 +243,7 @@ public class PreventiveMaintenanceService {
                             user.getCompany());
                 }
                 Sanitizer.sanitizePreventiveMaintenance(pmToSave);
-                pmToSave.getSchedule().setDisabled(false);
+                // Pausing is explicit (setPaused): editing a paused plan keeps it paused.
                 PreventiveMaintenance updatedPM =
                         preventiveMaintenanceRepository.saveAndFlush(pmToSave);
                 em.refresh(updatedPM);
@@ -1039,6 +1039,24 @@ public class PreventiveMaintenanceService {
         scheduleService.scheduleDeferredOccurrence(call);
         scheduleService.refreshCalendarCallRegister(call.getSchedule());
         return toMeterCallDTO(call, List.of(event));
+    }
+
+    /** Explicit pause/resume of work order generation; history and register are kept. */
+    @Transactional
+    public PreventiveMaintenance setPaused(Long id, boolean paused, User user) {
+        PreventiveMaintenance preventiveMaintenance = findByIdAndCompany(id, user.getCompany().getId())
+                .orElseThrow(() -> new CustomException("PreventiveMaintenance not found", HttpStatus.NOT_FOUND));
+        checkAccessToPreventiveMaintenance(user, preventiveMaintenance);
+        if (!preventiveMaintenance.canBeEditedBy(user))
+            throw new CustomException("Access Denied", HttpStatus.FORBIDDEN);
+        Schedule schedule = preventiveMaintenance.getSchedule();
+        if (schedule.isDisabled() == paused) return preventiveMaintenance;
+        schedule.setDisabled(paused);
+        scheduleService.save(schedule);
+        // Rescheduling a disabled plan stops its jobs and clears upcoming calls; resuming recreates them.
+        scheduleService.reScheduleWorkOrder(schedule);
+        syncMeterCallRegister(schedule);
+        return preventiveMaintenance;
     }
 
     @Transactional

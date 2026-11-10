@@ -102,6 +102,20 @@ public class PreventiveMaintenanceController {
         return preventiveMaintenanceService.rescheduleCalendarCall(pmId, callId, request, user);
     }
 
+    @PostMapping("/{id}/pause")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public PreventiveMaintenanceShowDTO pause(@PathVariable("id") Long id,
+                                             @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceMapper.toShowDto(preventiveMaintenanceService.setPaused(id, true, user));
+    }
+
+    @PostMapping("/{id}/resume")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public PreventiveMaintenanceShowDTO resume(@PathVariable("id") Long id,
+                                              @Parameter(hidden = true) @CurrentUser User user) {
+        return preventiveMaintenanceMapper.toShowDto(preventiveMaintenanceService.setPaused(id, false, user));
+    }
+
     @PostMapping("/{id}/trigger-work-order")
     @PreAuthorize("hasRole('ROLE_CLIENT')")
     public WorkOrderMiniDTO triggerWorkOrder(@PathVariable("id") Long id,

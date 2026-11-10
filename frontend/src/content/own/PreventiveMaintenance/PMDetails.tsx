@@ -19,10 +19,13 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import PreventiveMaintenance from '../../../models/owns/preventiveMaintenance';
 import { useDispatch, useSelector } from '../../../store';
 import {
   editPreventiveMaintenance,
+  setPreventiveMaintenancePaused,
   triggerWorkOrder
 } from '../../../slices/preventiveMaintenance';
 import React, { useContext, useEffect, useState } from 'react';
@@ -108,6 +111,18 @@ export default function PMDetails({
   };
   const handleCloseMenu = () => {
     setAnchorEl(null);
+  };
+  const [togglingPause, setTogglingPause] = useState(false);
+  const isPaused = Boolean(preventiveMaintenance?.schedule?.disabled);
+  const handleTogglePause = () => {
+    handleCloseMenu();
+    setTogglingPause(true);
+    dispatch(setPreventiveMaintenancePaused(preventiveMaintenance.id, !isPaused))
+      .then(() =>
+        showSnackBar(t(isPaused ? 'pm_resumed' : 'pm_paused'), 'success')
+      )
+      .catch((err) => showSnackBar(getErrorMessage(err), 'error'))
+      .finally(() => setTogglingPause(false));
   };
   const handleTriggerWorkOrder = () => {
     handleCloseMenu();
@@ -667,6 +682,25 @@ export default function PMDetails({
             <Typography variant="h6">{t('trigger_work_order')}</Typography>
           </Stack>
         </MenuItem>
+        {hasEditPermission(
+          PermissionEntity.PREVENTIVE_MAINTENANCES,
+          preventiveMaintenance
+        ) && (
+          <MenuItem disabled={togglingPause} onClick={handleTogglePause}>
+            <Stack spacing={2} direction="row">
+              {togglingPause ? (
+                <CircularProgress size="1rem" />
+              ) : isPaused ? (
+                <PlayCircleOutlineIcon />
+              ) : (
+                <PauseCircleOutlineIcon />
+              )}
+              <Typography variant="h6">
+                {t(isPaused ? 'pm_resume' : 'pm_pause')}
+              </Typography>
+            </Stack>
+          </MenuItem>
+        )}
       </Menu>
     </Grid>
   );
