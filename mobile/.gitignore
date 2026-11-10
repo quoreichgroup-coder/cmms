@@ -35,3 +35,8 @@ artifacts/
 /dist/
 
 /android/.kotlin/
+
+# Mobile build artifacts (APK/AAB/IPA) are distributed outside Git; GitHub rejects files over 100 MB.
+*.apk
+*.aab
+*.ipa
