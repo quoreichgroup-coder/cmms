@@ -34,7 +34,7 @@ function CompanyProfile() {
   return (
     <>
       <Helmet>
-        <title>{`${company.name || 'QPM'} - Company Details`}</title>
+        <title>{company.name || t('company_details')}</title>
       </Helmet>
       <Box
         sx={{

@@ -34,6 +34,35 @@ interface CompanyLegalProfile {
   registrationCountry?: string | null;
 }
 
+/** Used when the browser cannot list time zones; covers QPM's markets plus common references. */
+const FALLBACK_TIME_ZONES = [
+  'UTC',
+  'Africa/Ouagadougou',
+  'Africa/Abidjan',
+  'Africa/Bamako',
+  'Africa/Dakar',
+  'Africa/Lome',
+  'Africa/Niamey',
+  'Africa/Porto-Novo',
+  'Africa/Lagos',
+  'Africa/Accra',
+  'Africa/Casablanca',
+  'Africa/Douala',
+  'Africa/Kinshasa',
+  'Africa/Nairobi',
+  'Africa/Johannesburg',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'America/New_York',
+  'America/Chicago',
+  'America/Los_Angeles',
+  'America/Montreal',
+  'Asia/Dubai',
+  'Asia/Shanghai',
+  'Asia/Tokyo'
+];
+
 const businessTypes = [
   'BUILDING_MANAGEMENT',
   'CHURCH_MANAGEMENT',
@@ -146,7 +175,12 @@ function GeneralSettings() {
   ) => {};
 
   const timezones = useMemo(() => {
-    const supported = (Intl as any).supportedValuesOf('timeZone');
+    // Intl.supportedValuesOf is missing on older browsers (Safari < 15.4, Chrome < 99).
+    const supportedValuesOf = (Intl as any).supportedValuesOf;
+    const supported: string[] =
+      typeof supportedValuesOf === 'function'
+        ? supportedValuesOf('timeZone')
+        : FALLBACK_TIME_ZONES;
     const current = generalPreferences.timeZone;
     return current && !supported.includes(current)
       ? [current, ...supported]

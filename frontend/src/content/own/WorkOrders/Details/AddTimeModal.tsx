@@ -93,9 +93,24 @@ export default function AddTimeModal({
     }
   ];
   const shape = {
-    hours: Yup.number().required(t('required_hours')),
-    minutes: Yup.number().required(t('required_minutes')),
-    startedAt: Yup.date().required(t('required_field'))
+    // Same whole-minute rules as mobile (utils/manualLaborDuration.ts) and a non-zero duration.
+    hours: Yup.number()
+      .typeError(t('invalid_number_value'))
+      .integer(t('whole_non_negative_number'))
+      .min(0, t('whole_non_negative_number'))
+      .required(t('required_hours')),
+    minutes: Yup.number()
+      .typeError(t('invalid_number_value'))
+      .integer(t('whole_non_negative_number'))
+      .min(0, t('whole_non_negative_number'))
+      .required(t('required_minutes'))
+      .test('labor-duration', t('labor_duration_required'), function (minutes) {
+        return Number(this.parent.hours || 0) * 60 + Number(minutes || 0) > 0;
+      }),
+    startedAt: Yup.date()
+      .typeError(t('required_field'))
+      .required(t('required_field'))
+      .max(new Date(Date.now() + 60_000), t('started_at_in_future'))
   };
   const defaultValues = labor
     ? {

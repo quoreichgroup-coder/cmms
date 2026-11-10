@@ -1160,4 +1160,61 @@ class PreventiveMaintenanceServiceTest {
             verify(scheduleService, never()).reScheduleWorkOrder(any());
         }
     }
+
+    @Nested
+    class ArchivedAssetTests {
+
+        @Test
+        void scheduledOccurrenceOfAnArchivedAssetIsIgnoredWithoutWorkOrder() {
+            PreventiveMaintenance pm = buildPM(1L);
+            Asset asset = new Asset();
+            asset.setArchived(true);
+            pm.setAsset(asset);
+            Date occurrence = new Date();
+            when(meterCallRepository.findBySchedule_IdAndDueDate(100L, occurrence)).thenReturn(Optional.empty());
+
+            assertNull(preventiveMaintenanceService.createScheduledWorkOrder(pm, occurrence));
+
+            org.mockito.ArgumentCaptor<PreventiveMaintenanceMeterCall> saved =
+                    org.mockito.ArgumentCaptor.forClass(PreventiveMaintenanceMeterCall.class);
+            verify(meterCallRepository).saveAndFlush(saved.capture());
+            assertEquals(PreventiveMaintenanceCallStatus.IGNORED, saved.getValue().getStatus());
+            verify(workOrderService, never()).createFromPreventiveMaintenance(any(), any());
+        }
+    }
+
+    @Nested
+    class CatchUpTests {
+
+        private PreventiveMaintenanceMeterCall planned(long daysAgo) {
+            PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+            call.setDueDate(new Date(System.currentTimeMillis() - daysAgo * 86_400_000L));
+            call.setStatus(PreventiveMaintenanceCallStatus.PLANNED);
+            return call;
+        }
+
+        @Test
+        void generatesOnlyTheLatestOccurrenceMissedWithinTheWindow() {
+            PreventiveMaintenance pm = buildPM(1L);
+            pm.getSchedule().setTriggerType(ScheduleTriggerType.CALENDAR);
+            when(scheduleService.findById(100L)).thenReturn(Optional.of(pm.getSchedule()));
+            PreventiveMaintenanceMeterCall twoDays = planned(2);
+            when(meterCallRepository.findBySchedule_IdAndCallTypeAndStatus(100L, ScheduleTriggerType.CALENDAR,
+                    PreventiveMaintenanceCallStatus.PLANNED)).thenReturn(List.of(planned(10), planned(3), twoDays));
+            // Already generated meanwhile: the idempotent path returns the existing work order.
+            WorkOrder existing = new WorkOrder();
+            PreventiveMaintenanceMeterCall generated = planned(2);
+            generated.setWorkOrder(existing);
+            when(meterCallRepository.findBySchedule_IdAndDueDate(100L, twoDays.getDueDate()))
+                    .thenReturn(Optional.of(generated));
+
+            assertSame(existing, preventiveMaintenanceService.catchUpMissedOccurrence(100L, 7));
+        }
+
+        @Test
+        void disabledCatchUpDoesNothing() {
+            assertNull(preventiveMaintenanceService.catchUpMissedOccurrence(100L, 0));
+            verify(scheduleService, never()).findById(anyLong());
+        }
+    }
 }

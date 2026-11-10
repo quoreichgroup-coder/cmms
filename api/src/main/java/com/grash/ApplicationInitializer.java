@@ -27,6 +27,11 @@ public class ApplicationInitializer implements SmartInitializingSingleton {
     private final CompanyService companyService;
     private final SubscriptionPlanService subscriptionPlanService;
     private final ScheduleService scheduleService;
+    private final PreventiveMaintenanceService preventiveMaintenanceService;
+
+    /** Missed fixed-date PM occurrences younger than this are generated at startup; 0 disables catch-up. */
+    @Value("${qpm.pm.catch-up-days:${QPM_PM_CATCH_UP_DAYS:7}}")
+    private int pmCatchUpDays;
 
     @Value("${cloud-version}")
     private boolean cloudVersion;
@@ -57,6 +62,13 @@ public class ApplicationInitializer implements SmartInitializingSingleton {
                     }
                 });
                 scheduleService.recoverDeferredOccurrences();
+                scheduleService.findActive().forEach(schedule -> {
+                    try {
+                        preventiveMaintenanceService.catchUpMissedOccurrence(schedule.getId(), pmCatchUpDays);
+                    } catch (Exception e) {
+                        log.error("Unable to catch up missed occurrences of schedule {}", schedule.getId(), e);
+                    }
+                });
             }
 
             userService.checkUsageBasedLimit(0);

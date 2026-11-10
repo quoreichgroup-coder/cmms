@@ -35,7 +35,7 @@ Sentry.init({
 
 ReactDOM.render(
   <HelmetProvider>
-    <Helmet>
+    <Helmet titleTemplate="%s · QPM" defaultTitle="QPM">
       <meta name="robots" content="noindex, nofollow" />
     </Helmet>
     <Provider store={store}>

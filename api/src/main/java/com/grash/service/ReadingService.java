@@ -61,6 +61,7 @@ public class ReadingService {
     private final WebhookDispatchService webhookDispatchService;
     private final WorkOrderMapper workOrderMapper;
     private final Scheduler scheduler;
+    private final com.grash.repository.ScheduleRepository scheduleRepository;
     private MeterService meterService;
 
     @Autowired
@@ -87,6 +88,12 @@ public class ReadingService {
             if (LocalDate.now(ZoneId.of(timeZone)).isBefore(nextReading)) {
                 throw new CustomException("The update frequency has not been respected", HttpStatus.NOT_ACCEPTABLE);
             }
+        }
+        if (optionalLastReading.isPresent() && readingReq.getValue() < optionalLastReading.get().getValue()
+                && drivesPreventiveMaintenance(meter, user)) {
+            // A meter that drives a PM is a counter (hours, km, cycles): a lower value is a typing error and
+            // would shift every planned threshold.
+            throw new CustomException("reading_lower_than_previous", HttpStatus.CONFLICT);
         }
         readingReq.setMeter(meter);
         Reading savedReading = readingRepository.save(readingReq);
@@ -157,6 +164,11 @@ public class ReadingService {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         if (meterCallRepository.existsByReading_Id(reading.getId()))
             throw new CustomException("reading_linked_to_preventive_maintenance", HttpStatus.CONFLICT);
+    }
+
+    private boolean drivesPreventiveMaintenance(Meter meter, User user) {
+        return scheduleRepository.existsByMeter_Id(meter.getId())
+                || scheduleRepository.countPlansUsingMeterInCycles(user.getCompany().getId(), meter.getId()) > 0;
     }
 
     public Collection<Reading> findByCompany(Long id) {

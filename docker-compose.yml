@@ -35,6 +35,7 @@ services:
     environment:
       DB_URL: postgres/atlas
       QPM_DEFAULT_CURRENCY: ${QPM_DEFAULT_CURRENCY:-XOF}
+      QPM_PM_CATCH_UP_DAYS: ${QPM_PM_CATCH_UP_DAYS:-7}
       DB_USER: ${POSTGRES_USER}
       DB_PWD: ${POSTGRES_PWD}
       PUBLIC_API_URL: ${PUBLIC_SERVER_URL}/api

@@ -588,13 +588,16 @@ public class PreventiveMaintenanceService {
         if (latest.isEmpty() || !Objects.equals(latest.get().getId(), reading.getId())) return;
         for (Schedule schedule : multiCounterSchedules) {
             PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
-            if (plan != null && plan.getMode() == PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER) {
+            if (plan != null && plan.getMode() == PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER
+                    && !targetsArchivedAsset(schedule.getPreventiveMaintenance())) {
                 processMultiCounterReading(schedule, meter, reading, plan);
             }
         }
         for (Schedule schedule : schedules) {
             PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
             if (plan != null && plan.getMode() == PreventiveMaintenancePlanConfiguration.Mode.MULTI_COUNTER) continue;
+            // An archived asset is out of service: its thresholds wait until it is restored.
+            if (targetsArchivedAsset(schedule.getPreventiveMaintenance())) continue;
             if (schedule.getEndsOn() != null && schedule.getEndsOn().before(new Date())) {
                 schedule.setDisabled(true);
                 scheduleRepository.save(schedule);
@@ -963,6 +966,16 @@ public class PreventiveMaintenanceService {
         } else if (deferredOccurrence) {
             return null;
         }
+        if (targetsArchivedAsset(preventiveMaintenance)) {
+            // No work order for an asset taken out of service; the occurrence is recorded as ignored.
+            PreventiveMaintenanceMeterCall skipped = existing.orElseGet(PreventiveMaintenanceMeterCall::new);
+            skipped.setSchedule(schedule);
+            skipped.setDueDate(occurrenceDate);
+            skipped.setCallType(ScheduleTriggerType.CALENDAR);
+            skipped.setStatus(PreventiveMaintenanceCallStatus.IGNORED);
+            meterCallRepository.saveAndFlush(skipped);
+            return null;
+        }
 
         PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
         List<Long> taskBaseIds = null;
@@ -1069,6 +1082,36 @@ public class PreventiveMaintenanceService {
             syncMeterCallRegister(updated);
         }
         return updated;
+    }
+
+    /**
+     * After downtime, generates the most recent fixed-date occurrence missed within the last {@code days}
+     * days (older or earlier missed ones stay overdue in the register for a planner to decide). Idempotent:
+     * an occurrence that already has a work order is not generated twice.
+     */
+    @Transactional
+    public WorkOrder catchUpMissedOccurrence(Long scheduleId, int days) {
+        if (days <= 0) return null;
+        Schedule schedule = scheduleService.findById(scheduleId).orElse(null);
+        if (schedule == null || schedule.isDisabled() || schedule.getTriggerType() != ScheduleTriggerType.CALENDAR
+                || schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.SCHEDULED_DATE) return null;
+        Date now = new Date();
+        Date since = new Date(now.getTime() - TimeUnit.DAYS.toMillis(days));
+        Optional<PreventiveMaintenanceMeterCall> latestMissed = meterCallRepository
+                .findBySchedule_IdAndCallTypeAndStatus(scheduleId, ScheduleTriggerType.CALENDAR,
+                        PreventiveMaintenanceCallStatus.PLANNED).stream()
+                .filter(call -> call.getWorkOrder() == null && call.getDueDate() != null
+                        && call.getDueDate().before(now) && !call.getDueDate().before(since))
+                .max(Comparator.comparing(PreventiveMaintenanceMeterCall::getDueDate));
+        if (latestMissed.isEmpty()) return null;
+        log.info("Generating missed occurrence {} of schedule {} after downtime",
+                latestMissed.get().getDueDate(), scheduleId);
+        return createScheduledWorkOrder(schedule.getPreventiveMaintenance(), latestMissed.get().getDueDate());
+    }
+
+    static boolean targetsArchivedAsset(PreventiveMaintenance preventiveMaintenance) {
+        return preventiveMaintenance != null && preventiveMaintenance.getAsset() != null
+                && preventiveMaintenance.getAsset().isArchived();
     }
 
     /** Explicit pause/resume of work order generation; history and register are kept. */

@@ -80,7 +80,10 @@ export default function AddCostModal({
   ];
   const shape = {
     description: Yup.string().required(t('required_cost_description')),
-    cost: Yup.number().required(t('required_cost'))
+    cost: Yup.number()
+      .typeError(t('invalid_number_value'))
+      .min(0, t('cost_non_negative'))
+      .required(t('required_cost'))
   };
   const defaultValues = additionalCost
     ? {

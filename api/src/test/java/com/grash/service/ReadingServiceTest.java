@@ -20,6 +20,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -28,6 +29,7 @@ class ReadingServiceTest {
     @Mock private ReadingRepository readingRepository;
     @Mock private PreventiveMaintenanceMeterCallRepository meterCallRepository;
     @Mock private MeterService meterService;
+    @Mock private com.grash.repository.ScheduleRepository scheduleRepository;
     @InjectMocks private ReadingService readingService;
 
     private User user;
@@ -49,8 +51,8 @@ class ReadingServiceTest {
         reading = new Reading();
         reading.setId(9L);
         reading.setMeter(meter);
-        when(readingRepository.findById(9L)).thenReturn(Optional.of(reading));
-        when(meterService.getById(3L, user)).thenReturn(meter);
+        lenient().when(readingRepository.findById(9L)).thenReturn(Optional.of(reading));
+        lenient().when(meterService.getById(3L, user)).thenReturn(meter);
     }
 
     private void giveMeterEditRights() {
@@ -86,5 +88,33 @@ class ReadingServiceTest {
         readingService.deleteByIdAndUser(9L, user);
 
         verify(readingRepository).deleteById(9L);
+    }
+
+    private void givenPreviousReading(double value) {
+        CompanySettings settings = new CompanySettings();
+        GeneralPreferences preferences = new GeneralPreferences(settings);
+        preferences.setTimeZone("UTC");
+        settings.setGeneralPreferences(preferences);
+        meter.setCompany(user.getCompany());
+        user.getCompany().setCompanySettings(settings);
+        Reading last = new Reading();
+        last.setValue(value);
+        last.setCreatedAt(new java.util.Date(System.currentTimeMillis() - 86_400_000L));
+        when(readingRepository.findFirstByMeter_IdOrderByCreatedAtDesc(3L)).thenReturn(Optional.of(last));
+    }
+
+    @Test
+    void lowerReadingOnAMeterThatDrivesAPreventiveMaintenanceIsRejected() {
+        givenPreviousReading(1200);
+        when(scheduleRepository.existsByMeter_Id(3L)).thenReturn(true);
+        Reading request = new Reading();
+        request.setMeter(meter);
+        request.setValue(120);
+
+        CustomException ex = assertThrows(CustomException.class, () -> readingService.create(request, user));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getHttpStatus());
+        assertEquals("reading_lower_than_previous", ex.getMessage());
+        verify(readingRepository, never()).save(any());
     }
 }

@@ -1,4 +1,5 @@
 import { FC, useState, createContext, Dispatch, SetStateAction } from 'react';
+import { Helmet } from 'react-helmet-async';
 type TitleContext = {
   title: string;
   setTitle: Dispatch<SetStateAction<string>>;
@@ -12,6 +13,12 @@ export const TitleProvider: FC = ({ children }) => {
 
   return (
     <TitleContext.Provider value={{ title, setTitle }}>
+      {/* The page title also names the browser tab ("Work orders · QPM"); pages may still override it. */}
+      {title ? (
+        <Helmet>
+          <title>{title}</title>
+        </Helmet>
+      ) : null}
       {children}
     </TitleContext.Provider>
   );

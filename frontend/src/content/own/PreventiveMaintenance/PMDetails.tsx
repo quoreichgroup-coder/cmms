@@ -425,6 +425,19 @@ export default function PMDetails({
                       </Typography>
                     </Grid>
                   )}
+                  {!preventiveMaintenance.schedule?.disabled &&
+                    preventiveMaintenance.nextWorkOrderDate && (
+                      <Grid item xs={12} lg={6}>
+                        <Typography variant="h6" color="text.secondary">
+                          {t('next_wo')}
+                        </Typography>
+                        <Typography variant="h6">
+                          {getFormattedDate(
+                            preventiveMaintenance.nextWorkOrderDate
+                          )}
+                        </Typography>
+                      </Grid>
+                    )}
                 </>
               )}
               {preventiveMaintenance?.createdBy && (

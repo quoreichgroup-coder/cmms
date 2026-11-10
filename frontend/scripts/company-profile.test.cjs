@@ -56,7 +56,8 @@ for (const name of [null, 'Entreprise exemple']) {
     );
     assert.match(
       context.helmet.title.toString(),
-      new RegExp((name || 'QPM') + ' - Company Details')
+      // The "· QPM" suffix comes from the global Helmet titleTemplate (src/index.tsx).
+      new RegExp('>' + (name || 'company_details') + '<')
     );
   });
 }

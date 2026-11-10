@@ -1,6 +1,7 @@
 import SplitButton from '../components/SplitButton';
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -132,6 +133,31 @@ const DEFAULT_FILTER_FIELDS: FilterField[] = [
 
 const getInitialFilterFields = (): FilterField[] =>
   loadFilterFields(FILTERS_STORAGE_KEY, DEFAULT_FILTER_FIELDS);
+
+/**
+ * When a scheduled-date plan switches to weekly with no day chosen, preselect the weekday of the start
+ * date so the plan is valid and matches what the user expects. Clearing the days afterwards is respected.
+ */
+function WeeklyDayDefault({
+  values,
+  setFieldValue,
+  weekdays
+}: {
+  values: any;
+  setFieldValue: (field: string, value: any) => void;
+  weekdays: string[];
+}) {
+  const recurrenceType = values.recurrenceType?.value ?? values.recurrenceType;
+  const basedOn = values.recurrenceBasedOn?.value ?? values.recurrenceBasedOn;
+  const isWeekly = recurrenceType === 'WEEKLY' && basedOn !== 'COMPLETED_DATE';
+  useEffect(() => {
+    if (!isWeekly || values.daysOfWeek?.length || !values.startsOn) return;
+    const index = (new Date(values.startsOn).getDay() + 6) % 7; // 0 = Monday, as in the API
+    setFieldValue('daysOfWeek', [{ label: weekdays[index], value: index }]);
+    // Only when the plan becomes weekly; later edits of the days are the user's choice.
+  }, [isWeekly]);
+  return null;
+}
 
 function PMs() {
   const { t }: { t: any } = useTranslation();
@@ -1019,9 +1045,21 @@ function PMs() {
       values.recurrenceBasedOn?.value === 'COMPLETED_DATE' ||
       values.recurrenceBasedOn === 'COMPLETED_DATE';
 
+    const startsInPast = !values.id && new Date(startsOn).getTime() < Date.now();
+
     return (
       <>
         {planEditor}
+        <WeeklyDayDefault
+          values={values}
+          setFieldValue={setFieldValue}
+          weekdays={getWeekdays(dateLocale)}
+        />
+        {startsInPast && (
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            {t('pm_start_in_past')}
+          </Alert>
+        )}
         <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             {t('pm_schedule_forecast')}
