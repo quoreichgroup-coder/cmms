@@ -1,6 +1,5 @@
 import { Helmet } from 'react-helmet-async';
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -40,6 +39,7 @@ import {
   resetLocationsHierarchy
 } from '../../../slices/location';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ListLoadError from '../components/ListLoadError';
 import { useDispatch, useSelector } from '../../../store';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -323,12 +323,16 @@ function Locations() {
     }
   }, [pageable]);
 
+  // Search results and the map must not look empty when the request failed.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const [listReload, setListReload] = useState(0);
   useEffect(() => {
+    setListLoadError(null);
     if (
       hasViewPermission(PermissionEntity.LOCATIONS) &&
       (currentTab === 'map' || searchQuery.trim())
     )
-      dispatch(
+      Promise.resolve(dispatch(
         getLocations({
           ...criteria,
           pageSize: currentTab === 'map' ? 50 : criteria.pageSize,
@@ -341,8 +345,10 @@ function Locations() {
                 ]
               : criteria.filterFields
         })
+      )).catch((error) =>
+        setListLoadError(getErrorMessage(error, t('locations_load_error')))
       );
-  }, [criteria, currentTab, searchQuery]);
+  }, [criteria, currentTab, searchQuery, listReload]);
 
   const handleToggleExpand = async (row: LocationRow) => {
     const isExpanded = expanded[row.id];
@@ -1130,9 +1136,18 @@ function Locations() {
             >
               <Box sx={{ width: { xs: '100%', sm: '95%' }, minWidth: 0 }}>
                 {hierarchyError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {hierarchyError}
-                  </Alert>
+                  <ListLoadError
+                    message={hierarchyError}
+                    onRetry={() =>
+                      dispatch(getLocationChildrenPaginated(0, [], pageable))
+                    }
+                  />
+                )}
+                {listLoadError && (
+                  <ListLoadError
+                    message={listLoadError}
+                    onRetry={() => setListReload((value) => value + 1)}
+                  />
                 )}
                 <CustomDatagrid2
                   columns={isHierarchyView ? columns : columns.slice(1)}

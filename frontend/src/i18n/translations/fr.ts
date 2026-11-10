@@ -4432,7 +4432,8 @@ const frJSON = {
   customers_load_error: 'Les clients n’ont pas pu être chargés.',
   work_order_reopen_required: 'Cet ordre de travail est terminé. Rouvrez-le avant de changer son statut.',
   signature_required_on_completion: 'Une signature est requise pour terminer cet ordre de travail.',
-  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.'
+  required_completion_data_missing: 'Des informations requises pour terminer cet ordre de travail sont manquantes.',
+  locations_load_error: 'Les emplacements n’ont pas pu être chargés.'
 };
 
 export default frJSON;
