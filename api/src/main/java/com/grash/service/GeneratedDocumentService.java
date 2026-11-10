@@ -147,7 +147,17 @@ public class GeneratedDocumentService {
             new ReportFieldDefinitionDTO("purchaseRequisition.sourceWorkOrder", "report.field.purchaseRequisition.sourceWorkOrder", "purchaseRequisition", "string", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("purchaseRequisition.createdDate", "report.field.purchaseRequisition.createdDate", "purchaseRequisition", "date", false, false, "workOrderInformation"),
             new ReportFieldDefinitionDTO("purchaseRequisition.lines", "report.field.purchaseRequisition.lines", "purchaseRequisition", "table", true, false, "parts"),
-            new ReportFieldDefinitionDTO("purchaseRequisition.approvalHistory", "report.field.purchaseRequisition.approvalHistory", "purchaseRequisition", "text", false, false, "workOrderInformation")
+            new ReportFieldDefinitionDTO("purchaseRequisition.approvalHistory", "report.field.purchaseRequisition.approvalHistory", "purchaseRequisition", "text", false, false, "workOrderInformation"),
+            // Company header fields: both procurement data providers resolve them, so the renderer must know them
+            // too, otherwise a template showing them fails with "Unsupported report field".
+            new ReportFieldDefinitionDTO("site.name", "report.field.site.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.name", "report.field.company.name", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.legalName", "report.field.company.legalName", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registeredAddress", "report.field.company.registeredAddress", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.registrationNumber", "report.field.company.registrationNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.taxNumber", "report.field.company.taxNumber", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.phone", "report.field.company.phone", "organization", "string", false, false, "workOrderInformation"),
+            new ReportFieldDefinitionDTO("company.email", "report.field.company.email", "organization", "string", false, false, "workOrderInformation")
     );
     private final GeneratedDocumentRepository repository;
     private final GeneratedDocumentAccessEventRepository accessEventRepository;

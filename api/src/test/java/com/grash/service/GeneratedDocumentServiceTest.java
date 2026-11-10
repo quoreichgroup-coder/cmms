@@ -64,6 +64,26 @@ class GeneratedDocumentServiceTest {
     @Mock private MessageSource messageSource;
 
     @Test
+    @SuppressWarnings("unchecked")
+    void everyFieldAProcurementProviderAcceptsCanBeRendered() {
+        // A template may show any field the provider accepts; if the renderer does not know it, preview and
+        // issue fail with "Unsupported report field" (seen in production with the company header fields).
+        List<com.grash.dto.ReportFieldDefinitionDTO> rendererFields =
+                (List<com.grash.dto.ReportFieldDefinitionDTO>) org.springframework.test.util.ReflectionTestUtils
+                        .getField(GeneratedDocumentService.class, "PROCUREMENT_FIELDS");
+        java.util.Set<String> renderable = rendererFields.stream()
+                .map(com.grash.dto.ReportFieldDefinitionDTO::key).collect(java.util.stream.Collectors.toSet());
+        for (Class<?> provider : List.of(PurchaseOrderDocumentDataProvider.class,
+                PurchaseRequisitionDocumentDataProvider.class)) {
+            java.util.Set<String> accepted = (java.util.Set<String>) org.springframework.test.util.ReflectionTestUtils
+                    .getField(provider, "FIELDS");
+            java.util.Set<String> missing = new java.util.TreeSet<>(accepted);
+            missing.removeAll(renderable);
+            assertEquals(java.util.Set.of(), missing, provider.getSimpleName() + " fields unknown to the renderer");
+        }
+    }
+
+    @Test
     void procurementPrintTablesHaveAHeaderForEveryAllowedColumn() {
         var poTable = org.springframework.test.util.ReflectionTestUtils.invokeMethod(service, "reportTable",
                 "purchaseOrder.lines", java.util.Map.of("purchaseOrder.lines", List.of()), java.util.Locale.FRENCH,
