@@ -4,6 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import ScrollTop from 'src/hooks/useScrollTop';
 
 import 'nprogress/nprogress.css';
+// Brand typeface (QPM visual identity), bundled with the app: no runtime call to an external font CDN.
+import '@fontsource/montserrat/400.css';
+import '@fontsource/montserrat/500.css';
+import '@fontsource/montserrat/600.css';
+import '@fontsource/montserrat/700.css';
 import { Provider } from 'react-redux';
 import store from 'src/store';
 import App from 'src/App';
