@@ -114,6 +114,8 @@ export default function QpmWordmark({
           component="span"
           sx={{
             mt: 1,
+            // Too tight next to the sign-in headline on phones; the wordmark alone stays.
+            display: { xs: 'none', sm: 'block' },
             color: white ? 'rgba(255,255,255,0.88)' : 'text.secondary',
             fontFamily: '"Montserrat", sans-serif',
             fontWeight: 500,
