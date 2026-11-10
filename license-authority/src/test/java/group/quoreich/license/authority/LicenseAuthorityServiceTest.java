@@ -41,7 +41,8 @@ class LicenseAuthorityServiceTest {
                 2, 3, Set.of(), start, end, end));
         verify(jdbc).update(contains("INSERT INTO license_record"), any(UUID.class), anyString(),
                 anyString(), eq("Customer"), eq("ENTERPRISE"), eq("SUBSCRIPTION"), eq(2), eq(3),
-                eq("[]"), eq(Timestamp.from(start)), eq(Timestamp.from(end)), eq(Timestamp.from(end)));
+                eq("[]"), eq(Timestamp.from(start)), eq(Timestamp.from(end)), eq(Timestamp.from(end)),
+                isNull(), isNull(), eq(1));
     }
 
     @Test
@@ -51,7 +52,9 @@ class LicenseAuthorityServiceTest {
                 2, 0, Set.of(), start, null, null));
         verify(jdbc).update(contains("INSERT INTO license_record"), any(UUID.class), anyString(),
                 anyString(), eq("Customer"), eq("ENTERPRISE"), eq("PERPETUAL"), eq(2), eq(0),
-                eq("[]"), eq(Timestamp.from(start)), isNull(), isNull());
+                eq("[]"), eq(Timestamp.from(start)), isNull(), isNull(),
+                // Admin API licences have no customer record or plan and stay pre-catalogue (version 1).
+                isNull(), isNull(), eq(1));
     }
 
     @Test

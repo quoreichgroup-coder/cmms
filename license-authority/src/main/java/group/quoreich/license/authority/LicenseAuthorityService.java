@@ -33,8 +33,17 @@ public class LicenseAuthorityService {
         this.leaseDays = leaseDays;
     }
 
+    public static final String API_ACTOR = "api-token";
+
+    /** Admin API: free entitlements, no customer record; QPM treats it as a pre-catalogue licence. */
     @Transactional
     public Map<String, Object> issue(LicenseIssueRequest request) {
+        return issue(request, null, null, 1, API_ACTOR);
+    }
+
+    @Transactional
+    public Map<String, Object> issue(LicenseIssueRequest request, UUID customerId, String planCode,
+                                     int catalogVersion, String actor) {
         if ("SUBSCRIPTION".equals(request.licenseType()) && request.expiresAt() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Subscription licenses require expiresAt");
         }
@@ -53,12 +62,20 @@ public class LicenseAuthorityService {
         jdbc.update("""
                 INSERT INTO license_record
                   (id, key_hash, key_hint, customer_name, edition, license_type, status,
-                   seats_full, seats_light, entitlements, starts_at, expires_at, maintenance_until)
-                VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?)
+                   seats_full, seats_light, entitlements, starts_at, expires_at, maintenance_until,
+                   customer_id, plan_code, catalog_version)
+                VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, id, keyHash, key.substring(key.length() - 8), request.customerName(), request.edition(),
                 request.licenseType(), request.seatsFull(), request.seatsLight(), entitlements,
-                timestamp(request.startsAt()), timestamp(request.expiresAt()), timestamp(request.maintenanceUntil()));
-        logEvent(id, null, "LICENSE_ISSUED", Map.of("edition", request.edition(), "licenseType", request.licenseType()));
+                timestamp(request.startsAt()), timestamp(request.expiresAt()), timestamp(request.maintenanceUntil()),
+                customerId, planCode, catalogVersion);
+        Map<String, Object> issued = new LinkedHashMap<>();
+        issued.put("edition", request.edition());
+        issued.put("licenseType", request.licenseType());
+        issued.put("seatsFull", request.seatsFull());
+        issued.put("seatsLight", request.seatsLight());
+        if (planCode != null) issued.put("plan", planCode);
+        logEvent(id, null, "LICENSE_ISSUED", issued, actor);
         return Map.of("id", id, "licenseKey", key, "keyHint", key.substring(key.length() - 8),
                 "status", "ACTIVE", "warning", "Store this key securely; it is shown only once.");
     }
@@ -90,13 +107,69 @@ public class LicenseAuthorityService {
 
     @Transactional
     public void revoke(UUID id) {
+        revoke(id, null, API_ACTOR);
+    }
+
+    /** Final: the key can never be activated again. */
+    @Transactional
+    public void revoke(UUID id, String reason, String actor) {
         int changed = jdbc.update("UPDATE license_record SET status='REVOKED' WHERE id=? AND status='ACTIVE'", id);
         if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active license not found");
-        logEvent(id, null, "LICENSE_REVOKED", Map.of());
+        logEvent(id, null, "LICENSE_REVOKED", reason == null ? Map.of() : Map.of("reason", reason), actor);
+    }
+
+    /** Reversible: activations and lease refreshes are refused until the licence is resumed. */
+    @Transactional
+    public void suspend(UUID id, String reason, String actor) {
+        if (reason == null || reason.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A reason is required");
+        int changed = jdbc.update("UPDATE license_record SET suspended_at=now(), suspension_reason=? "
+                + "WHERE id=? AND status='ACTIVE' AND suspended_at IS NULL", reason.trim(), id);
+        if (changed == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Only an active, non-suspended licence can be suspended");
+        logEvent(id, null, "LICENSE_SUSPENDED", Map.of("reason", reason.trim()), actor);
+    }
+
+    @Transactional
+    public void resume(UUID id, String actor) {
+        int changed = jdbc.update("UPDATE license_record SET suspended_at=NULL, suspension_reason=NULL "
+                + "WHERE id=? AND status='ACTIVE' AND suspended_at IS NOT NULL", id);
+        if (changed == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "The licence is not suspended");
+        logEvent(id, null, "LICENSE_RESUMED", Map.of(), actor);
+    }
+
+    /** Seats can change during the contract (upsell); the next lease refresh carries the new values. */
+    @Transactional
+    public void changeSeats(UUID id, int seatsFull, int seatsLight, String actor) {
+        if (seatsFull < 0 || seatsLight < 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seats cannot be negative");
+        int changed = jdbc.update("UPDATE license_record SET seats_full=?, seats_light=? WHERE id=? AND status='ACTIVE'",
+                seatsFull, seatsLight, id);
+        if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active license not found");
+        logEvent(id, null, "SEATS_CHANGED", Map.of("seatsFull", seatsFull, "seatsLight", seatsLight), actor);
+    }
+
+    @Transactional
+    public void changeEntitlements(UUID id, Set<String> entitlements, String planCode, String actor) {
+        String encoded;
+        try {
+            encoded = mapper.writeValueAsString(new TreeSet<>(entitlements));
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not encode license entitlements", e);
+        }
+        int changed = jdbc.update("UPDATE license_record SET entitlements=?, plan_code=COALESCE(?, plan_code), catalog_version=? "
+                + "WHERE id=? AND status='ACTIVE'", encoded, planCode, EntitlementCatalog.CATALOG_VERSION, id);
+        if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active license not found");
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("entitlements", new TreeSet<>(entitlements));
+        if (planCode != null) details.put("plan", planCode);
+        logEvent(id, null, "ENTITLEMENTS_CHANGED", details, actor);
     }
 
     @Transactional
     public Map<String, Object> renew(UUID id, LicenseRenewRequest request) {
+        return renew(id, request, API_ACTOR);
+    }
+
+    @Transactional
+    public Map<String, Object> renew(UUID id, LicenseRenewRequest request, String actor) {
         var records = jdbc.query("""
                 SELECT license_type, status, starts_at, expires_at, maintenance_until
                 FROM license_record WHERE id=? FOR UPDATE
@@ -123,19 +196,24 @@ public class LicenseAuthorityService {
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("expiresAt", expiry);
         details.put("maintenanceUntil", maintenance);
-        logEvent(id, null, "LICENSE_RENEWED", details);
+        logEvent(id, null, "LICENSE_RENEWED", details, actor);
         return Map.of("id", id, "status", "ACTIVE", "expiresAt", expiry == null ? "" : expiry,
                 "maintenanceUntil", maintenance == null ? "" : maintenance);
     }
 
     @Transactional
     public void deactivate(UUID activationId) {
+        deactivate(activationId, API_ACTOR);
+    }
+
+    @Transactional
+    public void deactivate(UUID activationId, String actor) {
         UUID licenseId = jdbc.query("SELECT license_id FROM license_activation WHERE id=? AND deactivated_at IS NULL",
                 rs -> rs.next() ? rs.getObject(1, UUID.class) : null, activationId);
         if (licenseId == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active installation not found");
         int changed = jdbc.update("UPDATE license_activation SET deactivated_at=now() WHERE id=? AND deactivated_at IS NULL", activationId);
         if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active installation not found");
-        logEvent(licenseId, activationId, "INSTALLATION_DEACTIVATED", Map.of());
+        logEvent(licenseId, activationId, "INSTALLATION_DEACTIVATED", Map.of(), actor);
     }
 
     @Transactional
@@ -153,12 +231,13 @@ public class LicenseAuthorityService {
                 rs.getInt("seats_light"), rs.getString("entitlements"),
                 rs.getTimestamp("starts_at").toInstant(),
                 rs.getTimestamp("expires_at") == null ? null : rs.getTimestamp("expires_at").toInstant(),
-                rs.getTimestamp("maintenance_until") == null ? null : rs.getTimestamp("maintenance_until").toInstant()
+                rs.getTimestamp("maintenance_until") == null ? null : rs.getTimestamp("maintenance_until").toInstant(),
+                rs.getTimestamp("suspended_at") != null, rs.getInt("catalog_version")
         ), sha256(licenseKey));
         if (licenses.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "License key not recognized");
         LicenseRow license = licenses.get(0);
         Instant now = Instant.now();
-        if (!"ACTIVE".equals(license.status) || now.isBefore(license.startsAt) ||
+        if (!"ACTIVE".equals(license.status) || license.suspended || now.isBefore(license.startsAt) ||
                 (license.expiresAt != null && !now.isBefore(license.expiresAt))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "License is not active");
         }
@@ -199,6 +278,8 @@ public class LicenseAuthorityService {
         claims.put("seatsFull", license.seatsFull);
         claims.put("seatsLight", license.seatsLight);
         claims.put("entitlements", readEntitlements(license.entitlements));
+        // 1 = issued before the module catalogue: QPM keeps every module enabled for it.
+        claims.put("catalogVersion", license.catalogVersion);
         claims.put("fingerprint", fingerprint.toLowerCase(Locale.ROOT));
         claims.put("environment", environment);
         claims.put("startsAt", license.startsAt.getEpochSecond());
@@ -208,7 +289,7 @@ public class LicenseAuthorityService {
         claims.put("exp", leaseUntil.getEpochSecond());
         try {
             String lease = signer.sign(claims);
-            logEvent(license.id, activationId, "LEASE_ISSUED", Map.of("environment", environment));
+            logEvent(license.id, activationId, "LEASE_ISSUED", Map.of("environment", environment), "installation");
             return lease;
         } catch (Exception e) {
             throw new IllegalStateException("Could not sign activation lease", e);
@@ -236,12 +317,12 @@ public class LicenseAuthorityService {
         }
     }
 
-    private void logEvent(UUID licenseId, UUID activationId, String eventType, Map<String, Object> details) {
+    private void logEvent(UUID licenseId, UUID activationId, String eventType, Map<String, Object> details, String actor) {
         try {
             jdbc.update("""
-                    INSERT INTO license_event(license_id, activation_id, event_type, details)
-                    VALUES (?, ?, ?, ?)
-                    """, licenseId, activationId, eventType, mapper.writeValueAsString(details));
+                    INSERT INTO license_event(license_id, activation_id, event_type, details, actor)
+                    VALUES (?, ?, ?, ?, ?)
+                    """, licenseId, activationId, eventType, mapper.writeValueAsString(details), actor);
         } catch (Exception e) {
             throw new IllegalStateException("Could not record license audit event", e);
         }
@@ -264,7 +345,7 @@ public class LicenseAuthorityService {
 
     private record LicenseRow(UUID id, String customerName, String edition, String licenseType, String status,
                               int seatsFull, int seatsLight, String entitlements, Instant startsAt,
-                              Instant expiresAt, Instant maintenanceUntil) {}
+                              Instant expiresAt, Instant maintenanceUntil, boolean suspended, int catalogVersion) {}
     private record ActivationRow(UUID id, String environment, Instant deactivatedAt) {}
     private record RenewalRow(String licenseType, String status, Instant startsAt, Instant expiresAt,
                               Instant maintenanceUntil) {}
