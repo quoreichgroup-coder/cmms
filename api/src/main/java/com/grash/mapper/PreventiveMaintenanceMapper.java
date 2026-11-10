@@ -8,6 +8,7 @@ import com.grash.model.enums.RecurrenceBasedOn;
 import com.grash.model.enums.RecurrenceType;
 import com.grash.model.enums.Status;
 import com.grash.model.enums.ScheduleTriggerType;
+import com.grash.repository.PreventiveMaintenanceMeterCallRepository;
 import com.grash.service.WorkOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.AfterMapping;
@@ -39,6 +40,9 @@ public abstract class PreventiveMaintenanceMapper {
     @Autowired
     private WorkOrderService workOrderService;
 
+    @Autowired
+    private PreventiveMaintenanceMeterCallRepository callRepository;
+
     @Mapping(target = "title", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     public abstract PreventiveMaintenance updatePreventiveMaintenance(@MappingTarget PreventiveMaintenance entity,
                                                                       PreventiveMaintenancePatchDTO dto);
@@ -67,7 +71,11 @@ public abstract class PreventiveMaintenanceMapper {
 
         Date nextWorkOrderDate = null;
 
-        if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE) {
+        if (schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE && schedule.getId() != null) {
+            // The call register already accounts for reschedules and strategy packages with nothing due.
+            nextWorkOrderDate = callRepository.findNextCalendarOccurrence(schedule.getId(), new Date());
+        }
+        if (nextWorkOrderDate == null && schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE) {
             try {
                 TriggerKey triggerKey = new TriggerKey("wo-trigger-" + schedule.getId(), "wo-group");
                 Trigger trigger = scheduler.getTrigger(triggerKey);

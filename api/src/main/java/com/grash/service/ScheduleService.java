@@ -646,6 +646,14 @@ public class ScheduleService {
         return cursor.getTime();
     }
 
+    static boolean isMissedScheduledOccurrence(Schedule schedule, PreventiveMaintenanceMeterCall call, Date now) {
+        // Completion-based forecasts are estimates that move with each completion, so stale ones are ignored.
+        return schedule.getRecurrenceBasedOn() == RecurrenceBasedOn.SCHEDULED_DATE
+                && call.getWorkOrder() == null
+                && call.getDueDate() != null
+                && call.getDueDate().before(now);
+    }
+
     private void syncCalendarCallRegister(Schedule schedule, List<Date> dueDates) {
         if (schedule.getId() == null || schedule.getTriggerType() != ScheduleTriggerType.CALENDAR) return;
         PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
@@ -668,9 +676,14 @@ public class ScheduleService {
         List<PreventiveMaintenanceMeterCall> existing = callRepository.findBySchedule_IdAndCallTypeAndStatus(
                 schedule.getId(), ScheduleTriggerType.CALENDAR, PreventiveMaintenanceCallStatus.PLANNED);
         Set<Long> existingEpochs = new HashSet<>();
+        Date now = new Date();
         for (PreventiveMaintenanceMeterCall call : existing) {
             if (call.getDueDate() != null && dueEpochs.contains(call.getDueDate().getTime())) {
                 existingEpochs.add(call.getDueDate().getTime());
+            } else if (isMissedScheduledOccurrence(schedule, call, now)) {
+                // A fixed-date occurrence that passed without a work order is a missed call: keep it
+                // visible as overdue (and reschedulable) instead of silently ignoring it.
+                cancelLeadGenerationJob(call.getId());
             } else {
                 call.setStatus(PreventiveMaintenanceCallStatus.IGNORED);
                 callRepository.save(call);

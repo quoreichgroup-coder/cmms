@@ -1226,12 +1226,17 @@ public class PreventiveMaintenanceService {
                 .operation("le")
                 .value(end)
                 .values(new ArrayList<>()).build());
-        return getEventsByCriteria(searchCriteria);
+        return getEventsByCriteria(searchCriteria, new Date(), end);
     }
 
-    public List<CalendarEvent<PreventiveMaintenance>> getEventsByCriteria(SearchCriteria searchCriteria) {
+    /** Upcoming occurrences between {@code from} (never before now) and {@code to}, as shown in the calendar. */
+    public List<CalendarEvent<PreventiveMaintenance>> getEventsByCriteria(SearchCriteria searchCriteria, Date from,
+                                                                           Date to) {
         if (!licenseService.hasEntitlement(LicenseEntitlement.PM_CALENDAR))
             return Collections.emptyList();
+        Date now = new Date();
+        Date rangeStart = from == null || from.before(now) ? now : from;
+        if (to == null || !to.after(rangeStart)) return Collections.emptyList();
         SpecificationBuilder<PreventiveMaintenance> builder = new SpecificationBuilder<>();
         searchCriteria.getFilterFields().forEach(builder::with);
         List<PreventiveMaintenance> preventiveMaintenances =
@@ -1241,71 +1246,76 @@ public class PreventiveMaintenanceService {
         for (PreventiveMaintenance preventiveMaintenance : preventiveMaintenances) {
             Schedule schedule = preventiveMaintenance.getSchedule();
             if (schedule == null || schedule.isDisabled()) continue;
-
+            if (schedule.getTriggerType() == ScheduleTriggerType.METER) continue;
             if (schedule.getRecurrenceBasedOn() != RecurrenceBasedOn.SCHEDULED_DATE) continue;
 
             try {
-                TriggerKey triggerKey = new TriggerKey("wo-trigger-" + schedule.getId(), "wo-group");
-                Trigger trigger = scheduler.getTrigger(triggerKey);
-
-                if (trigger == null) {
-                    log.warn("No trigger found for schedule {}", schedule.getId());
+                Trigger trigger = scheduler.getTrigger(new TriggerKey("wo-trigger-" + schedule.getId(), "wo-group"));
+                if (!(trigger instanceof OperableTrigger operableTrigger)) {
+                    if (trigger == null) log.warn("No trigger found for schedule {}", schedule.getId());
                     continue;
                 }
-
-                // Get all fire times up to the end date
-                List<Date> fireTimes = new ArrayList<>();
-
-                // Use TriggerUtils to get computed fire times
-                if (trigger instanceof OperableTrigger) {
-                    OperableTrigger operableTrigger = (OperableTrigger) trigger;
-                    Date currentTime = new Date();
-
-                    // Start from now or startsOn, whichever is earlier
-                    Date startTime = schedule.getStartsOn().before(currentTime) ?
-                            schedule.getStartsOn() : currentTime;
-
-                    // Compute fire times
-                    Date fireTime = operableTrigger.getFireTimeAfter(startTime);
-                    while (fireTime != null) {
-                        if (shouldFireOnDate(schedule, fireTime)) {
-                            fireTimes.add(fireTime);
-                        }
-                        fireTime = operableTrigger.getFireTimeAfter(fireTime);
-
-                        // Safety limit to prevent infinite loops
-                        if (fireTimes.size() > 1000) {
-                            log.warn("Reached safety limit of 1000 events for schedule {}", schedule.getId());
-                            break;
-                        }
-                    }
-                }
-
-                // Convert fire times to calendar events
-                result.addAll(fireTimes.stream()
-                        .map(fireTime -> {
-                            long durationMillis = preventiveMaintenance.getEstimatedDuration() > 0
-                                    ? (long) (preventiveMaintenance.getEstimatedDuration() * 3600_000)
-                                    : 3600_000L;
-                            Date eventDate;
-                            Date endDate = fireTime;
-                            if (schedule.getDueDateDelay() != null) {
-                                endDate =
-                                        new Date(fireTime.getTime() + TimeUnit.DAYS.toMillis(schedule.getDueDateDelay()));
-                            }
-                            eventDate = new Date(endDate.getTime() - durationMillis);
-
-                            return new CalendarEvent<>("PREVENTIVE_MAINTENANCE", preventiveMaintenance, eventDate,
-                                    endDate);
-                        })
+                List<Date> occurrences = calendarOccurrences(schedule, operableTrigger, rangeStart, to);
+                result.addAll(occurrences.stream()
+                        .map(date -> toCalendarEvent(preventiveMaintenance, schedule, date))
                         .toList());
-
             } catch (SchedulerException e) {
                 log.error("Error getting trigger fire times for schedule {}", schedule.getId(), e);
             }
         }
 
         return result;
+    }
+
+    /**
+     * Fire times of the trigger within [from, to], corrected by the call register: an occurrence that was
+     * rescheduled, ignored (no strategy package due) or already generated is not shown at its original date,
+     * and a rescheduled occurrence is shown at its new date.
+     */
+    List<Date> calendarOccurrences(Schedule schedule, OperableTrigger trigger, Date from, Date to) {
+        PreventiveMaintenancePlanConfiguration plan = schedule.getPlanConfiguration();
+        boolean strategy = plan != null && plan.getMode() == PreventiveMaintenancePlanConfiguration.Mode.STRATEGY;
+        ZoneId zone = ZoneId.of(schedule.getPreventiveMaintenance().getCompany().getCompanySettings()
+                .getGeneralPreferences().getTimeZone());
+        Set<Long> hidden = meterCallRepository.findBySchedule_IdAndCallTypeAndDueDateBetween(schedule.getId(),
+                        ScheduleTriggerType.CALENDAR, from, to).stream()
+                .filter(call -> call.getDueDate() != null && call.getStatus() != PreventiveMaintenanceCallStatus.PLANNED)
+                .map(call -> call.getDueDate().getTime())
+                .collect(Collectors.toSet());
+
+        List<Date> occurrences = new ArrayList<>();
+        // Probe one second earlier so an occurrence exactly at the range start is kept.
+        Date fireTime = trigger.getFireTimeAfter(new Date(from.getTime() - 1000));
+        while (fireTime != null && !fireTime.after(to)) {
+            if (!hidden.contains(fireTime.getTime()) && shouldFireOnDate(schedule, fireTime)
+                    && (!strategy || !PreventiveMaintenancePlanPolicy.duePackages(plan,
+                    PreventiveMaintenancePlanPolicy.calendarCycleNumber(schedule, fireTime, zone)).isEmpty())) {
+                occurrences.add(fireTime);
+            }
+            if (occurrences.size() >= 1000) {
+                log.warn("Reached safety limit of 1000 events for schedule {}", schedule.getId());
+                break;
+            }
+            fireTime = trigger.getFireTimeAfter(fireTime);
+        }
+        meterCallRepository.findBySchedule_IdAndStatusAndRescheduledForBetween(schedule.getId(),
+                        PreventiveMaintenanceCallStatus.RESCHEDULED, from, to).stream()
+                .filter(call -> call.getWorkOrder() == null)
+                .map(PreventiveMaintenanceMeterCall::getRescheduledFor)
+                .forEach(occurrences::add);
+        occurrences.sort(Comparator.naturalOrder());
+        return occurrences;
+    }
+
+    private CalendarEvent<PreventiveMaintenance> toCalendarEvent(PreventiveMaintenance preventiveMaintenance,
+                                                                 Schedule schedule, Date occurrence) {
+        long durationMillis = preventiveMaintenance.getEstimatedDuration() > 0
+                ? (long) (preventiveMaintenance.getEstimatedDuration() * 3600_000)
+                : 3600_000L;
+        Date endDate = schedule.getDueDateDelay() == null ? occurrence
+                : new Date(occurrence.getTime() + TimeUnit.DAYS.toMillis(schedule.getDueDateDelay()));
+        return new CalendarEvent<>("PREVENTIVE_MAINTENANCE", preventiveMaintenance,
+                new Date(endDate.getTime() - durationMillis), endDate);
     }
 
     private boolean shouldFireOnDate(Schedule schedule, Date fireTime) {

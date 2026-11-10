@@ -1051,4 +1051,61 @@ class PreventiveMaintenanceServiceTest {
             verify(workOrderService).createFromPreventiveMaintenance(any(), eq(company));
         }
     }
+
+    @Nested
+    class CalendarOccurrencesTests {
+
+        private static final long DAY = 86_400_000L;
+
+        private org.quartz.spi.OperableTrigger dailyTriggerFrom(Date start) {
+            return (org.quartz.spi.OperableTrigger) org.quartz.TriggerBuilder.newTrigger()
+                    .startAt(start)
+                    .withSchedule(org.quartz.SimpleScheduleBuilder.simpleSchedule()
+                            .withIntervalInMilliseconds(DAY).repeatForever())
+                    .build();
+        }
+
+        @Test
+        void oldDailyPlanStillShowsTheRequestedFutureWeek() {
+            generalPreferences.setTimeZone("UTC");
+            PreventiveMaintenance pm = buildPM(1L);
+            Date start = new Date(System.currentTimeMillis() - 3 * 365 * DAY);
+            pm.getSchedule().setStartsOn(start);
+            Date from = new Date(System.currentTimeMillis() + 10 * DAY);
+            Date to = new Date(from.getTime() + 7 * DAY - 1);
+
+            List<Date> occurrences = preventiveMaintenanceService.calendarOccurrences(pm.getSchedule(),
+                    dailyTriggerFrom(start), from, to);
+
+            assertEquals(7, occurrences.size(), "more than 1000 past occurrences must not hide the future");
+            assertTrue(occurrences.stream().allMatch(date -> !date.before(from) && !date.after(to)));
+        }
+
+        @Test
+        void rescheduledOccurrenceMovesToItsNewDate() {
+            generalPreferences.setTimeZone("UTC");
+            PreventiveMaintenance pm = buildPM(1L);
+            Date start = new Date(System.currentTimeMillis() - DAY);
+            pm.getSchedule().setStartsOn(start);
+            org.quartz.spi.OperableTrigger trigger = dailyTriggerFrom(start);
+            Date from = new Date(System.currentTimeMillis());
+            Date to = new Date(from.getTime() + 3 * DAY);
+            Date original = trigger.getFireTimeAfter(from);
+            Date moved = new Date(original.getTime() + DAY / 2);
+            PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+            call.setDueDate(original);
+            call.setRescheduledFor(moved);
+            call.setStatus(PreventiveMaintenanceCallStatus.RESCHEDULED);
+            when(meterCallRepository.findBySchedule_IdAndCallTypeAndDueDateBetween(eq(100L), any(), any(), any()))
+                    .thenReturn(List.of(call));
+            when(meterCallRepository.findBySchedule_IdAndStatusAndRescheduledForBetween(eq(100L),
+                    eq(PreventiveMaintenanceCallStatus.RESCHEDULED), any(), any())).thenReturn(List.of(call));
+
+            List<Date> occurrences = preventiveMaintenanceService.calendarOccurrences(pm.getSchedule(), trigger,
+                    from, to);
+
+            assertFalse(occurrences.contains(original));
+            assertTrue(occurrences.contains(moved));
+        }
+    }
 }

@@ -68,4 +68,18 @@ public interface PreventiveMaintenanceMeterCallRepository extends JpaRepository<
 
     java.util.List<PreventiveMaintenanceMeterCall> findByStatusAndCallTypeAndRescheduledForNotNull(
             PreventiveMaintenanceCallStatus status, com.grash.model.enums.ScheduleTriggerType callType);
+
+    /** Earliest upcoming occurrence (rescheduled date wins) still waiting for a work order. */
+    @Query("select min(coalesce(c.rescheduledFor, c.dueDate)) from PreventiveMaintenanceMeterCall c " +
+            "where c.schedule.id = :scheduleId and c.callType = com.grash.model.enums.ScheduleTriggerType.CALENDAR " +
+            "and c.workOrder is null and c.status in (com.grash.model.enums.PreventiveMaintenanceCallStatus.PLANNED, " +
+            "com.grash.model.enums.PreventiveMaintenanceCallStatus.RESCHEDULED) " +
+            "and coalesce(c.rescheduledFor, c.dueDate) > :after")
+    java.util.Date findNextCalendarOccurrence(@Param("scheduleId") Long scheduleId, @Param("after") java.util.Date after);
+
+    java.util.List<PreventiveMaintenanceMeterCall> findBySchedule_IdAndCallTypeAndDueDateBetween(Long scheduleId,
+            com.grash.model.enums.ScheduleTriggerType callType, java.util.Date from, java.util.Date to);
+
+    java.util.List<PreventiveMaintenanceMeterCall> findBySchedule_IdAndStatusAndRescheduledForBetween(Long scheduleId,
+            PreventiveMaintenanceCallStatus status, java.util.Date from, java.util.Date to);
 }

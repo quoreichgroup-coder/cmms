@@ -215,6 +215,40 @@ class ScheduleServiceTest {
         verify(scheduler, never()).scheduleJob(any(JobDetail.class), any(Trigger.class));
     }
 
+    @Nested
+    class MissedOccurrences {
+
+        private PreventiveMaintenanceMeterCall call(Date dueDate, WorkOrder workOrder) {
+            PreventiveMaintenanceMeterCall call = new PreventiveMaintenanceMeterCall();
+            call.setDueDate(dueDate);
+            call.setWorkOrder(workOrder);
+            return call;
+        }
+
+        @Test
+        void pastUngeneratedFixedDateCallIsKeptAsMissed() {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceBasedOn(RecurrenceBasedOn.SCHEDULED_DATE);
+            Date now = new Date();
+            assertTrue(ScheduleService.isMissedScheduledOccurrence(schedule,
+                    call(new Date(now.getTime() - DAY_MS), null), now));
+        }
+
+        @Test
+        void futureOrGeneratedOrCompletionBasedCallsAreNotMissed() {
+            Schedule schedule = buildSchedule();
+            schedule.setRecurrenceBasedOn(RecurrenceBasedOn.SCHEDULED_DATE);
+            Date now = new Date();
+            assertFalse(ScheduleService.isMissedScheduledOccurrence(schedule,
+                    call(new Date(now.getTime() + DAY_MS), null), now));
+            assertFalse(ScheduleService.isMissedScheduledOccurrence(schedule,
+                    call(new Date(now.getTime() - DAY_MS), new WorkOrder()), now));
+            schedule.setRecurrenceBasedOn(RecurrenceBasedOn.COMPLETED_DATE);
+            assertFalse(ScheduleService.isMissedScheduledOccurrence(schedule,
+                    call(new Date(now.getTime() - DAY_MS), null), now));
+        }
+    }
+
     // ─── Simple repository pass-throughs ────────────────────────────────
 
     @Nested

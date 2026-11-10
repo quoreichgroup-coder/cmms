@@ -1612,7 +1612,8 @@ public class WorkOrderService {
                                 .forEach(pmSearchCriteria.getFilterFields()::add);
                     }
                     if (compId.equals(user.getCompany().getId())) pmSearchCriteria.filterAccessibleSites(user);
-                    result.addAll(preventiveMaintenanceService.getEventsByCriteria(pmSearchCriteria).stream()
+                    result.addAll(preventiveMaintenanceService.getEventsByCriteria(pmSearchCriteria,
+                                    dateRange.getStart(), dateRange.getEnd()).stream()
                             .filter(calendarEvent -> calendarEvent.getDate().after(new Date()))
                             .filter(calendarEvent -> canViewWorkOrderBase(user, calendarEvent.getEvent()))
                             .map(calendarEvent -> new CalendarEvent<>(calendarEvent.getType(),
