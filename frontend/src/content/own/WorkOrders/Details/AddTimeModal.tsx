@@ -16,6 +16,7 @@ import { getErrorMessage } from '../../../../utils/api';
 import { useContext } from 'react';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import Labor from '../../../../models/owns/labor';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface AddTimeProps {
   open: boolean;
@@ -30,6 +31,7 @@ export default function AddTimeModal({
   workOrderId,
   labor
 }: AddTimeProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { hasFeature } = useAuth();
@@ -112,7 +114,7 @@ export default function AddTimeModal({
       }
     : { includeToTotalTime: true };
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

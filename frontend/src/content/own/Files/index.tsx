@@ -39,8 +39,10 @@ import { SearchCriteria } from '../../../models/owns/page';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
 import { openSafeWindow } from '../../../utils/safeWindow';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 function Files() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { setTitle } = useContext(TitleContext);
   const { getFormattedDate, getUserNameById } = useContext(
@@ -224,7 +226,7 @@ function Files() {
   };
   const renderAddModal = () => {
     return (
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="sm"
         open={openAddModal}
@@ -263,7 +265,7 @@ function Files() {
   };
   const renderUpdateModal = () => {
     return (
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="sm"
         open={openUpdateModal}

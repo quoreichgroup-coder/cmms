@@ -48,10 +48,12 @@ import {
 } from '../../type';
 import { getAssetUrl } from '../../../../utils/urlPaths';
 import { useLicenseEntitlement } from '../../../../hooks/useLicenseEntitlement';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface PropsType {}
 
 const ShowAsset = ({}: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { assetId } = useParams();
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
@@ -420,7 +422,7 @@ const ShowAsset = ({}: PropsType) => {
     showSnackBar(t('asset_create_failure'), 'error');
 
   const renderAssetUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

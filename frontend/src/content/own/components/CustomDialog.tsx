@@ -1,6 +1,7 @@
 import { Breakpoint, Dialog, DialogTitle, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface FormModalProps {
   children?: ReactNode;
@@ -13,8 +14,15 @@ interface FormModalProps {
 function CustomDialog(props: FormModalProps) {
   const { open, onClose, children, title, subtitle, maxWidth } = props;
   const { t }: { t: any } = useTranslation();
+  const fullScreen = useCompactDialog();
   return (
-    <Dialog fullWidth maxWidth={maxWidth ?? 'xs'} open={open} onClose={onClose}>
+    <Dialog
+      fullWidth
+      fullScreen={fullScreen}
+      maxWidth={maxWidth ?? 'xs'}
+      open={open}
+      onClose={onClose}
+    >
       <DialogTitle
         sx={{
           p: 3

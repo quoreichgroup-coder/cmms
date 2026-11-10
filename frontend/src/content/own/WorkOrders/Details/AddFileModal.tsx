@@ -14,6 +14,7 @@ import { createWorkOrderMeterTrigger } from '../../../../slices/workOrderMeterTr
 import { useContext } from 'react';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import { addFilesToWorkOrder } from '../../../../slices/workOrder';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface AddFileProps {
   open: boolean;
@@ -26,6 +27,7 @@ export default function AddFileModal({
                                        onClose,
                                        workOrderId
                                      }: AddFileProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { hasFeature } = useAuth();
@@ -45,7 +47,7 @@ export default function AddFileModal({
     files: Yup.array().required(t('required_field'))
   };
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

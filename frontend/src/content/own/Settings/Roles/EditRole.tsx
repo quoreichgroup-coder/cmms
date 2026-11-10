@@ -21,6 +21,7 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import { useDispatch } from '../../../../store';
 
 import { getErrorMessage } from '../../../../utils/api';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface EditRoleProps {
   role: Role;
@@ -29,6 +30,7 @@ interface EditRoleProps {
   onClose: () => void;
 }
 function EditRole({ role, open, onClose, formatValues }: EditRoleProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -48,7 +50,7 @@ function EditRole({ role, open, onClose, formatValues }: EditRoleProps) {
   ];
 
   return (
-    <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="md" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

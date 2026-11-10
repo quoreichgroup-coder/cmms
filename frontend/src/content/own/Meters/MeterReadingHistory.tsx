@@ -28,6 +28,7 @@ import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
 import { logSafeError } from '../../../utils/safeErrorLog';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface MeterReadingHistoryProps {
   meter: Meter;
@@ -40,6 +41,7 @@ export default function MeterReadingHistory({
   historyFetched,
   onRefreshHistogram
 }: MeterReadingHistoryProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { hasEditPermission, hasDeletePermission } = useAuth();
@@ -128,7 +130,7 @@ export default function MeterReadingHistory({
         )
       ) : null}
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="sm"
         open={!!editingReading}

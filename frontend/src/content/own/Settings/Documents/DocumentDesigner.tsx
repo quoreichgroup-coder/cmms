@@ -49,6 +49,7 @@ import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isPdfContentType } from '../../../../utils/documentResponse';
 import { blockDocumentNavigation } from './documentDesignerNavigation';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 type StylePreset = 'CLASSIC' | 'COMPACT' | 'MODERN';
 type FieldItem = {
@@ -368,6 +369,7 @@ function toDesignerSchema(
 }
 
 export default function DocumentDesigner() {
+  const isCompactDialog = useCompactDialog();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const navigation = useContext(UNSAFE_NavigationContext);
@@ -2339,7 +2341,7 @@ export default function DocumentDesigner() {
         </Card>
       </Box>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         fullWidth
@@ -2369,7 +2371,7 @@ export default function DocumentDesigner() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={publishOpen} onClose={() => setPublishOpen(false)}>
+      <Dialog fullScreen={isCompactDialog} open={publishOpen} onClose={() => setPublishOpen(false)}>
         <DialogTitle>{t('document_designer_publish_title')}</DialogTitle>
         <DialogContent>
           <Typography>{t('document_designer_publish_body')}</Typography>
@@ -2385,7 +2387,7 @@ export default function DocumentDesigner() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={leaveOpen}
         onClose={() => {
           setLeaveOpen(false);

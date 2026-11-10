@@ -80,7 +80,7 @@ function IntegrationsLayout() {
 
   return (
     <Grid item xs={12}>
-      <Box p={4}>
+      <Box p={{ xs: 2, md: 4 }}>
         <Box>
           <Tabs
             onChange={handleTabsChange}

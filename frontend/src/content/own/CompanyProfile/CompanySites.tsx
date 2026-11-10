@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import api, { getErrorMessage } from '../../../utils/api';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface Site {
   id?: number;
@@ -50,6 +51,7 @@ const emptySite: Site = {
 };
 
 export default function CompanySites() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { user } = useAuth();
   const canEdit =
@@ -226,7 +228,7 @@ export default function CompanySites() {
           </Stack>
         )}
       </CardContent>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={Boolean(editing)}
         onClose={() => !saving && setEditing(null)}
         fullWidth

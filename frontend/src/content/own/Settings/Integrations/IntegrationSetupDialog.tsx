@@ -19,6 +19,7 @@ import VpnKeyOutlined from '@mui/icons-material/VpnKeyOutlined';
 import WebhookOutlined from '@mui/icons-material/WebhookOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 export type IntegrationProvider =
   | 'power-automate'
@@ -50,6 +51,7 @@ function IntegrationSetupDialog({
   provider,
   onClose
 }: IntegrationSetupDialogProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [step, setStep] = useState(0);
 
@@ -68,7 +70,7 @@ function IntegrationSetupDialog({
   ];
 
   return (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       open
       onClose={onClose}
       fullWidth

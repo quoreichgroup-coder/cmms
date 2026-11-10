@@ -76,6 +76,7 @@ import RequestStatusChip from './RequestStatusChip';
 import { findVisibleRequestFieldConfiguration } from './requestFormFields';
 import ContentState from '../components/ContentState';
 import ContextualHelpButton from '../HelpCenter/ContextualHelpButton';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const QUERY_SEARCH_FIELDS = new Set<keyof Request>([
   'title',
@@ -105,6 +106,7 @@ const getInitialFilterFields = (): FilterField[] =>
   loadFilterFields(FILTERS_STORAGE_KEY, DEFAULT_FILTER_FIELDS);
 
 function Requests() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { setTitle } = useContext(TitleContext);
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -464,7 +466,7 @@ function Requests() {
     saveFilterFields(FILTERS_STORAGE_KEY, newFilters, QUERY_SEARCH_FIELDS);
   };
   const renderAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -543,7 +545,7 @@ function Requests() {
   );
   const renderUpdateModal = () => (
     <>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="md"
         open={openUpdateModal}

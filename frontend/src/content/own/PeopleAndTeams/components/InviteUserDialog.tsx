@@ -26,6 +26,7 @@ import { isEmailVerificationEnabled } from '../../../../config';
 import CreateUser from './CreateUser';
 import { Simulate } from 'react-dom/test-utils';
 import { getApiErrorMessage } from '../../../../utils/apiError';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 export default function InviteUserDialog({
   open,
@@ -38,6 +39,7 @@ export default function InviteUserDialog({
   onRefreshUsers: () => void;
   initialEmail?: string;
 }) {
+  const isCompactDialog = useCompactDialog();
   const [isInviteSubmitting, setIsInviteSubmitting] = useState(false);
   const [roleId, setRoleId] = useState<number>();
   const { t } = useTranslation();
@@ -81,7 +83,7 @@ export default function InviteUserDialog({
   };
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

@@ -1533,7 +1533,7 @@ function WorkOrders() {
         open={openFilterDrawer}
         onClose={handleCloseFilterDrawer}
         PaperProps={{
-          sx: { width: '30%' }
+          sx: { width: { xs: '100vw', sm: 360, md: 420 }, maxWidth: '100vw' }
         }}
       >
         <MoreFilters

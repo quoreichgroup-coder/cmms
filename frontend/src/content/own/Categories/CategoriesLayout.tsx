@@ -39,6 +39,7 @@ import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { PermissionEntity } from '../../../models/owns/role';
 import PermissionErrorMessage from '../components/PermissionErrorMessage';
 import { getErrorMessage } from '../../../utils/api';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const IconButtonWrapper = styled(IconButton)(
   ({ theme }) => `
@@ -69,6 +70,7 @@ interface CategoriesLayoutProps {
 }
 
 function CategoriesLayout(props: CategoriesLayoutProps) {
+  const isCompactDialog = useCompactDialog();
   const { children, tabIndex, basePath, navigationBasePath, settingsMode } =
     props;
   const { t }: { t: any } = useTranslation();
@@ -150,7 +152,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
       ]
     : categoryTabs;
   const renderModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="xs"
       open={openAddCategoryModal}
@@ -260,7 +262,7 @@ function CategoriesLayout(props: CategoriesLayoutProps) {
     </Dialog>
   );
   const renderUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="xs"
       open={openUpdateCategoryModal}

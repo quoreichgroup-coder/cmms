@@ -84,6 +84,7 @@ import RotateLeftOutlinedIcon from '@mui/icons-material/RotateLeftOutlined';
 import { onOpenApiDocs } from '../../../../utils/overall';
 import { apiUrl } from '../../../../config';
 import { getErrorMessage } from '../../../../utils/api';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 const DialogWrapper = styled(Dialog)(
   () => `
@@ -101,6 +102,7 @@ const Transition = forwardRef(function Transition(
 });
 
 function Webhooks() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -871,7 +873,7 @@ function Webhooks() {
         confirmText={t('webhook_endpoint_rotate_secret')}
         question={t('webhook_endpoint_rotate_confirm')}
       />
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={Boolean(oneTimeSecret)}
         maxWidth="sm"
         fullWidth

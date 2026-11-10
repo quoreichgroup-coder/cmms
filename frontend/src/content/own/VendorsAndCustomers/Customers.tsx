@@ -57,6 +57,7 @@ import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsIFields, getCustomFieldsRequiredShape } from '../type';
 import { formatCustomFields } from '../../../utils/formatters';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface PropsType {
   values?: any;
@@ -75,6 +76,7 @@ const fieldMapping: Record<string, string> = {
 };
 
 const Customers = ({ openModal, handleCloseModal }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [isCustomerDetailsOpen, setIsCustomerDetailsOpen] =
     useState<boolean>(false);
@@ -426,7 +428,7 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
     })
   ];
   const RenderCustomersAddModal = () => (
-    <Dialog fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
       <DialogTitle
         sx={{
           p: 3
@@ -534,7 +536,7 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
       );
   };
   const ModalCustomerDetails = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="sm"
       open={isCustomerDetailsOpen}

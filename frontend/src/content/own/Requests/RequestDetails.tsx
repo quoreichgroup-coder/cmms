@@ -50,6 +50,7 @@ import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../../utils/api';
 import PriorityWrapper from '../components/PriorityWrapper';
 import RequestReportModal from './RequestReportModal';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface RequestDetailsProps {
   request: Request;
@@ -64,6 +65,7 @@ export default function RequestDetails({
   handleOpenDelete,
   onClose
 }: RequestDetailsProps) {
+  const isCompactDialog = useCompactDialog();
   const [approving, setApproving] = useState<boolean>(false);
   const [openApprovalConfirmation, setOpenApprovalConfirmation] =
     useState(false);
@@ -559,7 +561,7 @@ export default function RequestDetails({
         onClose={() => setRequestReportOpen(false)}
         requestId={request.id}
       />
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={openApprovalConfirmation}
         onClose={() => {
           if (!approving) setOpenApprovalConfirmation(false);

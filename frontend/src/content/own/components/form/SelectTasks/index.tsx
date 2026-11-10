@@ -40,6 +40,7 @@ import { PlanFeature } from '../../../../../models/owns/subscriptionPlan';
 import { AssetMiniDTO } from '../../../../../models/owns/asset';
 import { UserMiniDTO } from '../../../../../models/user';
 import { MeterMiniDTO } from 'src/models/owns/meter';
+import useCompactDialog from '../../../../../hooks/useCompactDialog';
 
 const allocateTemporaryId = (usedIds: Set<number>) => {
   let id = 0;
@@ -67,6 +68,7 @@ export default function SelectTasks({
   action,
   infos
 }: SelectTasksProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const [currentTab, setCurrentTab] = useState<string>('edit');
@@ -308,7 +310,7 @@ export default function SelectTasks({
   };
   return (
     <Box>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="md"
         open={open}

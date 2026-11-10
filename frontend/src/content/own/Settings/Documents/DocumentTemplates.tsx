@@ -48,6 +48,7 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import { isPdfContentType } from '../../../../utils/documentResponse';
 import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 type TemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 interface TemplateConfiguration {
@@ -244,6 +245,7 @@ const emptyConfiguration = (
 });
 
 function DocumentTemplates() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1180,7 +1182,7 @@ function DocumentTemplates() {
         </>
       )}
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={typeDialogOpen}
         onClose={() => !saving && setTypeDialogOpen(false)}
         fullWidth
@@ -1255,7 +1257,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={typeManagerOpen}
         onClose={() => setTypeManagerOpen(false)}
         fullWidth
@@ -1337,7 +1339,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={startDialogOpen}
         onClose={() => !saving && setStartDialogOpen(false)}
         fullWidth
@@ -1499,7 +1501,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={editorOpen}
         onClose={() => !saving && setEditorOpen(false)}
         fullWidth
@@ -1902,7 +1904,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={Boolean(archiveTarget)}
         onClose={() => !saving && setArchiveTarget(null)}
       >
@@ -1929,7 +1931,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={Boolean(deleteTarget)}
         onClose={() => !saving && setDeleteTarget(null)}
         aria-labelledby="template-delete-title"
@@ -1959,7 +1961,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={versionsOpen}
         onClose={() => setVersionsOpen(false)}
         fullWidth
@@ -2056,7 +2058,7 @@ function DocumentTemplates() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={Boolean(previewTarget)}
         onClose={() => !previewing && setPreviewTarget(null)}
         fullWidth

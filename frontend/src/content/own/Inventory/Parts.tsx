@@ -73,6 +73,7 @@ import { getPartUrl } from '../../../utils/urlPaths';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape, getCustomFieldsIFields } from '../type';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface PropsType {
   setAction: (p: () => () => void) => void;
@@ -99,6 +100,7 @@ const fieldMapping: Record<string, string> = {
 
 const PAGE_SIZE = 12;
 const Parts = ({ setAction }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [currentTab, setCurrentTab] = useState<string>('list');
   const [openUpdateModal, setOpenUpdateModal] = useState<boolean>(false);
@@ -533,7 +535,7 @@ const Parts = ({ setAction }: PropsType) => {
     ...getCustomFieldsRequiredShape(customFields, CustomFieldEntityType.PART, t)
   };
   const renderPartAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -647,7 +649,7 @@ const Parts = ({ setAction }: PropsType) => {
     }
   ];
   const renderPartUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

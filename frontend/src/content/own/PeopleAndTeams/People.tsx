@@ -57,6 +57,7 @@ import ShiftConfigurationModal from './components/ShiftConfigurationModal';
 import { isEmailVerificationEnabled } from '../../../config';
 import { createColumnHelper } from '@tanstack/react-table';
 import useTableState from '../../../hooks/useTableState';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const fieldMapping: Record<string, string> = {
   name: 'firstName',
@@ -76,6 +77,7 @@ interface PropsType {
 }
 
 const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const [currentUser, setCurrentUser] = useState<UserResponseDTO>();
@@ -279,7 +281,7 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
     return fields;
   };
   const renderEditUserModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

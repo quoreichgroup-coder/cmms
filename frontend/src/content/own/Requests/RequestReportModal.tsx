@@ -26,6 +26,7 @@ import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
 import { useTranslation } from 'react-i18next';
 import api, { getErrorMessage } from '../../../utils/api';
 import { isPdfContentType } from '../../../utils/documentResponse';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface GeneratedDocument {
   id: number;
@@ -54,6 +55,7 @@ export default function RequestReportModal({
   onClose,
   requestId
 }: Props) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
@@ -184,7 +186,7 @@ export default function RequestReportModal({
   };
 
   return (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="sm"
       open={open}

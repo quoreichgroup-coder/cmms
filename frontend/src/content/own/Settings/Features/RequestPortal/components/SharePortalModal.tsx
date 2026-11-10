@@ -21,6 +21,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { RequestPortal } from '../../../../../../models/owns/requestPortal';
 import { populateQrPrintDocument } from '../../../../../../utils/printQrCode';
 import { logSafeError } from '../../../../../../utils/safeErrorLog';
+import useCompactDialog from '../../../../../../hooks/useCompactDialog';
 
 interface SharePortalModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export default function SharePortalModal({
   onClose,
   portal
 }: SharePortalModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t } = useTranslation();
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
@@ -96,7 +98,7 @@ export default function SharePortalModal({
   };
 
   return (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       open={open}
       onClose={onClose}
       maxWidth="sm"

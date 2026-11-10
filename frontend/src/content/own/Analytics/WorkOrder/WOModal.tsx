@@ -31,6 +31,7 @@ import { CompanySettingsContext } from '../../../../contexts/CompanySettingsCont
 import api, { getErrorMessage } from '../../../../utils/api';
 import { Page } from '../../../../models/owns/page';
 import { buildStatusWorkOrderCriteria } from './statusDrilldown';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 export interface Filter {
   key: string;
@@ -56,6 +57,7 @@ export default function WOModal({
   end,
   companyId
 }: WOModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { getFormattedDate, getUserNameById } = useContext(
     CompanySettingsContext
@@ -287,7 +289,7 @@ export default function WOModal({
     return result;
   };
   return (
-    <Dialog fullWidth maxWidth="lg" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="lg" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

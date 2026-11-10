@@ -26,6 +26,7 @@ import { getErrorMessage } from '../../../../utils/api';
 import { PermissionEntity, PermissionRoot } from '../../../../models/owns/role';
 import { defaultPermissions } from '../../../../utils/roles';
 import PermissionsMatrix from './PermissionsMatrix';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface PageHeaderProps {
   rolesNumber: number;
@@ -33,6 +34,7 @@ interface PageHeaderProps {
 }
 
 function PageHeader({ rolesNumber, formatValues }: PageHeaderProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { hasFeature, user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -98,7 +100,7 @@ function PageHeader({ rolesNumber, formatValues }: PageHeaderProps) {
         </Grid>
       </Grid>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="md"
         open={open}

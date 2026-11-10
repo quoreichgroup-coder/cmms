@@ -58,6 +58,7 @@ import {
   DropResult
 } from 'react-beautiful-dnd';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 const IconButtonWrapper = styled(IconButton)(
   ({ theme }) => `
@@ -84,6 +85,7 @@ interface CustomFieldsManagerProps {
 }
 
 function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -324,7 +326,7 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
         )}
 
         {/* Add Modal */}
-        <Dialog
+        <Dialog fullScreen={isCompactDialog}
           fullWidth
           maxWidth="sm"
           open={openAddModal}
@@ -497,7 +499,7 @@ function CustomFieldsManager({ entityType }: CustomFieldsManagerProps) {
         </Dialog>
 
         {/* Update Modal */}
-        <Dialog
+        <Dialog fullScreen={isCompactDialog}
           fullWidth
           maxWidth="sm"
           open={openUpdateModal}

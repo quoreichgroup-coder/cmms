@@ -56,6 +56,7 @@ import { getCustomFieldsIFields, getCustomFieldsRequiredShape } from '../type';
 import { formatCustomFields } from '../../../utils/formatters';
 import { getErrorMessage } from '../../../utils/api';
 import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface PropsType {
   values?: any;
@@ -74,6 +75,7 @@ const fieldMapping: Record<string, string> = {
 };
 
 const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const brandConfig = useBrand();
   const [isVendorDetailsOpen, setIsVendorDetailsOpen] =
@@ -420,7 +422,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
       );
   };
   const RenderVendorsAddModal = () => (
-    <Dialog fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
       <DialogTitle
         sx={{
           p: 3
@@ -496,7 +498,7 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
   );
 
   const ModalVendorDetails = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="sm"
       open={isVendorDetailsOpen}

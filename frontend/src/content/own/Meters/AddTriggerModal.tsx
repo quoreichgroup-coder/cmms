@@ -26,6 +26,7 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getImageAndFiles } from '../../../utils/overall';
 import { getErrorMessage } from '../../../utils/api';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface AddTriggerProps {
   open: boolean;
@@ -37,6 +38,7 @@ export default function AddTriggerModal({
   onClose,
   meter
 }: AddTriggerProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -127,7 +129,7 @@ export default function AddTriggerModal({
     showSnackBar(getErrorMessage(err, t('wo_trigger_create_failure')), 'error');
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

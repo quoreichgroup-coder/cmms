@@ -77,6 +77,7 @@ import {
   getWorkdayWindow
 } from './capacityUtilization';
 import { isDueDateBeforeDay, isDueDateWithinNextDays } from '../dueDate';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface WorkloadViewProps {
   handleOpenDetails: (id: number, type: string) => void;
@@ -94,6 +95,7 @@ const userCellDroppableId = (userId: number, dateStr: string) =>
   `user-${userId}-${dateStr}`;
 
 function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const dateLocale = useDateLocale();
@@ -1025,7 +1027,7 @@ function WorkloadView({ handleOpenDetails }: WorkloadViewProps) {
         </Box>
       </DragDropContext>
 
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={durationModalOpen}
         onClose={() => {
           if (!isSchedulingDuration) handleDurationCancel();

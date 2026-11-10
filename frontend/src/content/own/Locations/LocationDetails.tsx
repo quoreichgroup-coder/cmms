@@ -49,6 +49,7 @@ import MaintenanceRequest from '../../../models/owns/request';
 import { Page } from '../../../models/owns/page';
 import api from '../../../utils/api';
 import Pagination from '@mui/material/Pagination';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface LocationDetailsProps {
   location: Location;
@@ -58,6 +59,7 @@ interface LocationDetailsProps {
 }
 type RelatedLoadState = 'loading' | 'ready' | 'error';
 export default function LocationDetails(props: LocationDetailsProps) {
+  const isCompactDialog = useCompactDialog();
   const { location, handleOpenUpdate, handleOpenDelete, onCopy } = props;
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
@@ -222,7 +224,7 @@ export default function LocationDetails(props: LocationDetailsProps) {
   };
 
   const renderAddFloorPlanModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="sm"
       open={openAddFloorPlan}

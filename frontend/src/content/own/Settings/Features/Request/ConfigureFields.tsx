@@ -30,7 +30,7 @@ function ConfigureRequestFields() {
 
   return (
     <Grid item xs={12}>
-      <Box p={4}>
+      <Box p={{ xs: 2, md: 4 }}>
         {hasFeature(PlanFeature.REQUEST_CONFIGURATION) ? (
           <Box>
             <Box p={3}>

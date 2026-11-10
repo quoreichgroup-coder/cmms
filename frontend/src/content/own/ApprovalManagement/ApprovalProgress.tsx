@@ -17,6 +17,7 @@ import useAuth from '../../../hooks/useAuth';
 import { ApprovalDocumentType, ApprovalSummary, ApprovalTarget } from '../../../models/owns/procurementApproval';
 import { PermissionEntity } from '../../../models/owns/role';
 import api, { getErrorMessage } from '../../../utils/api';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 export function useApprovalSummary(type: ApprovalDocumentType, id?: number, revision?: unknown) {
   const { user, company } = useAuth();
@@ -49,6 +50,7 @@ export default function ApprovalProgress({
   type: ApprovalDocumentType;
   documentId?: number;
 }) {
+  const isCompactDialog = useCompactDialog();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,7 +112,7 @@ export default function ApprovalProgress({
       {canReassign && <Button size="small" sx={{ mt: 1 }} onClick={() => setDialogOpen(true)}>{t('ap_reassign')}</Button>}
     </Alert>
     {saved && <Alert severity="success" sx={{ mt: 1 }}>{t('ap_reassign_success')}</Alert>}
-    <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} fullWidth maxWidth="sm">
+    <Dialog fullScreen={isCompactDialog} open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} fullWidth maxWidth="sm">
       <DialogTitle>{t('ap_reassign_dialog')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>

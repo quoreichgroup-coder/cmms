@@ -38,12 +38,14 @@ import { CompanySettingsContext } from '../../../contexts/CompanySettingsContext
 import NoRowsMessageWrapper from '../components/NoRowsMessageWrapper';
 import { formatSelectMultiple } from '../../../utils/formatters';
 import { createColumnHelper } from '@tanstack/react-table';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface PropsType {
   setAction: (p: () => () => void) => void;
 }
 
 const Sets = ({ setAction }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [currentTab, setCurrentTab] = useState<string>('list');
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -226,7 +228,7 @@ const Sets = ({ setAction }: PropsType) => {
     ) : null;
   };
   const renderSetAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -267,7 +269,7 @@ const Sets = ({ setAction }: PropsType) => {
     </Dialog>
   );
   const renderSetUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

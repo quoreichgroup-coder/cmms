@@ -33,7 +33,7 @@ function AssetSettings() {
 
   return (
     <Grid item xs={12}>
-      <Box p={4}>
+      <Box p={{ xs: 2, md: 4 }}>
         <Formik
           initialValues={generalPreferences}
           validationSchema={undefined}

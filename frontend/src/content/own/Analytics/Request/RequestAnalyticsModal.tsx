@@ -24,6 +24,7 @@ import RequestStatusChip from '../../Requests/RequestStatusChip';
 import { CompanySettingsContext } from '../../../../contexts/CompanySettingsContext';
 import { Filter } from './WOModal';
 import { buildRequestAnalyticsCriteria } from './requestDrilldown';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface RequestAnalyticsModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ export default function RequestAnalyticsModal({
   end,
   companyId
 }: RequestAnalyticsModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { getFormattedDate } = useContext(CompanySettingsContext);
@@ -162,7 +164,7 @@ export default function RequestAnalyticsModal({
   ];
 
   return (
-    <Dialog fullWidth maxWidth="lg" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="lg" open={open} onClose={onClose}>
       <DialogTitle sx={{ p: 3 }}>
         <Typography variant="h4">{title}</Typography>
       </DialogTitle>

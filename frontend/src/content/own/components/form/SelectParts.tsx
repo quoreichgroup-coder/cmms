@@ -25,6 +25,7 @@ import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { getPartsMini } from '../../../../slices/part';
 import { getMultiParts } from "../../../../slices/multipart";
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface SelectPartsProps {
   onChange: (parts: PartMiniDTO[]) => void;
@@ -32,6 +33,7 @@ interface SelectPartsProps {
 }
 
 export default function SelectParts({ onChange, selected }: SelectPartsProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { partsMini } = useSelector((state) => state.parts);
@@ -78,7 +80,7 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
   };
   return (
     <>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         fullWidth
         maxWidth="sm"
         open={openModal}

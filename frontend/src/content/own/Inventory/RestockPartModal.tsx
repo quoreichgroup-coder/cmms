@@ -8,6 +8,7 @@ import { useContext } from 'react';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../../utils/api';
 import Part from '../../../models/owns/part';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface RestockPartModalProps {
   open: boolean;
@@ -20,12 +21,13 @@ export default function RestockPartModal({
   onClose,
   part
 }: RestockPartModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { showSnackBar } = useContext(CustomSnackBarContext);
   const dispatch = useDispatch();
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
           {t('restock_part')}

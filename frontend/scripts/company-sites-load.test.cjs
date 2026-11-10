@@ -86,6 +86,8 @@ function harness() {
         };
       if (id.endsWith('/role'))
         return { PermissionEntity: { SETTINGS: 'SETTINGS' } };
+      // Dialogs open full screen on phones; tests render at desktop width.
+      if (/hooks\/useCompactDialog$/.test(id)) return { default: () => false };
       return require(id);
     }
   });

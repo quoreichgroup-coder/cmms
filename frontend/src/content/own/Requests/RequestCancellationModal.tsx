@@ -8,6 +8,7 @@ import { cancelRequest } from 'src/slices/request';
 import { useDispatch } from 'src/store';
 import { CustomSnackBarContext } from 'src/contexts/CustomSnackBarContext';
 import { getErrorMessage } from 'src/utils/api';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface SignatureProps {
   open: boolean;
@@ -21,6 +22,7 @@ export default function CompleteWOModal({
   requestId,
   onCancel
 }: SignatureProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -38,7 +40,7 @@ export default function CompleteWOModal({
   };
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

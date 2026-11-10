@@ -27,6 +27,7 @@ import { getPDFReport, ReportConfig } from '../../../../slices/workOrder';
 import ReportConfigFields from './ReportConfigFields';
 import api, { getErrorMessage } from '../../../../utils/api';
 import { isPdfContentType } from '../../../../utils/documentResponse';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface GeneratedDocument {
   id: number;
@@ -69,6 +70,7 @@ export default function ReportConfigModal({
   onClose,
   workOrderId
 }: ReportConfigModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const [config, setConfig] = useState<ReportConfig>(defaultConfig);
@@ -240,7 +242,7 @@ export default function ReportConfigModal({
   };
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
           {t('pdf_report')}

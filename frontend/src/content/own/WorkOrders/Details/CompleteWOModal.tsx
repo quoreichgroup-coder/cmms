@@ -20,6 +20,7 @@ import { StoreReturnType } from '../../../../store';
 import { getErrorMessage } from '../../../../utils/api';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import api from '../../../../utils/api';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface SignatureProps {
   open: boolean;
@@ -45,6 +46,7 @@ export default function CompleteWOModal({
   workOrder,
   laborEntries
 }: SignatureProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { uploadFiles } = useContext(CompanySettingsContext);
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -131,7 +133,7 @@ export default function CompleteWOModal({
     return [fields, shape];
   };
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

@@ -200,7 +200,7 @@ function MultipleTabsLayout(props: SettingsLayoutProps) {
         <Card
           variant="outlined"
           sx={{
-            mx: 4
+            mx: { xs: 1.5, sm: 2.5, md: 4 }
           }}
         >
           {children}

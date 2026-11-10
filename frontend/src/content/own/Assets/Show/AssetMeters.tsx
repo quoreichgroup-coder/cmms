@@ -33,12 +33,14 @@ import { canAddReading } from '../../../../utils/overall';
 import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
 import ContentState from '../../components/ContentState';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface PropsType {
   asset: AssetDTO;
 }
 
 const AssetMeters = ({ asset }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { metersByAsset, loadingGet: loadingMeters } = useSelector(
@@ -124,7 +126,7 @@ const AssetMeters = ({ asset }: PropsType) => {
     }
   ];
   const renderReadingModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openReadingModal}

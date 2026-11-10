@@ -67,8 +67,10 @@ import api from '../../../utils/api';
 import { downloadCsv } from '../../../utils/csv';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import { Page } from '../../../models/owns/page';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 function PurchaseOrders() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -735,7 +737,7 @@ function PurchaseOrders() {
     )
   };
   const renderUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

@@ -65,6 +65,7 @@ import { useBrand } from '../../../hooks/useBrand';
 import { hydrateAuthorizedImages } from './authorizedImages';
 import { normalizeHelpSearch } from './normalizeHelpSearch';
 import { getSearchExcerpt, Highlight } from './searchPresentation';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 type Guide = {
   id: string;
@@ -112,6 +113,7 @@ const readNavigationState = (): Record<string, boolean> => {
 };
 
 export default function HelpCenter() {
+  const isCompactDialog = useCompactDialog();
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage?.toLowerCase().startsWith('fr')
     ? 'fr'
@@ -1618,7 +1620,7 @@ export default function HelpCenter() {
           >
             {renderNavigation(true)}
           </Drawer>
-          <Dialog
+          <Dialog fullScreen={isCompactDialog}
             open={Boolean(expandedImage)}
             onClose={() => setExpandedImage(null)}
             maxWidth="lg"

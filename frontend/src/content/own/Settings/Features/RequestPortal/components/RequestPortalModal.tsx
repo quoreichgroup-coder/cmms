@@ -52,6 +52,7 @@ import {
 import { AssetMiniDTO } from '../../../../../../models/owns/asset';
 import { LocationMiniDTO } from '../../../../../../models/owns/location';
 import RequestPortalPreview from '../../../../components/form/RequestPortalPreview';
+import useCompactDialog from '../../../../../../hooks/useCompactDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -372,6 +373,7 @@ export default function RequestPortalModal({
   activeTab: initialActiveTab,
   onSubmit
 }: RequestPortalModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const theme = useTheme();
 
@@ -437,7 +439,7 @@ export default function RequestPortalModal({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={open}

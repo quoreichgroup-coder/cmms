@@ -16,6 +16,7 @@ import { getErrorMessage } from '../../../../utils/api';
 import { useContext } from 'react';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import AdditionalCost from '../../../../models/owns/additionalCost';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface AddCostProps {
   open: boolean;
@@ -29,6 +30,7 @@ export default function AddCostModal({
   workOrderId,
   additionalCost
 }: AddCostProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { hasFeature } = useAuth();
@@ -98,7 +100,7 @@ export default function AddCostModal({
       }
     : { includeToTotalCost: true };
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

@@ -46,6 +46,7 @@ import { SearchCriteria, SortDirection } from '../../../models/owns/page';
 import { onSearchQueryChange } from '../../../utils/overall';
 import SearchInput from '../components/SearchInput';
 import { getUserUrl } from '../../../utils/urlPaths';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface PropsType {
   values?: any;
@@ -54,6 +55,7 @@ interface PropsType {
 }
 
 const Teams = ({ openModal, handleCloseModal }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const [openDelete, setOpenDelete] = useState<boolean>(false);
@@ -219,7 +221,7 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
   };
 
   const RenderTeamsAddModal = () => (
-    <Dialog fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="md" open={openModal} onClose={handleCloseModal}>
       <DialogTitle
         sx={{
           p: 3
@@ -327,7 +329,7 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
   );
 
   const ModalTeamDetails = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="sm"
       open={isTeamDetailsOpen}

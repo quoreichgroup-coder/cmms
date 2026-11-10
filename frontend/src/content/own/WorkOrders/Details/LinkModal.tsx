@@ -28,6 +28,7 @@ import { SearchCriteria } from '../../../../models/owns/page';
 import { getWorkOrders, getWorkOrdersMini } from '../../../../slices/workOrder';
 import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContext';
 import { getErrorMessage } from '../../../../utils/api';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface LinkModalProps {
   open: boolean;
@@ -40,6 +41,7 @@ export default function LinkModal({
   onClose,
   workOrderId
 }: LinkModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { workOrdersMini } = useSelector((state) => state.workOrders);
@@ -63,7 +65,7 @@ export default function LinkModal({
   useEffect(() => () => debouncedQueryChange.clear(), [debouncedQueryChange]);
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 3

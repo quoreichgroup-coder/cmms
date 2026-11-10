@@ -48,6 +48,7 @@ import downloadFile from 'downloadjs';
 import useImport, { EntityType } from 'src/hooks/useImport';
 import { findHierarchyImportIssues } from 'src/utils/hierarchyImportPreflight';
 import { buildImportPayload } from 'src/utils/importPayload';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 interface OwnProps {}
 
@@ -59,6 +60,7 @@ export interface OwnHeader {
 }
 
 const Import = ({}: OwnProps) => {
+  const isCompactDialog = useCompactDialog();
   const { hasViewPermission, hasFeature } = useAuth();
   const { t }: { t: any } = useTranslation();
   const { importEntity: importEntityHook, loadingImport } = useImport();
@@ -398,7 +400,7 @@ const Import = ({}: OwnProps) => {
     );
   };
   const renderModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openModal}

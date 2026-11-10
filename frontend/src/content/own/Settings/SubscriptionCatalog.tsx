@@ -29,6 +29,7 @@ import {
 import api from '../../../utils/api';
 import { CustomSnackBarContext } from '../../../contexts/CustomSnackBarContext';
 import { TitleContext } from '../../../contexts/TitleContext';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const features = Object.values(PlanFeature);
 
@@ -37,6 +38,7 @@ function normalizeFeatures(planFeatures: PlanFeature[]) {
 }
 
 function SubscriptionCatalog() {
+  const isCompactDialog = useCompactDialog();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -274,7 +276,7 @@ function SubscriptionCatalog() {
           </Grid>
         )}
       </Stack>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={pendingSavePlan !== null}
         onClose={() => setPendingSavePlan(null)}
         aria-labelledby="plan-catalog-confirm-title"

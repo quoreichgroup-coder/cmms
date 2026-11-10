@@ -93,10 +93,12 @@ import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined';
 import SearchInput from '../components/SearchInput';
 import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const PAGE_SIZE = 40;
 
 function Locations() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -741,7 +743,7 @@ function Locations() {
   };
 
   const renderLocationAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -871,7 +873,7 @@ function Locations() {
     </Menu>
   );
   const renderLocationUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

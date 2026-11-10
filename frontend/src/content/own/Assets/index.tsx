@@ -84,10 +84,12 @@ import { getCustomFields } from '../../../slices/customField';
 import { CustomFieldEntityType } from '../../../models/owns/customField';
 import { getCustomFieldsRequiredShape } from '../type';
 import { useLicenseEntitlement } from '../../../hooks/useLicenseEntitlement';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const PAGE_SIZE = 40;
 
 function Assets() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const hasNfcBarcode = useLicenseEntitlement('NFC_BARCODE');
   const location = useLocation();
@@ -780,7 +782,7 @@ function Assets() {
   };
 
   const renderAssetAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}

@@ -25,6 +25,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
 import CustomDatagrid2, { CustomDatagridColumn2 } from '../CustomDatagrid2';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface SelectLocationModalProps {
   open: boolean;
@@ -45,6 +46,7 @@ const SelectLocationModal: React.FC<SelectLocationModalProps> = ({
   maxSelections,
   initialSelectedLocations = []
 }) => {
+  const isCompactDialog = useCompactDialog();
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -258,7 +260,7 @@ const SelectLocationModal: React.FC<SelectLocationModalProps> = ({
   };
 
   return (
-    <Dialog fullWidth maxWidth="md" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="md" open={open} onClose={onClose}>
       <DialogTitle
         sx={{
           p: 2,

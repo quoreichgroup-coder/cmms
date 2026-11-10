@@ -73,6 +73,7 @@ import useTableState from '../../../hooks/useTableState';
 import { getErrorMessage } from '../../../utils/api';
 import { getMeterUrl } from '../../../utils/urlPaths';
 import SplitButton from '../components/SplitButton';
+import useCompactDialog from '../../../hooks/useCompactDialog';
 
 const LabelWrapper = styled(Box)(
   ({ theme }) => `
@@ -97,6 +98,7 @@ const fieldMapping: Record<string, string> = {
 };
 
 function Meters() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const { setTitle } = useContext(TitleContext);
   const [openAddModal, setOpenAddModal] = useState<boolean>(false);
@@ -459,7 +461,7 @@ function Meters() {
     )
   };
   const renderAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -541,7 +543,7 @@ function Meters() {
     </Dialog>
   );
   const renderUpdateModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openUpdateModal}

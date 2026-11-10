@@ -44,8 +44,10 @@ import useAuth from '../../../../hooks/useAuth';
 import { PlanFeature } from '../../../../models/owns/subscriptionPlan';
 import FeatureErrorMessage from '../../components/FeatureErrorMessage';
 import { getErrorMessage } from '../../../../utils/api';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 function Checklists() {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const [openCreateChecklist, setOpenCreateChecklist] = useState(false);
   const [openEditChecklist, setOpenEditChecklist] = useState(false);
@@ -268,7 +270,7 @@ function Checklists() {
               )}
             </Box>
           </Grid>
-          <Dialog
+          <Dialog fullScreen={isCompactDialog}
             open={openDetails}
             onClose={() => setOpenDetails(false)}
             fullWidth

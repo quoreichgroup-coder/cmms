@@ -80,6 +80,8 @@ function harness() {
               'submit'
             )
         };
+      // Dialogs open full screen on phones; tests render at desktop width.
+      if (/hooks\/useCompactDialog$/.test(id)) return { default: () => false };
       return require(id);
     }
   });

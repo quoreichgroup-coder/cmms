@@ -108,6 +108,7 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { ContentCopyOutlined } from '@mui/icons-material';
 import WorkOrderStatusChip from '../WorkOrderStatusChip';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 function WorkOrderImagePreview({
   src,
@@ -164,6 +165,7 @@ interface WorkOrderDetailsProps {
 }
 
 export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
+  const isCompactDialog = useCompactDialog();
   const { workOrder, onEdit, tasks, onDelete, onCopy, onClose } = props;
   const theme = useTheme();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -882,7 +884,7 @@ export default function WorkOrderDetails(props: WorkOrderDetailsProps) {
                       {t('work_order_reopen_action')}
                     </Button>
                   )}
-                  <Dialog
+                  <Dialog fullScreen={isCompactDialog}
                     open={reopenOpen}
                     onClose={() => !reopening && setReopenOpen(false)}
                     fullWidth

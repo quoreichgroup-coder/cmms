@@ -47,12 +47,14 @@ import { CompanySettingsContext } from '../../../../contexts/CompanySettingsCont
 import AssetDowntime from '../../../../models/owns/assetDowntime';
 import { getErrorMessage } from '../../../../utils/api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface PropsType {
   asset: AssetDTO;
 }
 
 const AssetDowntimes = ({ asset }: PropsType) => {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { assetDowntimesByAsset } = useSelector((state) => state.downtimes);
@@ -224,7 +226,7 @@ const AssetDowntimes = ({ asset }: PropsType) => {
     minutes: Yup.number().required(t('required_minutes'))
   };
   const renderAddModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openAddModal}
@@ -269,7 +271,7 @@ const AssetDowntimes = ({ asset }: PropsType) => {
     </Dialog>
   );
   const renderEditModal = () => (
-    <Dialog
+    <Dialog fullScreen={isCompactDialog}
       fullWidth
       maxWidth="md"
       open={openEditModal}

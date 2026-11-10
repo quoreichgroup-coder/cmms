@@ -74,6 +74,7 @@ import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { qpmBrandTokens } from '../../../../theme/tokens';
 import { blockDocumentNavigation } from './documentDesignerNavigation';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 type TemplateRecord = {
   id: number;
@@ -401,6 +402,7 @@ function toTemplate(configuration: any, t: (key: string) => string): Template {
 }
 
 function PdfmeDocumentDesigner() {
+  const isCompactDialog = useCompactDialog();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const navigation = useContext(UNSAFE_NavigationContext);
@@ -2459,7 +2461,7 @@ function PdfmeDocumentDesigner() {
       )}
       </Stack>
       </Box>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={leaveConfirmOpen}
         onClose={() => {
           if (saving) return;
@@ -2494,7 +2496,7 @@ function PdfmeDocumentDesigner() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog
+      <Dialog fullScreen={isCompactDialog}
         open={deleteComponentOpen}
         onClose={() => setDeleteComponentOpen(false)}
         maxWidth="xs"
@@ -2511,7 +2513,7 @@ function PdfmeDocumentDesigner() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={Boolean(zoneToClear)} onClose={() => setZoneToClear('')} maxWidth="xs" fullWidth>
+      <Dialog fullScreen={isCompactDialog} open={Boolean(zoneToClear)} onClose={() => setZoneToClear('')} maxWidth="xs" fullWidth>
         <DialogTitle>{t('document_zone_clear_title', { zone: t(`document_zone_${zoneToClear === 'HEADER' ? 'header' : zoneToClear === 'FOOTER' ? 'footer' : zoneToClear === 'REPORT_HEADER' ? 'reportHeader' : 'reportFooter'}`) })}</DialogTitle>
         <DialogContent>
           <Typography>{t('document_zone_clear_help')}</Typography>

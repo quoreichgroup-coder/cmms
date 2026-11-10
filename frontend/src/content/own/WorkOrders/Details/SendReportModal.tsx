@@ -21,6 +21,7 @@ import { getErrorMessage } from '../../../../utils/api';
 import { CustomerMiniDTO } from '../../../../models/owns/customer';
 import { getCustomersMini } from '../../../../slices/customer';
 import ReportConfigFields from './ReportConfigFields';
+import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 interface SendReportModalProps {
   open: boolean;
@@ -49,6 +50,7 @@ export default function SendReportModal({
   workOrderId,
   defaultCustomers
 }: SendReportModalProps) {
+  const isCompactDialog = useCompactDialog();
   const { t }: { t: any } = useTranslation();
   const dispatch = useDispatch();
   const { showSnackBar } = useContext(CustomSnackBarContext);
@@ -96,7 +98,7 @@ export default function SendReportModal({
   };
 
   return (
-    <Dialog fullWidth maxWidth="sm" open={open} onClose={onClose}>
+    <Dialog fullScreen={isCompactDialog} fullWidth maxWidth="sm" open={open} onClose={onClose}>
       <DialogTitle sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
           {t('email_contractors')}
