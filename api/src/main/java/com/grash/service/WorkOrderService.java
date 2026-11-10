@@ -1247,7 +1247,9 @@ public class WorkOrderService {
             missing.add("completeTasks");
         }
         if (requiredFields.contains("completeTime") && laborService.findByWorkOrder(workOrder.getId()).stream()
-                .noneMatch(labor -> labor.getDuration() > 0)) {
+                // A timer still running counts: it is stopped (and its time recorded) during completion.
+                .noneMatch(labor -> labor.getDuration() > 0
+                        || (labor.getStatus() == TimeStatus.RUNNING && labor.getStartedAt() != null))) {
             missing.add("completeTime");
         }
         if (requiredFields.contains("completeParts") && partQuantityService.findByWorkOrder(workOrder.getId()).isEmpty()) {

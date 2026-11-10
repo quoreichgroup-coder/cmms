@@ -1437,6 +1437,36 @@ class WorkOrderServiceTest {
         }
 
         @Test
+        void complete_requiredTime_acceptsATimerStillRunning() {
+            wo.setStatus(Status.IN_PROGRESS);
+            dto.setStatus(Status.COMPLETE);
+            FieldConfiguration completeTime = FieldConfiguration.builder()
+                    .fieldName("completeTime")
+                    .fieldType(FieldType.REQUIRED)
+                    .build();
+            WorkOrderConfiguration configuration = new WorkOrderConfiguration(companySettings);
+            configuration.setWorkOrderFieldConfigurations(new HashSet<>(List.of(completeTime)));
+            companySettings.setWorkOrderConfiguration(configuration);
+            Labor running = new Labor();
+            running.setStatus(TimeStatus.RUNNING);
+            running.setStartedAt(new Date(System.currentTimeMillis() - 60_000));
+            running.setDuration(0);
+            stubBasic();
+            when(laborService.findByWorkOrder(1L)).thenReturn(List.of(running));
+
+            CustomException missing = null;
+            try {
+                workOrderService.changeStatus(dto, 1L, user, "ios");
+            } catch (CustomException ex) {
+                missing = ex;
+            }
+
+            // Other failures in this lightweight fixture are irrelevant; the time requirement must not be one.
+            assertFalse(missing != null && missing.getMessage().contains("completeTime"),
+                    "a running timer must satisfy the required-time rule");
+        }
+
+        @Test
         void statusChange_firesWorkOrderStatusChangeWebhook() {
             WorkOrder originalSnapshot = buildWorkOrder(1L);
             originalSnapshot.setAsset(buildAsset(10L));
