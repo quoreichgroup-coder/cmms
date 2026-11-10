@@ -41,6 +41,8 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ScheduleIcon from '@mui/icons-material/ScheduleOutlined';
 import useAuth from '../../../hooks/useAuth';
 import Form from '../components/form';
+import ListLoadError from '../components/ListLoadError';
+import { getErrorMessage } from '../../../utils/api';
 import * as Yup from 'yup';
 import { IField } from '../type';
 import { formatSelect } from '../../../utils/formatters';
@@ -383,8 +385,16 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
     }
   }, [peopleId]);
 
+  // A failed load must not look like an empty list.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const loadList = () => {
+    setListLoadError(null);
+    Promise.resolve(dispatch(getUsers(criteria, enabledOnly))).catch((error) =>
+      setListLoadError(getErrorMessage(error, t('people_load_error')))
+    );
+  };
   useEffect(() => {
-    dispatch(getUsers(criteria, enabledOnly));
+    loadList();
   }, [criteria, enabledOnly]);
 
   useEffect(() => {
@@ -636,6 +646,9 @@ const People = ({ openModal, handleCloseModal, initialEmail }: PropsType) => {
             </Button>
           </Stack>
         </Box>
+      )}
+      {listLoadError && (
+        <ListLoadError message={listLoadError} onRetry={loadList} />
       )}
       {RenderPeopleList()}
 

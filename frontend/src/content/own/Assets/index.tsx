@@ -38,6 +38,7 @@ import CustomDatagrid2, {
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { AssetDTO, AssetRow } from '../../../models/owns/asset';
 import Form from '../components/form';
+import ListLoadError from '../components/ListLoadError';
 import ConfirmDialog from '../components/ConfirmDialog';
 import * as Yup from 'yup';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -270,9 +271,17 @@ function Assets() {
     }
   }, [searchParams]);
 
+  // A failed load must not look like an empty list.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const loadList = () => {
+    setListLoadError(null);
+    Promise.resolve(dispatch(getAssets(criteria))).catch((error) =>
+      setListLoadError(getErrorMessage(error, t('assets_load_error')))
+    );
+  };
   useEffect(() => {
     if (view === 'list' && hasViewPermission(PermissionEntity.ASSETS))
-      dispatch(getAssets(criteria));
+      loadList();
   }, [criteria, view]);
 
   const onCreationSuccess = (createdAsset?: AssetDTO) => {
@@ -1119,6 +1128,9 @@ function Assets() {
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {hierarchyError}
                 </Alert>
+              )}
+              {view === 'list' && listLoadError && (
+                <ListLoadError message={listLoadError} onRetry={loadList} />
               )}
               <CustomDatagrid2
                 columns={view === 'hierarchy' ? columns : columns.slice(1)}

@@ -19,6 +19,7 @@ import {
 import { useDispatch, useSelector } from '../../../store';
 import { useTranslation } from 'react-i18next';
 import Form from '../components/form';
+import ListLoadError from '../components/ListLoadError';
 import * as Yup from 'yup';
 import {
   getCustomFieldsValues,
@@ -208,8 +209,16 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
     }
   }, [vendorId]);
 
+  // A failed load must not look like an empty list.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const loadList = () => {
+    setListLoadError(null);
+    Promise.resolve(dispatch(getVendors(criteria))).catch((error) =>
+      setListLoadError(getErrorMessage(error, t('vendors_load_error')))
+    );
+  };
   useEffect(() => {
-    dispatch(getVendors(criteria));
+    loadList();
   }, [criteria]);
 
   useEffect(() => {
@@ -470,6 +479,9 @@ const Vendors = ({ openModal, handleCloseModal }: PropsType) => {
         width: '95%'
       }}
     >
+      {listLoadError && (
+        <ListLoadError message={listLoadError} onRetry={loadList} />
+      )}
       <CustomDatagrid2
         columns={columns}
         data={vendors.content}

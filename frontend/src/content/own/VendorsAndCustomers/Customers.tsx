@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import Form from '../components/form';
+import ListLoadError from '../components/ListLoadError';
 import * as Yup from 'yup';
 import {
   getCustomFieldsValues,
@@ -205,8 +206,16 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
     }
   }, [customerId]);
 
+  // A failed load must not look like an empty list.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const loadList = () => {
+    setListLoadError(null);
+    Promise.resolve(dispatch(getCustomers(criteria))).catch((error) =>
+      setListLoadError(getErrorMessage(error, t('customers_load_error')))
+    );
+  };
   useEffect(() => {
-    dispatch(getCustomers(criteria));
+    loadList();
   }, [criteria]);
 
   useEffect(() => {
@@ -472,6 +481,9 @@ const Customers = ({ openModal, handleCloseModal }: PropsType) => {
         width: '95%'
       }}
     >
+      {listLoadError && (
+        <ListLoadError message={listLoadError} onRetry={loadList} />
+      )}
       <CustomDatagrid2
         columns={columns}
         data={customers.content}

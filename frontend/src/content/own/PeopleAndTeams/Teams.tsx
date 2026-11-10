@@ -11,6 +11,8 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import Form from '../components/form';
+import ListLoadError from '../components/ListLoadError';
+import { getErrorMessage } from '../../../utils/api';
 import * as Yup from 'yup';
 import { IField } from '../type';
 import CustomDataGrid from '../components/CustomDatagrid';
@@ -89,8 +91,16 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
     }
   }, [teamId]);
 
+  // A failed load must not look like an empty list.
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
+  const loadList = () => {
+    setListLoadError(null);
+    Promise.resolve(dispatch(getTeams(criteria))).catch((error) =>
+      setListLoadError(getErrorMessage(error, t('teams_load_error')))
+    );
+  };
   useEffect(() => {
-    dispatch(getTeams(criteria));
+    loadList();
   }, [criteria]);
 
   //see changes in ui on edit
@@ -266,6 +276,9 @@ const Teams = ({ openModal, handleCloseModal }: PropsType) => {
         width: '95%'
       }}
     >
+      {listLoadError && (
+        <ListLoadError message={listLoadError} onRetry={loadList} />
+      )}
       {teams.content.length !== 0 ? (
         <CustomDataGrid
           pageSize={criteria.pageSize}

@@ -4105,7 +4105,12 @@ const locale = {
   work_order_reopen_success: 'The work order was reopened for correction.',
   request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.',
   parts_load_error: 'Parts could not be loaded.',
-  meters_load_error: 'Meters could not be loaded.'
+  meters_load_error: 'Meters could not be loaded.',
+  assets_load_error: 'Assets could not be loaded.',
+  people_load_error: 'People could not be loaded.',
+  teams_load_error: 'Teams could not be loaded.',
+  vendors_load_error: 'Vendors could not be loaded.',
+  customers_load_error: 'Customers could not be loaded.'
 };
 
 export default locale;

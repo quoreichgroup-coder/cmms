@@ -4424,7 +4424,12 @@ const frJSON = {
   work_order_reopen_success: 'L’ordre de travail a été rouvert pour correction.',
   request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.',
   parts_load_error: 'Les pièces n’ont pas pu être chargées.',
-  meters_load_error: 'Les compteurs n’ont pas pu être chargés.'
+  meters_load_error: 'Les compteurs n’ont pas pu être chargés.',
+  assets_load_error: 'Les équipements n’ont pas pu être chargés.',
+  people_load_error: 'Les personnes n’ont pas pu être chargées.',
+  teams_load_error: 'Les équipes n’ont pas pu être chargées.',
+  vendors_load_error: 'Les fournisseurs n’ont pas pu être chargés.',
+  customers_load_error: 'Les clients n’ont pas pu être chargés.'
 };
 
 export default frJSON;
