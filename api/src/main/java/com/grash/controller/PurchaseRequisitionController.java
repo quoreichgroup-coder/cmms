@@ -538,6 +538,8 @@ public class PurchaseRequisitionController {
         order.setName(request.getPurchaseOrderName() == null || request.getPurchaseOrderName().isBlank()
                 ? "PR-" + requisition.getId() + " — " + requisition.getTitle() : request.getPurchaseOrderName().trim());
         order.setVendor(vendor);
+        order.setShippingDueDate(request.getShippingDueDate() != null ? request.getShippingDueDate()
+                : requisition.getRequiredDate());
         order.setReceivingWorkflowEnabled(true);
         order.setAdditionalInfoRequisitionedName(requisition.getRequester() == null ? null
                 : requisition.getRequester().getFirstName() + " " + requisition.getRequester().getLastName());

@@ -19,6 +19,8 @@ public class PurchaseRequisitionConversionRequest {
     private Long vendorId;
     @Size(max = 255)
     private String purchaseOrderName;
+    /** Expected delivery date of the order; defaults to the requisition's required date. */
+    private java.util.Date shippingDueDate;
     @NotEmpty
     @Size(max = 200)
     @Valid

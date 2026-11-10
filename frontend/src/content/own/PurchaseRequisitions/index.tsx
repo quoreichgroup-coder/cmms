@@ -103,6 +103,8 @@ function PurchaseRequisitions() {
   const [reassigning, setReassigning] = useState(false);
   const [convertRow, setConvertRow] = useState<PurchaseRequisition | null>(null);
   const [vendorId, setVendorId] = useState<number | null>(null);
+  // yyyy-mm-dd for the date input; defaults to the requisition's required date.
+  const [shippingDueDate, setShippingDueDate] = useState('');
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [unitPrices, setUnitPrices] = useState<Record<number, number | ''>>({});
   const canApprove =
@@ -440,6 +442,7 @@ function PurchaseRequisitions() {
   const openConversion = (row: PurchaseRequisition) => {
     setConvertRow(row);
     setVendorId(null);
+    setShippingDueDate(row.requiredDate ? String(row.requiredDate).slice(0, 10) : '');
     setQuantities(
       Object.fromEntries(
         row.lines
@@ -466,6 +469,7 @@ function PurchaseRequisitions() {
       }
       const purchaseOrder = await api.post<{ id: number }>(`purchase-requisitions/${convertRow.id}/convert-to-order`, {
         vendorId,
+        shippingDueDate: shippingDueDate ? new Date(`${shippingDueDate}T12:00:00`).toISOString() : undefined,
         lines
       });
       showSnackBar(t('requisition_converted'), 'success');
@@ -853,6 +857,7 @@ function PurchaseRequisitions() {
               <option value="">{t('select_vendor')}</option>
               {vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.companyName}</option>)}
             </TextField>
+            <TextField type="date" fullWidth label={t('due_date')} value={shippingDueDate} InputLabelProps={{ shrink: true }} onChange={(event) => setShippingDueDate(event.target.value)} />
             {convertRow?.lines.map((line) => {
               const remaining = line.quantity - line.orderedQuantity;
               if (remaining <= 0) return null;
