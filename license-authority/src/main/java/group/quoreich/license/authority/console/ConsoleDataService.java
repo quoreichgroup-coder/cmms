@@ -142,8 +142,11 @@ public class ConsoleDataService {
             event.put("at", instant(rs, "created_at"));
             return event;
         }, id));
-        license.put("lastLeaseAt", jdbc.query("SELECT max(created_at) FROM license_event WHERE license_id=? AND event_type='LEASE_ISSUED'",
-                (rs, row) -> instant(rs, 1), id).stream().findFirst().orElse(null));
+        // max() is NULL for a licence never activated: read it as a nullable value.
+        java.sql.Timestamp lastLease = jdbc.queryForObject(
+                "SELECT max(created_at) FROM license_event WHERE license_id=? AND event_type='LEASE_ISSUED'",
+                java.sql.Timestamp.class, id);
+        license.put("lastLeaseAt", lastLease == null ? null : lastLease.toInstant());
         return license;
     }
 
@@ -268,10 +271,6 @@ public class ConsoleDataService {
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {
-        return rs.getTimestamp(column) == null ? null : rs.getTimestamp(column).toInstant();
-    }
-
-    private static Instant instant(ResultSet rs, int column) throws SQLException {
         return rs.getTimestamp(column) == null ? null : rs.getTimestamp(column).toInstant();
     }
 

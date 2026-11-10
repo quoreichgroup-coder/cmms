@@ -101,6 +101,10 @@ class ConsoleIntegrationTest {
         String licenseId = issued.getBody().path("id").asText();
         String key = issued.getBody().path("licenseKey").asText();
         assertTrue(key.startsWith("QPM-"));
+        // A licence never activated has no lease yet: its page must still open.
+        var neverActivated = call(HttpMethod.GET, "/console-api/licenses/" + licenseId, null, sales);
+        assertEquals(HttpStatus.OK, neverActivated.getStatusCode());
+        assertTrue(neverActivated.getBody().path("lastLeaseAt").isNull());
 
         // Sales cannot widen a plan, suspend, revoke or edit the catalogue.
         assertEquals(HttpStatus.FORBIDDEN, call(HttpMethod.POST, "/console-api/licenses",
