@@ -4422,7 +4422,9 @@ const frJSON = {
   work_order_reopen_reason: 'Motif de réouverture',
   work_order_reopen_action: 'Rouvrir pour correction',
   work_order_reopen_success: 'L’ordre de travail a été rouvert pour correction.',
-  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.'
+  request_cancelled_cannot_be_approved: 'Cette demande a été annulée et ne peut plus être approuvée.',
+  parts_load_error: 'Les pièces n’ont pas pu être chargées.',
+  meters_load_error: 'Les compteurs n’ont pas pu être chargés.'
 };
 
 export default frJSON;

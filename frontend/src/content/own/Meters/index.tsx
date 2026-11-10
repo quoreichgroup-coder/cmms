@@ -28,6 +28,7 @@ import {
 } from '../../../slices/meter';
 import { useDispatch, useSelector } from '../../../store';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ContentState from '../components/ContentState';
 import { useTranslation } from 'react-i18next';
 import * as React from 'react';
 import { useContext, useEffect, useMemo, useState } from 'react';
@@ -189,9 +190,16 @@ function Meters() {
     }
   }, [meterId]);
 
+  // A failed load must not look like an empty list of meters.
+  const [metersLoadError, setMetersLoadError] = useState<string | null>(null);
+  const loadMeters = () => {
+    setMetersLoadError(null);
+    Promise.resolve(dispatch(getMeters(criteria))).catch((error) =>
+      setMetersLoadError(getErrorMessage(error, t('meters_load_error')))
+    );
+  };
   useEffect(() => {
-    if (hasViewPermission(PermissionEntity.METERS))
-      dispatch(getMeters(criteria));
+    if (hasViewPermission(PermissionEntity.METERS)) loadMeters();
   }, [criteria]);
 
   useEffect(() => {
@@ -687,6 +695,14 @@ function Meters() {
               }}
             >
               <Box sx={{ width: '95%' }}>
+                {metersLoadError ? (
+                  <ContentState
+                    variant="error"
+                    message={metersLoadError}
+                    actionLabel={t('retry')}
+                    onAction={loadMeters}
+                  />
+                ) : (
                 <CustomDatagrid2
                   columns={columns}
                   data={meters.content}
@@ -711,6 +727,7 @@ function Meters() {
                   pinnedColumns={pinnedColumns}
                   onPinnedColumnsChange={setPinnedColumns}
                 />
+                )}
               </Box>
             </Card>
           </Box>

@@ -33,6 +33,7 @@ import {
   getSinglePart
 } from '../../../slices/part';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ContentState from '../components/ContentState';
 import { useDispatch, useSelector } from '../../../store';
 import * as React from 'react';
 import { ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
@@ -248,8 +249,16 @@ const Parts = ({ setAction }: PropsType) => {
     }
   }, [partId]);
 
+  // A failed load must not look like an empty catalogue.
+  const [partsLoadError, setPartsLoadError] = useState<string | null>(null);
+  const loadParts = () => {
+    setPartsLoadError(null);
+    Promise.resolve(dispatch(getParts(criteria))).catch((error) =>
+      setPartsLoadError(getErrorMessage(error, t('parts_load_error')))
+    );
+  };
   useEffect(() => {
-    dispatch(getParts(criteria));
+    loadParts();
   }, [criteria]);
 
   //see changes in ui on edit
@@ -789,7 +798,15 @@ const Parts = ({ setAction }: PropsType) => {
           <MoreVertOutlinedIcon />
         </IconButton>
       </Stack>
-      {currentTab === 'list' && (
+      {currentTab === 'list' && partsLoadError && (
+        <ContentState
+          variant="error"
+          message={partsLoadError}
+          actionLabel={t('retry')}
+          onAction={loadParts}
+        />
+      )}
+      {currentTab === 'list' && !partsLoadError && (
         <CustomDatagrid2
           columns={columns}
           data={parts.content}

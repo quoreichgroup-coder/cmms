@@ -4103,7 +4103,9 @@ const locale = {
   work_order_reopen_reason: 'Reason for reopening',
   work_order_reopen_action: 'Reopen for correction',
   work_order_reopen_success: 'The work order was reopened for correction.',
-  request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.'
+  request_cancelled_cannot_be_approved: 'This request was cancelled and can no longer be approved.',
+  parts_load_error: 'Parts could not be loaded.',
+  meters_load_error: 'Meters could not be loaded.'
 };
 
 export default locale;
