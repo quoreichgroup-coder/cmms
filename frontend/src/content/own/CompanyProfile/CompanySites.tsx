@@ -28,6 +28,7 @@ import api, { getErrorMessage } from '../../../utils/api';
 import useAuth from '../../../hooks/useAuth';
 import { PermissionEntity } from '../../../models/owns/role';
 import useCompactDialog from '../../../hooks/useCompactDialog';
+import SiteLogoControl from './SiteLogoControl';
 
 interface Site {
   id?: number;
@@ -36,6 +37,8 @@ interface Site {
   rootLocationId: number | null;
   timeZone: string;
   documentLanguage: string | null;
+  logoId?: number | null;
+  logoUrl?: string | null;
 }
 interface LocationOption {
   id: number;
@@ -206,6 +209,12 @@ export default function CompanySites() {
                     )?.name || t('no_root_location')}
                     {site.timeZone ? ` · ${site.timeZone}` : ''}
                   </Typography>
+                  <SiteLogoControl
+                    site={site}
+                    canEdit={canEdit}
+                    onChange={(updated: Site) =>
+                      setSites((current) => current.map((item) => item.id === updated.id ? updated : item))}
+                  />
                 </Box>
                 {canEdit && (
                   <Box>

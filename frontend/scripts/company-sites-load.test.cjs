@@ -43,6 +43,7 @@ function harness() {
       if (id === 'react') return React;
       if (id === 'react/jsx-runtime') return require('react/jsx-runtime');
       if (id.startsWith('@mui/icons-material/')) return { default: () => null };
+      if (id === './SiteLogoControl') return { __esModule: true, default: () => null };
       if (id === '@mui/material')
         return {
           Alert: element('div'),

@@ -324,10 +324,15 @@ test('Sage 300 is visible in Settings without claiming a connector is active', (
   assert.match(french, /integration_sage300_docs:[\s\S]*?documentation/);
 });
 
-test('PDFME designer remains limited to work orders while native templates include procurement', () => {
+test('visual (PDFME) designer covers work orders, purchase orders and requisitions; native templates stay available', () => {
   const templates = read('src/content/own/Settings/Documents/DocumentTemplates.tsx');
+  const designer = read('src/content/own/Settings/Documents/PdfmeDocumentDesigner.tsx');
   assert.match(templates, /'PURCHASE_ORDER', 'PURCHASE_REQUISITION'\]\s*\.includes\(type\.providerCode\)/);
-  assert.match(templates, /item\.documentTypeCode === 'WORK_ORDER'/);
+  assert.match(templates, /VISUAL_PROVIDERS: VisualProvider\[\] = \['WORK_ORDER', 'PURCHASE_ORDER', 'PURCHASE_REQUISITION'\]/);
+  // Native PO/PR templates keep the form editor; visual ones open the designer.
+  assert.match(templates, /const opensInVisualDesigner = /);
+  assert.match(designer, /profileForProvider\(record\.providerCode \?\? record\.documentTypeCode\)/);
+  assert.doesNotMatch(designer, /pdfme_work_orders_only/);
 });
 
 test('purchase order categories are available in Settings with category permissions', () => {

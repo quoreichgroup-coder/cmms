@@ -74,6 +74,8 @@ import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
 import { qpmBrandTokens } from '../../../../theme/tokens';
 import { blockDocumentNavigation } from './documentDesignerNavigation';
+import { field, reorientTemplate, schemaFrom, scaleSchemasToPageWidth } from './pdfmeSchemaHelpers';
+import { PDFME_PROCUREMENT_PROFILES, type PdfmeDocumentProfile } from './pdfmeDocumentProfiles';
 import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 type TemplateRecord = {
@@ -82,6 +84,7 @@ type TemplateRecord = {
   name: string;
   description?: string | null;
   documentTypeCode: string;
+  providerCode?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   draftConfiguration?: any;
   publishedConfiguration?: any;
@@ -108,15 +111,6 @@ const getPageDimensions = (template: any) => {
   const height = Number(template?.basePdf?.height) || PAGE_HEIGHT;
   return { width, height, orientation: width >= height ? 'LANDSCAPE' as const : 'PORTRAIT' as const };
 };
-const scaleSchemasToPageWidth = (schemas: any[], width: number) => {
-  const scale = width / PAGE_WIDTH;
-  if (scale === 1) return schemas;
-  return schemas.map((schema) => ({
-    ...schema,
-    position: schema.position ? { ...schema.position, x: Number(schema.position.x || 0) * scale } : schema.position,
-    ...(Number.isFinite(Number(schema.width)) ? { width: Number(schema.width) * scale } : {})
-  }));
-};
 const isValidWorkOrderReference = (value: string) => Boolean(value.trim()) && value.trim().length <= 100;
 const PRIMARY = qpmBrandTokens.primary;
 const COMPONENT_MIME_TYPE = 'application/x-qpm-report-component';
@@ -139,26 +133,6 @@ const normalizeColumnWidths = (values: number[]): number[] => {
   rounded[rounded.length - 1] = Math.round((rounded[rounded.length - 1] + 100 - rounded.reduce((sum, value) => sum + value, 0)) * 100) / 100;
   return rounded;
 };
-
-const schemaFrom = (plugin: any, name: string, content: string, position: { x: number; y: number }, width: number, height: number, extra: Record<string, unknown> = {}) => ({
-  ...plugin.propPanel.defaultSchema,
-  name,
-  content,
-  position,
-  width,
-  height,
-  ...extra
-});
-
-const field = (name: string, x: number, y: number, width: number, sample: string, fontSize = 9, extra: Record<string, unknown> = {}) =>
-  schemaFrom(text, name, sample, { x, y }, width, 8, {
-    fontSize,
-    fontColor: '#101828',
-    backgroundColor: '',
-    borderWidth: { top: 0, right: 0, bottom: 0, left: 0 },
-    padding: { top: 0, right: 0, bottom: 0, left: 0 },
-    ...extra
-  });
 
 function createJobCard(t: (key: string) => string): Template {
   const heading = (name: string, value: string, x: number, y: number, width: number, size = 10, height = 8) =>
@@ -318,7 +292,7 @@ const componentGroups = [
   { id: 'repeated', labelKey: 'document_component_group_repeated' }
 ] as const;
 
-const componentIdForSchema = (schema: any): string => {
+const componentIdForSchema = (schema: any, componentDefinitions: PdfmeDocumentProfile['componentDefinitions']): string => {
   if (componentDefinitions.some(({ id }) => id === schema.qpmComponent)) return schema.qpmComponent;
   if (schema.qpmPrintZone === 'HEADER' || schema.name.startsWith('static:qpm_header_')) return 'pageHeader';
   if (schema.qpmPrintZone === 'FOOTER' || schema.name.startsWith('static:qpm_footer_')) return 'pageFooter';
@@ -386,11 +360,11 @@ const bindingProvenanceKeys = (name: string): { source: string; relationship: st
   return { source: 'static', relationship: 'static' };
 };
 
-function toTemplate(configuration: any, t: (key: string) => string): Template {
+function toTemplate(configuration: any, t: (key: string) => string, profile: PdfmeDocumentProfile): Template {
   if (configuration?.basePdf && Array.isArray(configuration?.schemas)) {
     return configuration as Template;
   }
-  const template = createJobCard(t);
+  const template = profile.createStarter(t);
   // Preserve fields selected in a legacy QPM draft by retaining only matching data-bound schemas.
   const selected = new Set<string>(configuration?.visibleFields || []);
   if (selected.size) {
@@ -400,6 +374,44 @@ function toTemplate(configuration: any, t: (key: string) => string): Template {
   }
   return template;
 }
+
+/** Work order profile: the original job-card designer, unchanged, expressed as a profile. */
+const workOrderProfile: PdfmeDocumentProfile = {
+  providerCode: 'WORK_ORDER',
+  tableColumns: {
+    'workOrder.executionTasks': tableColumnsFor('workOrder.executionTasks'),
+    'workOrder.laborTimeEntries': tableColumnsFor('workOrder.laborTimeEntries'),
+    'workOrder.materialsUsed': tableColumnsFor('workOrder.materialsUsed')
+  },
+  tableDatasets: {
+    'workOrder.executionTasks': tableDatasetKey('workOrder.executionTasks'),
+    'workOrder.laborTimeEntries': tableDatasetKey('workOrder.laborTimeEntries'),
+    'workOrder.materialsUsed': tableDatasetKey('workOrder.materialsUsed')
+  },
+  componentDefinitions,
+  componentGroups,
+  componentSchemas,
+  createStarter: createJobCard,
+  supportsDataDiagnostics: true,
+  previewReferenceLabelKey: 'work_order_id',
+  resolvePreviewSource: async (reference: string) => {
+    if (/^\d+$/.test(reference)) return reference;
+    const result = await api.post<{ content?: Array<{ id: number; customId?: string }> }>('work-orders/search', {
+      pageNum: 0,
+      pageSize: 100,
+      filterFields: [{ field: 'customId', operation: 'cn', value: reference }]
+    });
+    const matches = (result?.content || []).filter((workOrder) =>
+      workOrder.customId?.trim().toLocaleLowerCase() === reference.toLocaleLowerCase());
+    return matches.length === 1 ? String(matches[0].id) : null;
+  },
+  previewPdfPath: (templateId: number, sourceId: string) =>
+    `document-templates/${templateId}/preview-pdf?workOrderId=${encodeURIComponent(sourceId)}`,
+  provenance: bindingProvenanceKeys
+};
+
+export const profileForProvider = (providerCode?: string | null): PdfmeDocumentProfile | null =>
+  providerCode === 'WORK_ORDER' ? workOrderProfile : PDFME_PROCUREMENT_PROFILES[providerCode || ''] || null;
 
 function PdfmeDocumentDesigner() {
   const isCompactDialog = useCompactDialog();
@@ -417,6 +429,8 @@ function PdfmeDocumentDesigner() {
   const currentTemplateRef = useRef<Template | null>(null);
   const dirtyRef = useRef(false);
   const [template, setTemplate] = useState<TemplateRecord | null>(null);
+  // What can be bound and previewed depends on the document type (work order, purchase order, requisition).
+  const profile = profileForProvider(template?.providerCode ?? template?.documentTypeCode) ?? workOrderProfile;
   const [workingTemplate, setWorkingTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -566,14 +580,15 @@ function PdfmeDocumentDesigner() {
       if (Array.isArray(availableSites)) setSites(availableSites);
       const record = templates.find((item) => String(item.id) === String(id));
       if (!record) throw new Error('document_template_not_found');
-      if (record.documentTypeCode !== 'WORK_ORDER') throw new Error('pdfme_work_orders_only');
+      const recordProfile = profileForProvider(record.providerCode ?? record.documentTypeCode);
+      if (!recordProfile) throw new Error('pdfme_unsupported_document_type');
       const configuration = record.draftConfiguration || record.publishedConfiguration;
       setTemplate(record);
       setScope(record.defaultScope === 'SITE' ? 'SITE' : 'COMPANY');
       setSiteId(record.siteId ? String(record.siteId) : '');
       dirtyRef.current = !configuration?.basePdf || !Array.isArray(configuration?.schemas);
       setHasUnsavedChanges(dirtyRef.current);
-      const normalized = toTemplate(configuration, t);
+      const normalized = toTemplate(configuration, t, recordProfile);
       currentTemplateRef.current = normalized;
       setWorkingTemplate(normalized);
     } catch (loadError) {
@@ -649,7 +664,7 @@ function PdfmeDocumentDesigner() {
         if (selected) setSelectedTable({ pageIndex: selected.pageIndex, schemaIndex: selected.schemaIndex, schema: selected.schema });
         else setSelectedTable(null);
         const selectedPrint = selection.schemas.length === 1 ? selection.schemas[0] : null;
-        const selectedComponentIds = new Set(selection.schemas.map((item) => componentIdForSchema(item.schema)));
+        const selectedComponentIds = new Set(selection.schemas.map((item) => componentIdForSchema(item.schema, profile.componentDefinitions)));
         const selectedSectionIds = new Set(selection.schemas.map((item) => item.schema.qpmSectionId || 'legacy'));
         const selectedSchema = selection.schemas[0]?.schema;
         const selectionIsComponent = selection.schemas.length > 1
@@ -723,23 +738,8 @@ function PdfmeDocumentDesigner() {
     const designer = designerRef.current;
     const current = currentTemplateRef.current || workingTemplate;
     if (!designer || !current) return;
-    const previous = getPageDimensions(current);
-    if (previous.orientation === orientation) return;
-    const width = orientation === 'LANDSCAPE' ? PAGE_WIDTH : PAGE_HEIGHT;
-    const height = orientation === 'LANDSCAPE' ? PAGE_HEIGHT : PAGE_WIDTH;
-    const scaleX = width / previous.width;
-    const scaleY = height / previous.height;
-    const schemas = (current.schemas as any[][]).map((page) => page.map((schema) => ({
-      ...schema,
-      position: schema.position ? {
-        ...schema.position,
-        x: Number(schema.position.x || 0) * scaleX,
-        y: Number(schema.position.y || 0) * scaleY
-      } : schema.position,
-      ...(Number.isFinite(Number(schema.width)) ? { width: Number(schema.width) * scaleX } : {}),
-      ...(Number.isFinite(Number(schema.height)) ? { height: Number(schema.height) * scaleY } : {})
-    })));
-    const next = { ...current, basePdf: { ...current.basePdf, width, height }, schemas } as Template;
+    if (getPageDimensions(current).orientation === orientation) return;
+    const next = reorientTemplate(current as any, orientation) as Template;
     currentTemplateRef.current = next;
     markDirty();
     setWorkingTemplate(next);
@@ -754,12 +754,12 @@ function PdfmeDocumentDesigner() {
     const designer = designerRef.current;
     const current = currentTemplateRef.current || workingTemplate;
     if (!designer || !current) return;
-    const definition = componentDefinitions.find((item) => item.id === componentId);
+    const definition = profile.componentDefinitions.find((item) => item.id === componentId);
     if (!definition) return;
     const pages = current.schemas as any[][];
     const { width: pageWidth, height: pageHeight } = getPageDimensions(current);
     const sectionId = `qpm-${componentId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const baseSchemas = scaleSchemasToPageWidth(componentSchemas(componentId, t, 12), pageWidth);
+    const baseSchemas = scaleSchemasToPageWidth(profile.componentSchemas(componentId, t, 12), pageWidth);
     if (pendingPrintZone && baseSchemas.some((schema) => ['table', 'signature'].includes(schema.type))) {
       showSnackBar(t('document_zone_component_unsupported'), 'warning');
       return;
@@ -812,7 +812,7 @@ function PdfmeDocumentDesigner() {
     }
     const nextPages = pages.map((page) => [...page]);
     while (nextPages.length <= target) nextPages.push([]);
-    const addedSchemas = scaleSchemasToPageWidth(componentSchemas(componentId, t, insertY), pageWidth)
+    const addedSchemas = scaleSchemasToPageWidth(profile.componentSchemas(componentId, t, insertY), pageWidth)
       .map((schema) => ({
         ...schema,
         ...(componentId === 'textBlock' ? { name: `static:qpm_textBlock_${sectionId}` } : {}),
@@ -855,7 +855,7 @@ function PdfmeDocumentDesigner() {
     const headerSectionId = 'qpm-page-header-page-0';
     const footerSectionId = 'qpm-page-footer-page-0';
     const pages = (current.schemas as any[][]).map((schemas, pageIndex) => schemas.map((schema) => {
-      const componentId = componentIdForSchema(schema);
+      const componentId = componentIdForSchema(schema, profile.componentDefinitions);
       if (componentId === 'pageHeader') return {
         ...schema,
         qpmComponent: componentId,
@@ -971,13 +971,13 @@ function PdfmeDocumentDesigner() {
     if (!page) return;
     const componentSchemas = page.filter((schema) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === selectedComponent.id);
+      : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id);
     if (componentSchemas.length < 2) return;
     const sectionId = selectedComponent.sectionId
       || `qpm-${selectedComponent.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const updatedPage = page.map((schema) => {
       if (selectedComponent.sectionId ? schema.qpmSectionId !== selectedComponent.sectionId
-        : componentIdForSchema(schema) !== selectedComponent.id) return schema;
+        : componentIdForSchema(schema, profile.componentDefinitions) !== selectedComponent.id) return schema;
       const nextSchema = { ...schema, qpmComponent: selectedComponent.id, qpmSectionId: sectionId };
       if (enabled) nextSchema.qpmHideComponentIfEmpty = true;
       else delete nextSchema.qpmHideComponentIfEmpty;
@@ -1007,7 +1007,7 @@ function PdfmeDocumentDesigner() {
     const updatedPage = page.map((schema) => {
       const belongs = selectedComponent.sectionId
         ? schema.qpmSectionId === selectedComponent.sectionId
-        : componentIdForSchema(schema) === selectedComponent.id;
+        : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id;
       if (!belongs) return schema;
       const nextSchema = { ...schema, qpmComponent: selectedComponent.id, qpmSectionId: sectionId };
       if (zone) nextSchema.qpmPrintZone = zone;
@@ -1035,7 +1035,7 @@ function PdfmeDocumentDesigner() {
     if (!page) return;
     const members = page.filter((schema) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === selectedComponent.id);
+      : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id);
     const zoneValues = new Set(members.map((schema) => schema.qpmPrintZone || ''));
     if (members.length === 0 || zoneValues.size !== 1) return;
     const zone = [...zoneValues][0];
@@ -1064,7 +1064,7 @@ function PdfmeDocumentDesigner() {
     const updatedPage = page.map((schema) => {
       const belongs = selectedComponent.sectionId
         ? schema.qpmSectionId === selectedComponent.sectionId
-        : componentIdForSchema(schema) === selectedComponent.id;
+        : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id;
       if (!belongs) return schema;
       return {
         ...schema,
@@ -1095,7 +1095,7 @@ function PdfmeDocumentDesigner() {
     if (!page) return;
     const belongsToComponent = (schema: any) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === selectedComponent.id;
+      : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id;
     const removedCount = page.filter(belongsToComponent).length;
     if (removedCount === 0) return;
     pages[selectedComponent.pageIndex] = page.filter((schema) => !belongsToComponent(schema));
@@ -1123,7 +1123,7 @@ function PdfmeDocumentDesigner() {
     if (!page) return;
     const source = page.filter((schema) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === 'textBlock');
+      : componentIdForSchema(schema, profile.componentDefinitions) === 'textBlock');
     if (source.length === 0 || source.some((schema) => !String(schema.name).startsWith('static:')
       || schema.qpmPrintZone)) return;
     const { height: pageHeight } = getPageDimensions(current);
@@ -1170,7 +1170,7 @@ function PdfmeDocumentDesigner() {
     const source = pages[sourceIndex] || [];
     const belongsToComponent = (schema: any) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === selectedComponent.id;
+      : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id;
     const componentMembers = source.filter(belongsToComponent);
     if (!componentMembers.length || componentMembers.some((schema) => schema.qpmPrintZone)) return;
 
@@ -1226,7 +1226,7 @@ function PdfmeDocumentDesigner() {
     const source = pages[sourceIndex] || [];
     const belongsToComponent = (schema: any) => selectedComponent.sectionId
       ? schema.qpmSectionId === selectedComponent.sectionId
-      : componentIdForSchema(schema) === selectedComponent.id;
+      : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id;
     const componentMembers = source.filter(belongsToComponent);
     if (!componentMembers.length || componentMembers.some((schema) => schema.qpmPrintZone)) return;
     if (pages.length >= 20) {
@@ -1295,7 +1295,7 @@ function PdfmeDocumentDesigner() {
 
   const updateTableColumnBinding = (columnIndex: number, binding: string) => {
     updateSelectedTableSchema((schema) => {
-      const available = tableColumnsFor(schema.name);
+      const available = (profile.tableColumns[schema.name] || []);
       const bindings = Array.isArray(schema.columnBindings) ? [...schema.columnBindings]
         : available.slice(0, schema.head?.length || available.length);
       bindings[columnIndex] = binding;
@@ -1372,7 +1372,7 @@ function PdfmeDocumentDesigner() {
     updateSelectedTableSchema((schema) => {
       const targetIndex = columnIndex + offset;
       if (targetIndex < 0 || targetIndex >= schema.head.length) return null;
-      const bindings = [...(schema.columnBindings || tableColumnsFor(schema.name).slice(0, schema.head.length))];
+      const bindings = [...(schema.columnBindings || (profile.tableColumns[schema.name] || []).slice(0, schema.head.length))];
       const widths = [...(schema.headWidthPercentages || normalizeColumnWidths(schema.head.map(() => 1)))];
       const headers = [...schema.head];
       [headers[columnIndex], headers[targetIndex]] = [headers[targetIndex], headers[columnIndex]];
@@ -1399,7 +1399,7 @@ function PdfmeDocumentDesigner() {
   const removeTableColumn = (columnIndex: number) => {
     updateSelectedTableSchema((schema) => {
       if (schema.head.length <= 1) return null;
-      const bindings = [...(schema.columnBindings || tableColumnsFor(schema.name).slice(0, schema.head.length))];
+      const bindings = [...(schema.columnBindings || (profile.tableColumns[schema.name] || []).slice(0, schema.head.length))];
       const widths = [...(schema.headWidthPercentages || normalizeColumnWidths(schema.head.map(() => 1)))];
       schema.head = schema.head.filter((_: string, index: number) => index !== columnIndex);
       schema.columnBindings = bindings.filter((_: string, index: number) => index !== columnIndex);
@@ -1416,7 +1416,7 @@ function PdfmeDocumentDesigner() {
   const addTableColumn = () => {
     if (!newTableColumn) return;
     updateSelectedTableSchema((schema) => {
-      const available = tableColumnsFor(schema.name);
+      const available = (profile.tableColumns[schema.name] || []);
       const bindings = Array.isArray(schema.columnBindings) ? [...schema.columnBindings]
         : available.slice(0, schema.head?.length || available.length);
       if (!available.includes(newTableColumn) || bindings.includes(newTableColumn) || schema.head.length >= 12) return null;
@@ -1495,19 +1495,10 @@ function PdfmeDocumentDesigner() {
   };
 
   const resolvePreviewWorkOrderId = async (reference: string): Promise<string | null> => {
-    if (/^\d+$/.test(reference)) return reference;
-    const result = await api.post<{ content?: Array<{ id: number; customId?: string }> }>('work-orders/search', {
-      pageNum: 0,
-      pageSize: 100,
-      filterFields: [{ field: 'customId', operation: 'cn', value: reference }]
-    });
-    const matches = (result?.content || []).filter((workOrder) =>
-      workOrder.customId?.trim().toLocaleLowerCase() === reference.toLocaleLowerCase());
-    if (matches.length !== 1) {
-      showSnackBar(t('document_designer_preview_order_not_found'), 'warning');
-      return null;
-    }
-    return String(matches[0].id);
+    const sourceId = await profile.resolvePreviewSource(reference);
+    if (!sourceId) showSnackBar(t(profile.providerCode === 'WORK_ORDER'
+      ? 'document_designer_preview_order_not_found' : 'document_designer_preview_source_not_found'), 'warning');
+    return sourceId;
   };
 
   const previewPdf = async () => {
@@ -1520,11 +1511,7 @@ function PdfmeDocumentDesigner() {
       const workOrderId = await resolvePreviewWorkOrderId(reference);
       if (!workOrderId) { previewWindow?.close(); return; }
       if (dirtyRef.current) await persistDraft();
-      const response = await api.post<Response>(
-        `document-templates/${template.id}/preview-pdf?workOrderId=${encodeURIComponent(workOrderId)}`,
-        null,
-        { raw: true }
-      );
+      const response = await api.post<Response>(profile.previewPdfPath(template.id, workOrderId), null, { raw: true });
       if (!isPdfContentType(response.headers.get('content-type'))) throw new Error('invalid_document_content_type');
       const blob = await response.blob();
       if (!blob.size) throw new Error('empty_document');
@@ -1662,7 +1649,7 @@ function PdfmeDocumentDesigner() {
             <TextField
               size="small"
               fullWidth
-              label={t('work_order_id')}
+              label={t(profile.previewReferenceLabelKey)}
               value={previewId}
               inputProps={{ maxLength: 100 }}
               helperText={previewId.trim().length > 100
@@ -1782,8 +1769,8 @@ function PdfmeDocumentDesigner() {
           />
         </Stack>
         <Paper variant="outlined" sx={{ px: 1, py: 0.25 }}>
-          {componentGroups.map((group) => {
-            const allItems = componentDefinitions.filter((component) => component.group === group.id);
+          {profile.componentGroups.map((group) => {
+            const allItems = profile.componentDefinitions.filter((component) => component.group === group.id);
             const query = componentSearch.trim().toLocaleLowerCase();
             const groupLabel = t(group.labelKey);
             const matchesGroup = !query || groupLabel.toLocaleLowerCase().includes(query);
@@ -1813,7 +1800,7 @@ function PdfmeDocumentDesigner() {
                     {items.map((component) => (
                       (() => {
                         const unsupportedInZone = Boolean(pendingPrintZone)
-                          && componentSchemas(component.id, t, 12).some((schema) => ['table', 'signature'].includes(schema.type));
+                          && profile.componentSchemas(component.id, t, 12).some((schema) => ['table', 'signature'].includes(schema.type));
                         return (
                           <Tooltip key={component.id} title={unsupportedInZone ? t('document_zone_component_unsupported') : ''}>
                             <span>
@@ -1853,10 +1840,10 @@ function PdfmeDocumentDesigner() {
               </Accordion>
             );
           })}
-          {componentSearch.trim() && !componentGroups.some((group) => {
+          {componentSearch.trim() && !profile.componentGroups.some((group) => {
             const query = componentSearch.trim().toLocaleLowerCase();
             return t(group.labelKey).toLocaleLowerCase().includes(query)
-              || componentDefinitions.some((component) => component.group === group.id
+              || profile.componentDefinitions.some((component) => component.group === group.id
                 && `${t(component.labelKey)} ${component.bindings.join(' ')}`.toLocaleLowerCase().includes(query))
               || group.id === 'repeated' && t('document_header_footer_button').toLocaleLowerCase().includes(query);
           }) && <Typography variant="body2" color="text.secondary" sx={{ px: 1, py: 1.5 }}>{t('document_component_search_empty')}</Typography>}
@@ -1896,7 +1883,7 @@ function PdfmeDocumentDesigner() {
         const outlineQuery = outlineSearch.trim().toLocaleLowerCase();
         const matchesOutline = ({ schema }: { schema: any }) => {
           if (!outlineQuery) return true;
-          const component = componentDefinitions.find(({ id }) => id === componentIdForSchema(schema));
+          const component = profile.componentDefinitions.find(({ id }) => id === componentIdForSchema(schema, profile.componentDefinitions));
           const componentLabel = component ? t(component.labelKey) : t('document_component_group_other');
           return `${labelFor(schema)} ${schema.name} ${schema.type} ${componentLabel}`
             .toLocaleLowerCase().includes(outlineQuery);
@@ -2006,14 +1993,14 @@ function PdfmeDocumentDesigner() {
                     })()}
                   </ListSubheader>
                   {Array.from(new Map(matchingItems.map(({ schema, pageIndex }) => {
-                    const componentId = componentIdForSchema(schema);
+                    const componentId = componentIdForSchema(schema, profile.componentDefinitions);
                     const sectionId = schema.qpmSectionId || '';
                     return [`${pageIndex}:${componentId}:${sectionId || 'legacy'}`, { componentId, sectionId, pageIndex }];
                   })).values()).map(({ componentId, sectionId, pageIndex }) => {
-                    const componentItems = matchingItems.filter(({ schema, pageIndex: itemPageIndex }) => componentIdForSchema(schema) === componentId
+                    const componentItems = matchingItems.filter(({ schema, pageIndex: itemPageIndex }) => componentIdForSchema(schema, profile.componentDefinitions) === componentId
                       && (schema.qpmSectionId || '') === sectionId
                       && itemPageIndex === pageIndex);
-                    const component = componentDefinitions.find(({ id }) => id === componentId);
+                    const component = profile.componentDefinitions.find(({ id }) => id === componentId);
                     return (
                       <Box key={`${key}:${componentId}:${sectionId || 'legacy'}`}>
                         <ListItemButton
@@ -2109,7 +2096,7 @@ function PdfmeDocumentDesigner() {
       {(selectedTable || selectedPrintElement || selectedComponent) && (() => {
         const schema = selectedTable?.schema || selectedPrintElement?.schema;
         const component = selectedComponent
-          ? componentDefinitions.find(({ id }) => id === selectedComponent.id)
+          ? profile.componentDefinitions.find(({ id }) => id === selectedComponent.id)
           : undefined;
         const translated = schema && !schema.name.startsWith('static:')
           ? t(`document_field_${schema.name.replace(/\./g, '_')}`)
@@ -2143,7 +2130,7 @@ function PdfmeDocumentDesigner() {
         );
       })()}
       {selectedDataElement && (() => {
-        const { source, relationship } = bindingProvenanceKeys(selectedDataElement.schema.name);
+        const { source, relationship } = profile.provenance(selectedDataElement.schema.name);
         return (
           <Paper variant="outlined" sx={{ mt: 1, p: 1.5 }}>
             <Typography variant="subtitle2" sx={{ mb: 0.75 }}>{t('document_data_provenance_title')}</Typography>
@@ -2156,7 +2143,7 @@ function PdfmeDocumentDesigner() {
               </Typography>
               <Typography variant="body2">{t(`document_data_source_${source}`)}</Typography>
               <Typography variant="caption" color="text.secondary">{t(`document_data_relation_${relationship}`)}</Typography>
-              {!selectedDataElement.schema.name.startsWith('static:') && (
+              {profile.supportsDataDiagnostics && !selectedDataElement.schema.name.startsWith('static:') && (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ pt: 0.5 }}>
                   <Button
                     size="small"
@@ -2226,9 +2213,9 @@ function PdfmeDocumentDesigner() {
         const schemas = ((workingTemplate?.schemas as any[][]) || [])[selectedComponent.pageIndex] || [];
         const members = schemas.filter((schema) => selectedComponent.sectionId
           ? schema.qpmSectionId === selectedComponent.sectionId
-          : componentIdForSchema(schema) === selectedComponent.id);
+          : componentIdForSchema(schema, profile.componentDefinitions) === selectedComponent.id);
         if (members.length === 0) return null;
-        const component = componentDefinitions.find(({ id }) => id === selectedComponent.id);
+        const component = profile.componentDefinitions.find(({ id }) => id === selectedComponent.id);
         const zoneValues = new Set(members.map((schema) => schema.qpmPrintZone || ''));
         const componentZone = zoneValues.size === 1 ? [...zoneValues][0] : 'MIXED';
         const supportsPrintZone = members.every((schema) => !['table', 'signature'].includes(schema.type));
@@ -2319,8 +2306,8 @@ function PdfmeDocumentDesigner() {
         <Paper variant="outlined" sx={{ mt: 1, p: 1.5 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('document_table_data_mapping')}</Typography>
           {(() => {
-            const available = tableColumnsFor(selectedTable.schema.name);
-            const dataset = tableDatasetKey(selectedTable.schema.name);
+            const available = (profile.tableColumns[selectedTable.schema.name] || []);
+            const dataset = profile.tableDatasets[selectedTable.schema.name];
             const tableBinding = selectedTable.schema.name;
             const bindings = selectedTable.schema.columnBindings || available.slice(0, selectedTable.schema.head.length);
             const widths = selectedTable.schema.headWidthPercentages || normalizeColumnWidths(selectedTable.schema.head.map(() => 1));
@@ -2334,7 +2321,7 @@ function PdfmeDocumentDesigner() {
                   <Typography variant="body2"><strong>{t('document_table_dataset_label')}:</strong> {t(`document_table_dataset_${dataset}`)}</Typography>
                   <Typography variant="caption" color="text.secondary">{t(`document_table_order_${dataset}`)}</Typography>
                   {dataset === 'labor' && <Typography variant="caption" color="text.secondary">{t('document_table_entitlement_labor')}</Typography>}
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+                  {profile.supportsDataDiagnostics && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
                     <Button
                       size="small"
                       variant="outlined"
@@ -2344,7 +2331,7 @@ function PdfmeDocumentDesigner() {
                       {previewingTable ? t('loading') : t('document_table_preview_button')}
                     </Button>
                     <Typography variant="caption" color="text.secondary">{t('document_table_preview_privacy')}</Typography>
-                  </Stack>
+                  </Stack>}
                   {dataDiagnosis?.binding === tableBinding && dataDiagnosis.workOrderId === previewId.trim() && (
                     <Alert severity={dataDiagnosis.kind === 'available' || dataDiagnosis.kind === 'count' ? 'success' : 'warning'}>
                       {dataDiagnosis.kind === 'count'

@@ -48,6 +48,7 @@ import { CustomSnackBarContext } from '../../../../contexts/CustomSnackBarContex
 import { isPdfContentType } from '../../../../utils/documentResponse';
 import useAuth from '../../../../hooks/useAuth';
 import { PermissionEntity } from '../../../../models/owns/role';
+import { PDFME_PROCUREMENT_PROFILES } from './pdfmeDocumentProfiles';
 import useCompactDialog from '../../../../hooks/useCompactDialog';
 
 type TemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -225,6 +226,25 @@ const fieldTranslationKey = (field: string) =>
 const isPdfmeConfiguration = (configuration: any) =>
   Boolean(configuration?.basePdf && Array.isArray(configuration?.schemas));
 
+type VisualProvider = 'WORK_ORDER' | 'PURCHASE_ORDER' | 'PURCHASE_REQUISITION';
+const VISUAL_PROVIDERS: VisualProvider[] = ['WORK_ORDER', 'PURCHASE_ORDER', 'PURCHASE_REQUISITION'];
+
+/**
+ * Work-order templates always open in the visual designer (it converts older native drafts). Purchase
+ * orders and requisitions open there once they are visual (PDFME) templates; native ones keep the form editor.
+ */
+const opensInVisualDesigner = (template: {
+  providerCode?: string;
+  documentTypeCode: string;
+  draftConfiguration?: any;
+  publishedConfiguration?: any;
+}) => {
+  const provider = template.providerCode || template.documentTypeCode;
+  if (provider === 'WORK_ORDER') return true;
+  return Boolean(PDFME_PROCUREMENT_PROFILES[provider])
+    && isPdfmeConfiguration(template.draftConfiguration || template.publishedConfiguration);
+};
+
 const emptyConfiguration = (
   documentType: DocumentType
 ): TemplateConfiguration => ({
@@ -279,6 +299,7 @@ function DocumentTemplates() {
   const [newTypeDescription, setNewTypeDescription] = useState('');
   const [newTypeProvider, setNewTypeProvider] = useState('WORK_ORDER');
   const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [blankProvider, setBlankProvider] = useState<VisualProvider>('WORK_ORDER');
   const [blankName, setBlankName] = useState('');
   const [blankCode, setBlankCode] = useState('');
   const [startSearch, setStartSearch] = useState('');
@@ -366,7 +387,8 @@ function DocumentTemplates() {
     const query = startSearch.trim().toLocaleLowerCase();
     return templates.filter(
       (item) =>
-        item.documentTypeCode === 'WORK_ORDER' &&
+        (item.providerCode || item.documentTypeCode) === blankProvider &&
+        opensInVisualDesigner(item) &&
         item.status !== 'ARCHIVED' &&
         (!query ||
           [item.name, item.code, item.documentTypeName].some((value) =>
@@ -400,7 +422,7 @@ function DocumentTemplates() {
       showSnackBar(t('document_template_form_error'), 'error');
       return;
     }
-    const type = supportedTypes.find((item) => item.code === 'WORK_ORDER');
+    const type = supportedTypes.find((item) => item.code === blankProvider);
     if (!type || !canCreateTemplates) {
       showSnackBar(t('document_template_permission_error'), 'error');
       return;
@@ -411,7 +433,11 @@ function DocumentTemplates() {
         documentTypeCode: type.code,
         code: normalizedCode,
         name: blankName.trim(),
-        configuration: {
+        // Purchase orders and requisitions start from their visual starter layout; work orders keep
+        // the native placeholder that the designer turns into the job card.
+        configuration: PDFME_PROCUREMENT_PROFILES[blankProvider]
+          ? PDFME_PROCUREMENT_PROFILES[blankProvider].createStarter(t)
+          : {
           schemaVersion: '2.0',
           documentType: type.code,
           provider: type.providerCode,
@@ -591,7 +617,7 @@ function DocumentTemplates() {
         60 - numberedSuffix.length
       )}${numberedSuffix}`;
     }
-    if (template.documentTypeCode === 'WORK_ORDER') {
+    if (opensInVisualDesigner(template)) {
       setSaving(true);
       try {
         const created = await api.post<DocumentTemplate>('document-templates', {
@@ -1073,7 +1099,7 @@ function DocumentTemplates() {
                       <Stack direction="row" spacing={1} sx={{ mt: 2.5 }}>
                         {template.status !== 'ARCHIVED' &&
                           canEditTemplates &&
-                          template.documentTypeCode === 'WORK_ORDER' && (
+                          opensInVisualDesigner(template) && (
                             <Button
                               size="small"
                               startIcon={<DesignServicesOutlinedIcon />}
@@ -1088,7 +1114,7 @@ function DocumentTemplates() {
                           )}
                         {template.status !== 'ARCHIVED' &&
                           canEditTemplates &&
-                          template.documentTypeCode !== 'WORK_ORDER' && (
+                          !opensInVisualDesigner(template) && (
                             <Button
                               size="small"
                               startIcon={<EditOutlinedIcon />}
@@ -1366,6 +1392,23 @@ function DocumentTemplates() {
                   </Typography>
                   <Stack spacing={1.5}>
                     <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label={t('document_type')}
+                      value={blankProvider}
+                      onChange={(event) => setBlankProvider(event.target.value as VisualProvider)}
+                    >
+                      {VISUAL_PROVIDERS.filter((provider) =>
+                        supportedTypes.some((type) => type.code === provider)
+                      ).map((provider) => (
+                        <MenuItem key={provider} value={provider}>
+                          {t(provider === 'WORK_ORDER' ? 'work_order'
+                            : provider === 'PURCHASE_ORDER' ? 'purchase_order' : 'purchase_requisition')}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
                       required
                       fullWidth
                       size="small"
@@ -1396,7 +1439,7 @@ function DocumentTemplates() {
                         saving ||
                         !canCreateTemplates ||
                         !supportedTypes.some(
-                          (type) => type.code === 'WORK_ORDER'
+                          (type) => type.code === blankProvider
                         )
                       }
                     >
