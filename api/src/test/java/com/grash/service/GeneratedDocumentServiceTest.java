@@ -46,6 +46,7 @@ class GeneratedDocumentServiceTest {
     @Mock private WorkOrderService workOrderService;
     @Mock private StorageServiceFactory storageFactory;
     @Mock private DocumentContextResolver documentContextResolver;
+    @Mock private DocumentLogoService documentLogoService;
     @Mock private WorkOrderReportDataProvider workOrderReportDataProvider;
     @Mock private RequestReportDataProvider requestReportDataProvider;
     @Mock private RequestService requestService;
@@ -79,6 +80,8 @@ class GeneratedDocumentServiceTest {
                     .getField(provider, "FIELDS");
             java.util.Set<String> missing = new java.util.TreeSet<>(accepted);
             missing.removeAll(renderable);
+            // The logo is an image binding for the visual designer; the native validator refuses it as a field.
+            missing.remove("company.logo");
             assertEquals(java.util.Set.of(), missing, provider.getSimpleName() + " fields unknown to the renderer");
         }
     }

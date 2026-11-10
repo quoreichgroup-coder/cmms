@@ -100,4 +100,50 @@ class PdfmeTemplateConfigurationValidatorTest {
                 {"name":"workOrder.title","type":"text","position":{"x":1,"y":1},"width":20,"height":8}] ]}
                 """);
     }
+
+    private PdfmeTemplateConfigurationValidator procurementValidator(String providerCode, String... fields) {
+        DocumentDataProvider procurement = mock(DocumentDataProvider.class);
+        DocumentDataProviderRegistry procurementRegistry = mock(DocumentDataProviderRegistry.class);
+        when(procurementRegistry.require(providerCode)).thenReturn(procurement);
+        for (String field : fields) when(procurement.supports(field)).thenReturn(true);
+        return new PdfmeTemplateConfigurationValidator(procurementRegistry);
+    }
+
+    @Test
+    void acceptsAPurchaseOrderLayoutWithLogoAndLineTable() throws Exception {
+        PdfmeTemplateConfigurationValidator poValidator = procurementValidator("PURCHASE_ORDER",
+                "company.logo", "purchaseOrder.number", "purchaseOrder.lines");
+        JsonNode configuration = mapper.readTree("""
+                {"pdfmeVersion":"6.2.8","basePdf":{"width":210,"height":297,"padding":[8,8,8,8]},"schemas":[[
+                {"name":"company.logo","type":"image","position":{"x":10,"y":8},"width":30,"height":15},
+                {"name":"purchaseOrder.number","type":"text","position":{"x":120,"y":10},"width":70,"height":8},
+                {"name":"purchaseOrder.lines","type":"table","position":{"x":10,"y":40},"width":190,"height":60,
+                 "head":["Part","Qty","Unit price","Total"],
+                 "columnBindings":["part","quantity","unitPrice","lineTotal"]}]]}
+                """);
+
+        JsonNode validated = poValidator.validate(configuration, "PURCHASE_ORDER", "PURCHASE_ORDER");
+
+        assertEquals(List.of("company.logo", "purchaseOrder.number", "purchaseOrder.lines"),
+                poValidator.dataBindings(validated));
+    }
+
+    @Test
+    void procurementTemplatesRejectWorkOrderTablesSignaturesAndUnknownColumns() throws Exception {
+        PdfmeTemplateConfigurationValidator prValidator = procurementValidator("PURCHASE_REQUISITION",
+                "purchaseRequisition.lines", "workOrder.executionTasks", "workOrder.signature");
+        String page = """
+                {"pdfmeVersion":"6.2.8","basePdf":{"width":210,"height":297,"padding":[8,8,8,8]},"schemas":[[%s]]}""";
+        JsonNode workOrderTable = mapper.readTree(page.formatted("""
+                {"name":"workOrder.executionTasks","type":"table","position":{"x":10,"y":40},"width":190,"height":60,"head":["Task"]}"""));
+        JsonNode signature = mapper.readTree(page.formatted("""
+                {"name":"workOrder.signature","type":"signature","position":{"x":10,"y":40},"width":60,"height":20}"""));
+        JsonNode unknownColumn = mapper.readTree(page.formatted("""
+                {"name":"purchaseRequisition.lines","type":"table","position":{"x":10,"y":40},"width":190,"height":60,
+                 "head":["Part","Price"],"columnBindings":["part","unitPrice"]}"""));
+
+        assertThrows(CustomException.class, () -> prValidator.validate(workOrderTable, "PURCHASE_REQUISITION", "PURCHASE_REQUISITION"));
+        assertThrows(CustomException.class, () -> prValidator.validate(signature, "PURCHASE_REQUISITION", "PURCHASE_REQUISITION"));
+        assertThrows(CustomException.class, () -> prValidator.validate(unknownColumn, "PURCHASE_REQUISITION", "PURCHASE_REQUISITION"));
+    }
 }

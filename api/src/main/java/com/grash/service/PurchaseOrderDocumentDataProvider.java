@@ -22,13 +22,18 @@ public class PurchaseOrderDocumentDataProvider implements DocumentDataProvider {
             "purchaseOrder.shippingPhone", "purchaseOrder.shippingFax", "purchaseOrder.terms",
             "purchaseOrder.notes", "purchaseOrder.requestedBy", "purchaseOrder.date", "purchaseOrder.requisition", "purchaseOrder.approvalHistory",
             "company.name", "company.legalName", "company.registeredAddress", "company.registrationNumber",
-            "company.taxNumber", "company.phone", "company.email", "site.name", LINES);
+            "company.taxNumber", "company.phone", "company.email", "company.logo", "site.name", LINES);
     private final PartQuantityRepository lines;
     private final ProcurementApprovalPrintService approvalPrintService;
+    private final DocumentLogoService logoService;
+    private final DocumentContextResolver contextResolver;
 
-    public PurchaseOrderDocumentDataProvider(PartQuantityRepository lines, ProcurementApprovalPrintService approvalPrintService) {
+    public PurchaseOrderDocumentDataProvider(PartQuantityRepository lines, ProcurementApprovalPrintService approvalPrintService,
+                                             DocumentLogoService logoService, DocumentContextResolver contextResolver) {
         this.lines = lines;
         this.approvalPrintService = approvalPrintService;
+        this.logoService = logoService;
+        this.contextResolver = contextResolver;
     }
     @Override public String providerCode() { return "PURCHASE_ORDER"; }
     @Override public boolean supports(String key) { return FIELDS.contains(key); }
@@ -69,6 +74,7 @@ public class PurchaseOrderDocumentDataProvider implements DocumentDataProvider {
             case "company.registeredAddress" -> context.registeredAddress(); case "company.registrationNumber" -> context.registrationNumber();
             case "company.taxNumber" -> context.taxNumber(); case "company.phone" -> context.phone();
             case "company.email" -> context.email(); case "site.name" -> context.siteName();
+            case "company.logo" -> logoService.logoDataUri(po.getCompany(), contextResolver.siteOf(po));
             default -> throw new CustomException("Unsupported purchase order field", HttpStatus.BAD_REQUEST);
         });
         return out;

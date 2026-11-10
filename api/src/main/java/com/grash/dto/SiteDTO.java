@@ -22,4 +22,9 @@ public class SiteDTO {
     private Long rootLocationId;
     private String timeZone;
     private Language documentLanguage;
+    /** Read-only: managed through PUT/DELETE /sites/{id}/logo so an ordinary edit never clears it. */
+    @io.swagger.v3.oas.annotations.media.Schema(accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY)
+    private Long logoId;
+    @io.swagger.v3.oas.annotations.media.Schema(accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY)
+    private String logoUrl;
 }

@@ -142,11 +142,19 @@ public class ReportTemplateConfigurationValidator {
         return value != null && value.isTextual() && !value.asText().isBlank() ? value.asText().trim() : fallback;
     }
 
+    /**
+     * The native engine prints the (site or company) logo in its header by itself; {@code company.logo} is an
+     * image binding for the visual (PDFME) designer only and cannot be a native text field.
+     */
+    private static boolean nativeField(String field, DocumentDataProvider provider) {
+        return !"company.logo".equals(field) && provider.supports(field);
+    }
+
     private Set<String> validateLegacyFields(JsonNode fields, DocumentDataProvider provider) {
         if (fields == null || !fields.isArray() || fields.isEmpty() || fields.size() > 32) bad();
         Set<String> unique = StreamSupport.stream(fields.spliterator(), false)
                 .filter(JsonNode::isTextual).map(JsonNode::asText).collect(java.util.stream.Collectors.toSet());
-        if (unique.size() != fields.size() || unique.stream().anyMatch(field -> !provider.supports(field))) bad();
+        if (unique.size() != fields.size() || unique.stream().anyMatch(field -> !nativeField(field, provider))) bad();
         return unique;
     }
 
@@ -174,7 +182,7 @@ public class ReportTemplateConfigurationValidator {
                 String field = text(item, "fieldKey");
                 boolean signatureField = "workOrder.signature".equals(field);
                 if (!("FIELD".equals(type) || "TABLE".equals(type) || "SIGNATURE".equals(type))
-                        || !provider.supports(field)
+                        || !nativeField(field, provider)
                         || ("TABLE".equals(type) != TABLE_FIELDS.contains(field))
                         || ("SIGNATURE".equals(type) && !signatureField)
                         || (signatureField && !Set.of("FIELD", "SIGNATURE").contains(type))

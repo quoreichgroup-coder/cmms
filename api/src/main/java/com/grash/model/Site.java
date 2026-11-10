@@ -31,4 +31,10 @@ public class Site extends CompanyAudit {
 
     @Enumerated(EnumType.STRING)
     private Language documentLanguage;
+
+    /** Printed on this site's documents; null means the company logo is used. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "logo_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private File logo;
 }

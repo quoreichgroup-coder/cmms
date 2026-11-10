@@ -57,6 +57,26 @@ public class SiteController {
         return ResponseEntity.ok(new SuccessResponse(true, "Site deleted"));
     }
 
+    /** Document logo of the site (PNG/JPEG, 512 KiB max, uploaded through /files first). */
+    @PutMapping("/{id}/logo")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public SiteDTO setLogo(@PathVariable Long id, @RequestBody java.util.Map<String, Long> body, HttpServletRequest request) {
+        User user = userService.whoami(request);
+        ensureSettingsAccess(user, true);
+        Long fileId = body == null ? null : body.get("fileId");
+        if (fileId == null) throw new CustomException("fileId is required", HttpStatus.BAD_REQUEST);
+        return siteService.setLogo(id, fileId, user);
+    }
+
+    /** Back to the company logo on this site's documents. */
+    @DeleteMapping("/{id}/logo")
+    @PreAuthorize("hasRole('ROLE_CLIENT')")
+    public SiteDTO removeLogo(@PathVariable Long id, HttpServletRequest request) {
+        User user = userService.whoami(request);
+        ensureSettingsAccess(user, true);
+        return siteService.removeLogo(id, user);
+    }
+
     private void ensureSettingsAccess(User user, boolean editing) {
         if (user.getCompany() == null || (!user.isOwnsCompany()
                 && !user.getRole().getViewPermissions().contains(PermissionEntity.SETTINGS)))

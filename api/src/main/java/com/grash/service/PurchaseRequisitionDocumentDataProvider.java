@@ -17,10 +17,15 @@ public class PurchaseRequisitionDocumentDataProvider implements DocumentDataProv
             "purchaseRequisition.status", "purchaseRequisition.justification", "purchaseRequisition.requiredDate",
             "purchaseRequisition.requester", "purchaseRequisition.sourceWorkOrder", "purchaseRequisition.createdDate", "company.name", "company.legalName",
             "company.registeredAddress", "company.registrationNumber", "company.taxNumber", "company.phone",
-            "company.email", "site.name", "purchaseRequisition.approvalHistory", LINES);
+            "company.email", "company.logo", "site.name", "purchaseRequisition.approvalHistory", LINES);
     private final ProcurementApprovalPrintService approvalPrintService;
-    public PurchaseRequisitionDocumentDataProvider(ProcurementApprovalPrintService approvalPrintService) {
+    private final DocumentLogoService logoService;
+    private final DocumentContextResolver contextResolver;
+    public PurchaseRequisitionDocumentDataProvider(ProcurementApprovalPrintService approvalPrintService,
+                                                   DocumentLogoService logoService, DocumentContextResolver contextResolver) {
         this.approvalPrintService = approvalPrintService;
+        this.logoService = logoService;
+        this.contextResolver = contextResolver;
     }
     @Override public String providerCode() { return "PURCHASE_REQUISITION"; }
     @Override public boolean supports(String key) { return FIELDS.contains(key); }
@@ -48,6 +53,7 @@ public class PurchaseRequisitionDocumentDataProvider implements DocumentDataProv
             case "company.registeredAddress" -> context.registeredAddress(); case "company.registrationNumber" -> context.registrationNumber();
             case "company.taxNumber" -> context.taxNumber(); case "company.phone" -> context.phone();
             case "company.email" -> context.email(); case "site.name" -> context.siteName();
+            case "company.logo" -> logoService.logoDataUri(pr.getCompany(), contextResolver.siteOf(pr));
             default -> throw new CustomException("Unsupported purchase requisition field", HttpStatus.BAD_REQUEST);
         });
         return out;

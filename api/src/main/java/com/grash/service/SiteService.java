@@ -34,6 +34,9 @@ public class SiteService {
     private final PartQuantityRepository partQuantityRepository;
     private final PurchaseRequisitionLineRepository requisitionLineRepository;
     private final CompanyConfigurationAuditService configurationAuditService;
+    private final FileService fileService;
+    private final com.grash.mapper.FileMapper fileMapper;
+    private final com.grash.factory.StorageServiceFactory storageServiceFactory;
 
     @Transactional(readOnly = true)
     public List<SiteDTO> list(User user) {
@@ -91,6 +94,46 @@ public class SiteService {
         siteRepository.delete(site);
     }
 
+    @Transactional
+    public SiteDTO setLogo(Long id, Long fileId, User user) {
+        Site site = companySite(id, user);
+        com.grash.model.File file = fileService.findById(fileId)
+                .filter(value -> value.getCompany() != null
+                        && value.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("File not found", HttpStatus.NOT_FOUND));
+        // Checked now rather than silently dropped when a document is printed.
+        byte[] bytes;
+        try {
+            bytes = storageServiceFactory.getStorageService().download(file);
+        } catch (RuntimeException exception) {
+            throw new CustomException("site_logo_unreadable", HttpStatus.BAD_REQUEST);
+        }
+        if (bytes == null || bytes.length == 0 || bytes.length > DocumentLogoService.MAX_LOGO_BYTES)
+            throw new CustomException("site_logo_too_large", HttpStatus.BAD_REQUEST);
+        if (DocumentLogoService.imageMimeType(bytes) == null)
+            throw new CustomException("site_logo_invalid_format", HttpStatus.BAD_REQUEST);
+        site.setLogo(file);
+        Site saved = siteRepository.save(site);
+        configurationAuditService.record(user.getCompany(), user, "SITE", saved.getId(), "UPDATED", List.of("logo"));
+        return toDto(saved);
+    }
+
+    @Transactional
+    public SiteDTO removeLogo(Long id, User user) {
+        Site site = companySite(id, user);
+        if (site.getLogo() == null) return toDto(site);
+        site.setLogo(null);
+        Site saved = siteRepository.save(site);
+        configurationAuditService.record(user.getCompany(), user, "SITE", saved.getId(), "UPDATED", List.of("logo"));
+        return toDto(saved);
+    }
+
+    private Site companySite(Long id, User user) {
+        return siteRepository.findById(id)
+                .filter(value -> value.getCompany().getId().equals(user.getCompany().getId()))
+                .orElseThrow(() -> new CustomException("Site not found", HttpStatus.NOT_FOUND));
+    }
+
     private void apply(Site site, SiteDTO input, User user) {
         site.setName(input.getName().trim());
         site.setCode(input.getCode().trim().toUpperCase(java.util.Locale.ROOT));
@@ -125,6 +168,10 @@ public class SiteService {
         dto.setId(site.getId()); dto.setName(site.getName()); dto.setCode(site.getCode());
         dto.setRootLocationId(site.getRootLocation() == null ? null : site.getRootLocation().getId());
         dto.setTimeZone(site.getTimeZone()); dto.setDocumentLanguage(site.getDocumentLanguage());
+        if (site.getLogo() != null) {
+            dto.setLogoId(site.getLogo().getId());
+            dto.setLogoUrl(fileMapper.toShowDto(site.getLogo()).getUrl());
+        }
         return dto;
     }
 }

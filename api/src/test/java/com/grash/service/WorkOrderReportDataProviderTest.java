@@ -44,7 +44,7 @@ class WorkOrderReportDataProviderTest {
 
     private static WorkOrderReportDataProvider createProvider(TaskService tasks, LaborService labors,
             PartQuantityService quantities, com.grash.factory.StorageServiceFactory storage, LicenseService licenses) {
-        return new WorkOrderReportDataProvider(tasks, labors, quantities, storage,
+        return new WorkOrderReportDataProvider(tasks, labors, quantities, new DocumentLogoService(storage),
                 org.mockito.Mockito.mock(com.grash.repository.CommentRepository.class),
                 org.mockito.Mockito.mock(WorkOrderHistoryService.class),
                 org.mockito.Mockito.mock(RelationService.class),

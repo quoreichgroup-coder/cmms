@@ -38,7 +38,7 @@ class ProcurementDocumentDataProviderTest {
     @Test
     void purchaseOrderPrintUsesQuantityAndDescriptionWithoutInventingSupplierPrice() {
         PartQuantityRepository repository = mock(PartQuantityRepository.class);
-        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService);
+        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService, mock(DocumentLogoService.class), mock(DocumentContextResolver.class));
         PurchaseOrder po = new PurchaseOrder(); po.setId(70L); po.setName("Commande pompe");
         Part part = new Part(); part.setName("Joint mécanique"); part.setDescription("Série 55"); part.setUnit("pcs"); part.setCost(987654.0);
         PartQuantity line = new PartQuantity(); line.setPart(part); line.setQuantity(3.0);
@@ -63,7 +63,7 @@ class ProcurementDocumentDataProviderTest {
     @Test
     void purchaseOrderPrintIncludesExplicitSupplierUnitPriceAndLineTotal() {
         PartQuantityRepository repository = mock(PartQuantityRepository.class);
-        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService);
+        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService, mock(DocumentLogoService.class), mock(DocumentContextResolver.class));
         PurchaseOrder po = new PurchaseOrder(); po.setId(71L);
         Part part = new Part(); part.setName("Garniture"); part.setUnit("pcs"); part.setCost(999d);
         PartQuantity line = new PartQuantity(); line.setPart(part); line.setQuantity(2d);
@@ -83,7 +83,7 @@ class ProcurementDocumentDataProviderTest {
 
     @Test
     void purchaseOrderProviderRejectsInventoryCostBindingsAndWrongSource() {
-        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(mock(PartQuantityRepository.class), approvalPrintService);
+        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(mock(PartQuantityRepository.class), approvalPrintService, mock(DocumentLogoService.class), mock(DocumentContextResolver.class));
         assertThrows(CustomException.class, () -> provider.resolve(new PurchaseOrder(), context, Set.of("purchaseOrder.unitPrice")));
         assertThrows(CustomException.class, () -> provider.resolve(new Object(), context, Set.of("purchaseOrder.name")));
     }
@@ -91,7 +91,7 @@ class ProcurementDocumentDataProviderTest {
     @Test
     void purchaseOrderShowsLinkedRequisitionReferencesWhenPresent() {
         PartQuantityRepository repository = mock(PartQuantityRepository.class);
-        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService);
+        PurchaseOrderDocumentDataProvider provider = new PurchaseOrderDocumentDataProvider(repository, approvalPrintService, mock(DocumentLogoService.class), mock(DocumentContextResolver.class));
         PurchaseOrder po = new PurchaseOrder(); po.setId(71L);
         PurchaseRequisition requisition = new PurchaseRequisition(); requisition.setId(31L);
         PurchaseRequisitionLine requestedLine = new PurchaseRequisitionLine(); requestedLine.setRequisition(requisition);
@@ -104,7 +104,7 @@ class ProcurementDocumentDataProviderTest {
 
     @Test
     void purchaseRequisitionPrintIncludesRequesterAndRequestedQuantitiesOnly() {
-        PurchaseRequisitionDocumentDataProvider provider = new PurchaseRequisitionDocumentDataProvider(approvalPrintService);
+        PurchaseRequisitionDocumentDataProvider provider = new PurchaseRequisitionDocumentDataProvider(approvalPrintService, mock(DocumentLogoService.class), mock(DocumentContextResolver.class));
         PurchaseRequisition requisition = new PurchaseRequisition(); requisition.setId(31L);
         User requester = new User(); requester.setFirstName("Awa"); requester.setLastName("Koné"); requisition.setRequester(requester);
         Part part = new Part(); part.setName("Filtre"); part.setUnit("pcs"); part.setCost(5000.0);

@@ -1,7 +1,6 @@
 package com.grash.service;
 
 import com.grash.exception.CustomException;
-import com.grash.factory.StorageServiceFactory;
 import com.grash.model.File;
 import com.grash.model.Comment;
 import com.grash.model.Relation;
@@ -38,7 +37,6 @@ import java.util.regex.Pattern;
 @Slf4j
 public class WorkOrderReportDataProvider implements DocumentDataProvider {
     private static final int MAX_SIGNATURE_BYTES = 512 * 1024;
-    private static final int MAX_COMPANY_LOGO_BYTES = 512 * 1024;
     private static final Pattern SIGNATURE_DATA_URI = Pattern.compile(
             "^data:image/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$", Pattern.CASE_INSENSITIVE);
     private static final Set<String> SUPPORTED_FIELDS = Set.of(
@@ -56,7 +54,7 @@ public class WorkOrderReportDataProvider implements DocumentDataProvider {
     private final TaskService taskService;
     private final LaborService laborService;
     private final PartQuantityService partQuantityService;
-    private final StorageServiceFactory storageServiceFactory;
+    private final DocumentLogoService documentLogoService;
     private final CommentRepository commentRepository;
     private final WorkOrderHistoryService workOrderHistoryService;
     private final RelationService relationService;
@@ -321,37 +319,8 @@ public class WorkOrderReportDataProvider implements DocumentDataProvider {
     }
 
     private String companyLogoDataUri(WorkOrder order) {
-        if (order.getCompany() == null || order.getCompany().getLogo() == null) return null;
-        File logo = order.getCompany().getLogo();
-        if (logo.getCompany() == null || !java.util.Objects.equals(
-                logo.getCompany().getId(), order.getCompany().getId())) return null;
-        try {
-            byte[] bytes = storageServiceFactory.getStorageService().download(logo);
-            if (bytes == null || bytes.length == 0 || bytes.length > MAX_COMPANY_LOGO_BYTES) {
-                log.warn("Company logo is empty or exceeds the report size limit; omitting from report, companyId={}",
-                        order.getCompany().getId());
-                return null;
-            }
-            String mimeType = imageMimeType(bytes);
-            if (mimeType == null) {
-                log.warn("Company logo is not a PNG or JPEG; omitting from report, companyId={}",
-                        order.getCompany().getId());
-                return null;
-            }
-            return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
-        } catch (RuntimeException exception) {
-            log.warn("Company logo could not be loaded for report, companyId={}", order.getCompany().getId());
-            return null;
-        }
-    }
-
-    private String imageMimeType(byte[] bytes) {
-        if (bytes.length >= 8 && (bytes[0] & 0xff) == 0x89 && bytes[1] == 'P'
-                && bytes[2] == 'N' && bytes[3] == 'G' && bytes[4] == 0x0d
-                && bytes[5] == 0x0a && bytes[6] == 0x1a && bytes[7] == 0x0a) return "image/png";
-        if (bytes.length >= 3 && (bytes[0] & 0xff) == 0xff && (bytes[1] & 0xff) == 0xd8
-                && (bytes[2] & 0xff) == 0xff) return "image/jpeg";
-        return null;
+        // Site logo first, company logo otherwise (same checks for every document type).
+        return documentLogoService.logoDataUri(order.getCompany(), order.getSite());
     }
 
     private String signatureDataUri(WorkOrder order) {

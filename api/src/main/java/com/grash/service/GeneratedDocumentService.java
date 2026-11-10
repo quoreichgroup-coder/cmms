@@ -164,6 +164,7 @@ public class GeneratedDocumentService {
     private final WorkOrderService workOrderService;
     private final StorageServiceFactory storageServiceFactory;
     private final DocumentContextResolver documentContextResolver;
+    private final DocumentLogoService documentLogoService;
     private final WorkOrderReportDataProvider workOrderReportDataProvider;
     private final RequestReportDataProvider requestReportDataProvider;
     private final RequestService requestService;
@@ -653,14 +654,16 @@ public class GeneratedDocumentService {
     private RenderedTemplate renderTemplate(DocumentTemplate template, DocumentTemplateVersion version,
                                             Object source, User user) {
         if (PdfmeTemplateConfigurationValidator.isPdfme(version.getConfiguration())) {
-            if (!(source instanceof WorkOrder) || !"WORK_ORDER".equals(template.getDocumentType().getProviderCode()))
-                throw new CustomException("PDFME is currently supported for Work Orders only", HttpStatus.BAD_REQUEST);
+            String providerCode = template.getDocumentType().getProviderCode();
+            PdfmeDocumentProfile profile = PdfmeDocumentProfile.forProvider(providerCode)
+                    .orElseThrow(() -> new CustomException("The visual designer does not support this document type",
+                            HttpStatus.BAD_REQUEST));
             JsonNode pdfme = pdfmeValidator.validate(version.getConfiguration(),
-                    template.getDocumentType().getCode(), template.getDocumentType().getProviderCode());
+                    template.getDocumentType().getCode(), providerCode);
             DocumentContextResolver.DocumentContext pdfmeContext = resolveDocumentContext(source);
             java.util.LinkedHashSet<String> bindings = new java.util.LinkedHashSet<>(pdfmeValidator.dataBindings(pdfme));
-            Map<String, Object> resolved = providerRegistry.require("WORK_ORDER").resolve(source, pdfmeContext, bindings);
-            byte[] pdf = pdfmeRendererClient.render(pdfme, List.of(toPdfmeInput(pdfme, resolved, pdfmeContext)));
+            Map<String, Object> resolved = providerRegistry.require(providerCode).resolve(source, pdfmeContext, bindings);
+            byte[] pdf = pdfmeRendererClient.render(pdfme, List.of(toPdfmeInput(pdfme, resolved, pdfmeContext, profile)));
             String snapshot = createTemplateSnapshot(pdfmeContext, pdfme, resolved,
                     template.getId(), version.getId(), version.getVersionNumber());
             return new RenderedTemplate(pdf, pdfmeContext, snapshot);
@@ -752,8 +755,9 @@ public class GeneratedDocumentService {
                 }
             }
         }
-        String logoPath = user.getCompany().getLogo() == null ? null
-                : com.grash.utils.PdfReportUtils.getImageReportStoragePath(user.getCompany().getLogo());
+        // Site logo when the document belongs to a single site, company logo otherwise.
+        com.grash.model.File logo = documentLogoService.logoFor(user.getCompany(), documentContextResolver.siteOf(source));
+        String logoPath = logo == null ? null : com.grash.utils.PdfReportUtils.getImageReportStoragePath(logo);
         String accentColor = user.getCompany().getCompanySettings().getGeneralPreferences().getColor();
         byte[] pdf = templateRenderer.render(configuration, blocks, context, logoPath, accentColor);
         String snapshot = createTemplateSnapshot(context, configuration, values,
@@ -763,14 +767,16 @@ public class GeneratedDocumentService {
 
     private DocumentContextResolver.DocumentContext resolveDocumentContext(Object source) {
         if (source instanceof WorkOrderBase workOrderBase) return documentContextResolver.resolve(workOrderBase);
-        if (source instanceof PurchaseOrder purchaseOrder) return documentContextResolver.resolve(purchaseOrder.getCompany(), null);
-        if (source instanceof PurchaseRequisition requisition) return documentContextResolver.resolve(
-                requisition.getCompany(), requisition.getSourceWorkOrder() == null ? null : requisition.getSourceWorkOrder().getSite());
+        if (source instanceof PurchaseOrder purchaseOrder)
+            return documentContextResolver.resolve(purchaseOrder.getCompany(), documentContextResolver.siteOf(purchaseOrder));
+        if (source instanceof PurchaseRequisition requisition)
+            return documentContextResolver.resolve(requisition.getCompany(), documentContextResolver.siteOf(requisition));
         throw new CustomException("Unsupported document source", HttpStatus.BAD_REQUEST);
     }
 
     private Map<String, Object> toPdfmeInput(JsonNode template, Map<String, Object> resolved,
-                                             DocumentContextResolver.DocumentContext context) {
+                                             DocumentContextResolver.DocumentContext context,
+                                             PdfmeDocumentProfile profile) {
         Map<String, Object> input = new LinkedHashMap<>();
         for (JsonNode page : template.path("schemas")) {
             for (JsonNode schema : page) {
@@ -779,7 +785,7 @@ public class GeneratedDocumentService {
                 if (name.startsWith("static:")) continue;
                 Object value = resolved.get(name);
                 if ("table".equals(type)) {
-                    input.put(name, tableInput(name, value, schema, context));
+                    input.put(name, tableInput(name, value, schema, context, profile));
                 } else if (value == null) {
                     input.put(name, "workOrder.customFields".equals(name)
                             ? localized("report.noCustomFields", "No custom fields recorded", context.locale())
@@ -788,7 +794,7 @@ public class GeneratedDocumentService {
                 } else if (value instanceof String text) {
                     input.put(name, Set.of("workOrder.status", "workOrder.priority").contains(name)
                             ? localized(text, text, context.locale())
-                            : name.endsWith("Date") || name.endsWith("At")
+                            : name.endsWith("Date") || name.endsWith("At") || name.endsWith(".date")
                             ? formatDateTime(text, context.locale(), context.timeZone()) : text);
                 } else if (value instanceof List<?> values) {
                     String emptyMessage = switch (name) {
@@ -812,13 +818,9 @@ public class GeneratedDocumentService {
     }
 
     private String tableInput(String name, Object value, JsonNode schema,
-                              DocumentContextResolver.DocumentContext context) {
-        List<String> defaultColumns = switch (name) {
-            case "workOrder.executionTasks" -> List.of("step", "task", "result", "notes");
-            case "workOrder.laborTimeEntries" -> List.of("technician", "activity", "startedAt", "durationHours", "status");
-            case "workOrder.materialsUsed" -> List.of("part", "description", "quantity", "unit");
-            default -> throw new CustomException("Unsupported PDFME table binding", HttpStatus.BAD_REQUEST);
-        };
+                              DocumentContextResolver.DocumentContext context, PdfmeDocumentProfile profile) {
+        List<String> defaultColumns = profile.columnsOf(name);
+        if (defaultColumns.isEmpty()) throw new CustomException("Unsupported PDFME table binding", HttpStatus.BAD_REQUEST);
         List<String> columns = new java.util.ArrayList<>();
         JsonNode bindings = schema.path("columnBindings");
         if (bindings.isArray() && bindings.size() > 0) bindings.forEach(binding -> columns.add(binding.asText()));

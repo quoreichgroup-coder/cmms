@@ -23,11 +23,6 @@ public class PdfmeTemplateConfigurationValidator {
     private static final Set<String> BASE_PDF_KEYS = Set.of("width", "height", "padding");
     private static final Set<String> TYPES = Set.of(
             "text", "multiVariableText", "image", "signature", "table", "line", "rectangle", "ellipse", "qrcode");
-    private static final Set<String> TABLE_FIELDS = Set.of(
-            "workOrder.executionTasks", "workOrder.laborTimeEntries", "workOrder.materialsUsed");
-    private static final Set<String> COMPONENTS = Set.of(
-            "summary", "people", "tasks", "labor", "materials", "signoff", "comments", "history",
-            "relations", "customFields", "attachments");
     private static final Set<String> SCHEMA_KEYS = Set.of(
             "name", "type", "position", "width", "height", "rotate", "opacity", "required", "readOnly",
             "content", "fontName", "fontSize", "fontColor", "alignment", "verticalAlignment", "lineHeight",
@@ -47,8 +42,8 @@ public class PdfmeTemplateConfigurationValidator {
     }
 
     public JsonNode validate(JsonNode configuration, String documentType, String providerCode) {
-        if (!"WORK_ORDER".equals(providerCode)
-                || configuration == null || !configuration.isObject() || !hasOnly(configuration, ROOT_KEYS)) bad();
+        PdfmeDocumentProfile profile = PdfmeDocumentProfile.forProvider(providerCode).orElse(null);
+        if (profile == null || configuration == null || !configuration.isObject() || !hasOnly(configuration, ROOT_KEYS)) bad();
         String version = configuration.path("pdfmeVersion").asText("");
         if (!VERSION.matcher(version).matches() || !SUPPORTED_PDFME_VERSION.equals(version)) bad();
 
@@ -67,7 +62,7 @@ public class PdfmeTemplateConfigurationValidator {
 
         JsonNode pages = configuration.get("schemas");
         if (pages == null || !pages.isArray() || pages.isEmpty() || pages.size() > 20) bad();
-        DocumentDataProvider provider = providerRegistry.require("WORK_ORDER");
+        DocumentDataProvider provider = providerRegistry.require(providerCode);
         int componentCount = 0;
         Set<String> printZoneNames = new HashSet<>();
         Map<String, Boolean> componentVisibility = new java.util.HashMap<>();
@@ -110,7 +105,7 @@ public class PdfmeTemplateConfigurationValidator {
                 }
                 if (schema.has("qpmEmptyMessage") && !"table".equals(type)) bad();
                 if (schema.has("qpmComponent") && (!schema.get("qpmComponent").isTextual()
-                        || !COMPONENTS.contains(schema.get("qpmComponent").asText()))) bad();
+                        || !profile.components().contains(schema.get("qpmComponent").asText()))) bad();
                 if (schema.has("qpmSectionId") && (!schema.get("qpmSectionId").isTextual()
                         || !schema.get("qpmSectionId").asText().matches("[A-Za-z0-9_-]{1,80}")
                         || !schema.has("qpmComponent"))) bad();
@@ -128,9 +123,9 @@ public class PdfmeTemplateConfigurationValidator {
                 if (schema.has("qpmHideIfEmpty") && (!schema.get("qpmHideIfEmpty").isBoolean()
                         || !schema.get("qpmHideIfEmpty").asBoolean() || isStatic
                         || !("text".equals(type) || "multiVariableText".equals(type)))) bad();
-                if ("table".equals(type) != TABLE_FIELDS.contains(name)) bad();
-                if ("signature".equals(type) && !"workOrder.signature".equals(name)) bad();
-                if ("image".equals(type) && !isStatic && !"company.logo".equals(name)) bad();
+                if ("table".equals(type) != profile.isTable(name)) bad();
+                if ("signature".equals(type) && (profile.signatureField() == null || !profile.signatureField().equals(name))) bad();
+                if ("image".equals(type) && !isStatic && !PdfmeDocumentProfile.LOGO_FIELD.equals(name)) bad();
                 if ("qrcode".equals(type) && !isStatic) bad();
                 validateGeometry(schema, width, height);
                 if (schema.has("content")) {
@@ -139,7 +134,7 @@ public class PdfmeTemplateConfigurationValidator {
                     if ("image".equals(type) && !content.asText().isBlank()
                             && !content.asText().matches("data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+")) bad();
                 }
-                if ("table".equals(type)) validateTable(schema);
+                if ("table".equals(type)) validateTable(schema, profile);
             }
         }
         if (componentCount == 0) bad();
@@ -234,7 +229,7 @@ public class PdfmeTemplateConfigurationValidator {
         if (schema.has("fontSize")) number(schema.get("fontSize"), 4, 48);
     }
 
-    private void validateTable(JsonNode schema) {
+    private void validateTable(JsonNode schema, PdfmeDocumentProfile profile) {
         JsonNode headers = schema.get("head");
         if (headers == null || !headers.isArray() || headers.isEmpty() || headers.size() > 12) bad();
         for (JsonNode header : headers) if (!header.isTextual() || header.asText().length() > 100) bad();
@@ -254,12 +249,7 @@ public class PdfmeTemplateConfigurationValidator {
         if (schema.has("columnBindings")) {
             JsonNode bindings = schema.get("columnBindings");
             if (!bindings.isArray() || bindings.size() != headers.size()) bad();
-            List<String> allowed = switch (schema.path("name").asText()) {
-                case "workOrder.executionTasks" -> List.of("step", "task", "result", "notes");
-                case "workOrder.laborTimeEntries" -> List.of("technician", "activity", "startedAt", "durationHours", "status");
-                case "workOrder.materialsUsed" -> List.of("part", "description", "quantity", "unit");
-                default -> List.of();
-            };
+            List<String> allowed = profile.columnsOf(schema.path("name").asText());
             Set<String> seen = new HashSet<>();
             for (JsonNode binding : bindings) {
                 if (!binding.isTextual()) bad();
