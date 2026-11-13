@@ -143,6 +143,8 @@ Une demande ne rentre dans le MVP qu’avec son parcours utilisateur, son rôle,
 
 ## 6. Documents de référence
 
+- [`BACKLOG-POST-MVP-QPM.md`](BACKLOG-POST-MVP-QPM.md) — index consolidé des chantiers, portes de recette MVP et travaux post-MVP.
+- [`MVP-RESTANT-2026-11-09.md`](MVP-RESTANT-2026-11-09.md) — état observé et preuves de validation restantes.
 - [`STACK.md`](STACK.md) — versions et architecture actuellement documentées.
 - [`CHARTE-VISUELLE-QPM.md`](CHARTE-VISUELLE-QPM.md) — couleurs de marque et familles typographiques fournies par QUOREICH GROUP.
 - [`ui-ux-assessment/02-APPLICATION-ARCHITECTURE.md`](ui-ux-assessment/02-APPLICATION-ARCHITECTURE.md) — architecture applicative et modules inventoriés.

@@ -53,14 +53,14 @@ Synthèse établie après l’audit du 9 novembre 2026 et les vérifications loc
 
 ## 5. Incohérences documentaires à corriger
 
-1. Statut du circuit d’approbation : `FINAL-UIUX-MAINTENANCE-BACKLOG.md` (non implémenté) contre `BACKLOG-APPROBATIONS-ACHATS.md` (V1 implémentée, confirmé par le code).
-2. Modèle de BC : réceptions et file de réception existent désormais (le backlog du 20 octobre l’ignore).
-3. Aperçu PDF Web : ouvre une fenêtre de visualisation (`MVP-MOBILE-QPM.md` parle encore d’un simple téléchargement).
-4. Version PostgreSQL et état de la migration documentation (la dernière observation consignait PostgreSQL 16.15; le backlog du centre d’aide demande une validation sur PostgreSQL 18).
-5. Santé : `/actuator/health` en 503 contre « health-check API 200 » (endpoints différents, à expliciter).
-6. URL API mobile : `ETAT-REPRISE.md` cite `169-58-86-7.sslip.io`, le code utilise `eam.quoreichgroup.bf`.
-7. Prochaine étape « installer 1.0.59 » obsolète : l’APK courant documenté est 1.0.61.
-8. L’expiration de la licence n’apparaît pas dans l’ordre des jalons de `MVP-PROJET-QPM.md` §3.
+Les principales divergences d’état ont été reportées dans l’[index consolidé](BACKLOG-POST-MVP-QPM.md). Les éléments suivants restent à vérifier ou à aligner avant de les déclarer clos :
+
+1. **Base Centre d’aide** : le backlog demande PostgreSQL 18, tandis que la dernière observation runtime consignée ici est PostgreSQL 16.15. Confirmer la version réellement supportée par les migrations et corriger l’exigence documentaire si elle est obsolète.
+2. **Santé runtime** : `/actuator/health` répond 503 alors qu’un autre contrôle HTTP peut réussir; vérifier chaque endpoint et son dépendance avant de conclure que l’API est saine.
+3. **URL API mobile** : `ETAT-REPRISE.md` cite `169-58-86-7.sslip.io`, alors que la configuration mobile du dépôt utilise `eam.quoreichgroup.bf`. Vérifier l’URL attendue pour l’environnement de recette.
+4. **Licence et recette** : la dernière trace mentionne une expiration le 2 novembre 2026; l’état actuel doit être confirmé par l’autorité de licences avant les parcours authentifiés.
+
+Les journaux datés des autres documents conservent leur contexte historique; consulter l’index consolidé pour éviter de prendre une note ancienne pour le statut courant.
 
 ## 6. Vérifications locales — 13 novembre 2026
 
