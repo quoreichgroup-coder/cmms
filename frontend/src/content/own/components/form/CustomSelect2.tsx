@@ -1100,6 +1100,11 @@ export const CustomSelect = ({
               </IconButton>
             </Box>
           </Card>
+          {field.helperText && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+              {field.helperText}
+            </Typography>
+          )}
         </>
       );
     default:

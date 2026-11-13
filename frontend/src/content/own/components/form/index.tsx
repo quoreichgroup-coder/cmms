@@ -47,6 +47,11 @@ interface PropsType {
     values: IHash<any>,
     setFieldValue: (field: string, value: any) => void
   ) => React.ReactNode;
+  renderCustomField?: (
+    field: IField,
+    values: IHash<any>,
+    setFieldValue: (field: string, value: any) => void
+  ) => React.ReactNode;
 }
 
 const flattenFormikErrors = (
@@ -208,7 +213,13 @@ export default (props: PropsType) => {
                         : undefined
                     }
                   >
-                    {field.type === 'select' ? (
+                    {field.type === 'custom' ? (
+                      props.renderCustomField?.(
+                        field,
+                        formik.values,
+                        formik.setFieldValue
+                      )
+                    ) : field.type === 'select' ? (
                       <CustomSelect field={field} handleChange={handleChange} />
                     ) : field.type === 'checkbox' ? (
                       <CheckBoxForm

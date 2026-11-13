@@ -805,6 +805,11 @@ function PMs() {
       { delay: true }
     ),
     {
+      name: 'maintenanceTaskListEditor',
+      type: 'custom',
+      label: 'pm_plan_configuration'
+    },
+    {
       name: 'site',
       type: 'select',
       type2: 'site',
@@ -820,8 +825,9 @@ function PMs() {
       name: 'tasks',
       type: 'select',
       type2: 'task',
-      label: t('tasks'),
-      placeholder: t('select_tasks')
+      label: t('pm_work_order_checklists'),
+      placeholder: t('select_tasks'),
+      helperText: t('pm_work_order_checklists_help')
     }
   ];
   const defaultShape = {
@@ -991,27 +997,21 @@ function PMs() {
     )
   };
 
+  const renderPMPlanConfiguration = (values, setFieldValue) => (
+    <PMPlanConfigurationEditor
+      values={values}
+      setFieldValue={setFieldValue}
+      t={t}
+      meterTriggerOption={triggerTypes.find(({ value }) => value === 'METER')!}
+    />
+  );
+
   const renderPMSchedulePreview = (values, setFieldValue) => {
-    const planEditor = (
-      <PMPlanConfigurationEditor
-        values={values}
-        setFieldValue={setFieldValue}
-        t={t}
-        meterTriggerOption={
-          triggerTypes.find(({ value }) => value === 'METER')!
-        }
-      />
-    );
     if ((values.triggerType?.value ?? values.triggerType) === 'METER') {
-      return (
-        <>
-          {planEditor}
-          <MeterCycleForecast values={values} t={t} />
-        </>
-      );
+      return <MeterCycleForecast values={values} t={t} />;
     }
     const startsOn = values.startsOn;
-    if (!startsOn) return planEditor;
+    if (!startsOn) return null;
 
     const timeZone =
       companySettings?.generalPreferences?.timeZone ||
@@ -1049,7 +1049,6 @@ function PMs() {
 
     return (
       <>
-        {planEditor}
         <WeeklyDayDefault
           values={values}
           setFieldValue={setFieldValue}
@@ -1183,6 +1182,11 @@ function PMs() {
                   }
             }
             onChange={() => setIsFormDirty(true)}
+            renderCustomField={(field, values, setFieldValue) =>
+              field.name === 'maintenanceTaskListEditor'
+                ? renderPMPlanConfiguration(values, setFieldValue)
+                : null
+            }
             renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
               let formattedValues = formatValues(values);
@@ -1269,6 +1273,11 @@ function PMs() {
             submitText={t('save')}
             values={getPMFormValues(currentPM)}
             onChange={() => setIsFormDirty(true)}
+            renderCustomField={(field, values, setFieldValue) =>
+              field.name === 'maintenanceTaskListEditor'
+                ? renderPMPlanConfiguration(values, setFieldValue)
+                : null
+            }
             renderValues={renderPMSchedulePreview}
             onSubmit={async (values) => {
               try {

@@ -2196,10 +2196,13 @@ const frJSON = {
   remove_blank_options: 'Supprimer les options vides',
   preview: 'Aperçu',
   pm_schedule_forecast: 'Prévision des maintenances planifiées',
-  pm_plan_configuration: 'Stratégie de maintenance et cycles',
+  pm_plan_configuration: 'Liste de tâches maintenance et stratégie',
   pm_plan_configuration_help:
     'Choisissez une récurrence standard, des packages de tâches à intervalles différents ou un plan déclenché par plusieurs compteurs.',
-  pm_maintenance_task_list: 'Opérations et composants planifiés',
+  pm_maintenance_task_list: 'Liste de tâches de maintenance (opérations et composants planifiés)',
+  pm_work_order_checklists: 'Checklists et tâches individuelles des OT',
+  pm_work_order_checklists_help:
+    'Ces tâches de checklist apparaissent sur les ordres de travail générés. Pour réutiliser des opérations et des composants planifiés, sélectionnez une liste de tâches de maintenance ci-dessus.',
   pm_task_list_none: 'Aucun modèle d’opérations',
   pm_maintenance_task_list_help:
     'Associez facultativement une liste de tâches de maintenance active à chaque ordre généré par ce plan. Les composants restent des besoins planifiés et ne sont pas considérés comme consommés.',
@@ -2207,6 +2210,12 @@ const frJSON = {
     'Impossible de charger les listes de tâches de maintenance. Vérifiez vos droits puis réessayez.',
   pm_task_lists_none_available:
     'Aucune liste active ne correspond à l’équipement ou à l’emplacement fonctionnel de ce plan. Les listes générales sont disponibles pour tous les plans. Créez ou activez une liste dans Maintenance préventive → Listes de tâches, associez le bon objet, puis actualisez cette liste.',
+  pm_task_lists_none_active:
+    'Aucune liste de tâches de maintenance active n’est disponible. Activez une liste dans Maintenance préventive → Listes de tâches, puis actualisez.',
+  pm_task_lists_active_incompatible:
+    'Les listes actives apparaissent ci-dessous, mais aucune ne correspond à l’équipement, à l’emplacement fonctionnel ou aux dates de validité de ce plan. Associez le bon objet ou ajustez les dates de la liste.',
+  pm_task_list_option_incompatible:
+    'Sélection impossible : l’équipement, l’emplacement ou les dates de validité ne correspondent pas à ce plan.',
   pm_task_lists_checking_asset_location:
     'Vérification de l’emplacement de l’équipement pour trouver les gammes compatibles…',
   pm_task_lists_asset_location_error:

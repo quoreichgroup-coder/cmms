@@ -25,6 +25,14 @@ taskListOptionsModule.filename = taskListOptionsPath;
 taskListOptionsModule.paths = Module._nodeModulePaths(path.dirname(taskListOptionsPath));
 taskListOptionsModule._compile(taskListOptionsCompiled, taskListOptionsPath);
 const { getCompatibleMaintenanceTaskLists } = taskListOptionsModule.exports;
+const pmFormSource = fs.readFileSync(
+  path.resolve(__dirname, '../src/content/own/PreventiveMaintenance/index.tsx'),
+  'utf8'
+);
+const pmConfigurationEditorSource = fs.readFileSync(
+  path.resolve(__dirname, '../src/content/own/PreventiveMaintenance/PMPlanConfigurationEditor.tsx'),
+  'utf8'
+);
 
 const validStrategy = {
   mode: 'STRATEGY',
@@ -127,4 +135,17 @@ test('functional-location task lists match the plan location or the selected equ
   });
 
   assert.deepEqual(result.map(({ id }) => id), [8, 9]);
+});
+
+test('PM form places the Maintenance Task List beside the distinct work-order checklist selector', () => {
+  const taskListFieldIndex = pmFormSource.indexOf("name: 'maintenanceTaskListEditor'");
+  const checklistFieldIndex = pmFormSource.indexOf("name: 'tasks'");
+
+  assert.ok(taskListFieldIndex >= 0);
+  assert.ok(checklistFieldIndex > taskListFieldIndex);
+  assert.match(pmFormSource, /renderCustomField=\{\(field, values, setFieldValue\)/);
+  assert.match(pmFormSource, /pm_work_order_checklists_help/);
+  assert.match(pmConfigurationEditorSource, /const taskListOptions = taskLists/);
+  assert.match(pmConfigurationEditorSource, /getOptionDisabled=\{\(option\) => !selectableTaskListIds\.has\(option\.id\)\}/);
+  assert.match(pmConfigurationEditorSource, /pm_task_list_option_incompatible/);
 });

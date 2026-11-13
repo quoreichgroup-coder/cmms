@@ -186,13 +186,9 @@ const PMPlanConfigurationEditor = ({
       && !assetLocationUnresolved
       && !selectableTaskListIds.has(selectedTaskListOption.id)
   );
-  const taskListOptions = useMemo(() => {
-    if (!selectedTaskListOption
-      || selectableTaskLists.some((item) => item.id === selectedTaskListOption.id)) {
-      return selectableTaskLists;
-    }
-    return [...selectableTaskLists, selectedTaskListOption];
-  }, [selectedTaskListOption, selectableTaskLists]);
+  // Keep active lists visible even when they cannot be used for this plan. Disabled
+  // options explain why the list picker may appear empty for a selected object.
+  const taskListOptions = taskLists;
   const selectedTaskIds = useMemo(
     () => new Set(selectedTasks.map((task: { id: number }) => task.id)),
     [selectedTasks]
@@ -435,7 +431,24 @@ const PMPlanConfigurationEditor = ({
             getOptionLabel={(item) => `${item.groupCode} / ${item.groupCounter} — ${item.description}`}
             isOptionEqualToValue={(option, value) => option.id === value.id}
             getOptionDisabled={(option) => !selectableTaskListIds.has(option.id)}
-            noOptionsText={t('pm_task_lists_none_available')}
+            noOptionsText={t('pm_task_lists_none_active')}
+            renderOption={(optionProps, item) => {
+              const compatible = selectableTaskListIds.has(item.id);
+              return (
+                <li {...optionProps} key={item.id}>
+                  <Box>
+                    <Typography variant="body2">
+                      {item.groupCode} / {item.groupCounter} — {item.description}
+                    </Typography>
+                    {!compatible && (
+                      <Typography variant="caption" color="text.secondary">
+                        {t('pm_task_list_option_incompatible')}
+                      </Typography>
+                    )}
+                  </Box>
+                </li>
+              );
+            }}
             onChange={(_, taskList) => {
               commit({ ...configuration, maintenanceTaskListId: taskList?.id ?? null });
             }}
@@ -454,7 +467,9 @@ const PMPlanConfigurationEditor = ({
                       ? t('pm_task_lists_checking_asset_location')
                       : selectableTaskLists.length
                         ? t('pm_maintenance_task_list_help')
-                        : t('pm_task_lists_none_available')}
+                        : taskLists.length
+                          ? t('pm_task_lists_active_incompatible')
+                          : t('pm_task_lists_none_active')}
               />
             )}
           />
