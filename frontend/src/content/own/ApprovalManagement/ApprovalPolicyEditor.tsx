@@ -6,11 +6,11 @@ import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress, Collapse, FormControlLabel, IconButton,
   MenuItem, Paper, Stack, Switch, TextField, Typography
 } from '@mui/material';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpwardOutlined';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownwardOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMoreOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLessOutlined';
 import api, { getErrorMessage } from '../../../utils/api';
 import useAuth from '../../../hooks/useAuth';
 import { ApprovalCondition, ApprovalConditionOperator, ApprovalLevel, ApprovalPolicy, ApprovalTarget } from '../../../models/owns/procurementApproval';

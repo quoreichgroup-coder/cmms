@@ -6,7 +6,7 @@ import {
   MenuItem, Pagination, Paper, Stack, Table, TableBody, TableCell, TableHead,
   TableRow, TextField, Typography, useMediaQuery, useTheme
 } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import MoreVertIcon from '@mui/icons-material/MoreVertOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { TitleContext } from '../../../contexts/TitleContext';

@@ -19,7 +19,18 @@ function loadLocale(file) {
     }
   }).outputText;
   const moduleExports = {};
-  vm.runInNewContext(compiled, { exports: moduleExports });
+  vm.runInNewContext(compiled, {
+    exports: moduleExports,
+    require(id) {
+      if (id === './approvalManagement') {
+        return {
+          approvalManagementEn: {},
+          approvalManagementFr: {}
+        };
+      }
+      throw new Error(`Unexpected locale dependency: ${id}`);
+    }
+  });
   return moduleExports.default;
 }
 

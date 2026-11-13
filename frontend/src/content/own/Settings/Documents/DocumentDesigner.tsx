@@ -35,7 +35,7 @@ import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined
 import ArrowUpwardOutlinedIcon from '@mui/icons-material/ArrowUpwardOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicatorOutlined';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';

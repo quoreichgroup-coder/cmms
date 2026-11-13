@@ -23,7 +23,9 @@ function loadSlice(name, api) {
         };
       if (id.endsWith('/redux'))
         return { revertAll: createAction('REVERT_ALL') };
-      if (id.endsWith('cancellableRequest')) return { cancellableFetch: () => {} };
+      if (id.endsWith('cancellableRequest'))
+        return { cancellableFetch: () => {} };
+      if (id.endsWith('/safeErrorLog')) return { logSafeError: () => {} };
       return require(id);
     }
   });
@@ -77,7 +79,11 @@ for (const [sliceName, thunkName, stateKey, collectionPath, endpoint] of [
       );
     } else if (sliceName === 'checklist') {
       store.dispatch(
-        slice.default.actions.getChecklists({ checklists: [record] })
+        slice.default.actions.getChecklists({
+          checklists: [record],
+          revision: 0,
+          sessionGeneration: 0
+        })
       );
     } else {
       const actionName = `get${sliceName[0].toUpperCase()}${sliceName.slice(

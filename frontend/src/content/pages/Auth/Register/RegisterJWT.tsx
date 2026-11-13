@@ -16,7 +16,7 @@ import {
   Typography
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHighOutlined';
 import useAuth from 'src/hooks/useAuth';
 import useRefMounted from 'src/hooks/useRefMounted';
 import { useTranslation } from 'react-i18next';

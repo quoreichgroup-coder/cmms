@@ -18,8 +18,8 @@ import {
   Typography
 } from '@mui/material';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpwardOutlined';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownwardOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import { useTranslation } from 'react-i18next';

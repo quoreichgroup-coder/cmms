@@ -49,7 +49,7 @@ Synthèse établie après l’audit du 9 novembre 2026 et les vérifications loc
 
 - **Sécurité** : jetons JWT en `localStorage` (SEC-WEB-02, ADR existant) ; types de jetons de vérification distincts et usage unique (activation/réinitialisation/suppression), réinitialisation sans mot de passe envoyé par e-mail ; liaison DNS des webhooks sortants (rebinding) ; signature de l’horodatage des webhooks ; verrou de rotation des jetons de rafraîchissement ; vérification en préproduction du contournement de chemin `/admin;x/` de l’autorité de licences et de la résolution d’IP derrière Caddy/nginx ; compte MinIO dédié au lieu du compte racine. Le verrouillage de connexion par e-mail est conservé (protection contre la force brute) : à arbitrer si les verrouillages abusifs deviennent un problème.
 - **UX** : garde de saisie sur la page de création de BC et les modales de pièces ; validation en ligne des quantités reçues et des champs de DA ; couleur « Terminé » à aligner entre Web (vert) et mobile (gris) ; écran Expo `ModalScreen` résiduel ; polices de la charte (Montserrat/Playfair) à embarquer localement.
-- **Tests** : 8 tests front basés sur le texte source échouaient déjà avant ces changements (icônes outlined, messages d’export, suppression checklist/fichier, signature webhook, sélection de checklist de workflow). Le problème de type JSX mobile mentionné précédemment est corrigé par l’alignement de `mobile/tsconfig.json` sur le mode `react-native` d’Expo; voir les vérifications du 13 novembre ci-dessous.
+- **Tests** : les checks ciblés antérieurement en échec sont recalés sur les implémentations actuelles. Les variantes d’icônes MUI Outline manquantes ont été corrigées; les assertions obsolètes et les dépendances de test manquantes ont été ajustées. Voir les vérifications Web du 13 novembre ci-dessous.
 
 ## 5. Incohérences documentaires à corriger
 
@@ -64,7 +64,7 @@ Les journaux datés des autres documents conservent leur contexte historique; co
 
 ## 6. Vérifications locales — 13 novembre 2026
 
-- Web : `npm run typecheck`, les suites approbation, PM, documents et erreurs API, et le build de production passent. Le build signale un avertissement ESLint de mise en forme dans `SiteLogoControl.tsx` (non bloquant).
+- Web : `npm run typecheck`, les suites approbation, PM, documents et erreurs API, et le build de production passent. Le 13 novembre, le typecheck a été relancé après le correctif d’icônes et passe; 9 scripts de régression ciblés (exports, suppression, sélection checklist, contrat webhook, icônes) passent aussi. Le build signale un avertissement ESLint de mise en forme dans `SiteLogoControl.tsx` (non bloquant).
 - API : les rapports Surefire pour Task Lists, recherche de pièces, PM préventive, approbation achats et accès aux documents indiquent 120 tests réussis, sans échec ni erreur.
 - Mobile : après l’alignement TypeScript, `npx tsc --noEmit --pretty false` passe; `npm run test:mobile-regression` passe (57 tests + 5 onboarding + 5 shifts); l’export Expo Android et iOS passe (2 261 modules Android, 2 252 iOS). Ce dernier produit des bundles JavaScript et ne constitue pas un build APK/IPA ni une recette appareil. Aucun cast ni changement de dépendance.
 - Android : l’APK 1.0.61 est présent dans `mobile/dist/`; SHA-256 `02dde8e33e9ddde7f89ceacd6414a7883c68db4c5ea59189e115d05991bf1bb1`. L’installation et les parcours terrain ne sont pas vérifiés sur appareil.

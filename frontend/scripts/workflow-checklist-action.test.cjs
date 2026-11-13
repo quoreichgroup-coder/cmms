@@ -15,7 +15,11 @@ test('workflow checklist action selects a real checklist template', () => {
   assert.match(source, /ADD_CHECKLIST:\s*\{\s*type:\s*'select'/);
   assert.match(source, /items:\s*checklists/);
   assert.match(source, /accessor:\s*'checklist'/);
-  assert.match(source, /dispatch\(getChecklists\(\)\)/);
+  assert.match(
+    source,
+    /fetchChecklists\s*=\s*\(\)\s*=>\s*loadLookup\('checklists',\s*checklists\.length\s*>\s*0,\s*getChecklists\)/
+  );
+  assert.match(source, /void dispatch\(request\(\)\)/);
   assert.match(source, /apiFormatter:\s*objectFormatter/);
 });
 

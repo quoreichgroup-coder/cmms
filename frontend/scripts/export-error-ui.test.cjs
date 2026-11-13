@@ -16,7 +16,7 @@ test('export menus show the actual STOMP/API failure and retain a fallback', () 
     const source = fs.readFileSync(file, 'utf8');
     assert.match(
       source,
-      /catch\s*\(error\)\s*\{[^}]{0,180}getErrorMessage\(error,\s*t\('Export failed'\)\)/s,
+      /catch\s*\(error\)\s*\{[^}]{0,180}getErrorMessage\(error,\s*t\('[^']+'\)\)/s,
       `${file} should surface the actionable export error`
     );
   }

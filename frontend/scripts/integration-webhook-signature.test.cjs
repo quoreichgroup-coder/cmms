@@ -43,8 +43,9 @@ test('the warning matches the current backend signature contract', () => {
   assert.match(dispatch, /headers\.set\("X-Webhook-Timestamp", timestamp\)/);
   assert.match(
     dispatch,
-    /headers\.set\("X-Webhook-Id", UUID\.randomUUID\(\)\.toString\(\)\)/
+    /String deliveryId = outboxEvent\.getEventKey\(\) \+ "-" \+ endpoint\.getId\(\)/
   );
+  assert.match(dispatch, /headers\.set\("X-Webhook-Id", deliveryId\)/);
   assert.doesNotMatch(signatureMethod[1], /timestamp|deliveryId|X-Webhook-Id/i);
 });
 

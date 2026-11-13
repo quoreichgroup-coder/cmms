@@ -30,7 +30,7 @@ import {
 } from '../../../../models/user';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNewOutlined';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIosOutlined';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import RestartAltIcon from '@mui/icons-material/RestartAltOutlined';
 import { addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { useDispatch } from '../../../../store';
 import { patchShiftConfiguration } from '../../../../slices/shiftConfiguration';
