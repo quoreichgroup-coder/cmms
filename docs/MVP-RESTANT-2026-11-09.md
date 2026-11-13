@@ -1,6 +1,6 @@
-# Reste à faire pour clôturer le MVP QPM — 9 novembre 2026
+# Reste à faire pour clôturer le MVP QPM — mise à jour du 13 novembre 2026
 
-Synthèse établie après l’audit du 9 novembre 2026 (sécurité, UX/UI, rebranding) et la relecture de [MVP-PROJET-QPM.md](MVP-PROJET-QPM.md), [ETAT-REPRISE.md](ETAT-REPRISE.md) et des backlogs. Les critères C1–C11 sont ceux de `MVP-PROJET-QPM.md` §3. Branche de travail : `fix/rebrand-security-ux` (non poussée).
+Synthèse établie après l’audit du 9 novembre 2026 et les vérifications locales du 13 novembre. Les critères C1–C11 sont ceux de [MVP-PROJET-QPM.md](MVP-PROJET-QPM.md) §3. L’état vérifié est la branche `projet`, commit `f8ca6341`, synchronisée avec `origin/projet`. Les portes de recette réelle restent ouvertes; un build ou des tests automatisés ne les remplacent pas.
 
 ## 1. Corrigé sur la branche (à valider en recette)
 
@@ -21,10 +21,10 @@ Synthèse établie après l’audit du 9 novembre 2026 (sécurité, UX/UI, rebra
 
 | # | Action | Responsable | Débloque |
 | --- | --- | --- | --- |
-| 1 | **Renouveler la licence de test** (expiration 2026-11-02, aucun renouvellement tracé) | QUOREICH GROUP / autorité de licences | Toute la recette |
-| 2 | Corriger les identifiants SMTP (`/actuator/health` en 503 à cause de l’erreur 535) | Exploitation | Invitations e-mail (désormais avec jeton), réinitialisation de mot de passe |
-| 3 | Pousser la branche, vérifier le workflow GitHub Actions, la migration Liquibase `user_invitation.token` et la santé HTTP | Équipe dev | Mise en production des correctifs |
-| 4 | Construire et installer un APK natif (les App Links `eam.quoreichgroup.bf` et l’en-tête mobile ne passent pas par une mise à jour EAS) ; vérifier les empreintes SHA-256 de `assetlinks.json` | Équipe mobile | C5 |
+| 1 | Vérifier que la licence de recette est valide (la dernière trace connue indiquait une expiration le 2026-11-02) | QUOREICH GROUP / autorité de licences | Toute la recette authentifiée |
+| 2 | Vérifier/corriger SMTP : le dernier état documenté indiquait `/actuator/health` en 503 avec erreur 535; état courant non accessible depuis cet environnement | Exploitation | Invitations et récupération de mot de passe |
+| 3 | Vérifier le workflow GitHub Actions, l’application Liquibase `user_invitation.token` et la santé HTTP sur l’instance | Équipe dev / exploitation | Validation de livraison |
+| 4 | Installer l’APK 1.0.61 sur Android et tester App Links; comparer l’empreinte publiée dans `assetlinks.json` | Équipe mobile | C5 |
 
 ## 3. Critères MVP restant à valider
 
@@ -34,7 +34,7 @@ Synthèse établie après l’audit du 9 novembre 2026 (sécurité, UX/UI, rebra
 | C2 Demande → OT sans doublon | Fait, non validé | Recette avec licence valide |
 | C3 Listes de tâches (persistance, import/export CSV, sélection PM/OT) | Fait, non validé | Contrôle authentifié du catalogue de pièces par opération |
 | C4 PM : occurrences/OT attendus, sans doublon | Partiel | Tests 02, 04, 05, 06B–F de [TESTS-PM-STRATEGIES-MULTICOMPTEURS.md](TESTS-PM-STRATEGIES-MULTICOMPTEURS.md) ; décisions pilote (rattrapage des seuils sautés, blocage jusqu’à clôture) |
-| C5 Technicien exécute et clôture un OT sur téléphone | Fait, non validé | Installation APK 1.0.60+ sur appareil Android ; reproduire MOB-WO-04 (conversion Timestamp) avec une trace réelle |
+| C5 Technicien exécute et clôture un OT sur téléphone | Fait, non validé | Installer APK 1.0.61 sur appareil Android; reproduire MOB-WO-04 (conversion Timestamp) avec une trace réelle |
 | C6 Besoin en pièces « planifié » jusqu’à action explicite | Fait, non validé | Recette |
 | C7 Circuit d’approbation DA ; BC depuis DA ou direct | Fait, non validé | Contrôle responsive 390/768/1440 ; comptes approbateurs |
 | C8 PDF OT/DA/DI/BC : aperçu, émission, réimpression | Fait, non validé | Modèles publiés sur l’instance |
@@ -56,8 +56,17 @@ Synthèse établie après l’audit du 9 novembre 2026 (sécurité, UX/UI, rebra
 1. Statut du circuit d’approbation : `FINAL-UIUX-MAINTENANCE-BACKLOG.md` (non implémenté) contre `BACKLOG-APPROBATIONS-ACHATS.md` (V1 implémentée, confirmé par le code).
 2. Modèle de BC : réceptions et file de réception existent désormais (le backlog du 20 octobre l’ignore).
 3. Aperçu PDF Web : ouvre une fenêtre de visualisation (`MVP-MOBILE-QPM.md` parle encore d’un simple téléchargement).
-4. Version PostgreSQL et état de la migration documentation (16 en production, 18 exigé par le backlog du centre d’aide).
+4. Version PostgreSQL et état de la migration documentation (la dernière observation consignait PostgreSQL 16.15; le backlog du centre d’aide demande une validation sur PostgreSQL 18).
 5. Santé : `/actuator/health` en 503 contre « health-check API 200 » (endpoints différents, à expliciter).
 6. URL API mobile : `ETAT-REPRISE.md` cite `169-58-86-7.sslip.io`, le code utilise `eam.quoreichgroup.bf`.
-7. Prochaine étape « installer 1.0.59 » obsolète : la version courante est 1.0.60.
+7. Prochaine étape « installer 1.0.59 » obsolète : l’APK courant documenté est 1.0.61.
 8. L’expiration de la licence n’apparaît pas dans l’ordre des jalons de `MVP-PROJET-QPM.md` §3.
+
+## 6. Vérifications locales — 13 novembre 2026
+
+- Web : `npm run typecheck`, les suites approbation, PM, documents et erreurs API, et le build de production passent. Le build signale un avertissement ESLint de mise en forme dans `SiteLogoControl.tsx` (non bloquant).
+- API : les rapports Surefire pour Task Lists, recherche de pièces, PM préventive, approbation achats et accès aux documents indiquent 120 tests réussis, sans échec ni erreur.
+- Mobile : 57 tests de régression, 5 tests onboarding et 5 tests disponibilité équipe passent. Le contrôle `npx tsc --noEmit` échoue encore sur les types JSX de bibliothèques React Native, notamment `SheetProvider`, `BottomTabBar` et `TabView`.
+- Android : l’APK 1.0.61 est présent dans `mobile/dist/`; SHA-256 `02dde8e33e9ddde7f89ceacd6414a7883c68db4c5ea59189e115d05991bf1bb1`. L’installation et les parcours terrain ne sont pas vérifiés sur appareil.
+- CI : le connecteur GitHub ne retourne aucun statut ni workflow associé au commit `f8ca6341916548b48917066d3b6444bd7ac0c440`; la réussite CI n’est donc pas confirmée.
+- Runtime (contrôles en lecture seule) : conteneurs API/Web/renderer/PostgreSQL actifs; PostgreSQL accepte les connexions, Web répond HTTP 200 et renderer PDF HTTP 200. `/actuator/health` répond toujours HTTP 503 et une erreur SMTP 535 apparaît dans les journaux API des six dernières heures.
