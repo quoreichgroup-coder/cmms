@@ -8,6 +8,7 @@ import SelectParts from './SelectParts';
 import { randomInt } from 'src/utils/generators';
 import PartQuantitiesList from '../PartQuantitiesList';
 import api from '../../../../utils/api';
+import { FormHelperText } from '@mui/material';
 
 interface SiteOption { id: number; name: string }
 
@@ -17,6 +18,7 @@ interface SelectPartQuantitiesProps {
   purchaseUnitPriceInput?: boolean;
   siteSelectionEnabled?: boolean;
   siteSelectionRequired?: boolean;
+  errorMessage?: string;
 }
 
 export default function SelectPartQuantities({
@@ -24,7 +26,8 @@ export default function SelectPartQuantities({
   selected,
   purchaseUnitPriceInput = false,
   siteSelectionEnabled = false,
-  siteSelectionRequired = false
+  siteSelectionRequired = false,
+  errorMessage
 }: SelectPartQuantitiesProps) {
   const [partQuantities, setPartQuantities] = useState<PartQuantityMiniDTO[]>(
     []
@@ -121,6 +124,7 @@ export default function SelectPartQuantities({
           onChange(newPartQuantities);
         }}
       />
+      {errorMessage && <FormHelperText error>{errorMessage}</FormHelperText>}
     </>
   );
 }

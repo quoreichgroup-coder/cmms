@@ -26,6 +26,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { getPartsMini } from '../../../../slices/part';
 import { getMultiParts } from "../../../../slices/multipart";
 import useCompactDialog from '../../../../hooks/useCompactDialog';
+import ConfirmDialog from '../ConfirmDialog';
 
 interface SelectPartsProps {
   onChange: (parts: PartMiniDTO[]) => void;
@@ -43,6 +44,24 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchString, setSearchString] = useState<string>('');
   const [openModal, setOpenModal] = useState<boolean>(false);
+  const [confirmDiscard, setConfirmDiscard] = useState<boolean>(false);
+  const hasUncommittedSelection =
+    [...selectedIds].sort((a, b) => a - b).join(',') !==
+    [...selected].sort((a, b) => a - b).join(',');
+  const requestClose = () => {
+    if (hasUncommittedSelection) setConfirmDiscard(true);
+    else setOpenModal(false);
+  };
+  const discardSelection = () => {
+    setSelectedIds(selected);
+    setSelectedParts(
+      selected
+        .map((id) => partsMini.find((part) => part.id === id))
+        .filter((part): part is PartMiniDTO => Boolean(part))
+    );
+    setConfirmDiscard(false);
+    setOpenModal(false);
+  };
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
   };
@@ -84,7 +103,7 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
         fullWidth
         maxWidth="sm"
         open={openModal}
-        onClose={() => setOpenModal(false)}
+        onClose={requestClose}
       >
         <DialogTitle
           sx={{
@@ -172,7 +191,7 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
           )}
         </DialogContent>
         <DialogActions>
-          <Button variant="outlined" onClick={() => setOpenModal(false)}>
+          <Button variant="outlined" onClick={requestClose}>
             {t('cancel')}
           </Button>
           <Button
@@ -187,6 +206,13 @@ export default function SelectParts({ onChange, selected }: SelectPartsProps) {
           </Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog
+        open={confirmDiscard}
+        onCancel={() => setConfirmDiscard(false)}
+        onConfirm={discardSelection}
+        confirmText={t('discard_changes')}
+        question={t('discard_changes_question')}
+      />
       <Button startIcon={<AddOutlinedIcon />} onClick={() => setOpenModal(true)}>
         {t('add_parts')}
       </Button>

@@ -7,18 +7,29 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongSupplier;
 
 /** One-time OAuth token handoff bound to the browser's server-side OAuth session. */
 @Service
 public class OAuthLoginGrantService {
     private static final String SESSION_ATTRIBUTE = OAuthLoginGrantService.class.getName() + ".pendingGrant";
     private static final long TTL_MILLIS = 60_000L;
+    private final LongSupplier currentTimeMillis;
+
+    public OAuthLoginGrantService() {
+        this(System::currentTimeMillis);
+    }
+
+    OAuthLoginGrantService(LongSupplier currentTimeMillis) {
+        this.currentTimeMillis = Objects.requireNonNull(currentTimeMillis);
+    }
 
     public void issue(HttpSession session, AuthTokens tokens) {
         synchronized (session) {
             session.setAttribute(SESSION_ATTRIBUTE,
-                    new PendingGrant(tokens, System.currentTimeMillis() + TTL_MILLIS));
+                    new PendingGrant(tokens, currentTimeMillis.getAsLong() + TTL_MILLIS));
         }
     }
 
@@ -27,7 +38,7 @@ public class OAuthLoginGrantService {
         synchronized (session) {
             Object stored = session.getAttribute(SESSION_ATTRIBUTE);
             PendingGrant grant = stored instanceof PendingGrant pending ? pending : null;
-            if (grant == null || grant.expiresAt() <= System.currentTimeMillis()
+            if (grant == null || grant.expiresAt() <= currentTimeMillis.getAsLong()
                     || !grant.consumed().compareAndSet(false, true)) {
                 throw invalidGrant();
             }

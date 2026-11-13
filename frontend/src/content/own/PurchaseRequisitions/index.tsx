@@ -690,7 +690,20 @@ function PurchaseRequisitions() {
             onDirtyChange={setIsFormDirty}
             validation={Yup.object().shape({
               title: Yup.string().required(t('required_name')),
-              partQuantities: Yup.array().min(1, t('requisition_needs_one_line')).required(t('requisition_needs_one_line'))
+              partQuantities: Yup.array()
+                .min(1, t('requisition_needs_one_line'))
+                .required(t('requisition_needs_one_line'))
+                .test(
+                  'positive-line-quantities',
+                  t('requisition_quantity_required'),
+                  (lines) =>
+                    !Array.isArray(lines) ||
+                    lines.every(
+                      (line) =>
+                        Number.isFinite(Number(line?.quantity)) &&
+                        Number(line.quantity) > 0
+                    )
+                )
             })}
             submitText={t('save_draft')}
             enableReinitialize

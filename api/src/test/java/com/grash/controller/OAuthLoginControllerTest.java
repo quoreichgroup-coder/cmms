@@ -8,21 +8,30 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.http.MediaType;
 
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class OAuthLoginControllerTest {
     private final OAuthLoginGrantService grantService = mock(OAuthLoginGrantService.class);
     private final OAuthLoginController controller = new OAuthLoginController(grantService);
+    private MockMvc mockMvc;
 
     @BeforeEach
     void configureAllowedFrontendOrigins() {
         ReflectionTestUtils.setField(controller, "frontendUrl", "https://qpm.example/app");
         ReflectionTestUtils.setField(controller, "frontendHomeUrl", "https://www.qpm.example/");
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
@@ -56,5 +65,23 @@ class OAuthLoginControllerTest {
 
         assertThrows(CustomException.class, () -> controller.exchange(request));
         verifyNoInteractions(grantService);
+    }
+
+    @Test
+    void postExchangeRoutePreservesSessionAndReturnsNoStoreTokens() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        when(grantService.consume(session)).thenReturn(
+                new AuthTokens("access", "refresh", new Date()));
+
+        mockMvc.perform(post("/auth/oauth/exchange")
+                        .session(session)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Origin", "https://qpm.example"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.accessToken").value("access"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh"));
+
+        verify(grantService).consume(session);
     }
 }

@@ -326,6 +326,13 @@ export default (props: PropsType) => {
                         purchaseUnitPriceInput={field.purchaseUnitPriceInput}
                         siteSelectionEnabled={field.siteSelectionEnabled}
                         siteSelectionRequired={field.siteSelectionRequired}
+                        errorMessage={
+                          (formik.touched[field.name] ||
+                            formik.submitCount > 0) &&
+                          typeof formik.errors[field.name] === 'string'
+                            ? (formik.errors[field.name] as string)
+                            : undefined
+                        }
                         onChange={(newPartQuantities) => {
                           handleChange(formik, field.name, newPartQuantities);
                         }}

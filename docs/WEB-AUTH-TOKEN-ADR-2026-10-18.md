@@ -1,6 +1,6 @@
 # ADR — Réduction de l’exposition des jetons dans QPM Web
 
-- **Statut :** première correction OAuth mise en œuvre localement; stockage Web général encore à migrer
+- **Statut :** correction OAuth à grant unique et durée vérifiée par tests locaux; stockage Web général encore à migrer
 - **Date :** 18 octobre 2026
 - **Périmètre :** client Web React et flux OAuth Web; les clients mobiles/API existants doivent rester compatibles
 - **Liens :** `docs/WEB-UI-SECURITY-AUDIT-2026-10-14.md`, lot `SEC-WEB-06` dans `docs/WEB-UI-REDESIGN-BACKLOG.md`
@@ -37,7 +37,7 @@ La première étape réduit l’exposition OAuth dans les URL, sans régler le s
 
 - L’access token en mémoire reste accessible à du JavaScript exécuté dans l’origine; CSP stricte, assainissement et contrôle des dépendances restent nécessaires. HttpOnly réduit l’exfiltration du refresh token, sans empêcher une XSS d’agir dans la session active.
 - Une cookie d’authentification est automatiquement jointe aux requêtes compatibles : la protection CSRF doit être conçue et testée avant activation. `SameSite` seul ne doit pas être présumé suffisant sans connaître les domaines et les parcours réels.
-- Le endpoint OAuth d’échange rejette les origines absentes/non configurées avant de consommer le grant. Le service rejette l’absence de grant, la réutilisation et l’utilisation depuis une autre session; la réponse est `no-store`. Le test du délai d’expiration et la recette multi-instance/session distribuée restent à ajouter. Les journaux ne doivent pas contenir jetons/grants.
+- Le endpoint OAuth d’échange rejette les origines absentes/non configurées avant de consommer le grant. Le service rejette l’absence de grant, l’expiration, la réutilisation et l’utilisation depuis une autre session; les tests locaux couvrent l’usage unique, la session émettrice et la limite des 60 secondes. Les tests HTTP d’intégration et la recette multi-instance/session distribuée restent à ajouter. Les journaux ne doivent pas contenir jetons/grants.
 - STOMP/WebSocket et Zendesk doivent recevoir uniquement l’access token courant et court-vécu, jamais le refresh token. Vérifier les reconnexions après rotation et déconnexion.
 - L’API Bearer, le refresh par JSON et les applications mobiles restent compatibles jusqu’à une décision de dépréciation indépendante.
 - Les réponses d’erreur OAuth ne doivent pas exposer de détails internes dans `error` de la query string; examiner séparément ce chemin lors de l’implémentation.
@@ -46,7 +46,7 @@ La première étape réduit l’exposition OAuth dans les URL, sans régler le s
 
 1. Documenter les origines Web/API/mobile et le comportement de proxy/CORS/TLS du déploiement réel; relever les consommateurs OAuth.
 2. Tester l’échange de session OAuth derrière le proxy réel, avec cookies, CORS et domaines de production; confirmer la réussite SSO Google/Microsoft et les erreurs génériques.
-3. Ajouter test d’expiration, tests HTTP d’intégration et vérification qu’aucun jeton n’est dans les redirections ou journaux.
+3. Ajouter les tests HTTP d’intégration et vérifier qu’aucun jeton n’est dans les redirections ou journaux; le test déterministe d’expiration est maintenant présent.
 4. Pour supprimer aussi `localStorage`, créer des routes d’authentification Web dédiées qui déposent le refresh token dans un cookie `HttpOnly; Secure; SameSite=Lax` limité au chemin auth; garder l’access token uniquement en mémoire. Couvrir signin classique/LDAP, SSO, renouvellement, changement de compte, inscription avec connexion immédiate, mise à jour de mot de passe et logout. Garder `/auth/signin`, `/auth/refresh` et les autres contrats JSON actuels pour Mobile/API.
 5. Remplacer les lectures directes de `localStorage` par une source mémoire contrôlée dans le client REST et ses consommateurs STOMP (`useImport`, `useExport`, Notifications) et Zendesk. Ajouter une protection CSRF/origin à toutes les routes Web avec cookie et étudier le comportement multi-onglet avant migration progressive.
 6. Tester la matrice Web/Mobile/API, navigation OAuth, session expirée, navigateur privé, proxy TLS, sous-domaines, rôles, reconnexion STOMP, déconnexion réseau et révocation avant migration progressive.
